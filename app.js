@@ -42,7 +42,8 @@
     online: false,
     watchId: null,
     testLocationTimer: null,
-    pollTimer: null
+    pollTimer: null,
+    heartbeatTimer: null
   };
 
   function toast(msg, ms){
@@ -60,6 +61,19 @@
   }
 
   // ---------- profile setup ----------
+  function loadProfileFromCache(){
+    var name = localStorage.getItem('ridelot_rider_name');
+    var vtype = localStorage.getItem('ridelot_rider_vtype');
+    var vlabel = localStorage.getItem('ridelot_rider_vlabel');
+    var plate = localStorage.getItem('ridelot_rider_plate');
+    var phone = localStorage.getItem('ridelot_rider_phone');
+    if (name) document.getElementById('rd-rider-name').value = name;
+    if (vtype) document.getElementById('rd-rider-vtype').value = vtype;
+    if (vlabel) document.getElementById('rd-rider-vlabel').value = vlabel;
+    if (plate) document.getElementById('rd-rider-plate').value = plate;
+    if (phone) document.getElementById('rd-rider-phone').value = phone;
+  }
+
   function loadProfileIntoForm(profile){
     document.getElementById('rd-rider-name').value = profile.name || '';
     document.getElementById('rd-rider-vtype').value = profile.vehicle_type || 'bike';
@@ -98,6 +112,11 @@
       row = Array.isArray(result) ? result[0] : result;
       state.riderId = row.id;
       localStorage.setItem('ridelot_rider_id', state.riderId);
+      localStorage.setItem('ridelot_rider_name', name);
+      localStorage.setItem('ridelot_rider_vtype', vtype);
+      localStorage.setItem('ridelot_rider_vlabel', vlabel);
+      localStorage.setItem('ridelot_rider_plate', plate);
+      localStorage.setItem('ridelot_rider_phone', phone);
       showMain(row);
       toast('Profile saved');
     } catch(err){
@@ -175,6 +194,21 @@
     document.getElementById('rd-display-location').textContent = 'Not sharing';
   }
 
+  function startHeartbeat(){
+    clearInterval(state.heartbeatTimer);
+    state.heartbeatTimer = setInterval(async function(){
+      if (state.riderId && state.online) {
+        try {
+          await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ updated_at: new Date().toISOString() } });
+        } catch(err){ console.error('heartbeat update failed', err); }
+      }
+    }, 45000); // 45 seconds heartbeat ping
+  }
+
+  function stopHeartbeat(){
+    clearInterval(state.heartbeatTimer);
+  }
+
   // ---------- online/offline toggle ----------
   var toggleBtn = document.getElementById('rd-toggle-online-btn');
   toggleBtn.addEventListener('click', async function(){
@@ -182,18 +216,20 @@
       var ok = startSharingLocation();
       if(!ok) return;
       try{
-        await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available' } });
+        await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: new Date().toISOString() } });
         state.online = true;
         toggleBtn.textContent = 'Go offline';
         toggleBtn.className = 'btn btn-toggle-on';
         setPill('available');
         toast('You are online and visible to nearby users');
         startPollingBookings();
+        startHeartbeat();
       } catch(err){
         toast('Could not go online: ' + err.message);
       }
     } else {
       stopSharingLocation();
+      stopHeartbeat();
       try{
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline' } });
       } catch(err){ console.error(err); }
@@ -288,6 +324,7 @@
 
   // ---------- init ----------
   async function init(){
+    loadProfileFromCache();
     if(state.riderId){
       try{
         var rows = await sbFetch('riders?id=eq.' + state.riderId);
@@ -304,6 +341,7 @@
             toggleBtn.className = 'btn btn-toggle-on';
             startSharingLocation();
             startPollingBookings();
+            startHeartbeat();
           }
           return;
         }
@@ -628,8 +666,14 @@
   async function fetchRealRiders(){
     try{
       var rows = await withTimeout(sbFetch('riders?status=eq.available'), 8000);
+      var tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
       var nearby = (rows || []).filter(function(r){
-        return r.lat != null && r.lng != null;
+        if (r.lat == null || r.lng == null) return false;
+        if (r.updated_at) {
+          var updatedAt = new Date(r.updated_at);
+          if (updatedAt < tenMinutesAgo) return false;
+        }
+        return true;
       }).map(function(r){
         r._distanceKm = (state.lat != null) ? haversineKm(state.lat, state.lng, r.lat, r.lng) : 0;
         return r;
