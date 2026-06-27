@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Rydealot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-root active" id="user-app-root">
+
+<div class="switch-bar"><button class="switch-link-inline" id="switch-to-rider-btn">Become a rider &rarr;</button></div>
+<div class="phone" id="phone">
+
+  <!-- SCREEN: SETUP -->
+  <div class="screen active" id="screen-login">
+    <div class="login-hero">
+      <h2>Get a ride</h2>
+      <p>See who's nearby before you book</p>
+    </div>
+    <div class="login-body">
+      <div class="field">
+        <label class="field-label">Your name</label>
+        <input type="text" id="login-name" placeholder="Enter your name">
+      </div>
+      <div class="field">
+        <label class="field-label">Pickup label (what you'll tell your rider)</label>
+        <input type="text" id="pickup-input" placeholder="e.g. X Place main gate">
+      </div>
+      <div class="field">
+        <label class="field-label">Drop label</label>
+        <input type="text" id="drop-input" placeholder="e.g. Airport Terminal 1">
+      </div>
+
+      <div class="field test-loc-block">
+        <label class="field-label">Location for testing</label>
+        <div class="loc-mode-row">
+          <button type="button" class="loc-mode-btn selected" id="loc-mode-real" data-mode="real">My real location</button>
+          <button type="button" class="loc-mode-btn" id="loc-mode-test" data-mode="test">Test location</button>
+        </div>
+        <select id="test-location-select" style="display:none;">
+          <option value="A">Test Point A</option>
+          <option value="B">Test Point B</option>
+          <option value="C">Test Point C</option>
+        </select>
+        <p class="helptext" id="test-loc-help" style="display:none;">
+          Use the same test point on the rider's phone too, so you both show up near each other.
+        </p>
+      </div>
+
+      <button class="btn" id="login-btn" style="margin-top:8px;">Share my location and find riders</button>
+      <p id="loc-status" style="text-align:center; font-size:12px; color:var(--text-faint); margin-top:14px;">
+        We'll ask for your location to find nearby riders.
+      </p>
+    </div>
+  </div>
+
+  <!-- SCREEN: PARKING LOT / LIVE BOOKING -->
+  <div class="screen" id="screen-lot">
+    <div class="nav">
+      <button class="icon-btn" id="lot-back" aria-label="Back"><i class="ti ti-arrow-left"></i></button>
+      <h1 id="lot-title">X Place &rarr; Y Place</h1>
+    </div>
+    <div class="content">
+      <div class="status-row">
+        <span class="live-label">Live at <span id="lot-place-name">X Place</span></span>
+        <span class="count ok" id="count-label">8 vehicles waiting</span>
+      </div>
+      <div class="lot-wrap">
+        <div class="lot">
+          <svg id="lot-svg" viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </div>
+      <div class="bonus-banner" id="bonus-banner">
+        <span class="dot"></span>
+        <span id="bonus-text">No vehicles nearby. Pinging riders 1 km away with a bonus...</span>
+      </div>
+      <div class="surge-banner" id="surge-banner">
+        <i class="ti ti-bolt"></i>
+        <span id="surge-text">Peak time &mdash; prices are higher than usual</span>
+      </div>
+      <p class="recent-title" style="margin:14px 18px 8px;">Choose your ride</p>
+      <div class="ride-type-row" id="ride-type-row">
+        <button class="ride-type-card selected" data-type="bike" id="ridetype-bike">
+          <span class="rt-icon" id="rt-icon-bike"></span>
+          <span class="rt-name">Bike</span>
+          <span class="rt-count" id="rt-count-bike">3 waiting</span>
+          <span class="rt-price" id="rt-price-bike">Rs 35</span>
+        </button>
+        <button class="ride-type-card" data-type="auto" id="ridetype-auto">
+          <span class="rt-icon" id="rt-icon-auto"></span>
+          <span class="rt-name">Auto</span>
+          <span class="rt-count" id="rt-count-auto">3 waiting</span>
+          <span class="rt-price" id="rt-price-auto">Rs 55</span>
+        </button>
+        <button class="ride-type-card" data-type="car" id="ridetype-car">
+          <span class="rt-icon" id="rt-icon-car"></span>
+          <span class="rt-name">Car</span>
+          <span class="rt-count" id="rt-count-car">2 waiting</span>
+          <span class="rt-price" id="rt-price-car">Rs 89</span>
+        </button>
+      </div>
+      <p class="hint">Tap any vehicle in the lot to see rider details before booking</p>
+    </div>
+    <div class="book-btn-wrap">
+      <button class="btn" id="book-btn">Book nearest bike &mdash; Rs 35</button>
+    </div>
+  </div>
+
+  <!-- SCREEN: CONFIRMED / TRACKING -->
+  <div class="screen" id="screen-tracking">
+    <div class="nav">
+      <h1>Your ride</h1>
+      <button class="icon-btn" id="tracking-close" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="content">
+      <div class="confirm-banner">
+        <div id="confirm-vehicle-icon" class="confirm-vehicle-icon"></div>
+        <h3>Booking confirmed</h3>
+        <p id="tracking-sub">Your rider is on the way</p>
+      </div>
+      <div class="track-map">
+        <svg viewBox="0 0 400 160" width="100%" height="100%">
+          <line x1="20" y1="80" x2="380" y2="80" stroke="#6a6e74" stroke-width="2" stroke-dasharray="8 8"/>
+          <circle cx="40" cy="80" r="6" fill="#1d9e75"/>
+          <circle cx="360" cy="80" r="6" fill="#d23c3c"/>
+          <g id="track-vehicle" transform="translate(40,80)">
+            <circle r="11" fill="#16181c"/>
+            <text x="0" y="4" text-anchor="middle" font-size="12" fill="#fff" id="track-icon-text">B</text>
+          </g>
+        </svg>
+      </div>
+      <div class="driver-card">
+        <div class="avatar" id="track-avatar">AM</div>
+        <div class="meta">
+          <p class="a" id="track-name">Arjun Mehta</p>
+          <p class="b" id="track-vehicle-info">Hero Splendor &middot; KA 03 AB 4521</p>
+        </div>
+        <div class="driver-actions">
+          <button class="round-btn" aria-label="Call rider"><i class="ti ti-phone"></i></button>
+          <button class="round-btn" aria-label="Message rider"><i class="ti ti-message-circle"></i></button>
+        </div>
+      </div>
+      <div class="trip-progress">
+        <div class="row">
+          <span class="dot2" style="background:var(--green);"></span>
+          <span class="label">Booking confirmed</span>
+        </div>
+        <div class="row">
+          <span class="dot2" style="background:var(--amber);"></span>
+          <span class="label" id="track-step-2">Rider heading to X Place</span>
+        </div>
+        <div class="row">
+          <span class="dot2" style="background:var(--border);"></span>
+          <span class="label faint">Trip to Y Place</span>
+        </div>
+      </div>
+    </div>
+    <div class="section-pad" style="padding-bottom:10px;">
+      <button class="btn" id="tracking-pay-btn">Trip complete &mdash; done</button>
+    </div>
+    <div class="section-pad" style="padding-top:0;">
+      <button class="btn btn-outline" id="cancel-trip-btn" style="color:var(--red); border-color:#f3d4d4;">Cancel trip</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="detail-card" id="detail-card"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+</div>
+
+<div class="app-root" id="rider-app-root">
+<div class="wrap">
+  <div class="switch-bar"><button class="switch-link-inline" id="switch-to-user-btn">&larr; Back to riding</button></div>
+  <div class="nav">
+    <div class="brandrow">
+      <span class="mark display">R</span>
+      <h1 class="display">RYDEALOT DRIVER</h1>
+    </div>
+    <span class="pill offline" id="rd-status-pill">Offline</span>
+  </div>
+
+  <!-- SETUP (shown once, before going online) -->
+  <div class="section" id="rd-setup-section">
+    <div class="field">
+      <label>Your name</label>
+      <input type="text" id="rd-rider-name" placeholder="e.g. Arjun Mehta">
+    </div>
+    <div class="field">
+      <label>Vehicle type</label>
+      <select id="rd-rider-vtype">
+        <option value="bike">Bike</option>
+        <option value="auto">Auto</option>
+        <option value="car">Car</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Vehicle model</label>
+      <input type="text" id="rd-rider-vlabel" placeholder="e.g. Hero Splendor">
+    </div>
+    <div class="field">
+      <label>Plate number</label>
+      <input type="text" id="rd-rider-plate" placeholder="e.g. KA 03 AB 4521">
+    </div>
+    <div class="field">
+      <label>Phone (so users can call you)</label>
+      <input type="tel" id="rd-rider-phone" placeholder="98765 43210">
+    </div>
+    <button class="btn" id="rd-save-profile-btn">Save and continue</button>
+  </div>
+
+  <!-- MAIN (shown after setup) -->
+  <div class="section" id="rd-main-section" style="display:none;">
+    <div class="status-card">
+      <div class="row"><span class="k">Name</span><span class="v" id="rd-display-name">-</span></div>
+      <div class="row"><span class="k">Vehicle</span><span class="v" id="rd-display-vehicle">-</span></div>
+      <div class="row"><span class="k">Location</span><span class="v" id="rd-display-location">Not sharing</span></div>
+    </div>
+
+    <div class="field">
+      <label>Location for testing</label>
+      <div class="loc-mode-row">
+        <button type="button" class="loc-mode-btn selected" id="rd-loc-mode-real" data-mode="real">My real location</button>
+        <button type="button" class="loc-mode-btn" id="rd-loc-mode-test" data-mode="test">Test location</button>
+      </div>
+      <select id="rd-test-location-select" style="display:none;">
+        <option value="A">Test Point A</option>
+        <option value="B">Test Point B</option>
+        <option value="C">Test Point C</option>
+      </select>
+      <p class="helptext" id="rd-test-loc-help" style="display:none;">
+        Use the same test point as the user testing with you.
+      </p>
+    </div>
+
+    <button class="btn btn-toggle-off" id="rd-toggle-online-btn">Go online</button>
+    <p class="helptext" id="rd-location-help">Going online shares your live location so nearby users can see you.</p>
+
+    <div style="margin-top:24px;">
+      <h3 style="font-size:14px;color:var(--text-mute);margin:0 0 10px;">Booking requests</h3>
+      <div id="rd-bookings-list"><div class="empty-state">No requests yet. Stay online to receive them.</div></div>
+    </div>
+
+    <button class="btn" style="background:#fff;color:var(--text-mute);border:1px solid var(--border);margin-top:24px;" id="rd-edit-profile-btn">Edit profile</button>
+  </div>
+</div>
+
+<div class="toast" id="rd-toast"></div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
