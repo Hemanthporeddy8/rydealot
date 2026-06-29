@@ -244,6 +244,30 @@
 
     <button class="btn" style="background:#fff;color:var(--text-mute);border:1px solid var(--border);margin-top:24px;" id="rd-edit-profile-btn">Edit profile</button>
   </div>
+
+  <!-- ACTIVE TRIP SCREEN (shown to driver during accepted/active trips) -->
+  <div class="section" id="rd-tracking-section" style="display:none; flex-direction:column; padding:18px 20px;">
+    <div class="nav" style="padding:0 0 12px; border-bottom:1.5px solid var(--accent); display:flex; align-items:center; margin-bottom:16px; justify-content:space-between;">
+      <div class="brandrow" style="display:flex; align-items:center; gap:10px;">
+        <span class="mark display" style="width:24px; height:24px; font-size:12px; border-radius:6px; background:var(--signal); border:1.5px solid var(--accent); display:flex; align-items:center; justify-content:center;">T</span>
+        <h2 class="display" style="font-size:14px; margin:0; letter-spacing:0.3px;">ACTIVE TRIP</h2>
+      </div>
+    </div>
+    
+    <div class="status-card" style="margin-bottom:16px;">
+      <div class="row"><span class="k">Customer</span><span class="v" id="rd-track-user-name">-</span></div>
+      <div class="row"><span class="k">Pickup</span><span class="v" id="rd-track-pickup">-</span></div>
+      <div class="row"><span class="k">Drop</span><span class="v" id="rd-track-drop">-</span></div>
+      <div class="row"><span class="k">Fare</span><span class="v" id="rd-track-fare">-</span></div>
+    </div>
+    
+    <!-- Real-time navigation map -->
+    <div id="rd-map" style="height: 220px; width:100%; border-radius:12px; margin-bottom:18px; z-index:1; background:var(--bg); border:1.5px solid var(--border);"></div>
+    
+    <div id="rd-track-actions" style="margin-top:auto; display:flex; flex-direction:column; gap:10px;">
+      <!-- Dynamic action buttons injected here -->
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="rd-toast"></div>

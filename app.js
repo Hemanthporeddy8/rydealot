@@ -43,7 +43,10 @@
     watchId: null,
     testLocationTimer: null,
     pollTimer: null,
-    heartbeatTimer: null
+    heartbeatTimer: null,
+    map: null,
+    driverMarker: null,
+    passengerMarker: null
   };
 
   function toast(msg, ms){
@@ -230,6 +233,7 @@
     } else {
       stopSharingLocation();
       stopHeartbeat();
+      destroyRiderMap();
       try{
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline' } });
       } catch(err){ console.error(err); }
@@ -251,11 +255,122 @@
     clearInterval(state.pollTimer);
   }
 
+  function destroyRiderMap() {
+    if (state.map) {
+      try {
+        state.map.remove();
+      } catch (e) { console.error('Error removing rider map:', e); }
+      state.map = null;
+      state.driverMarker = null;
+      state.passengerMarker = null;
+    }
+  }
+
+  async function showRiderTracking(b) {
+    document.getElementById('rd-main-section').style.display = 'none';
+    document.getElementById('rd-tracking-section').style.display = 'flex';
+
+    document.getElementById('rd-track-user-name').textContent = b.user_name || 'Passenger';
+    document.getElementById('rd-track-pickup').textContent = b.pickup_label || '-';
+    document.getElementById('rd-track-drop').textContent = b.drop_label || '-';
+    document.getElementById('rd-track-fare').textContent = 'Rs ' + (b.fare || '-');
+
+    var actionsEl = document.getElementById('rd-track-actions');
+    var buttonHtml = '';
+    if (b.status === 'accepted') {
+      buttonHtml = 
+        '<div class="maps-link-box" style="margin: 0 0 10px 0; background: var(--bg); border-radius: 12px; padding: 10px; font-size: 13px;">' +
+          'Navigate to pickup: <a href="' + mapsLinkFor(b) + '" target="_blank" rel="noopener" style="display:block; text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:8px; font-weight:700; color:#1a73e8; text-decoration:none; margin-top:6px;">Open in Google Maps</a>' +
+        '</div>' +
+        '<button class="btn" style="background:var(--green); border-color:var(--green); color:#fff;" id="rd-btn-arrived">I have arrived</button>';
+    } else if (b.status === 'arrived') {
+      buttonHtml = '<button class="btn" style="background:var(--signal); border-color:var(--accent); color:var(--accent);" id="rd-btn-start">Start trip</button>';
+    } else if (b.status === 'in_progress') {
+      buttonHtml = '<button class="btn" style="background:var(--red); border-color:var(--red); color:#fff;" id="rd-btn-complete">Complete trip</button>';
+    }
+    actionsEl.innerHTML = buttonHtml;
+
+    var arrivedBtn = document.getElementById('rd-btn-arrived');
+    var startBtn = document.getElementById('rd-btn-start');
+    var completeBtn = document.getElementById('rd-btn-complete');
+    
+    if (arrivedBtn) arrivedBtn.addEventListener('click', function() { handleBookingAction('arrived', b.id); });
+    if (startBtn) startBtn.addEventListener('click', function() { handleBookingAction('start', b.id); });
+    if (completeBtn) completeBtn.addEventListener('click', function() { handleBookingAction('complete', b.id); });
+
+    try {
+      var riderRows = await sbFetch('riders?id=eq.' + state.riderId);
+      var r = riderRows[0];
+      var dLat = (r && r.lat != null) ? r.lat : b.pickup_lat;
+      var dLng = (r && r.lng != null) ? r.lng : b.pickup_lng;
+      
+      var pLat = b.pickup_lat;
+      var pLng = b.pickup_lng;
+
+      if (!state.map) {
+        state.map = L.map('rd-map', {
+          zoomControl: false,
+          attributionControl: false
+        }).setView([dLat, dLng], 15);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19
+        }).addTo(state.map);
+
+        var driverIcon = L.divIcon({
+          html: '<div style="background-color:#16181c; color:#fff; width:22px; height:22px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold; box-shadow:0 1px 4px rgba(0,0,0,0.4);">R</div>',
+          className: 'custom-rider-icon',
+          iconSize: [22, 22],
+          iconAnchor: [11, 11]
+        });
+        state.driverMarker = L.marker([dLat, dLng], { icon: driverIcon }).addTo(state.map);
+
+        if (pLat != null && pLng != null) {
+          var passengerIcon = L.divIcon({
+            html: '<div style="background-color:#1d9e75; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>',
+            className: 'custom-passenger-icon',
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+          });
+          state.passengerMarker = L.marker([pLat, pLng], { icon: passengerIcon }).addTo(state.map);
+        }
+      } else {
+        if (state.driverMarker) state.driverMarker.setLatLng([dLat, dLng]);
+        if (state.passengerMarker && pLat != null && pLng != null) state.passengerMarker.setLatLng([pLat, pLng]);
+      }
+
+      if (state.map) {
+        if (dLat != null && dLng != null && pLat != null && pLng != null) {
+          var bounds = L.latLngBounds([[dLat, dLng], [pLat, pLng]]);
+          state.map.fitBounds(bounds, { padding: [20, 20] });
+        } else {
+          state.map.setView([dLat, dLng], 15);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to update driver map:', err);
+    }
+  }
+
   async function fetchBookings(){
     if(!state.riderId) return;
     try{
       var rows = await sbFetch('bookings?rider_id=eq.' + state.riderId + '&status=in.(requested,accepted,arrived,in_progress)&order=created_at.desc');
-      renderBookings(rows || []);
+      
+      var activeBooking = (rows || []).find(function(b){
+        return b.status === 'accepted' || b.status === 'arrived' || b.status === 'in_progress';
+      });
+
+      if (activeBooking) {
+        showRiderTracking(activeBooking);
+      } else {
+        document.getElementById('rd-tracking-section').style.display = 'none';
+        document.getElementById('rd-main-section').style.display = 'block';
+        destroyRiderMap();
+        
+        var requests = (rows || []).filter(function(b){ return b.status === 'requested'; });
+        renderBookings(requests);
+      }
     } catch(err){
       console.error('fetch bookings failed', err);
     }
@@ -281,18 +396,10 @@
           '<button class="btn btn-decline" data-action="decline" data-id="'+b.id+'">Decline</button>' +
           '<button class="btn" data-action="accept" data-id="'+b.id+'">Accept</button>' +
         '</div>';
-      } else if(b.status === 'accepted'){
-        actions = '<div class="maps-link-box">Navigate to pickup:' +
-          '<a href="'+mapsLinkFor(b)+'" target="_blank" rel="noopener">Open in Google Maps</a></div>' +
-          '<div class="booking-actions" style="margin-top:10px;"><button class="btn" data-action="arrived" data-id="'+b.id+'">I have arrived</button></div>';
-      } else if(b.status === 'arrived'){
-        actions = '<div class="booking-actions"><button class="btn" data-action="start" data-id="'+b.id+'">Start trip</button></div>';
-      } else if(b.status === 'in_progress'){
-        actions = '<div class="booking-actions"><button class="btn" data-action="complete" data-id="'+b.id+'">Complete trip</button></div>';
       }
       return '<div class="booking-card">' +
         '<h3>'+(b.user_name || 'Rider request')+' \u2014 '+(b.vehicle_type||'')+'</h3>' +
-        '<div class="meta">Pickup: '+(b.pickup_label||'-')+'<br>Drop: '+(b.drop_label||'-')+'<br>Fare: Rs '+(b.fare||'-')+'<br>Status: '+b.status+'</div>' +
+        '<div class="meta">Pickup: '+(b.pickup_label||'-')+'<br>Drop: '+(b.drop_label||'-')+'<br>Fare: Rs '+(b.fare||'-')+'</div>' +
         actions +
       '</div>';
     }).join('');
