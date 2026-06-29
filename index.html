@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 <body>
 
@@ -123,17 +125,7 @@
         <h3>Booking confirmed</h3>
         <p id="tracking-sub">Your rider is on the way</p>
       </div>
-      <div class="track-map">
-        <svg viewBox="0 0 400 160" width="100%" height="100%">
-          <line x1="20" y1="80" x2="380" y2="80" stroke="#6a6e74" stroke-width="2" stroke-dasharray="8 8"/>
-          <circle cx="40" cy="80" r="6" fill="#1d9e75"/>
-          <circle cx="360" cy="80" r="6" fill="#d23c3c"/>
-          <g id="track-vehicle" transform="translate(40,80)">
-            <circle r="11" fill="#16181c"/>
-            <text x="0" y="4" text-anchor="middle" font-size="12" fill="#fff" id="track-icon-text">B</text>
-          </g>
-        </svg>
-      </div>
+      <div id="map" class="track-map"></div>
       <div class="driver-card">
         <div class="avatar" id="track-avatar">AM</div>
         <div class="meta">

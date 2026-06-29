@@ -448,7 +448,10 @@
     lastKnownStatus: null,
     exitAnimationPlayed: false,
     trackAnimPlayed: false,
-    bookingPollTimer: null
+    bookingPollTimer: null,
+    map: null,
+    driverMarker: null,
+    passengerMarker: null
   };
 
   function toast(msg, ms){
@@ -1070,6 +1073,17 @@
     return type === 'bike' ? 'Bike' : (type === 'auto' ? 'Auto' : 'Car');
   }
 
+  function destroyMap() {
+    if (state.map) {
+      try {
+        state.map.remove();
+      } catch (e) { console.error('Error removing map:', e); }
+      state.map = null;
+      state.driverMarker = null;
+      state.passengerMarker = null;
+    }
+  }
+
   function goToTracking(rider, type, price){
     state.currentRider = rider;
     state.currentType = type;
@@ -1078,7 +1092,6 @@
     document.getElementById('track-name').textContent = rider.name;
     document.getElementById('track-vehicle-info').textContent = rider.vehicleLabel + ' \u00b7 ' + rider.plate;
     document.getElementById('confirm-vehicle-icon').innerHTML = vehicleIconSvg(type, '#1d9e75');
-    document.getElementById('track-icon-text').textContent = type === 'bike' ? 'B' : (type === 'auto' ? 'A' : 'C');
     document.getElementById('tracking-sub').textContent = 'Waiting for ' + rider.name + ' to accept...';
     document.getElementById('track-step-2').textContent = 'Waiting for rider to accept';
     document.getElementById('tracking-pay-btn').textContent = 'Trip complete \u2014 done';
@@ -1086,6 +1099,42 @@
     document.getElementById('cancel-trip-btn').style.display = 'block';
     document.getElementById('cancel-trip-btn').disabled = false;
     showScreen('screen-tracking');
+
+    // Initialize Leaflet Map
+    try {
+      destroyMap();
+      if (state.lat != null && state.lng != null) {
+        state.map = L.map('map', {
+          zoomControl: false,
+          attributionControl: false
+        }).setView([state.lat, state.lng], 15);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19
+        }).addTo(state.map);
+
+        var passengerIcon = L.divIcon({
+          html: '<div style="background-color:#1d9e75; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>',
+          className: 'custom-passenger-icon',
+          iconSize: [12, 12],
+          iconAnchor: [6, 6]
+        });
+        state.passengerMarker = L.marker([state.lat, state.lng], { icon: passengerIcon }).addTo(state.map);
+        
+        var driverIcon = L.divIcon({
+          html: '<div style="background-color:#16181c; color:#fff; width:22px; height:22px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold; box-shadow:0 1px 4px rgba(0,0,0,0.4);">' + (type === 'bike' ? 'B' : (type === 'auto' ? 'A' : 'C')) + '</div>',
+          className: 'custom-driver-icon',
+          iconSize: [22, 22],
+          iconAnchor: [11, 11]
+        });
+        state.driverMarker = L.marker([state.lat, state.lng], { icon: driverIcon }).addTo(state.map);
+        
+        state.map.fitBounds(L.latLngBounds([[state.lat, state.lng]]));
+      }
+    } catch (err) {
+      console.error('Failed to initialize Leaflet Map:', err);
+    }
+
     startBookingStatusPoll();
   }
 
@@ -1116,12 +1165,36 @@
           var slotId = Object.keys(riderAssign).filter(function(k){ return riderAssign[k] && riderAssign[k].dbId === state.currentRider.dbId; })[0];
           if(slotId) removeVehicle(slotId, function(){});
         }
-        animateTrackVehicle();
+        
+        // Fetch and update driver live position
+        try {
+          var riderRows = await sbFetch('riders?id=eq.' + state.currentRider.dbId);
+          var r = riderRows[0];
+          if (r && r.lat != null && r.lng != null && state.map && state.driverMarker) {
+            state.driverMarker.setLatLng([r.lat, r.lng]);
+            var bounds = L.latLngBounds([[state.lat, state.lng], [r.lat, r.lng]]);
+            state.map.fitBounds(bounds, { padding: [30, 30] });
+          }
+        } catch (e) { console.error('Failed to update driver marker location', e); }
+
       } else if(b.status === 'arrived'){
         sub.textContent = state.currentRider.name + ' has arrived at ' + state.pickup;
+        if (state.map && state.driverMarker) {
+          state.driverMarker.setLatLng([state.lat, state.lng]);
+        }
       } else if(b.status === 'in_progress'){
         sub.textContent = 'Trip in progress to ' + state.drop;
         payBtn.style.display = 'block';
+        // Continue displaying live driver coordinates
+        try {
+          var riderRows = await sbFetch('riders?id=eq.' + state.currentRider.dbId);
+          var r = riderRows[0];
+          if (r && r.lat != null && r.lng != null && state.map && state.driverMarker) {
+            state.driverMarker.setLatLng([r.lat, r.lng]);
+            state.map.panTo([r.lat, r.lng]);
+          }
+        } catch (e) { console.error(e); }
+
       } else if(b.status === 'completed'){
         sub.textContent = 'Trip completed. Thanks for riding with Rydealot.';
         payBtn.style.display = 'block';
@@ -1136,22 +1209,9 @@
     }
   }
 
-  function animateTrackVehicle(){
-    if(state.trackAnimPlayed) return;
-    state.trackAnimPlayed = true;
-    state.riderArrived = false;
-    var v = document.getElementById('track-vehicle');
-    v.setAttribute('transform', 'translate(40,80)');
-    v.style.transition = 'transform 2.4s linear';
-    requestAnimationFrame(function(){
-      setTimeout(function(){
-        v.setAttribute('transform', 'translate(360,80)');
-      }, 50);
-    });
-  }
-
   document.getElementById('cancel-trip-btn').addEventListener('click', async function(){
     clearInterval(state.bookingPollTimer);
+    destroyMap();
     if(!state.activeBookingId){
       showScreen('screen-login');
       return;
@@ -1171,11 +1231,13 @@
 
   document.getElementById('tracking-close').addEventListener('click', function(){
     clearInterval(state.bookingPollTimer);
+    destroyMap();
     showScreen('screen-login');
   });
 
   document.getElementById('tracking-pay-btn').addEventListener('click', function(){
     clearInterval(state.bookingPollTimer);
+    destroyMap();
     state.activeBookingId = null;
     state.exitAnimationPlayed = false;
     state.trackAnimPlayed = false;
