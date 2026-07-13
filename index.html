@@ -10,12 +10,17 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<link rel="manifest" href="manifest.json">
+<link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
 </head>
 <body>
 
 <div class="app-root active" id="user-app-root">
 
-<div class="switch-bar"><button class="switch-link-inline" id="switch-to-rider-btn">Become a rider &rarr;</button></div>
+<div class="switch-bar">
+  <button class="switch-link-inline pwa-install-btn" style="display:none; color:var(--green); font-weight:700; margin-right:12px;">Install App &darr;</button>
+  <button class="switch-link-inline" id="switch-to-rider-btn">Become a rider &rarr;</button>
+</div>
 <div class="phone" id="phone">
 
   <!-- SCREEN: SETUP -->
@@ -172,7 +177,10 @@
 
 <div class="app-root" id="rider-app-root">
 <div class="wrap">
-  <div class="switch-bar"><button class="switch-link-inline" id="switch-to-user-btn">&larr; Back to riding</button></div>
+  <div class="switch-bar">
+    <button class="switch-link-inline pwa-install-btn" style="display:none; color:var(--signal); font-weight:700; margin-right:12px;">Install App &darr;</button>
+    <button class="switch-link-inline" id="switch-to-user-btn">&larr; Back to riding</button>
+  </div>
   <div class="nav">
     <div class="brandrow">
       <span class="mark display">R</span>

@@ -1358,3 +1358,52 @@
   document.getElementById('rt-icon-auto').innerHTML = vehicleIconSvg('auto', '#16181c');
   document.getElementById('rt-icon-car').innerHTML = vehicleIconSvg('car', '#16181c');
 })();
+
+// ===================== PWA Installation & Service Worker Registration =====================
+(function() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./sw.js').then(function(reg) {
+        console.log('ServiceWorker registration successful with scope: ', reg.scope);
+      }, function(err) {
+        console.error('ServiceWorker registration failed: ', err);
+      });
+    });
+  }
+
+  var deferredPrompt = null;
+  var installButtons = document.querySelectorAll('.pwa-install-btn');
+
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    installButtons.forEach(function(btn) {
+      btn.style.display = 'inline-block';
+    });
+  });
+
+  installButtons.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(choiceResult) {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+        } else {
+          console.log('User dismissed the install prompt');
+        }
+        deferredPrompt = null;
+        installButtons.forEach(function(b) {
+          b.style.display = 'none';
+        });
+      });
+    });
+  });
+
+  window.addEventListener('appinstalled', function(e) {
+    console.log('App successfully installed on home screen');
+    installButtons.forEach(function(b) {
+      b.style.display = 'none';
+    });
+  });
+})();
