@@ -788,8 +788,8 @@
         r._distanceKm = (state.lat != null) ? haversineKm(state.lat, state.lng, r.lat, r.lng) : 99999.0;
         return r;
       }).filter(function(r){
-        // Only show riders within a 15 km radius to prevent mixing test/real locations or giving fake hope.
-        return r._distanceKm <= 15.0;
+        // Only show riders within a 30 km radius (for pilot testing with friends up to 25 km away).
+        return r._distanceKm <= 30.0;
       }).sort(function(a, b){ return a._distanceKm - b._distanceKm; });
       return nearby;
     } catch(err){
