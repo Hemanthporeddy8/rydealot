@@ -647,8 +647,12 @@
       state.lng = pos.coords.longitude;
       proceedToLot();
     }, function(err){
+      var msg = 'Could not get your location. Check permissions and try again.';
+      if (err.code === 1) { // PERMISSION_DENIED
+        msg = 'Location Access Blocked. Click the 🔒 Lock icon next to the website URL at the top of your browser, change Location to "Allow", and reload the page!';
+      }
       toast('Location error: ' + err.message);
-      document.getElementById('loc-status').textContent = 'Could not get your location. Check permissions and try again.';
+      document.getElementById('loc-status').textContent = msg;
     }, { enableHighAccuracy: true, timeout: 15000 });
   });
 
