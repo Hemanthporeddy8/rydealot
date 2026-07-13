@@ -172,17 +172,30 @@
       return true;
     }
     if(!('geolocation' in navigator)){
+      document.getElementById('rd-display-location').textContent = 'Error: No Geolocation support.';
       toast('This browser cannot share location');
       return false;
     }
+    document.getElementById('rd-display-location').textContent = 'Step 1: Requesting GPS...';
     state.watchId = navigator.geolocation.watchPosition(async function(pos){
       var lat = pos.coords.latitude, lng = pos.coords.longitude;
-      document.getElementById('rd-display-location').textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+      document.getElementById('rd-display-location').textContent = 'Online: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
       try{
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } });
       } catch(err){ console.error('location update failed', err); }
     }, function(err){
       console.error(err);
+      var msg = '';
+      if (err.code === 1) {
+        msg = '❌ Blocked: Allow location in browser settings / Windows Settings.';
+      } else if (err.code === 2) {
+        msg = '❌ Unavailable: Check VPN, internet connection, or try on mobile.';
+      } else if (err.code === 3) {
+        msg = '❌ Timeout: Request timed out. Refresh page.';
+      } else {
+        msg = '❌ Error: ' + err.message;
+      }
+      document.getElementById('rd-display-location').textContent = msg;
       toast('Location error: ' + err.message);
     }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
     return true;
@@ -638,20 +651,28 @@
     }
 
     if(!('geolocation' in navigator)){
+      document.getElementById('loc-status').textContent = '❌ Error: Geolocation not supported on this browser.';
       toast('This browser cannot access location');
       return;
     }
-    document.getElementById('loc-status').textContent = 'Getting your location...';
+    document.getElementById('loc-status').textContent = 'Step 1: Requesting GPS permission from browser...';
     navigator.geolocation.getCurrentPosition(function(pos){
       state.lat = pos.coords.latitude;
       state.lng = pos.coords.longitude;
-      proceedToLot();
+      document.getElementById('loc-status').textContent = 'Step 2: Connected successfully! Coordinates: ' + state.lat.toFixed(4) + ', ' + state.lng.toFixed(4);
+      setTimeout(proceedToLot, 1000);
     }, function(err){
-      var msg = 'Could not get your location. Check permissions and try again.';
+      var msg = '';
       if (err.code === 1) { // PERMISSION_DENIED
-        msg = 'Location Access Blocked. Click the 🔒 Lock icon next to the website URL at the top of your browser, change Location to "Allow", and reload the page!';
+        msg = '❌ Blocked: Location access denied. Click the 🔒 Lock icon next to the URL, change Location to "Allow", and reload. Also check Windows Settings -> Privacy -> Location.';
+      } else if (err.code === 2) { // POSITION_UNAVAILABLE
+        msg = '❌ Unavailable: Location network lookup failed. Check your VPN, internet connection, or Windows Location Services.';
+      } else if (err.code === 3) { // TIMEOUT
+        msg = '❌ Timeout: GPS response took too long. Try refreshing or testing on a mobile phone with a real GPS chip.';
+      } else {
+        msg = '❌ Error: ' + err.message;
       }
-      toast('Location error: ' + err.message);
+      toast('Location failed');
       document.getElementById('loc-status').textContent = msg;
     }, { enableHighAccuracy: true, timeout: 15000 });
   });
