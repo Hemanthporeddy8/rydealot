@@ -3,6 +3,7 @@
   function showApp(which){
     document.getElementById('rider-app-root').classList.toggle('active', which === 'rider');
     document.getElementById('user-app-root').classList.toggle('active', which === 'user');
+    window.dispatchEvent(new CustomEvent('roleswitch', { detail: { role: which } }));
   }
   document.getElementById('switch-to-rider-btn').addEventListener('click', function(){ showApp('rider'); });
   document.getElementById('switch-to-user-btn').addEventListener('click', function(){ showApp('user'); });
@@ -184,7 +185,6 @@
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } });
       } catch(err){ console.error('location update failed', err); }
     }, function(err){
-      console.error(err);
       var msg = '';
       if (err.code === 1) {
         msg = '❌ Blocked: Allow location in browser settings / Windows Settings.';
@@ -256,6 +256,25 @@
       setPill('offline');
       stopPollingBookings();
       toast('You are offline');
+    }
+  });
+
+  window.addEventListener('roleswitch', async function(e) {
+    if (e.detail.role === 'user') {
+      if (state.online) {
+        stopSharingLocation();
+        stopHeartbeat();
+        destroyRiderMap();
+        try{
+          await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline' } });
+        } catch(err){ console.error(err); }
+        state.online = false;
+        toggleBtn.textContent = 'Go online';
+        toggleBtn.className = 'btn btn-toggle-off';
+        setPill('offline');
+        stopPollingBookings();
+        toast('You went offline as driver');
+      }
     }
   });
 
@@ -1393,8 +1412,8 @@
     window.addEventListener('load', function() {
       navigator.serviceWorker.register('./sw.js').then(function(reg) {
         console.log('ServiceWorker registration successful with scope: ', reg.scope);
-      }, function(err) {
-        console.error('ServiceWorker registration failed: ', err);
+      }).catch(function(err) {
+        console.log('ServiceWorker registration skipped (Incognito or blocked): ', err.message);
       });
     });
   }
