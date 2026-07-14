@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rydealot - Brand Logo Concepts</title>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0e1013;
+      --card-bg: #16181c;
+      --text: #eef0f2;
+      --accent: #FFB020;
+      --border: #242830;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      max-width: 800px;
+    }
+
+    h1 {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 2.5rem;
+      margin: 0 0 10px 0;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      color: #8a8f98;
+      font-size: 1.1rem;
+      margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: var(--accent);
+      box-shadow: 0 10px 30px rgba(255, 176, 32, 0.1);
+    }
+
+    .logo-container {
+      width: 160px;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #0b0c0e;
+      border-radius: 16px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      border: 1.5px solid var(--border);
+    }
+
+    .card:hover .logo-container {
+      border-color: var(--accent);
+    }
+
+    .card-title {
+      font-weight: 800;
+      font-size: 1.2rem;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+
+    .card-desc {
+      font-size: 0.9rem;
+      color: #8a8f98;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .badge {
+      background-color: rgba(255, 176, 32, 0.1);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>RYDEALOT</h1>
+    <p>Select your favorite brand logo concept from the 10 custom designs below.</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- CONCEPT 1 -->
+    <div class="card" onclick="alert('You selected Concept 1')">
+      <span class="badge">Concept 1</span>
+      <div class="logo-container">
+        <!-- Minimalist Highway Y -->
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <rect width="200" height="200" rx="40" fill="#16181c"/>
+          <path d="M50 40 L90 100 L90 165 C90 170, 110 170, 110 165 L110 100 L150 40" fill="none" stroke="#FFB020" stroke-width="24" stroke-linecap="round"/>
+          <path d="M50 40 L90 100 L90 165 C90 170, 110 170, 110 165 L110 100 L150 40" fill="none" stroke="#ffffff" stroke-width="2" stroke-dasharray="8 6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="card-title">The Highway Y</div>
+      <div class="card-desc">Bold Y-junction road with dashed white lane separators. Clean, fast, and highly recognizable.</div>
+    </div>
+
+    <!-- CONCEPT 2 -->
+    <div class="card" onclick="alert('You selected Concept 2')">
+      <span class="badge">Concept 2</span>
+      <div class="logo-container">
+        <!-- GPS Pin Junction -->
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <rect width="200" height="200" rx="40" fill="#16181c"/>
+          <!-- Map Pin Outline -->
+          <path d="M100 30 C65 30, 45 50, 45 85 C45 125, 100 170, 100 170 C100 170, 155 125, 155 85 C155 50, 135 30, 100 30 Z" fill="#FFB020"/>
+          <!-- Inner Road cutout in Pin -->
+          <path d="M80 65 L95 90 L95 120 L105 120 L105 90 L120 65" fill="none" stroke="#16181c" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="card-title">GPS Pin Road</div>
+      <div class="card-desc">A geolocation map pin featuring a Y-road split cutout inside, representing logistics and delivery.</div>
+    </div>
+
+    <!-- CONCEPT 3 -->
+    <div class="card" onclick="alert('You selected Concept 3')">
+      <span class="badge">Concept 3</span>
+      <div class="logo-container">
+        <!-- Bike Taxi flow -->
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <rect width="200" height="200" rx="40" fill="#16181c"/>
+          <!-- Road Split background -->
+          <path d="M60 40 L90 90 L90 160 M140 40 L110 90 L110 160" fill="none" stroke="#333742" stroke-width="16" stroke-linecap="round"/>
+          <!-- Rider Silhouette in motion -->
+          <path d="M100 70 A12 12 0 1 0 100 46 A12 12 0 1 0 100 70 Z" fill="#FFB020"/>
+          <path d="M75 95 C85 85, 115 85, 125 95 L115 135 L85 135 Z" fill="#FFB020"/>
+          <circle cx="85" cy="140" r="14" fill="#ffffff"/>
+          <circle cx="115" cy="140" r="14" fill="#ffffff"/>
+        </svg>
+      </div>
+      <div class="card-title">The Rider Flow</div>
+      <div class="card-desc">A stylized bike taxi rider traveling down a Y-junction. Highlights direct transport service.</div>
+    </div>
+
+    <!-- CONCEPT 4 -->
+    <div class="card" onclick="alert('You selected Concept 4')">
+      <span class="badge">Concept 4</span>
+      <div class="logo-container">
+        <!-- Neon Cyberpunk Split -->
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <rect width="200" height="200" rx="40" fill="#0d0e12"/>
+          <!-- Tech grid lines -->
+          <line x1="20" y1="40" x2="180" y2="40" stroke="#1f222e" stroke-width="1"/>
+          <line x1="20" y1="90" x2="180" y2="90" stroke="#1f222e" stroke-width="1"/>
+          <line x1="20" y1="140" x2="180" y2="140" stroke="#1f222e" stroke-width="1"/>
+          <!-- Neon road -->
+          <path d="M60 50 L92 100 L92 155 M140 50 L108 100 L108 155" fill="none" stroke="#39ff14" stroke-width="14" stroke-linecap="round"/>
+          <path d="M100 100 L100 150 M72 70 L93 100 M128 70 L107 100" fill="none" stroke="#ffffff" stroke-dasharray="4 4" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="card-title">Cyber Neon Split</div>
+      <div class="card-desc">Glowing electric-green road lanes over a dark grid. Fits a futuristic, mobile-first tech vibe.</div>
+    </div>
+
+    <!-- CONCEPT 5 -->
+    <div class="card" onclick="alert('You selected Concept 5')">
+      <span class="badge">Concept 5</span>
+      <div class="logo-container">
+        <!-- Abstract Speed Arrows -->
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <rect width="200" height="200" rx="40" fill="#16181c"/>
+          <!-- Geometric Y merging arrow shapes -->
+          <polygon points="50,45 85,45 100,75 100,155 80,155 80,90" fill="#FFB020"/>
+          <polygon points="150,45 115,45 100,75 100,155 120,155 120,90" fill="#ffffff"/>
+        </svg>
+      </div>
+      <div class="card-title">Speed Arrow Y</div>
+      <div class="card-desc">Two geometric arrows (Gold & White) merging together and heading down. Represents matching & speed.</div>
+    </div>
+
+    <!-- CONCEPT 6 -->
+    <div class="card" onclick="alert('You selected Concept 6')">
+      <span class="badge">Concept 6</span>
+      <div class="logo-container">
+        <!-- The Delivery Shield -->
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <rect width="200" height="200" rx="40" fill="#16181c"/>
+          <!-- Shield path -->
+          <path d="M50 45 C50 45, 100 35, 100 35 C100 35, 150 45, 150 45 C150 75, 150 120, 100 165 C50 120, 50 75, 50 45 Z" fill="none" stroke="#FFB020" stroke-width="10" stroke-linejoin="round"/>
+          <!-- Y split and package box -->
+          <path d="M70 70 L95 105 L95 140 M130 70 L105 105 L105 140" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+          <rect x="88" y="55" width="24" height="24" rx="4" fill="#FFB020"/>
+        </svg>
+      </div>
+      <div class="card-title">Security Shield Y</div>
+      <div class="card-desc">A protective shield outline framing a Y-road and a delivery box, representing safety and logistics.</div>
+    </div>
+
+    <!-- CONCEPT 7 -->
+    <div class="card" onclick="alert('You selected Concept 7')">
+      <span class="badge">Concept 7</span>
+      <div class="logo-container">
+        <!-- Monogram R + Y -->
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <rect width="200" height="200" rx="40" fill="#16181c"/>
+          <!-- Stylized 'R' with leg splitting into Y road -->
+          <path d="M65 50 L115 50 C135 50, 135 85, 115 85 L65 85 M65 50 L65 150" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Y fork leg of R -->
+          <path d="M100 85 L70 150 M100 85 L135 150" fill="none" stroke="#FFB020" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="card-title">R-Y Monogram</div>
+      <div class="card-desc">A modern letter monogram combining R (Ride) and Y (Junction) with the splitting leg representing a fork.</div>
+    </div>
+
+    <!-- CONCEPT 8 -->
+    <div class="card" onclick="alert('You selected Concept 8')">
+      <span class="badge">Concept 8</span>
+      <div class="logo-container">
+        <!-- Parallel lanes split -->
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <rect width="200" height="200" rx="40" fill="#16181c"/>
+          <!-- Parallel lines forming Y road splits -->
+          <path d="M55 45 C75 90, 85 90, 85 155" fill="none" stroke="#FFB020" stroke-width="12" stroke-linecap="round"/>
+          <path d="M145 45 C125 90, 115 90, 115 155" fill="none" stroke="#FFB020" stroke-width="12" stroke-linecap="round"/>
+          <path d="M100 45 L100 90" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="card-title">Parallel Flow</div>
+      <div class="card-desc">Two smooth curved highway lines coming together at the bottom. Elegant, simple, and clean.</div>
+    </div>
+
+    <!-- CONCEPT 9 -->
+    <div class="card" onclick="alert('You selected Concept 9')">
+      <span class="badge">Concept 9</span>
+      <div class="logo-container">
+        <!-- Hexagon Node -->
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <rect width="200" height="200" rx="40" fill="#16181c"/>
+          <!-- Tech Hexagon -->
+          <polygon points="100,30 160,65 160,135 100,170 40,135 40,65" fill="none" stroke="#333742" stroke-width="6"/>
+          <!-- Y node lines inside -->
+          <line x1="100" y1="100" x2="40" y2="65" stroke="#FFB020" stroke-width="12" stroke-linecap="round"/>
+          <line x1="100" y1="100" x2="160" y2="65" stroke="#FFB020" stroke-width="12" stroke-linecap="round"/>
+          <line x1="100" y1="100" x2="100" y2="170" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+          <circle cx="100" cy="100" r="14" fill="#16181c" stroke="#ffffff" stroke-width="4"/>
+        </svg>
+      </div>
+      <div class="card-title">Hexagon Node</div>
+      <div class="card-desc">A technical database node inside a network hexagon, representing the app connecting driver and passenger.</div>
+    </div>
+
+    <!-- CONCEPT 10 -->
+    <div class="card" onclick="alert('You selected Concept 10')">
+      <span class="badge">Concept 10</span>
+      <div class="logo-container">
+        <!-- Circular Horizon -->
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <rect width="200" height="200" rx="40" fill="#16181c"/>
+          <circle cx="100" cy="100" r="70" fill="#0d0e12" stroke="#333742" stroke-width="4"/>
+          <!-- Sunset semi circle -->
+          <path d="M50 100 C50 65, 150 65, 150 100 Z" fill="#FFB020" opacity="0.3"/>
+          <!-- Y Road leading to horizon -->
+          <path d="M70 100 L90 120 L90 165 C90 167, 110 167, 110 165 L110 120 L130 100" fill="none" stroke="#FFB020" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="100" y1="125" x2="100" y2="160" stroke="#ffffff" stroke-width="2" stroke-dasharray="4 3"/>
+        </svg>
+      </div>
+      <div class="card-title">Sunset Horizon</div>
+      <div class="card-desc">A circular road logo showing a Y-road leading toward a bright horizon, representing travel and destinations.</div>
+    </div>
+
+  </div>
+
+</body>
+</html>
