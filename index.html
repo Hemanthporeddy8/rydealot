@@ -24,12 +24,15 @@
 <div class="phone" id="phone">
 
   <!-- SCREEN: SETUP -->
-  <div class="screen active" id="screen-login">
-    <div class="login-hero">
-      <h2>Get a ride</h2>
-      <p>See who's nearby before you book</p>
-    </div>
-    <div class="login-body">
+  <div class="screen active" id="screen-login" style="display:flex; flex-direction:column; background:#fff; height:100%;">
+    <!-- Large, prominent map at the top of the screen -->
+    <div id="setup-map" style="height: 380px; width: 100%; border-bottom: 1.5px solid var(--border); position: relative; z-index: 1;"></div>
+    
+    <!-- Form/booking details card scrollable below -->
+    <div class="login-body" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
+      <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--text); margin-bottom: 2px;">Get a ride</h2>
+      <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 8px;">Find nearby drivers and book in seconds</p>
+
       <div class="field">
         <label class="field-label">Your name</label>
         <input type="text" id="login-name" placeholder="Enter your name">
@@ -37,43 +40,37 @@
       <div class="field">
         <label class="field-label">Pickup label (where the rider should find you)</label>
         <div style="position:relative">
-          <input type="text" id="pickup-input" placeholder="e.g. Hanamakonda Bus Stand" autocomplete="off">
+          <input type="text" id="pickup-input" placeholder="e.g. Bus Stand" autocomplete="off">
           <div id="pickup-suggestions" class="autocomplete-dropdown"></div>
         </div>
       </div>
       <div class="field">
         <label class="field-label">Drop label (where you want to go)</label>
         <div style="position:relative">
-          <input type="text" id="drop-input" placeholder="e.g. Kazipet Railway Station" autocomplete="off">
+          <input type="text" id="drop-input" placeholder="e.g. Railway Station" autocomplete="off">
           <div id="drop-suggestions" class="autocomplete-dropdown"></div>
-        </div>
-        <button type="button" class="btn" id="btn-pin-dest" style="margin-top: 8px; font-size: 13px; padding: 6px 12px; background: var(--bg); border: 1.5px solid var(--border); color: var(--accent); cursor: pointer; width: 100%; border-radius: 8px; font-weight: 600;">Pin destination on Map &rarr;</button>
-        <div id="dest-map-container" style="display: none; margin-top: 10px;">
-          <p class="helptext" style="margin-bottom: 6px; font-size: 11px; color: var(--text-mute);">Tap on the map to place a red marker representing your drop point:</p>
-          <div id="dest-map" style="height: 180px; width: 100%; border-radius: 12px; border: 1.5px solid var(--border); z-index: 1;"></div>
-          <p class="helptext" id="dest-coords-label" style="margin-top: 6px; color: var(--green); font-weight: bold; font-size: 11px;"></p>
         </div>
       </div>
 
-      <div class="field test-loc-block">
+      <div class="field test-loc-block" style="margin-top: 4px;">
         <label class="field-label">Location for testing</label>
         <div class="loc-mode-row">
           <button type="button" class="loc-mode-btn selected" id="loc-mode-real" data-mode="real">My real location</button>
           <button type="button" class="loc-mode-btn" id="loc-mode-test" data-mode="test">Test location</button>
         </div>
-        <select id="test-location-select" style="display:none;">
+        <select id="test-location-select" style="display:none; margin-top: 8px;">
           <option value="A">Test Point A</option>
           <option value="B">Test Point B</option>
           <option value="C">Test Point C</option>
         </select>
-        <p class="helptext" id="test-loc-help" style="display:none;">
+        <p class="helptext" id="test-loc-help" style="display:none; font-size: 11px;">
           Use the same test point on the rider's phone too, so you both show up near each other.
         </p>
       </div>
 
       <button class="btn" id="login-btn" style="margin-top:8px;">Share my location and find riders</button>
-      <p id="loc-status" style="text-align:center; font-size:12px; color:var(--text-faint); margin-top:14px;">
-        We'll ask for your location to find nearby riders.
+      <p id="loc-status" style="text-align:center; font-size:12px; color:var(--text-faint); margin-top:6px; font-weight:600;">
+        Locating you...
       </p>
     </div>
   </div>

@@ -673,6 +673,11 @@
       s.classList.remove('active');
     });
     document.getElementById(id).classList.add('active');
+    if (id === 'screen-login' && state.destMap) {
+      setTimeout(function(){
+        state.destMap.invalidateSize();
+      }, 100);
+    }
   }
 
   function setActiveTab(name){
@@ -703,68 +708,190 @@
       document.getElementById('login-btn').textContent = isTest
         ? 'Use test location and find riders'
         : 'Share my location and find riders';
+      
+      if(isTest) {
+        var pointKey = document.getElementById('test-location-select').value;
+        var point = TEST_LOCATIONS[pointKey];
+        state.lat = point.lat;
+        state.lng = point.lng;
+        document.getElementById('pickup-input').value = 'Test Point ' + pointKey;
+        updateSetupMapMarkers();
+      } else {
+        autoFindLocation();
+      }
     });
   });
 
-  document.getElementById('btn-pin-dest').addEventListener('click', function(){
-    var container = document.getElementById('dest-map-container');
-    var isHidden = container.style.display === 'none';
-    container.style.display = isHidden ? 'block' : 'none';
-    if(isHidden){
-      var centerLat = 17.3850;
-      var centerLng = 78.4867;
-      if(state.lat && state.lng){
-        centerLat = state.lat;
-        centerLng = state.lng;
-      } else if(locationMode === 'test'){
-        var pointKey = document.getElementById('test-location-select').value;
-        var point = TEST_LOCATIONS[pointKey];
-        centerLat = point.lat;
-        centerLng = point.lng;
-      }
-      if(!state.destMap){
-        state.destMap = L.map('dest-map', { zoomControl: true }).setView([centerLat, centerLng], 14);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-          maxZoom: 19
-        }).addTo(state.destMap);
-        state.destMap.on('click', function(e) {
-          var lat = e.latlng.lat;
-          var lng = e.latlng.lng;
-          state.destLat = lat;
-          state.destLng = lng;
-          if(!state.destMarker){
-            state.destMarker = L.marker([lat, lng], {
-              icon: L.divIcon({
-                html: '<div style="background-color:var(--red); width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>',
-                className: 'custom-dest-pin',
-                iconSize: [12, 12],
-                iconAnchor: [6, 6]
-              })
-            }).addTo(state.destMap);
-          } else {
-            state.destMarker.setLatLng([lat, lng]);
-          }
-          document.getElementById('dest-coords-label').textContent = '📍 Destination pinned: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
-          var dropInput = document.getElementById('drop-input');
-          if(!dropInput.value || dropInput.value.startsWith('Pinned Location')){
-            dropInput.value = 'Pinned Location (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
-          }
-        });
-      } else {
-        state.destMap.setView([centerLat, centerLng], 14);
-        state.destMap.invalidateSize();
-      }
-      if(!state.lat && !state.lng && navigator.geolocation){
-        navigator.geolocation.getCurrentPosition(function(pos){
-          var plat = pos.coords.latitude;
-          var plng = pos.coords.longitude;
-          if(state.destMap){
-            state.destMap.setView([plat, plng], 14);
-          }
-        }, function(){}, { timeout: 3000 });
-      }
+  document.getElementById('test-location-select').addEventListener('change', function(){
+    if (locationMode === 'test') {
+      var pointKey = this.value;
+      var point = TEST_LOCATIONS[pointKey];
+      state.lat = point.lat;
+      state.lng = point.lng;
+      document.getElementById('pickup-input').value = 'Test Point ' + pointKey;
+      updateSetupMapMarkers();
     }
   });
+
+  // ---- Setup Map Initialization and Update Functions ----
+  var setupMapInitialized = false;
+  
+  function initSetupMap() {
+    if (setupMapInitialized) {
+      if (state.destMap) state.destMap.invalidateSize();
+      return;
+    }
+    
+    var defaultLat = 17.9961;
+    var defaultLng = 79.5509; // Kazipet / Hanamakonda area center
+    
+    state.destMap = L.map('setup-map', { zoomControl: true }).setView([defaultLat, defaultLng], 13);
+    
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19
+    }).addTo(state.destMap);
+
+    // Clicking anywhere on the map pins the Destination (Drop point)
+    state.destMap.on('click', function(e) {
+      var lat = e.latlng.lat;
+      var lng = e.latlng.lng;
+      state.destLat = lat;
+      state.destLng = lng;
+      updateSetupMapMarkers();
+      
+      var dropInput = document.getElementById('drop-input');
+      dropInput.value = 'Pinned Destination (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
+    });
+
+    setupMapInitialized = true;
+    updateSetupMapMarkers();
+  }
+
+  function updateSetupMapMarkers() {
+    if (!state.destMap) return;
+
+    // 1. Pickup Marker (Green Dot)
+    if (state.lat && state.lng) {
+      if (!state.setupPickupMarker) {
+        state.setupPickupMarker = L.marker([state.lat, state.lng], {
+          icon: L.divIcon({
+            html: '<div style="background-color:var(--green); width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.4);"></div>',
+            className: 'custom-pickup-pin',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
+          })
+        }).addTo(state.destMap);
+      } else {
+        state.setupPickupMarker.setLatLng([state.lat, state.lng]);
+      }
+    } else {
+      if (state.setupPickupMarker) {
+        state.destMap.removeLayer(state.setupPickupMarker);
+        state.setupPickupMarker = null;
+      }
+    }
+
+    // 2. Drop Marker (Red Dot)
+    if (state.destLat && state.destLng) {
+      if (!state.setupDropMarker) {
+        state.setupDropMarker = L.marker([state.destLat, state.destLng], {
+          icon: L.divIcon({
+            html: '<div style="background-color:var(--red); width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.4);"></div>',
+            className: 'custom-drop-pin',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
+          })
+        }).addTo(state.destMap);
+      } else {
+        state.setupDropMarker.setLatLng([state.destLat, state.destLng]);
+      }
+    } else {
+      if (state.setupDropMarker) {
+        state.destMap.removeLayer(state.setupDropMarker);
+        state.setupDropMarker = null;
+      }
+    }
+
+    // 3. Polyline and Bounds Fitting
+    if (state.lat && state.lng && state.destLat && state.destLng) {
+      var points = [
+        [state.lat, state.lng],
+        [state.destLat, state.destLng]
+      ];
+      if (state.setupPolyline) {
+        state.setupPolyline.setLatLngs(points);
+      } else {
+        state.setupPolyline = L.polyline(points, {
+          color: 'var(--accent)',
+          dashArray: '4, 6',
+          weight: 3
+        }).addTo(state.destMap);
+      }
+      state.destMap.fitBounds(L.latLngBounds(points), { padding: [50, 50] });
+    } else {
+      if (state.setupPolyline) {
+        state.destMap.removeLayer(state.setupPolyline);
+        state.setupPolyline = null;
+      }
+      if (state.lat && state.lng) {
+        state.destMap.setView([state.lat, state.lng], 14);
+      } else if (state.destLat && state.destLng) {
+        state.destMap.setView([state.destLat, state.destLng], 14);
+      }
+    }
+  }
+
+  function autoFindLocation() {
+    document.getElementById('loc-status').textContent = 'Locating you...';
+    
+    function tryLocation(highAccuracy) {
+      var watchId = navigator.geolocation.watchPosition(function(pos){
+        state.lat = pos.coords.latitude;
+        state.lng = pos.coords.longitude;
+        navigator.geolocation.clearWatch(watchId);
+        
+        var pickupInput = document.getElementById('pickup-input');
+        if(!pickupInput.value || pickupInput.value.startsWith('Current Location') || pickupInput.value.startsWith('Test Point')) {
+          pickupInput.value = 'Current Location';
+        }
+        document.getElementById('loc-status').textContent = '🟢 Location active';
+        updateSetupMapMarkers();
+      }, function(err){
+        navigator.geolocation.clearWatch(watchId);
+        if(highAccuracy && (err.code === 2 || err.code === 3)){
+          document.getElementById('loc-status').textContent = 'GPS failed. Trying network location...';
+          tryLocation(false);
+          return;
+        }
+        if(err.code !== 1){
+          document.getElementById('loc-status').textContent = 'Trying network location (IP-based)...';
+          fetch('https://ipapi.co/json/')
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+              if(d && d.latitude && d.longitude){
+                state.lat = d.latitude;
+                state.lng = d.longitude;
+                var pickupInput = document.getElementById('pickup-input');
+                if(!pickupInput.value || pickupInput.value.startsWith('Current Location') || pickupInput.value.startsWith('Test Point')) {
+                  pickupInput.value = 'Current Location (approx)';
+                }
+                document.getElementById('loc-status').textContent = '🟢 Network location active';
+                updateSetupMapMarkers();
+              } else {
+                document.getElementById('loc-status').textContent = '❌ Could not get location. Try enabling GPS.';
+              }
+            })
+            .catch(function(){
+              document.getElementById('loc-status').textContent = '❌ All location methods failed.';
+            });
+        } else {
+          document.getElementById('loc-status').textContent = '❌ Location blocked. Allow location access in browser.';
+        }
+      }, { enableHighAccuracy: highAccuracy, timeout: 10000, maximumAge: 10000 });
+    }
+    
+    tryLocation(true);
+  }
 
   // ---- Place autocomplete using OpenStreetMap Nominatim (free, no API key) ----
   (function(){
@@ -802,7 +929,7 @@
                 '<div><div class="ac-name">' + name + '</div><div class="ac-addr">' + (detail || place.display_name.split(',').slice(1,3).join(',').trim()) + '</div></div>' +
               '</div>';
             }).join('');
-            // Click handler
+            
             Array.prototype.forEach.call(dropdown.querySelectorAll('.ac-item'), function(item){
               item.addEventListener('mousedown', function(e){
                 e.preventDefault();
@@ -821,7 +948,6 @@
         }, 380);
       });
 
-      // Close dropdown when clicking outside
       document.addEventListener('click', function(e){
         if (!input.contains(e.target) && !dropdown.contains(e.target)) {
           dropdown.classList.remove('open');
@@ -835,14 +961,18 @@
       });
     }
 
-    // Pickup: just fills the label
-    setupAutocomplete('pickup-input', 'pickup-suggestions', null);
+    // Pickup: fills coordinates and updates setup map
+    setupAutocomplete('pickup-input', 'pickup-suggestions', function(lat, lng){
+      state.lat = lat;
+      state.lng = lng;
+      updateSetupMapMarkers();
+    });
 
-    // Drop: fills label AND stores lat/lng for maps
-    setupAutocomplete('drop-input', 'drop-suggestions', function(lat, lng, name){
+    // Drop: fills coordinates, label, and updates setup map
+    setupAutocomplete('drop-input', 'drop-suggestions', function(lat, lng){
       state.destLat = lat;
       state.destLng = lng;
-      document.getElementById('dest-coords-label').textContent = '📍 Destination set: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+      updateSetupMapMarkers();
     });
   })();
 
@@ -854,89 +984,24 @@
       toast('Please enter your name');
       return;
     }
+    if(!state.lat || !state.lng){
+      toast('Please wait for location to load, or select Test Location.');
+      return;
+    }
     state.userName = name;
-    state.pickup = pickup || 'Pickup point';
-    state.drop = drop || 'Drop point';
+    state.pickup = pickup || 'Current Location';
+    state.drop = drop || 'Destination';
 
-    function proceedToLot(){
-      document.getElementById('lot-title').textContent = state.pickup + ' \u2192 ' + state.drop;
-      document.getElementById('lot-place-name').textContent = state.pickup;
-      if (state.lat && state.lng) {
-        document.getElementById('lot-coords-display').textContent = 'GPS Active: ' + state.lat.toFixed(5) + ', ' + state.lng.toFixed(5);
-        document.getElementById('lot-coords-display-container').style.display = 'flex';
-      } else {
-        document.getElementById('lot-coords-display-container').style.display = 'none';
-      }
-      showScreen('screen-lot');
-      resetLot();
+    document.getElementById('lot-title').textContent = state.pickup + ' \u2192 ' + state.drop;
+    document.getElementById('lot-place-name').textContent = state.pickup;
+    if (state.lat && state.lng) {
+      document.getElementById('lot-coords-display').textContent = 'GPS Active: ' + state.lat.toFixed(5) + ', ' + state.lng.toFixed(5);
+      document.getElementById('lot-coords-display-container').style.display = 'flex';
+    } else {
+      document.getElementById('lot-coords-display-container').style.display = 'none';
     }
-
-    if(locationMode === 'test'){
-      var pointKey = document.getElementById('test-location-select').value;
-      var point = TEST_LOCATIONS[pointKey];
-      state.lat = point.lat;
-      state.lng = point.lng;
-      toast('Using Test Point ' + pointKey + ' (not your real location)');
-      proceedToLot();
-      return;
-    }
-
-    if(!('geolocation' in navigator)){
-      document.getElementById('loc-status').textContent = '❌ Error: Geolocation not supported on this browser.';
-      toast('This browser cannot access location');
-      return;
-    }
-    document.getElementById('loc-status').textContent = 'Step 1: Requesting GPS permission...';
-    
-    var hasProceeded = false;
-
-    // Last resort: IP-based location (works on laptops with no GPS chip)
-    function useIpLocation() {
-      document.getElementById('loc-status').textContent = 'Using network location (IP-based)...';
-      fetch('https://ipapi.co/json/')
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          if(d && d.latitude && d.longitude){
-            state.lat = d.latitude;
-            state.lng = d.longitude;
-            document.getElementById('loc-status').textContent = '✅ Network location: ' + state.lat.toFixed(4) + ', ' + state.lng.toFixed(4) + ' (approx. — accurate enough to find nearby drivers)';
-            if(!hasProceeded){ hasProceeded = true; setTimeout(proceedToLot, 1000); }
-          } else {
-            document.getElementById('loc-status').textContent = '❌ Could not get location. Please enable Location in browser and phone Settings, then refresh.';
-            toast('Location failed');
-          }
-        })
-        .catch(function(){
-          document.getElementById('loc-status').textContent = '❌ All location methods failed. Enable Location in browser settings and reload.';
-          toast('Location failed');
-        });
-    }
-
-    function tryLocation(highAccuracy) {
-      var watchId = navigator.geolocation.watchPosition(function(pos){
-        state.lat = pos.coords.latitude;
-        state.lng = pos.coords.longitude;
-        navigator.geolocation.clearWatch(watchId);
-        document.getElementById('loc-status').textContent = '✅ GPS Connected: ' + state.lat.toFixed(5) + ', ' + state.lng.toFixed(5);
-        if(!hasProceeded){ hasProceeded = true; setTimeout(proceedToLot, 800); }
-      }, function(err){
-        navigator.geolocation.clearWatch(watchId);
-        if(highAccuracy && (err.code === 2 || err.code === 3)){
-          document.getElementById('loc-status').textContent = 'GPS unavailable. Trying network location...';
-          tryLocation(false);
-          return;
-        }
-        // All GPS methods failed — fall back to IP location
-        if(err.code !== 1){
-          useIpLocation();
-        } else {
-          document.getElementById('loc-status').textContent = '❌ Location blocked. Tap the address bar 🔒 icon → set Location to Allow → reload the page.';
-          toast('Location permission denied');
-        }
-      }, { enableHighAccuracy: highAccuracy, timeout: 12000, maximumAge: 10000 });
-    }
-    
-    tryLocation(true);
+    showScreen('screen-lot');
+    resetLot();
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('.ride-type-card'), function(card){
@@ -1666,6 +1731,22 @@
   document.getElementById('rt-icon-bike').innerHTML = vehicleIconSvg('bike', '#16181c');
   document.getElementById('rt-icon-auto').innerHTML = vehicleIconSvg('auto', '#16181c');
   document.getElementById('rt-icon-car').innerHTML = vehicleIconSvg('car', '#16181c');
+
+  // Automatic startup triggers for passenger side map & location
+  setTimeout(function(){
+    initSetupMap();
+    autoFindLocation();
+  }, 300);
+
+  // Re-initialize setup map if roles switch
+  window.addEventListener('roleswitch', function(e){
+    if (e.detail.role === 'user') {
+      setTimeout(function(){
+        initSetupMap();
+        updateSetupMapMarkers();
+      }, 150);
+    }
+  });
 })();
 
 // ===================== PWA Installation & Service Worker Registration =====================
