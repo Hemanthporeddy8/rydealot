@@ -190,24 +190,22 @@
         } catch(err){ console.error('location update failed', err); }
       }, function(err){
         if (accuracy && (err.code === 2 || err.code === 3)) {
-          // If high accuracy fails or times out, retry immediately with standard accuracy
-          document.getElementById('rd-display-location').textContent = 'High accuracy failed. Retrying with standard lookup...';
+          document.getElementById('rd-display-location').textContent = 'Retrying with network location...';
           trackDriver(false);
           return;
         }
         var msg = '';
         if (err.code === 1) {
-          msg = '❌ Blocked: Allow location in browser settings / Windows Settings.';
+          msg = '❌ Location blocked. Open browser Site Settings → allow Location for this site.';
         } else if (err.code === 2) {
-          msg = '❌ Unavailable: Check VPN, internet connection, or try on mobile.';
+          msg = '❌ Location unavailable. Make sure phone Location/GPS is ON in Settings.';
         } else if (err.code === 3) {
-          msg = '❌ Timeout: Request timed out. Refresh page.';
+          msg = '❌ Timed out. Move outdoors or enable phone GPS, then tap Go offline and Go online again.';
         } else {
           msg = '❌ Error: ' + err.message;
         }
         document.getElementById('rd-display-location').textContent = msg;
-        toast('Location error: ' + err.message);
-      }, { enableHighAccuracy: accuracy, maximumAge: 30000, timeout: 10000 });
+      }, { enableHighAccuracy: accuracy, maximumAge: 10000, timeout: 20000 });
     }
 
     trackDriver(true);
@@ -785,47 +783,37 @@
     document.getElementById('loc-status').textContent = 'Step 1: Requesting GPS permission...';
     
     var hasProceeded = false;
-    var watchId = navigator.geolocation.watchPosition(function(pos){
-      state.lat = pos.coords.latitude;
-      state.lng = pos.coords.longitude;
-      document.getElementById('loc-status').textContent = 'Step 2: Connected! GPS Coordinates: ' + state.lat.toFixed(5) + ', ' + state.lng.toFixed(5);
-      navigator.geolocation.clearWatch(watchId);
-      
-      if(!hasProceeded){
-        hasProceeded = true;
-        setTimeout(proceedToLot, 1000);
-      }
-    }, function(err){
-      navigator.geolocation.clearWatch(watchId);
-      document.getElementById('loc-status').textContent = 'Retrying with standard location lookup...';
-      
-      var fallbackWatchId = navigator.geolocation.watchPosition(function(pos){
+    
+    function tryLocation(highAccuracy) {
+      var watchId = navigator.geolocation.watchPosition(function(pos){
         state.lat = pos.coords.latitude;
         state.lng = pos.coords.longitude;
-        document.getElementById('loc-status').textContent = 'Step 2: Connected! GPS Coordinates: ' + state.lat.toFixed(5) + ', ' + state.lng.toFixed(5);
-        navigator.geolocation.clearWatch(fallbackWatchId);
-        
-        if(!hasProceeded){
-          hasProceeded = true;
-          setTimeout(proceedToLot, 1000);
+        navigator.geolocation.clearWatch(watchId);
+        document.getElementById('loc-status').textContent = '✅ GPS Connected: ' + state.lat.toFixed(5) + ', ' + state.lng.toFixed(5);
+        if(!hasProceeded){ hasProceeded = true; setTimeout(proceedToLot, 800); }
+      }, function(err){
+        navigator.geolocation.clearWatch(watchId);
+        if(highAccuracy && (err.code === 2 || err.code === 3)){
+          document.getElementById('loc-status').textContent = 'Retrying with network location...';
+          tryLocation(false);
+          return;
         }
-      }, function(fallbackErr){
-        navigator.geolocation.clearWatch(fallbackWatchId);
         var msg = '';
-        if (fallbackErr.code === 1) { // PERMISSION_DENIED
-          msg = '❌ Blocked: Location access denied. Click the 🔒 Lock icon next to the URL, change Location to "Allow", and reload. Also check Windows Settings -> Privacy -> Location.';
-        } else if (fallbackErr.code === 2) { // POSITION_UNAVAILABLE
-          msg = '❌ Unavailable: Location network lookup failed. Check your VPN, internet connection, or Windows Location Services.';
-        } else if (fallbackErr.code === 3) { // TIMEOUT
-          msg = '❌ Timeout: GPS response took too long. Try refreshing or testing on a mobile phone with a real GPS chip.';
+        if(err.code === 1){
+          msg = '❌ Location blocked. Tap the 🔒 icon in your browser address bar → Allow Location → reload the page.';
+        } else if(err.code === 2){
+          msg = '❌ Location unavailable. Turn on GPS in your phone Settings → Location.';
+        } else if(err.code === 3){
+          msg = '❌ Timed out. Move to open area and tap the button again.';
         } else {
-          msg = '❌ Error: ' + fallbackErr.message;
+          msg = '❌ Error: ' + err.message;
         }
         toast('Location failed');
         document.getElementById('loc-status').textContent = msg;
-      }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 });
-      
-    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+      }, { enableHighAccuracy: highAccuracy, timeout: 20000, maximumAge: 10000 });
+    }
+    
+    tryLocation(true);
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('.ride-type-card'), function(card){
@@ -1282,7 +1270,7 @@
       if(state.destLat && state.destLng){
         mapsLink = 'https://www.google.com/maps/dir/?api=1&destination=' + state.destLat + ',' + state.destLng + '&travelmode=driving&pin=' + pin;
       } else {
-        var query = state.drop || 'Somidi';
+        var query = state.drop || '';
         mapsLink = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query) + '&pin=' + pin;
       }
       var rows = await sbFetch('bookings', {
@@ -1308,7 +1296,7 @@
       state.activePrice = price;
       clearInterval(pollTimer);
       toast('Request sent to ' + rider.name);
-      goToTracking(rider, type, price);
+      goToTracking(rider, type, price, pin);
     } catch(err){
       toast('Could not send request: ' + err.message);
       btn.disabled = false;
@@ -1379,7 +1367,7 @@
     }
   }
 
-  function goToTracking(rider, type, price){
+  function goToTracking(rider, type, price, pin){
     state.currentRider = rider;
     state.currentType = type;
     state.currentFare = price;
@@ -1393,6 +1381,10 @@
     document.getElementById('tracking-pay-btn').style.display = 'none';
     document.getElementById('cancel-trip-btn').style.display = 'block';
     document.getElementById('cancel-trip-btn').disabled = false;
+    // Show PIN immediately — no need to wait for DB polling
+    if(pin){
+      document.getElementById('track-pin-code').textContent = String(pin);
+    }
     showScreen('screen-tracking');
 
     // Initialize Leaflet Map
