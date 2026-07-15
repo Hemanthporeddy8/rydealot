@@ -318,7 +318,12 @@
     } else if (b.status === 'arrived') {
       buttonHtml = '<button class="btn" style="background:var(--signal); border-color:var(--accent); color:var(--accent);" id="rd-btn-start">Start trip</button>';
     } else if (b.status === 'in_progress') {
-      buttonHtml = '<button class="btn" style="background:var(--red); border-color:var(--red); color:#fff;" id="rd-btn-complete">Complete trip</button>';
+      var cleanLink = b.maps_link ? b.maps_link.replace(/[?&]pin=(\d{4})/, '') : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
+      buttonHtml = 
+        '<div class="maps-link-box" style="margin: 0 0 10px 0; background: var(--bg); border-radius: 12px; padding: 10px; font-size: 13px;">' +
+          'Navigate to drop-off: <a href="' + cleanLink + '" target="_blank" rel="noopener" style="display:block; text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:8px; font-weight:700; color:#1a73e8; text-decoration:none; margin-top:6px;">Open in Google Maps</a>' +
+        '</div>' +
+        '<button class="btn" style="background:var(--red); border-color:var(--red); color:#fff;" id="rd-btn-complete">Complete trip</button>';
     }
     actionsEl.innerHTML = buttonHtml;
 
@@ -327,7 +332,27 @@
     var completeBtn = document.getElementById('rd-btn-complete');
     
     if (arrivedBtn) arrivedBtn.addEventListener('click', function() { handleBookingAction('arrived', b.id); });
-    if (startBtn) startBtn.addEventListener('click', function() { handleBookingAction('start', b.id); });
+    if (startBtn) {
+      startBtn.addEventListener('click', function() {
+        var pinMatch = b.maps_link ? b.maps_link.match(/[?&]pin=(\d{4})/) : null;
+        var correctPin = pinMatch ? pinMatch[1] : null;
+        
+        if (correctPin) {
+          var entered = prompt("Enter 4-digit Ride PIN from passenger's device:");
+          if (entered === null) return;
+          if (entered.trim() !== correctPin) {
+            alert("❌ Incorrect PIN. Please check passenger screen and try again.");
+            return;
+          }
+        }
+        
+        // Open Google Maps navigation directly on user gesture to avoid popup blocker
+        var cleanLink = b.maps_link ? b.maps_link.replace(/[?&]pin=(\d{4})/, '') : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
+        window.open(cleanLink, '_blank');
+        
+        handleBookingAction('start', b.id);
+      });
+    }
     if (completeBtn) completeBtn.addEventListener('click', function() { handleBookingAction('complete', b.id); });
 
     try {
@@ -590,7 +615,11 @@
     bookingPollTimer: null,
     map: null,
     driverMarker: null,
-    passengerMarker: null
+    passengerMarker: null,
+    destLat: null,
+    destLng: null,
+    destMap: null,
+    destMarker: null
   };
 
   function toast(msg, ms){
@@ -638,6 +667,66 @@
         ? 'Use test location and find riders'
         : 'Share my location and find riders';
     });
+  });
+
+  document.getElementById('btn-pin-dest').addEventListener('click', function(){
+    var container = document.getElementById('dest-map-container');
+    var isHidden = container.style.display === 'none';
+    container.style.display = isHidden ? 'block' : 'none';
+    if(isHidden){
+      var centerLat = 17.3850;
+      var centerLng = 78.4867;
+      if(state.lat && state.lng){
+        centerLat = state.lat;
+        centerLng = state.lng;
+      } else if(locationMode === 'test'){
+        var pointKey = document.getElementById('test-location-select').value;
+        var point = TEST_LOCATIONS[pointKey];
+        centerLat = point.lat;
+        centerLng = point.lng;
+      }
+      if(!state.destMap){
+        state.destMap = L.map('dest-map', { zoomControl: true }).setView([centerLat, centerLng], 14);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19
+        }).addTo(state.destMap);
+        state.destMap.on('click', function(e) {
+          var lat = e.latlng.lat;
+          var lng = e.latlng.lng;
+          state.destLat = lat;
+          state.destLng = lng;
+          if(!state.destMarker){
+            state.destMarker = L.marker([lat, lng], {
+              icon: L.divIcon({
+                html: '<div style="background-color:var(--red); width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>',
+                className: 'custom-dest-pin',
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+              })
+            }).addTo(state.destMap);
+          } else {
+            state.destMarker.setLatLng([lat, lng]);
+          }
+          document.getElementById('dest-coords-label').textContent = '📍 Destination pinned: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+          var dropInput = document.getElementById('drop-input');
+          if(!dropInput.value || dropInput.value.startsWith('Pinned Location')){
+            dropInput.value = 'Pinned Location (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
+          }
+        });
+      } else {
+        state.destMap.setView([centerLat, centerLng], 14);
+        state.destMap.invalidateSize();
+      }
+      if(!state.lat && !state.lng && navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(function(pos){
+          var plat = pos.coords.latitude;
+          var plng = pos.coords.longitude;
+          if(state.destMap){
+            state.destMap.setView([plat, plng], 14);
+          }
+        }, function(){}, { timeout: 3000 });
+      }
+    }
   });
 
   document.getElementById('login-btn').addEventListener('click', async function(){
@@ -1145,6 +1234,14 @@
     var btn = document.getElementById('book-btn');
     btn.disabled = true;
     try{
+      var pin = Math.floor(1000 + Math.random() * 9000);
+      var mapsLink = '';
+      if(state.destLat && state.destLng){
+        mapsLink = 'https://www.google.com/maps/dir/?api=1&destination=' + state.destLat + ',' + state.destLng + '&travelmode=driving&pin=' + pin;
+      } else {
+        var query = state.drop || 'Somidi';
+        mapsLink = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query) + '&pin=' + pin;
+      }
       var rows = await sbFetch('bookings', {
         method: 'POST',
         prefer: 'return=representation',
@@ -1157,7 +1254,8 @@
           drop_label: state.drop,
           vehicle_type: type,
           fare: price,
-          status: 'requested'
+          status: 'requested',
+          maps_link: mapsLink
         }
       });
       var row = Array.isArray(rows) ? rows[0] : rows;
@@ -1305,6 +1403,12 @@
       var b = rows[0];
       if(!b) return;
       state.lastKnownStatus = b.status;
+      if(b.maps_link){
+        var pinMatch = b.maps_link.match(/[?&]pin=(\d{4})/);
+        if(pinMatch){
+          document.getElementById('track-pin-code').textContent = pinMatch[1];
+        }
+      }
       var sub = document.getElementById('tracking-sub');
       var step2 = document.getElementById('track-step-2');
       var payBtn = document.getElementById('tracking-pay-btn');

@@ -41,6 +41,12 @@
       <div class="field">
         <label class="field-label">Drop label</label>
         <input type="text" id="drop-input" placeholder="e.g. Airport Terminal 1">
+        <button type="button" class="btn" id="btn-pin-dest" style="margin-top: 8px; font-size: 13px; padding: 6px 12px; background: var(--bg); border: 1.5px solid var(--border); color: var(--accent); cursor: pointer; width: 100%; border-radius: 8px; font-weight: 600;">Pin destination on Map &rarr;</button>
+        <div id="dest-map-container" style="display: none; margin-top: 10px;">
+          <p class="helptext" style="margin-bottom: 6px; font-size: 11px; color: var(--text-mute);">Tap on the map to place a red marker representing your drop point:</p>
+          <div id="dest-map" style="height: 180px; width: 100%; border-radius: 12px; border: 1.5px solid var(--border); z-index: 1;"></div>
+          <p class="helptext" id="dest-coords-label" style="margin-top: 6px; color: var(--green); font-weight: bold; font-size: 11px;"></p>
+        </div>
       </div>
 
       <div class="field test-loc-block">
@@ -131,6 +137,12 @@
         <p id="tracking-sub">Your rider is on the way</p>
       </div>
       <div id="map" class="track-map"></div>
+      
+      <!-- Start-Ride PIN Display -->
+      <div style="font-size: 13px; font-weight: 700; color: var(--green); text-align: center; margin: 10px 16px; background: var(--bg); padding: 10px; border-radius: 12px; border: 1.5px solid var(--border);" id="pwa-pin-display-container">
+        Share this Ride PIN with Driver: <span style="font-size: 18px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 2px; color: var(--accent); margin-left: 6px; font-weight: 800;" id="track-pin-code">----</span>
+      </div>
+      
       <div class="driver-card">
         <div class="avatar" id="track-avatar">AM</div>
         <div class="meta">
