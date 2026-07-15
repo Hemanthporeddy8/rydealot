@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rydealot Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0c0f;
+      --card: #12141a;
+      --border: #1e222a;
+      --text: #eef0f2;
+      --mute: #6b7280;
+      --green: #1d9e75;
+      --amber: #FFB020;
+      --red: #e53e3e;
+      --blue: #3b82f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; padding: 24px 16px; min-height: 100vh; }
+    h1 { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px; }
+    h1 span { color: var(--amber); }
+    .subtitle { color: var(--mute); font-size: 0.9rem; margin-bottom: 28px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+    .tab { padding: 8px 20px; border-radius: 99px; border: 1px solid var(--border); background: var(--card); color: var(--mute); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+    .tab.active, .tab:hover { border-color: var(--amber); color: var(--amber); background: rgba(255,176,32,0.06); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .btn { padding: 8px 18px; border-radius: 8px; border: none; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+    .btn-amber { background: var(--amber); color: #000; }
+    .btn-red { background: var(--red); color: #fff; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-mute { background: var(--card); color: var(--mute); border: 1px solid var(--border); }
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+    .stat-num { font-size: 2rem; font-weight: 900; color: var(--amber); font-family: 'IBM Plex Mono', monospace; }
+    .stat-label { font-size: 0.8rem; color: var(--mute); margin-top: 2px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 10px 12px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--mute); border-bottom: 1px solid var(--border); }
+    td { padding: 12px; font-size: 0.85rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; overflow-x: auto; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; }
+    .badge-green { background: rgba(29,158,117,0.15); color: var(--green); }
+    .badge-amber { background: rgba(255,176,32,0.15); color: var(--amber); }
+    .badge-red { background: rgba(229,62,62,0.15); color: var(--red); }
+    .badge-mute { background: rgba(107,114,128,0.15); color: var(--mute); }
+    .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .action-btns button { padding: 4px 10px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+    .loading { text-align: center; padding: 40px; color: var(--mute); }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #fff; color: #000; padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 0.9rem; transition: transform 0.3s; z-index: 999; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .search-input { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; width: 220px; }
+    .search-input:focus { outline: none; border-color: var(--amber); }
+    .mono { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; }
+    @media (max-width: 600px) { h1 { font-size: 1.4rem; } .stats-row { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<h1>RYDEALOT <span>ADMIN</span></h1>
+<p class="subtitle">Manage drivers, users, and bookings for your pilot</p>
+
+<div class="tabs">
+  <button class="tab active" onclick="showPanel('drivers')">🏍️ Drivers</button>
+  <button class="tab" onclick="showPanel('bookings')">📋 Bookings</button>
+  <button class="tab" onclick="showPanel('stats')">📊 Stats</button>
+</div>
+
+<!-- ===== DRIVERS PANEL ===== -->
+<div class="panel active" id="panel-drivers">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="stat-total-drivers">-</div><div class="stat-label">Total Drivers</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-online-drivers">-</div><div class="stat-label">Online Now</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-busy-drivers">-</div><div class="stat-label">On a Trip</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-offline-drivers">-</div><div class="stat-label">Offline</div></div>
+  </div>
+  <div class="toolbar">
+    <button class="btn btn-amber" onclick="loadDrivers()">↺ Refresh</button>
+    <button class="btn btn-red" onclick="setAllOffline()">⏻ Set All Offline</button>
+    <button class="btn btn-mute" onclick="deleteStaleDrivers()">🗑 Delete Stale (no location)</button>
+    <input class="search-input" type="text" id="driver-search" placeholder="Search by name..." oninput="filterDrivers()">
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Vehicle</th>
+          <th>Plate</th>
+          <th>Status</th>
+          <th>Location</th>
+          <th>Last Seen</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="drivers-tbody">
+        <tr><td colspan="7" class="loading">Loading drivers...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== BOOKINGS PANEL ===== -->
+<div class="panel" id="panel-bookings">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="stat-total-bookings">-</div><div class="stat-label">Total Bookings</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-active-bookings">-</div><div class="stat-label">Active Now</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-completed-bookings">-</div><div class="stat-label">Completed</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-cancelled-bookings">-</div><div class="stat-label">Cancelled</div></div>
+  </div>
+  <div class="toolbar">
+    <button class="btn btn-amber" onclick="loadBookings()">↺ Refresh</button>
+    <button class="btn btn-red" onclick="cancelActiveBookings()">✕ Cancel All Active</button>
+    <button class="btn btn-mute" onclick="deleteOldBookings()">🗑 Delete Completed/Cancelled</button>
+    <input class="search-input" type="text" id="booking-search" placeholder="Search by user..." oninput="filterBookings()">
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Pickup</th>
+          <th>Drop</th>
+          <th>Vehicle</th>
+          <th>Fare</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="bookings-tbody">
+        <tr><td colspan="8" class="loading">Loading bookings...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== STATS PANEL ===== -->
+<div class="panel" id="panel-stats">
+  <div class="stats-row" id="stats-grid">
+    <div class="stat-card"><div class="stat-num" id="st-total-rides">-</div><div class="stat-label">All-Time Rides</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-completed">-</div><div class="stat-label">Completed</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-revenue">-</div><div class="stat-label">Total Fare (Rs)</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-drivers">-</div><div class="stat-label">Registered Drivers</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-bike">-</div><div class="stat-label">Bike Rides</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-auto">-</div><div class="stat-label">Auto Rides</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-car">-</div><div class="stat-label">Car Rides</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-cancelled">-</div><div class="stat-label">Cancelled</div></div>
+  </div>
+  <div class="toolbar"><button class="btn btn-amber" onclick="loadStats()">↺ Refresh Stats</button></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
+  var allDrivers = [];
+  var allBookings = [];
+
+  async function sb(path, opts) {
+    opts = opts || {};
+    var headers = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+    if(opts.prefer) headers['Prefer'] = opts.prefer;
+    var res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      method: opts.method || 'GET',
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    var text = await res.text();
+    try { return text ? JSON.parse(text) : null; } catch(e) { return text; }
+  }
+
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._t);
+    t._t = setTimeout(function(){ t.classList.remove('show'); }, 2800);
+  }
+
+  function showPanel(name) {
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    document.getElementById('panel-' + name).classList.add('active');
+    event.target.classList.add('active');
+    if(name === 'drivers') loadDrivers();
+    if(name === 'bookings') loadBookings();
+    if(name === 'stats') loadStats();
+  }
+
+  function timeSince(dateStr) {
+    if(!dateStr) return 'Never';
+    var secs = Math.floor((new Date() - new Date(dateStr)) / 1000);
+    if(secs < 60) return secs + 's ago';
+    if(secs < 3600) return Math.floor(secs/60) + 'm ago';
+    if(secs < 86400) return Math.floor(secs/3600) + 'h ago';
+    return Math.floor(secs/86400) + 'd ago';
+  }
+
+  function statusBadge(s) {
+    var cls = s === 'available' ? 'badge-green' : s === 'busy' ? 'badge-amber' : 'badge-mute';
+    return '<span class="badge ' + cls + '">' + (s||'offline') + '</span>';
+  }
+
+  function bookingBadge(s) {
+    var map = { requested:'badge-amber', accepted:'badge-green', arrived:'badge-green', in_progress:'badge-green', completed:'badge-mute', cancelled:'badge-red' };
+    return '<span class="badge ' + (map[s]||'badge-mute') + '">' + s + '</span>';
+  }
+
+  // ===== DRIVERS =====
+  async function loadDrivers() {
+    document.getElementById('drivers-tbody').innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
+    var rows = await sb('riders?order=updated_at.desc');
+    allDrivers = rows || [];
+    renderDrivers(allDrivers);
+    document.getElementById('stat-total-drivers').textContent = allDrivers.length;
+    document.getElementById('stat-online-drivers').textContent = allDrivers.filter(function(r){ return r.status === 'available'; }).length;
+    document.getElementById('stat-busy-drivers').textContent = allDrivers.filter(function(r){ return r.status === 'busy'; }).length;
+    document.getElementById('stat-offline-drivers').textContent = allDrivers.filter(function(r){ return !r.status || r.status === 'offline'; }).length;
+  }
+
+  function renderDrivers(list) {
+    var tbody = document.getElementById('drivers-tbody');
+    if(!list.length){ tbody.innerHTML = '<tr><td colspan="7" class="loading">No drivers found.</td></tr>'; return; }
+    tbody.innerHTML = list.map(function(r){
+      var locText = (r.lat && r.lng) ? r.lat.toFixed(4) + ', ' + r.lng.toFixed(4) : '<span style="color:var(--red)">No location</span>';
+      return '<tr>' +
+        '<td><strong>' + (r.name||'?') + '</strong></td>' +
+        '<td>' + (r.vehicle_type||'-') + ' &mdash; ' + (r.vehicle_name||'-') + '</td>' +
+        '<td class="mono">' + (r.plate||'-') + '</td>' +
+        '<td>' + statusBadge(r.status) + '</td>' +
+        '<td style="font-size:0.78rem">' + locText + '</td>' +
+        '<td style="font-size:0.78rem;color:var(--mute)">' + timeSince(r.updated_at) + '</td>' +
+        '<td><div class="action-btns">' +
+          '<button style="background:var(--green);color:#fff" onclick="setDriverStatus(\'' + r.id + '\', \'available\')">Online</button>' +
+          '<button style="background:var(--amber);color:#000" onclick="setDriverStatus(\'' + r.id + '\', \'offline\')">Offline</button>' +
+          '<button style="background:var(--red);color:#fff" onclick="deleteDriver(\'' + r.id + '\', \'' + (r.name||'?') + '\')">Delete</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function filterDrivers() {
+    var q = document.getElementById('driver-search').value.toLowerCase();
+    renderDrivers(allDrivers.filter(function(r){ return (r.name||'').toLowerCase().includes(q); }));
+  }
+
+  async function setDriverStatus(id, status) {
+    await sb('riders?id=eq.' + id, { method: 'PATCH', body: { status: status } });
+    toast('Driver set to ' + status);
+    loadDrivers();
+  }
+
+  async function deleteDriver(id, name) {
+    if(!confirm('Delete driver "' + name + '"? This cannot be undone.')) return;
+    await sb('riders?id=eq.' + id, { method: 'DELETE' });
+    toast('Driver deleted');
+    loadDrivers();
+  }
+
+  async function setAllOffline() {
+    if(!confirm('Set ALL drivers offline?')) return;
+    await sb('riders?status=in.(available,busy)', { method: 'PATCH', body: { status: 'offline' } });
+    toast('All drivers set offline');
+    loadDrivers();
+  }
+
+  async function deleteStaleDrivers() {
+    var stale = allDrivers.filter(function(r){ return !r.lat && !r.lng; });
+    if(!stale.length){ toast('No stale drivers found'); return; }
+    if(!confirm('Delete ' + stale.length + ' driver(s) with no location data?')) return;
+    for(var i=0; i<stale.length; i++){
+      await sb('riders?id=eq.' + stale[i].id, { method: 'DELETE' });
+    }
+    toast('Deleted ' + stale.length + ' stale driver(s)');
+    loadDrivers();
+  }
+
+  // ===== BOOKINGS =====
+  async function loadBookings() {
+    document.getElementById('bookings-tbody').innerHTML = '<tr><td colspan="8" class="loading">Loading...</td></tr>';
+    var rows = await sb('bookings?order=created_at.desc&limit=100');
+    allBookings = rows || [];
+    renderBookings(allBookings);
+    document.getElementById('stat-total-bookings').textContent = allBookings.length;
+    document.getElementById('stat-active-bookings').textContent = allBookings.filter(function(b){ return ['requested','accepted','arrived','in_progress'].includes(b.status); }).length;
+    document.getElementById('stat-completed-bookings').textContent = allBookings.filter(function(b){ return b.status === 'completed'; }).length;
+    document.getElementById('stat-cancelled-bookings').textContent = allBookings.filter(function(b){ return b.status === 'cancelled'; }).length;
+  }
+
+  function renderBookings(list) {
+    var tbody = document.getElementById('bookings-tbody');
+    if(!list.length){ tbody.innerHTML = '<tr><td colspan="8" class="loading">No bookings found.</td></tr>'; return; }
+    tbody.innerHTML = list.map(function(b){
+      var d = new Date(b.created_at);
+      var dStr = d.toLocaleDateString('en-IN') + ' ' + d.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
+      return '<tr>' +
+        '<td><strong>' + (b.user_name||'?') + '</strong></td>' +
+        '<td style="font-size:0.8rem">' + (b.pickup_label||'-') + '</td>' +
+        '<td style="font-size:0.8rem">' + (b.drop_label||'-') + '</td>' +
+        '<td>' + (b.vehicle_type||'-') + '</td>' +
+        '<td>Rs ' + (b.fare||'-') + '</td>' +
+        '<td>' + bookingBadge(b.status) + '</td>' +
+        '<td style="font-size:0.75rem;color:var(--mute)">' + dStr + '</td>' +
+        '<td><div class="action-btns">' +
+          '<button style="background:var(--red);color:#fff" onclick="cancelBooking(\'' + b.id + '\')">Cancel</button>' +
+          '<button style="background:var(--border);color:var(--mute)" onclick="deleteBooking(\'' + b.id + '\')">Delete</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function filterBookings() {
+    var q = document.getElementById('booking-search').value.toLowerCase();
+    renderBookings(allBookings.filter(function(b){ return (b.user_name||'').toLowerCase().includes(q); }));
+  }
+
+  async function cancelBooking(id) {
+    await sb('bookings?id=eq.' + id, { method: 'PATCH', body: { status: 'cancelled' } });
+    toast('Booking cancelled');
+    loadBookings();
+  }
+
+  async function deleteBooking(id) {
+    await sb('bookings?id=eq.' + id, { method: 'DELETE' });
+    toast('Booking deleted');
+    loadBookings();
+  }
+
+  async function cancelActiveBookings() {
+    var active = allBookings.filter(function(b){ return ['requested','accepted','arrived','in_progress'].includes(b.status); });
+    if(!active.length){ toast('No active bookings'); return; }
+    if(!confirm('Cancel all ' + active.length + ' active booking(s)?')) return;
+    await sb('bookings?status=in.(requested,accepted,arrived,in_progress)', { method: 'PATCH', body: { status: 'cancelled' } });
+    toast('All active bookings cancelled');
+    loadBookings();
+  }
+
+  async function deleteOldBookings() {
+    var old = allBookings.filter(function(b){ return b.status === 'completed' || b.status === 'cancelled'; });
+    if(!old.length){ toast('No completed/cancelled bookings'); return; }
+    if(!confirm('Delete ' + old.length + ' completed/cancelled booking(s)?')) return;
+    for(var i=0; i<old.length; i++){
+      await sb('bookings?id=eq.' + old[i].id, { method: 'DELETE' });
+    }
+    toast('Deleted ' + old.length + ' booking(s)');
+    loadBookings();
+  }
+
+  // ===== STATS =====
+  async function loadStats() {
+    var rows = await sb('bookings');
+    var riders = await sb('riders');
+    rows = rows || [];
+    riders = riders || [];
+    document.getElementById('st-total-rides').textContent = rows.length;
+    document.getElementById('st-completed').textContent = rows.filter(function(b){ return b.status === 'completed'; }).length;
+    document.getElementById('st-revenue').textContent = rows.filter(function(b){ return b.status === 'completed'; }).reduce(function(s,b){ return s + (b.fare||0); }, 0);
+    document.getElementById('st-drivers').textContent = riders.length;
+    document.getElementById('st-bike').textContent = rows.filter(function(b){ return b.vehicle_type === 'bike'; }).length;
+    document.getElementById('st-auto').textContent = rows.filter(function(b){ return b.vehicle_type === 'auto'; }).length;
+    document.getElementById('st-car').textContent = rows.filter(function(b){ return b.vehicle_type === 'car'; }).length;
+    document.getElementById('st-cancelled').textContent = rows.filter(function(b){ return b.status === 'cancelled'; }).length;
+  }
+
+  // Auto-load on page load
+  loadDrivers();
+</script>
+
+</body>
+</html>
