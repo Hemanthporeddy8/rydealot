@@ -744,6 +744,12 @@
     function proceedToLot(){
       document.getElementById('lot-title').textContent = state.pickup + ' \u2192 ' + state.drop;
       document.getElementById('lot-place-name').textContent = state.pickup;
+      if (state.lat && state.lng) {
+        document.getElementById('lot-coords-display').textContent = 'GPS Active: ' + state.lat.toFixed(5) + ', ' + state.lng.toFixed(5);
+        document.getElementById('lot-coords-display-container').style.display = 'flex';
+      } else {
+        document.getElementById('lot-coords-display-container').style.display = 'none';
+      }
       showScreen('screen-lot');
       resetLot();
     }
@@ -763,36 +769,50 @@
       toast('This browser cannot access location');
       return;
     }
-    document.getElementById('loc-status').textContent = 'Step 1: Requesting GPS permission from browser...';
-    function queryLocation(accuracy) {
-      navigator.geolocation.getCurrentPosition(function(pos){
+    document.getElementById('loc-status').textContent = 'Step 1: Requesting GPS permission...';
+    
+    var hasProceeded = false;
+    var watchId = navigator.geolocation.watchPosition(function(pos){
+      state.lat = pos.coords.latitude;
+      state.lng = pos.coords.longitude;
+      document.getElementById('loc-status').textContent = 'Step 2: Connected! GPS Coordinates: ' + state.lat.toFixed(5) + ', ' + state.lng.toFixed(5);
+      navigator.geolocation.clearWatch(watchId);
+      
+      if(!hasProceeded){
+        hasProceeded = true;
+        setTimeout(proceedToLot, 1000);
+      }
+    }, function(err){
+      navigator.geolocation.clearWatch(watchId);
+      document.getElementById('loc-status').textContent = 'Retrying with standard location lookup...';
+      
+      var fallbackWatchId = navigator.geolocation.watchPosition(function(pos){
         state.lat = pos.coords.latitude;
         state.lng = pos.coords.longitude;
-        document.getElementById('loc-status').textContent = 'Step 2: Connected successfully! Coordinates: ' + state.lat.toFixed(4) + ', ' + state.lng.toFixed(4);
-        setTimeout(proceedToLot, 1000);
-      }, function(err){
-        if (accuracy && err.code === 3) {
-          // If high accuracy timed out, retry immediately with standard accuracy
-          document.getElementById('loc-status').textContent = 'High accuracy timed out. Retrying with standard accuracy...';
-          queryLocation(false);
-          return;
+        document.getElementById('loc-status').textContent = 'Step 2: Connected! GPS Coordinates: ' + state.lat.toFixed(5) + ', ' + state.lng.toFixed(5);
+        navigator.geolocation.clearWatch(fallbackWatchId);
+        
+        if(!hasProceeded){
+          hasProceeded = true;
+          setTimeout(proceedToLot, 1000);
         }
+      }, function(fallbackErr){
+        navigator.geolocation.clearWatch(fallbackWatchId);
         var msg = '';
-        if (err.code === 1) { // PERMISSION_DENIED
+        if (fallbackErr.code === 1) { // PERMISSION_DENIED
           msg = '❌ Blocked: Location access denied. Click the 🔒 Lock icon next to the URL, change Location to "Allow", and reload. Also check Windows Settings -> Privacy -> Location.';
-        } else if (err.code === 2) { // POSITION_UNAVAILABLE
+        } else if (fallbackErr.code === 2) { // POSITION_UNAVAILABLE
           msg = '❌ Unavailable: Location network lookup failed. Check your VPN, internet connection, or Windows Location Services.';
-        } else if (err.code === 3) { // TIMEOUT
+        } else if (fallbackErr.code === 3) { // TIMEOUT
           msg = '❌ Timeout: GPS response took too long. Try refreshing or testing on a mobile phone with a real GPS chip.';
         } else {
-          msg = '❌ Error: ' + err.message;
+          msg = '❌ Error: ' + fallbackErr.message;
         }
         toast('Location failed');
         document.getElementById('loc-status').textContent = msg;
-      }, { enableHighAccuracy: accuracy, timeout: 8000, maximumAge: 30000 });
-    }
-
-    queryLocation(true);
+      }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 });
+      
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('.ride-type-card'), function(card){
