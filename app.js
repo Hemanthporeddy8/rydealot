@@ -178,26 +178,39 @@
       return false;
     }
     document.getElementById('rd-display-location').textContent = 'Step 1: Requesting GPS...';
-    state.watchId = navigator.geolocation.watchPosition(async function(pos){
-      var lat = pos.coords.latitude, lng = pos.coords.longitude;
-      document.getElementById('rd-display-location').textContent = 'Online: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
-      try{
-        await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } });
-      } catch(err){ console.error('location update failed', err); }
-    }, function(err){
-      var msg = '';
-      if (err.code === 1) {
-        msg = '❌ Blocked: Allow location in browser settings / Windows Settings.';
-      } else if (err.code === 2) {
-        msg = '❌ Unavailable: Check VPN, internet connection, or try on mobile.';
-      } else if (err.code === 3) {
-        msg = '❌ Timeout: Request timed out. Refresh page.';
-      } else {
-        msg = '❌ Error: ' + err.message;
-      }
-      document.getElementById('rd-display-location').textContent = msg;
-      toast('Location error: ' + err.message);
-    }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
+    
+    function trackDriver(accuracy) {
+      if (state.watchId) navigator.geolocation.clearWatch(state.watchId);
+      
+      state.watchId = navigator.geolocation.watchPosition(async function(pos){
+        var lat = pos.coords.latitude, lng = pos.coords.longitude;
+        document.getElementById('rd-display-location').textContent = 'Online: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+        try{
+          await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } });
+        } catch(err){ console.error('location update failed', err); }
+      }, function(err){
+        if (accuracy && (err.code === 2 || err.code === 3)) {
+          // If high accuracy fails or times out, retry immediately with standard accuracy
+          document.getElementById('rd-display-location').textContent = 'High accuracy failed. Retrying with standard lookup...';
+          trackDriver(false);
+          return;
+        }
+        var msg = '';
+        if (err.code === 1) {
+          msg = '❌ Blocked: Allow location in browser settings / Windows Settings.';
+        } else if (err.code === 2) {
+          msg = '❌ Unavailable: Check VPN, internet connection, or try on mobile.';
+        } else if (err.code === 3) {
+          msg = '❌ Timeout: Request timed out. Refresh page.';
+        } else {
+          msg = '❌ Error: ' + err.message;
+        }
+        document.getElementById('rd-display-location').textContent = msg;
+        toast('Location error: ' + err.message);
+      }, { enableHighAccuracy: accuracy, maximumAge: 30000, timeout: 10000 });
+    }
+
+    trackDriver(true);
     return true;
   }
 
