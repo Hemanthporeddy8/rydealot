@@ -764,25 +764,35 @@
       return;
     }
     document.getElementById('loc-status').textContent = 'Step 1: Requesting GPS permission from browser...';
-    navigator.geolocation.getCurrentPosition(function(pos){
-      state.lat = pos.coords.latitude;
-      state.lng = pos.coords.longitude;
-      document.getElementById('loc-status').textContent = 'Step 2: Connected successfully! Coordinates: ' + state.lat.toFixed(4) + ', ' + state.lng.toFixed(4);
-      setTimeout(proceedToLot, 1000);
-    }, function(err){
-      var msg = '';
-      if (err.code === 1) { // PERMISSION_DENIED
-        msg = '❌ Blocked: Location access denied. Click the 🔒 Lock icon next to the URL, change Location to "Allow", and reload. Also check Windows Settings -> Privacy -> Location.';
-      } else if (err.code === 2) { // POSITION_UNAVAILABLE
-        msg = '❌ Unavailable: Location network lookup failed. Check your VPN, internet connection, or Windows Location Services.';
-      } else if (err.code === 3) { // TIMEOUT
-        msg = '❌ Timeout: GPS response took too long. Try refreshing or testing on a mobile phone with a real GPS chip.';
-      } else {
-        msg = '❌ Error: ' + err.message;
-      }
-      toast('Location failed');
-      document.getElementById('loc-status').textContent = msg;
-    }, { enableHighAccuracy: true, timeout: 15000 });
+    function queryLocation(accuracy) {
+      navigator.geolocation.getCurrentPosition(function(pos){
+        state.lat = pos.coords.latitude;
+        state.lng = pos.coords.longitude;
+        document.getElementById('loc-status').textContent = 'Step 2: Connected successfully! Coordinates: ' + state.lat.toFixed(4) + ', ' + state.lng.toFixed(4);
+        setTimeout(proceedToLot, 1000);
+      }, function(err){
+        if (accuracy && err.code === 3) {
+          // If high accuracy timed out, retry immediately with standard accuracy
+          document.getElementById('loc-status').textContent = 'High accuracy timed out. Retrying with standard accuracy...';
+          queryLocation(false);
+          return;
+        }
+        var msg = '';
+        if (err.code === 1) { // PERMISSION_DENIED
+          msg = '❌ Blocked: Location access denied. Click the 🔒 Lock icon next to the URL, change Location to "Allow", and reload. Also check Windows Settings -> Privacy -> Location.';
+        } else if (err.code === 2) { // POSITION_UNAVAILABLE
+          msg = '❌ Unavailable: Location network lookup failed. Check your VPN, internet connection, or Windows Location Services.';
+        } else if (err.code === 3) { // TIMEOUT
+          msg = '❌ Timeout: GPS response took too long. Try refreshing or testing on a mobile phone with a real GPS chip.';
+        } else {
+          msg = '❌ Error: ' + err.message;
+        }
+        toast('Location failed');
+        document.getElementById('loc-status').textContent = msg;
+      }, { enableHighAccuracy: accuracy, timeout: 8000, maximumAge: 30000 });
+    }
+
+    queryLocation(true);
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('.ride-type-card'), function(card){
