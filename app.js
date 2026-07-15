@@ -178,6 +178,37 @@
       return false;
     }
     document.getElementById('rd-display-location').textContent = 'Step 1: Requesting GPS...';
+
+    // Last resort: IP-based location push for laptops
+    function useIpLocationForDriver() {
+      document.getElementById('rd-display-location').textContent = 'Trying network location...';
+      fetch('https://ipapi.co/json/')
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if(d && d.latitude && d.longitude){
+            var lat = d.latitude, lng = d.longitude;
+            document.getElementById('rd-display-location').textContent = 'Network location: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+            sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } })
+              .catch(function(e){ console.error('IP loc push failed', e); });
+            // Keep refreshing every 30s (IP location doesn't change rapidly)
+            state.ipLocTimer = setInterval(function(){
+              fetch('https://ipapi.co/json/')
+                .then(function(r2){ return r2.json(); })
+                .then(function(d2){
+                  if(d2 && d2.latitude){
+                    sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: d2.latitude, lng: d2.longitude, updated_at: new Date().toISOString() } })
+                      .catch(function(){}); 
+                  }
+                }).catch(function(){});
+            }, 30000);
+          } else {
+            document.getElementById('rd-display-location').textContent = '❌ All location methods failed. Enable Location in browser settings.';
+          }
+        })
+        .catch(function(){
+          document.getElementById('rd-display-location').textContent = '❌ Network location also failed. Check internet connection.';
+        });
+    }
     
     function trackDriver(accuracy) {
       if (state.watchId) navigator.geolocation.clearWatch(state.watchId);
@@ -190,22 +221,17 @@
         } catch(err){ console.error('location update failed', err); }
       }, function(err){
         if (accuracy && (err.code === 2 || err.code === 3)) {
-          document.getElementById('rd-display-location').textContent = 'Retrying with network location...';
+          document.getElementById('rd-display-location').textContent = 'GPS failed. Trying network location...';
           trackDriver(false);
           return;
         }
-        var msg = '';
-        if (err.code === 1) {
-          msg = '❌ Location blocked. Open browser Site Settings → allow Location for this site.';
-        } else if (err.code === 2) {
-          msg = '❌ Location unavailable. Make sure phone Location/GPS is ON in Settings.';
-        } else if (err.code === 3) {
-          msg = '❌ Timed out. Move outdoors or enable phone GPS, then tap Go offline and Go online again.';
+        // All GPS methods failed — try IP location
+        if(err.code !== 1){
+          useIpLocationForDriver();
         } else {
-          msg = '❌ Error: ' + err.message;
+          document.getElementById('rd-display-location').textContent = '❌ Location blocked. Open site settings → allow Location for rydealot.vercel.app';
         }
-        document.getElementById('rd-display-location').textContent = msg;
-      }, { enableHighAccuracy: accuracy, maximumAge: 10000, timeout: 20000 });
+      }, { enableHighAccuracy: accuracy, maximumAge: 10000, timeout: 12000 });
     }
 
     trackDriver(true);
@@ -783,7 +809,29 @@
     document.getElementById('loc-status').textContent = 'Step 1: Requesting GPS permission...';
     
     var hasProceeded = false;
-    
+
+    // Last resort: IP-based location (works on laptops with no GPS chip)
+    function useIpLocation() {
+      document.getElementById('loc-status').textContent = 'Using network location (IP-based)...';
+      fetch('https://ipapi.co/json/')
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if(d && d.latitude && d.longitude){
+            state.lat = d.latitude;
+            state.lng = d.longitude;
+            document.getElementById('loc-status').textContent = '✅ Network location: ' + state.lat.toFixed(4) + ', ' + state.lng.toFixed(4) + ' (approx. — accurate enough to find nearby drivers)';
+            if(!hasProceeded){ hasProceeded = true; setTimeout(proceedToLot, 1000); }
+          } else {
+            document.getElementById('loc-status').textContent = '❌ Could not get location. Please enable Location in browser and phone Settings, then refresh.';
+            toast('Location failed');
+          }
+        })
+        .catch(function(){
+          document.getElementById('loc-status').textContent = '❌ All location methods failed. Enable Location in browser settings and reload.';
+          toast('Location failed');
+        });
+    }
+
     function tryLocation(highAccuracy) {
       var watchId = navigator.geolocation.watchPosition(function(pos){
         state.lat = pos.coords.latitude;
@@ -794,23 +842,18 @@
       }, function(err){
         navigator.geolocation.clearWatch(watchId);
         if(highAccuracy && (err.code === 2 || err.code === 3)){
-          document.getElementById('loc-status').textContent = 'Retrying with network location...';
+          document.getElementById('loc-status').textContent = 'GPS unavailable. Trying network location...';
           tryLocation(false);
           return;
         }
-        var msg = '';
-        if(err.code === 1){
-          msg = '❌ Location blocked. Tap the 🔒 icon in your browser address bar → Allow Location → reload the page.';
-        } else if(err.code === 2){
-          msg = '❌ Location unavailable. Turn on GPS in your phone Settings → Location.';
-        } else if(err.code === 3){
-          msg = '❌ Timed out. Move to open area and tap the button again.';
+        // All GPS methods failed — fall back to IP location
+        if(err.code !== 1){
+          useIpLocation();
         } else {
-          msg = '❌ Error: ' + err.message;
+          document.getElementById('loc-status').textContent = '❌ Location blocked. Tap the address bar 🔒 icon → set Location to Allow → reload the page.';
+          toast('Location permission denied');
         }
-        toast('Location failed');
-        document.getElementById('loc-status').textContent = msg;
-      }, { enableHighAccuracy: highAccuracy, timeout: 20000, maximumAge: 10000 });
+      }, { enableHighAccuracy: highAccuracy, timeout: 12000, maximumAge: 10000 });
     }
     
     tryLocation(true);
