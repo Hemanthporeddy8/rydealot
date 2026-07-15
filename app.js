@@ -766,6 +766,86 @@
     }
   });
 
+  // ---- Place autocomplete using OpenStreetMap Nominatim (free, no API key) ----
+  (function(){
+    var acTimers = {};
+
+    function setupAutocomplete(inputId, suggestionsId, onSelect) {
+      var input = document.getElementById(inputId);
+      var dropdown = document.getElementById(suggestionsId);
+      if (!input || !dropdown) return;
+
+      input.addEventListener('input', function(){
+        var q = input.value.trim();
+        clearTimeout(acTimers[inputId]);
+        if (q.length < 3) { dropdown.innerHTML = ''; dropdown.classList.remove('open'); return; }
+        dropdown.innerHTML = '<div class="ac-loading">Searching...</div>';
+        dropdown.classList.add('open');
+        acTimers[inputId] = setTimeout(function(){
+          fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&countrycodes=in&limit=6&addressdetails=1', {
+            headers: { 'Accept-Language': 'en', 'User-Agent': 'RydealotApp/1.0' }
+          })
+          .then(function(r){ return r.json(); })
+          .then(function(results){
+            if (!results.length) {
+              dropdown.innerHTML = '<div class="ac-loading">No places found. Try a different name.</div>';
+              return;
+            }
+            dropdown.innerHTML = results.map(function(place){
+              var addr = place.address || {};
+              var name = place.name || addr.road || addr.neighbourhood || place.display_name.split(',')[0];
+              var detail = [addr.suburb||addr.neighbourhood||addr.village, addr.city||addr.town||addr.county, addr.state].filter(Boolean).join(', ');
+              var type = place.type || place.class || 'place';
+              var icon = type === 'bus_stop' ? '🚌' : type === 'railway_station' || type === 'station' ? '🚆' : type === 'hospital' ? '🏥' : type === 'school' || type === 'college' ? '🏫' : type === 'hotel' ? '🏨' : type === 'restaurant' || type === 'cafe' ? '🍽️' : '📍';
+              return '<div class="ac-item" data-lat="' + place.lat + '" data-lng="' + place.lon + '" data-name="' + (name||'').replace(/"/g,'&quot;') + '" data-display="' + place.display_name.replace(/"/g,'&quot;') + '">' +
+                '<div class="ac-icon">' + icon + '</div>' +
+                '<div><div class="ac-name">' + name + '</div><div class="ac-addr">' + (detail || place.display_name.split(',').slice(1,3).join(',').trim()) + '</div></div>' +
+              '</div>';
+            }).join('');
+            // Click handler
+            Array.prototype.forEach.call(dropdown.querySelectorAll('.ac-item'), function(item){
+              item.addEventListener('mousedown', function(e){
+                e.preventDefault();
+                var selectedName = item.getAttribute('data-name');
+                var displayName = item.getAttribute('data-display');
+                input.value = selectedName;
+                dropdown.innerHTML = '';
+                dropdown.classList.remove('open');
+                if(onSelect) onSelect(parseFloat(item.getAttribute('data-lat')), parseFloat(item.getAttribute('data-lng')), selectedName, displayName);
+              });
+            });
+          })
+          .catch(function(){
+            dropdown.innerHTML = '<div class="ac-loading">Search failed. Check internet.</div>';
+          });
+        }, 380);
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(e){
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+          dropdown.classList.remove('open');
+        }
+      });
+
+      input.addEventListener('focus', function(){
+        if (dropdown.innerHTML && dropdown.querySelectorAll('.ac-item').length) {
+          dropdown.classList.add('open');
+        }
+      });
+    }
+
+    // Pickup: just fills the label
+    setupAutocomplete('pickup-input', 'pickup-suggestions', null);
+
+    // Drop: fills label AND stores lat/lng for maps
+    setupAutocomplete('drop-input', 'drop-suggestions', function(lat, lng, name){
+      state.destLat = lat;
+      state.destLng = lng;
+      document.getElementById('dest-coords-label').textContent = '📍 Destination set: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+    });
+  })();
+
   document.getElementById('login-btn').addEventListener('click', async function(){
     var name = document.getElementById('login-name').value.trim();
     var pickup = document.getElementById('pickup-input').value.trim();
