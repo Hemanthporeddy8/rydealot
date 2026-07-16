@@ -255,7 +255,7 @@
           await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ updated_at: new Date().toISOString() } });
         } catch(err){ console.error('heartbeat update failed', err); }
       }
-    }, 45000); // 45 seconds heartbeat ping
+    }, 15000); // 15 seconds heartbeat ping for active presence
   }
 
   function stopHeartbeat(){
@@ -345,22 +345,25 @@
     document.getElementById('rd-track-fare').textContent = 'Rs ' + (b.fare || '-');
 
     var actionsEl = document.getElementById('rd-track-actions');
+    var cleanLink = b.maps_link ? b.maps_link.replace(/[?&]pin=(\d{4})/, '') : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
+    var pickupLink = mapsLinkFor(b);
+
+    var mapsBoxHtml = 
+      '<div class="maps-link-box" style="margin: 0 0 12px 0; background: var(--bg); border-radius: 12px; padding: 12px; font-size: 13px; display: flex; flex-direction: column; gap: 8px;">' +
+        '<div style="font-weight: bold; color: var(--mute); margin-bottom: 2px;">NAVIGATION LINKS:</div>' +
+        '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">' +
+          '<a href="' + pickupLink + '" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:4px; text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:10px 6px; font-weight:700; color:#1a73e8; text-decoration:none; font-size: 11px;">🟢 Go to Pickup</a>' +
+          '<a href="' + cleanLink + '" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:4px; text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:10px 6px; font-weight:700; color:var(--red); text-decoration:none; font-size: 11px;">🔴 Go to Drop-off</a>' +
+        '</div>' +
+      '</div>';
+
     var buttonHtml = '';
     if (b.status === 'accepted') {
-      buttonHtml = 
-        '<div class="maps-link-box" style="margin: 0 0 10px 0; background: var(--bg); border-radius: 12px; padding: 10px; font-size: 13px;">' +
-          'Navigate to pickup: <a href="' + mapsLinkFor(b) + '" target="_blank" rel="noopener" style="display:block; text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:8px; font-weight:700; color:#1a73e8; text-decoration:none; margin-top:6px;">Open in Google Maps</a>' +
-        '</div>' +
-        '<button class="btn" style="background:var(--green); border-color:var(--green); color:#fff;" id="rd-btn-arrived">I have arrived</button>';
+      buttonHtml = mapsBoxHtml + '<button class="btn" style="background:var(--green); border-color:var(--green); color:#fff;" id="rd-btn-arrived">I have arrived</button>';
     } else if (b.status === 'arrived') {
-      buttonHtml = '<button class="btn" style="background:var(--signal); border-color:var(--accent); color:var(--accent);" id="rd-btn-start">Start trip</button>';
+      buttonHtml = mapsBoxHtml + '<button class="btn" style="background:var(--signal); border-color:var(--accent); color:var(--accent);" id="rd-btn-start">Start trip</button>';
     } else if (b.status === 'in_progress') {
-      var cleanLink = b.maps_link ? b.maps_link.replace(/[?&]pin=(\d{4})/, '') : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
-      buttonHtml = 
-        '<div class="maps-link-box" style="margin: 0 0 10px 0; background: var(--bg); border-radius: 12px; padding: 10px; font-size: 13px;">' +
-          'Navigate to drop-off: <a href="' + cleanLink + '" target="_blank" rel="noopener" style="display:block; text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:8px; font-weight:700; color:#1a73e8; text-decoration:none; margin-top:6px;">Open in Google Maps</a>' +
-        '</div>' +
-        '<button class="btn" style="background:var(--red); border-color:var(--red); color:#fff;" id="rd-btn-complete">Complete trip</button>';
+      buttonHtml = mapsBoxHtml + '<button class="btn" style="background:var(--red); border-color:var(--red); color:#fff;" id="rd-btn-complete">Complete trip</button>';
     }
     actionsEl.innerHTML = buttonHtml;
 
@@ -1160,12 +1163,12 @@
   async function fetchRealRiders(){
     try{
       var rows = await withTimeout(sbFetch('riders?status=eq.available'), 8000);
-      var tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      var ninetySecondsAgo = new Date(Date.now() - 90 * 1000);
       var nearby = (rows || []).filter(function(r){
         if (r.lat == null || r.lng == null) return false;
         if (r.updated_at) {
           var updatedAt = new Date(r.updated_at);
-          if (updatedAt < tenMinutesAgo) return false;
+          if (updatedAt < ninetySecondsAgo) return false;
         }
         return true;
       }).map(function(r){
