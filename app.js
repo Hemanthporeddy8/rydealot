@@ -812,22 +812,36 @@
       }
     }
 
-    // 3. Polyline and Bounds Fitting
+    // 3. Polyline and Bounds Fitting (Actual Street Routing using OSRM)
     if (state.lat && state.lng && state.destLat && state.destLng) {
-      var points = [
-        [state.lat, state.lng],
-        [state.destLat, state.destLng]
-      ];
-      if (state.setupPolyline) {
-        state.setupPolyline.setLatLngs(points);
-      } else {
-        state.setupPolyline = L.polyline(points, {
-          color: 'var(--accent)',
-          dashArray: '4, 6',
-          weight: 3
-        }).addTo(state.destMap);
-      }
-      state.destMap.fitBounds(L.latLngBounds(points), { padding: [50, 50] });
+      var url = 'https://router.project-osrm.org/route/v1/driving/' + state.lng + ',' + state.lat + ';' + state.destLng + ',' + state.destLat + '?overview=full&geometries=geojson';
+      
+      fetch(url)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data.routes && data.routes.length > 0) {
+            var coords = data.routes[0].geometry.coordinates;
+            var path = coords.map(function(c) { return [c[1], c[0]]; }); // Convert [lng, lat] to [lat, lng]
+            
+            if (state.setupPolyline) {
+              state.setupPolyline.setLatLngs(path);
+              // Reset path options to solid line
+              state.setupPolyline.setStyle({ color: 'var(--accent)', dashArray: null, weight: 4 });
+            } else {
+              state.setupPolyline = L.polyline(path, {
+                color: 'var(--accent)',
+                weight: 4,
+                opacity: 0.8
+              }).addTo(state.destMap);
+            }
+            state.destMap.fitBounds(L.latLngBounds(path), { padding: [50, 50] });
+          } else {
+            drawStraightLine();
+          }
+        })
+        .catch(function() {
+          drawStraightLine();
+        });
     } else {
       if (state.setupPolyline) {
         state.destMap.removeLayer(state.setupPolyline);
@@ -838,6 +852,24 @@
       } else if (state.destLat && state.destLng) {
         state.destMap.setView([state.destLat, state.destLng], 14);
       }
+    }
+
+    function drawStraightLine() {
+      var points = [
+        [state.lat, state.lng],
+        [state.destLat, state.destLng]
+      ];
+      if (state.setupPolyline) {
+        state.setupPolyline.setLatLngs(points);
+        state.setupPolyline.setStyle({ color: 'var(--accent)', dashArray: '4, 6', weight: 3 });
+      } else {
+        state.setupPolyline = L.polyline(points, {
+          color: 'var(--accent)',
+          dashArray: '4, 6',
+          weight: 3
+        }).addTo(state.destMap);
+      }
+      state.destMap.fitBounds(L.latLngBounds(points), { padding: [50, 50] });
     }
   }
 
