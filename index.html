@@ -176,11 +176,51 @@
         </div>
       </div>
     </div>
-    <div class="section-pad" style="padding-bottom:10px;">
-      <button class="btn" id="tracking-pay-btn">Trip complete &mdash; done</button>
-    </div>
     <div class="section-pad" style="padding-top:0;">
       <button class="btn btn-outline" id="cancel-trip-btn" style="color:var(--red); border-color:#f3d4d4;">Cancel trip</button>
+    </div>
+  </div>
+
+  <!-- SCREEN: PAYMENT & FARE / TRIP COMPLETED -->
+  <div class="screen" id="screen-payment" style="background:#fff;">
+    <div class="nav" style="justify-content:center; border-bottom: 1.5px solid var(--border);">
+      <h1 style="font-size: 16px; font-weight: 800; text-align:center; width:100%;">Trip Completed</h1>
+    </div>
+    <div class="content" style="padding:28px 20px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:20px; overflow-y:auto; flex:1;">
+      <div style="font-size: 56px; margin: 10px 0; display: inline-block; animation: bounce 2s infinite;">😊</div>
+      <div>
+        <h2 style="font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 6px;">Thank you for riding!</h2>
+        <p style="font-size: 13.5px; color: var(--text-mute); line-height: 1.4;">Hope you had a safe and comfortable ride.<br>Have a nice day! 👋</p>
+      </div>
+      
+      <div style="width: 100%; background: var(--bg); padding: 16px; border-radius: 16px; border: 1.5px solid var(--border); margin: 6px 0;">
+        <p style="font-size: 11px; color: var(--text-mute); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">Total Fare</p>
+        <h3 style="font-size: 30px; font-weight: 900; color: var(--accent); margin-top: 4px;" id="payment-amount">Rs 0</h3>
+      </div>
+
+      <div style="width: 100%; display: flex; flex-direction: column; gap: 10px;" id="payment-options-container">
+        <p style="font-size: 11px; color: var(--text-mute); font-weight: 700; text-align: left; margin: 0 0 2px 2px; letter-spacing: 0.5px;">SELECT PAYMENT METHOD:</p>
+        
+        <!-- UPI Option -->
+        <button class="btn" id="btn-pay-upi" style="background:#1d9e75; border-color:#1d9e75; color:#fff; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14.5px;">
+          📱 Pay with UPI (GPay/PhonePe)
+        </button>
+        
+        <!-- Cash Option -->
+        <button class="btn btn-outline" id="btn-pay-cash" style="background:#fff; border-color:var(--border); color:var(--text); font-size: 14.5px;">
+          💵 Pay with Cash
+        </button>
+      </div>
+
+      <!-- UPI Payment Loading / Success Simulator -->
+      <div style="display: none; flex-direction: column; align-items: center; gap: 12px; margin: 15px 0; width:100%;" id="upi-loading-container">
+        <div style="font-size: 13.5px; font-weight: 600; color: var(--text-mute);" id="upi-status-text">Connecting to UPI gateway...</div>
+        <div style="width: 28px; height: 28px; border: 3px solid #f3f3f3; border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite;" id="upi-spinner"></div>
+      </div>
+    </div>
+    
+    <div class="section-pad" style="padding-top:10px; margin-top:auto; border-top: 1px solid var(--border);">
+      <button class="btn" id="payment-done-btn" style="background:var(--accent); display:none; width:100%;">Back to Home</button>
     </div>
   </div>
 

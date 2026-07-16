@@ -58,6 +58,17 @@
     t._timer = setTimeout(function(){ t.classList.remove('show'); }, ms || 2500);
   }
 
+  function haversineKm(lat1, lon1, lat2, lon2){
+    var R = 6371.0; // Radius of Earth in km
+    var dLat = (lat2 - lat1) * Math.PI / 180.0;
+    var dLon = (lon2 - lon1) * Math.PI / 180.0;
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180.0) * Math.cos(lat2 * Math.PI / 180.0) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+    var c = 2.0 * Math.atan2(Math.sqrt(a), Math.sqrt(1.0-a));
+    return R * c;
+  }
+
   function setPill(status){
     var pill = document.getElementById('rd-status-pill');
     pill.className = 'pill ' + status;
@@ -187,6 +198,7 @@
         .then(function(d){
           if(d && d.latitude && d.longitude){
             var lat = d.latitude, lng = d.longitude;
+            state.lat = lat; state.lng = lng; // Save driver position
             document.getElementById('rd-display-location').textContent = 'Network location: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
             sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } })
               .catch(function(e){ console.error('IP loc push failed', e); });
@@ -196,6 +208,7 @@
                 .then(function(r2){ return r2.json(); })
                 .then(function(d2){
                   if(d2 && d2.latitude){
+                    state.lat = d2.latitude; state.lng = d2.longitude; // Save driver position
                     sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: d2.latitude, lng: d2.longitude, updated_at: new Date().toISOString() } })
                       .catch(function(){}); 
                   }
@@ -215,6 +228,7 @@
       
       state.watchId = navigator.geolocation.watchPosition(async function(pos){
         var lat = pos.coords.latitude, lng = pos.coords.longitude;
+        state.lat = lat; state.lng = lng; // Save driver position
         document.getElementById('rd-display-location').textContent = 'Online: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
         try{
           await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } });
@@ -322,6 +336,8 @@
   }
   function stopPollingBookings(){
     clearInterval(state.pollTimer);
+    var el = document.getElementById('rd-bookings-list');
+    if (el) el.innerHTML = '<div class="empty-state">No requests yet. Stay online to receive them.</div>';
   }
 
   function destroyRiderMap() {
@@ -351,22 +367,45 @@
         '<div class="maps-link-box" style="margin: 0 0 10px 0; background: var(--bg); border-radius: 12px; padding: 10px; font-size: 13px;">' +
           'Navigate to pickup: <a href="' + mapsLinkFor(b) + '" target="_blank" rel="noopener" style="display:block; text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:8px; font-weight:700; color:#1a73e8; text-decoration:none; margin-top:6px;">Open in Google Maps</a>' +
         '</div>' +
-        '<button class="btn" style="background:var(--green); border-color:var(--green); color:#fff;" id="rd-btn-arrived">I have arrived</button>';
+        '<button class="btn" style="background:var(--green); border-color:var(--green); color:#fff;" id="rd-btn-arrived">I have arrived</button>' +
+        '<button class="btn btn-outline" style="border-color:#f3d4d4; color:var(--red); background:#fff; margin-top:8px;" id="rd-btn-cancel-trip">Cancel Trip</button>';
     } else if (b.status === 'arrived') {
-      buttonHtml = '<button class="btn" style="background:var(--signal); border-color:var(--accent); color:var(--accent);" id="rd-btn-start">Start trip</button>';
+      buttonHtml = 
+        '<button class="btn" style="background:var(--signal); border-color:var(--accent); color:var(--accent);" id="rd-btn-start">Start trip</button>' +
+        '<button class="btn btn-outline" style="border-color:#f3d4d4; color:var(--red); background:#fff; margin-top:8px;" id="rd-btn-cancel-trip">Cancel Trip</button>';
     } else if (b.status === 'in_progress') {
       var cleanLink = b.maps_link ? b.maps_link.replace(/[?&]pin=(\d{4})/, '') : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
       buttonHtml = 
         '<div class="maps-link-box" style="margin: 0 0 10px 0; background: var(--bg); border-radius: 12px; padding: 10px; font-size: 13px;">' +
           'Navigate to drop-off: <a href="' + cleanLink + '" target="_blank" rel="noopener" style="display:block; text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:8px; font-weight:700; color:#1a73e8; text-decoration:none; margin-top:6px;">Open in Google Maps</a>' +
         '</div>' +
-        '<button class="btn" style="background:var(--red); border-color:var(--red); color:#fff;" id="rd-btn-complete">Complete trip</button>';
+        '<button class="btn" style="background:var(--red); border-color:var(--red); color:#fff;" id="rd-btn-complete">Complete trip</button>' +
+        '<button class="btn btn-outline" style="border-color:#f3d4d4; color:var(--red); background:#fff; margin-top:8px;" id="rd-btn-cancel-trip">Cancel Trip</button>';
     }
     actionsEl.innerHTML = buttonHtml;
 
     var arrivedBtn = document.getElementById('rd-btn-arrived');
     var startBtn = document.getElementById('rd-btn-start');
     var completeBtn = document.getElementById('rd-btn-complete');
+    var cancelTripBtn = document.getElementById('rd-btn-cancel-trip');
+    
+    if (cancelTripBtn) {
+      cancelTripBtn.addEventListener('click', async function(){
+        if(!confirm('Are you sure you want to cancel this trip?')) return;
+        try {
+          await sbFetch('bookings?id=eq.' + b.id, { method: 'PATCH', body: { status: 'cancelled' } });
+          await sbFetch('riders?id=eq.' + state.riderId, { method: 'PATCH', body: { status: 'available' } });
+          setPill('available');
+          toast('Trip cancelled');
+          destroyRiderMap();
+          document.getElementById('rd-tracking-section').style.display = 'none';
+          document.getElementById('rd-main-section').style.display = 'block';
+          fetchBookings();
+        } catch(err) {
+          toast('Could not cancel trip: ' + err.message);
+        }
+      });
+    }
     
     if (arrivedBtn) arrivedBtn.addEventListener('click', function() { handleBookingAction('arrived', b.id); });
     if (startBtn) {
@@ -491,9 +530,31 @@
           '<button class="btn" data-action="accept" data-id="'+b.id+'">Accept</button>' +
         '</div>';
       }
+
+      // Calculate distances in real time
+      var pickupDistText = '';
+      if(state.lat && state.lng && b.pickup_lat && b.pickup_lng){
+        var dToPickup = haversineKm(state.lat, state.lng, b.pickup_lat, b.pickup_lng);
+        pickupDistText = ' <span style="color:var(--accent); font-weight:700;">(' + dToPickup.toFixed(1) + ' km away)</span>';
+      }
+
+      var tripDistText = '';
+      if(b.pickup_lat && b.pickup_lng && b.maps_link){
+        var match = b.maps_link.match(/destination=(-?\d+\.\d+),(-?\d+\.\d+)/);
+        if(match){
+          var dLat = parseFloat(match[1]);
+          var dLng = parseFloat(match[2]);
+          var dTrip = haversineKm(b.pickup_lat, b.pickup_lng, dLat, dLng);
+          tripDistText = ' <span style="color:var(--green); font-weight:700;">(' + dTrip.toFixed(1) + ' km ride)</span>';
+        }
+      }
+
       return '<div class="booking-card">' +
         '<h3>'+(b.user_name || 'Rider request')+' \u2014 '+(b.vehicle_type||'')+'</h3>' +
-        '<div class="meta">Pickup: '+(b.pickup_label||'-')+'<br>Drop: '+(b.drop_label||'-')+'<br>Fare: Rs '+(b.fare||'-')+'</div>' +
+        '<div class="meta" style="line-height:1.6;">' +
+          '<strong>Pickup:</strong> '+(b.pickup_label||'-')+pickupDistText+'<br>' +
+          '<strong>Drop:</strong> '+(b.drop_label||'-')+tripDistText+'<br>' +
+          '<strong>Fare:</strong> Rs '+(b.fare||'-')+'</div>' +
         actions +
       '</div>';
     }).join('');
@@ -1709,10 +1770,15 @@
         } catch (e) { console.error(e); }
 
       } else if(b.status === 'completed'){
-        sub.textContent = 'Trip completed. Thanks for riding with Rydealot.';
-        payBtn.style.display = 'block';
-        document.getElementById('cancel-trip-btn').style.display = 'none';
         clearInterval(state.bookingPollTimer);
+        destroyMap();
+        
+        document.getElementById('payment-amount').textContent = 'Rs ' + (b.fare || '0');
+        document.getElementById('payment-options-container').style.display = 'flex';
+        document.getElementById('upi-loading-container').style.display = 'none';
+        document.getElementById('payment-done-btn').style.display = 'none';
+        
+        showScreen('screen-payment');
       } else if(b.status === 'cancelled'){
         sub.textContent = 'This request was cancelled or declined.';
         clearInterval(state.bookingPollTimer);
@@ -1748,13 +1814,39 @@
     showScreen('screen-login');
   });
 
-  document.getElementById('tracking-pay-btn').addEventListener('click', function(){
-    clearInterval(state.bookingPollTimer);
-    destroyMap();
+  // ---- Payment / UPI Simulator Screen Logic ----
+  document.getElementById('btn-pay-cash').addEventListener('click', function(){
+    document.getElementById('payment-options-container').style.display = 'none';
+    document.getElementById('upi-loading-container').style.display = 'flex';
+    document.getElementById('upi-status-text').innerHTML = 'Cash Payment Confirmed! 💵<br><span style="font-size:12px;color:var(--text-mute);">Thank the driver and have a great day!</span>';
+    document.getElementById('upi-spinner').style.display = 'none';
+    document.getElementById('payment-done-btn').style.display = 'block';
+  });
+
+  document.getElementById('btn-pay-upi').addEventListener('click', function(){
+    document.getElementById('payment-options-container').style.display = 'none';
+    var loadingContainer = document.getElementById('upi-loading-container');
+    var statusText = document.getElementById('upi-status-text');
+    var spinner = document.getElementById('upi-spinner');
+    
+    loadingContainer.style.display = 'flex';
+    spinner.style.display = 'block';
+    statusText.textContent = 'Connecting to secure UPI gateway...';
+    
+    setTimeout(function(){
+      statusText.textContent = 'Processing transaction... 💳';
+      setTimeout(function(){
+        statusText.innerHTML = 'Payment Successful! Rs ' + document.getElementById('payment-amount').textContent.replace('Rs ', '') + ' received. ✅<br><span style="font-size:12.5px;color:var(--green);font-weight:bold;">Have a nice day! 😊</span>';
+        spinner.style.display = 'none';
+        document.getElementById('payment-done-btn').style.display = 'block';
+      }, 1800);
+    }, 1500);
+  });
+
+  document.getElementById('payment-done-btn').addEventListener('click', function(){
     state.activeBookingId = null;
     state.exitAnimationPlayed = false;
     state.trackAnimPlayed = false;
-    toast('Thanks for riding with Rydealot!');
     showScreen('screen-login');
   });
 
