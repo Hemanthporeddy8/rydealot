@@ -717,7 +717,8 @@
     destLat: null,
     destLng: null,
     destMap: null,
-    destMarker: null
+    destMarker: null,
+    isBookingInProgress: false
   };
 
   function toast(msg, ms){
@@ -1543,8 +1544,20 @@
   // app to accept it — this no longer instantly jumps to "on the way" like
   // the demo did, because in real life the rider has to say yes first.
   async function confirmBooking(id, rider, type, price){
+    if(state.activeBookingId || state.isBookingInProgress) return;
+    state.isBookingInProgress = true;
+
     var btn = document.getElementById('book-btn');
-    btn.disabled = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Requesting...';
+    }
+    var detailBtn = document.getElementById('detail-book-btn');
+    if (detailBtn) {
+      detailBtn.disabled = true;
+      detailBtn.textContent = 'Requesting...';
+    }
+
     try{
       var pin = Math.floor(1000 + Math.random() * 9000);
       var mapsLink = '';
@@ -1580,7 +1593,15 @@
       goToTracking(rider, type, price, pin);
     } catch(err){
       toast('Could not send request: ' + err.message);
-      btn.disabled = false;
+      state.isBookingInProgress = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Book nearest ' + type + ' \u2014 Rs ' + price;
+      }
+      if (detailBtn) {
+        detailBtn.disabled = false;
+        detailBtn.textContent = 'Request this rider \u2014 Rs ' + price;
+      }
     }
   }
 
@@ -1782,6 +1803,13 @@
       } else if(b.status === 'cancelled'){
         sub.textContent = 'This request was cancelled or declined.';
         clearInterval(state.bookingPollTimer);
+        state.activeBookingId = null;
+        state.isBookingInProgress = false;
+        var btn = document.getElementById('book-btn');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Book nearest ' + state.selectedRideType + ' \u2014 Rs ' + currentPriceFor(state.selectedRideType);
+        }
       }
     } catch(err){
       console.error('poll booking failed', err);
@@ -1802,6 +1830,7 @@
     toast(feeApplies ? 'Trip cancelled. A cancellation fee of Rs 20 applies.' : 'Trip cancelled \u2014 no charge.');
     document.getElementById('cancel-trip-btn').style.display = 'none';
     state.activeBookingId = null;
+    state.isBookingInProgress = false;
     state.exitAnimationPlayed = false;
     state.trackAnimPlayed = false;
     showScreen('screen-lot');
