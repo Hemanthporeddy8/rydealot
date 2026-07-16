@@ -1679,8 +1679,6 @@
     document.getElementById('confirm-vehicle-icon').innerHTML = vehicleIconSvg(type, '#1d9e75');
     document.getElementById('tracking-sub').textContent = 'Waiting for ' + rider.name + ' to accept...';
     document.getElementById('track-step-2').textContent = 'Waiting for rider to accept';
-    document.getElementById('tracking-pay-btn').textContent = 'Trip complete \u2014 done';
-    document.getElementById('tracking-pay-btn').style.display = 'none';
     document.getElementById('cancel-trip-btn').style.display = 'block';
     document.getElementById('cancel-trip-btn').disabled = false;
     // Show PIN immediately — no need to wait for DB polling
@@ -1748,7 +1746,6 @@
       }
       var sub = document.getElementById('tracking-sub');
       var step2 = document.getElementById('track-step-2');
-      var payBtn = document.getElementById('tracking-pay-btn');
 
       if(b.status === 'requested'){
         sub.textContent = 'Waiting for ' + state.currentRider.name + ' to accept...';
@@ -1779,7 +1776,6 @@
         }
       } else if(b.status === 'in_progress'){
         sub.textContent = 'Trip in progress to ' + state.drop;
-        payBtn.style.display = 'block';
         // Continue displaying live driver coordinates
         try {
           var riderRows = await sbFetch('riders?id=eq.' + state.currentRider.dbId);
