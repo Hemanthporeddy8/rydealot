@@ -74,22 +74,60 @@
 </head>
 <body>
 
-<!-- PASSCODE AUTH MODAL -->
+<!-- PASSCODE & GMAIL AUTH MODAL -->
 <div id="admin-auth-overlay">
   <div class="auth-card">
     <div style="font-size: 40px; margin-bottom: 12px;">🔒</div>
     <h2>RYDEALOT <span>ADMIN</span></h2>
-    <p>Enter master passcode to manage drivers & bookings</p>
-    <input type="password" id="admin-passcode-input" class="auth-input" placeholder="Enter Passcode" autofocus>
+    <p style="margin-bottom: 16px;">Sign in with Admin Gmail & Password</p>
+    
+    <input type="email" id="admin-email-input" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem;" placeholder="Admin Gmail / Email" value="hemanth@gmail.com">
+    
+    <div style="position:relative; width:100%; margin-bottom:16px;">
+      <input type="password" id="admin-passcode-input" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Admin Password" autofocus>
+      <button type="button" id="toggle-login-pass-btn" onclick="togglePasswordVisibility('admin-passcode-input', 'toggle-login-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem; padding:4px;" title="Show/Hide Password">👁️</button>
+    </div>
+
     <button class="auth-btn" id="admin-login-btn" onclick="verifyAdminPasscode()">Unlock Dashboard</button>
-    <div class="auth-error" id="admin-auth-error">Incorrect passcode. Try again.</div>
+    <div class="auth-error" id="admin-auth-error">Incorrect Gmail or Password. Try again.</div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div id="change-pass-overlay" style="display:none; position:fixed; inset:0; background:rgba(11,12,15,0.9); backdrop-filter:blur(8px); z-index:10001; align-items:center; justify-content:center; padding:20px;">
+  <div class="auth-card" style="text-align:left;">
+    <h3 style="font-size:1.2rem; font-weight:900; margin-bottom:6px;">🔑 Change Admin Credentials</h3>
+    <p style="font-size:0.8rem; color:var(--mute); margin-bottom:18px;">Update your Admin Gmail or Master Password below.</p>
+    
+    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">ADMIN GMAIL</label>
+    <input type="email" id="new-admin-email" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.88rem; margin-bottom:12px;" placeholder="Admin Gmail">
+    
+    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">CURRENT PASSWORD</label>
+    <div style="position:relative; width:100%; margin-bottom:12px;">
+      <input type="password" id="curr-admin-pass" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Current Password">
+      <button type="button" id="toggle-curr-pass-btn" onclick="togglePasswordVisibility('curr-admin-pass', 'toggle-curr-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem;" title="Show/Hide Password">👁️</button>
+    </div>
+
+    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">NEW PASSWORD</label>
+    <div style="position:relative; width:100%; margin-bottom:20px;">
+      <input type="password" id="new-admin-pass" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="New Password">
+      <button type="button" id="toggle-new-pass-btn" onclick="togglePasswordVisibility('new-admin-pass', 'toggle-new-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem;" title="Show/Hide Password">👁️</button>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-mute" style="flex:1;" onclick="closeChangePassModal()">Cancel</button>
+      <button class="btn btn-amber" style="flex:1;" onclick="saveNewAdminCredentials()">Save Changes</button>
+    </div>
   </div>
 </div>
 
 <div id="admin-main-wrap">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px; flex-wrap:wrap; gap:10px;">
     <h1>RYDEALOT <span>ADMIN</span></h1>
-    <button class="btn btn-mute" style="font-size:0.78rem;" onclick="adminLogout()">🔒 Lock Admin</button>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-mute" style="font-size:0.78rem;" onclick="openChangePassModal()">🔑 Change Password</button>
+      <button class="btn btn-mute" style="font-size:0.78rem;" onclick="adminLogout()">🔒 Lock Admin</button>
+    </div>
   </div>
   <p class="subtitle">Manage drivers, users, and bookings for your pilot</p>
 
@@ -419,11 +457,31 @@
     document.getElementById('st-cancelled').textContent = rows.filter(function(b){ return b.status === 'cancelled'; }).length;
   }
 
-  // ===== ADMIN AUTHENTICATION LOGIC =====
-  var MASTER_PASSCODE = 'rydealot2026';
+  // ===== ADMIN AUTHENTICATION & CREDENTIAL MANAGEMENT =====
+  function getSavedAdminEmail() {
+    return localStorage.getItem('rydealot_admin_email') || 'hemanth@gmail.com';
+  }
+
+  function getSavedAdminPasscode() {
+    return localStorage.getItem('rydealot_admin_pass') || 'rydealot2026';
+  }
+
+  function togglePasswordVisibility(inputId, btnId) {
+    var input = document.getElementById(inputId);
+    var btn = document.getElementById(btnId);
+    if (!input) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      if (btn) btn.textContent = '🙈';
+    } else {
+      input.type = 'password';
+      if (btn) btn.textContent = '👁️';
+    }
+  }
 
   function checkAdminAuth() {
     var authed = sessionStorage.getItem('rydealot_admin_authed');
+    document.getElementById('admin-email-input').value = getSavedAdminEmail();
     if (authed === 'true') {
       document.getElementById('admin-auth-overlay').style.display = 'none';
       document.getElementById('admin-main-wrap').style.display = 'block';
@@ -435,9 +493,14 @@
   }
 
   function verifyAdminPasscode() {
-    var val = document.getElementById('admin-passcode-input').value;
+    var emailVal = (document.getElementById('admin-email-input').value || '').trim().toLowerCase();
+    var passVal = document.getElementById('admin-passcode-input').value;
     var errEl = document.getElementById('admin-auth-error');
-    if (val === MASTER_PASSCODE) {
+    
+    var expectedEmail = getSavedAdminEmail().toLowerCase();
+    var expectedPass = getSavedAdminPasscode();
+
+    if (emailVal === expectedEmail && passVal === expectedPass) {
       sessionStorage.setItem('rydealot_admin_authed', 'true');
       errEl.style.display = 'none';
       checkAdminAuth();
@@ -446,6 +509,33 @@
       document.getElementById('admin-passcode-input').value = '';
       document.getElementById('admin-passcode-input').focus();
     }
+  }
+
+  function openChangePassModal() {
+    document.getElementById('new-admin-email').value = getSavedAdminEmail();
+    document.getElementById('curr-admin-pass').value = '';
+    document.getElementById('new-admin-pass').value = '';
+    document.getElementById('change-pass-overlay').style.display = 'flex';
+  }
+
+  function closeChangePassModal() {
+    document.getElementById('change-pass-overlay').style.display = 'none';
+  }
+
+  function saveNewAdminCredentials() {
+    var newEmail = (document.getElementById('new-admin-email').value || '').trim();
+    var currPass = document.getElementById('curr-admin-pass').value;
+    var newPass = document.getElementById('new-admin-pass').value;
+
+    if (!newEmail) { alert('Please enter a valid Admin Gmail.'); return; }
+    if (currPass !== getSavedAdminPasscode()) { alert('Incorrect current password.'); return; }
+    if (!newPass || newPass.length < 4) { alert('New password must be at least 4 characters long.'); return; }
+
+    localStorage.setItem('rydealot_admin_email', newEmail);
+    localStorage.setItem('rydealot_admin_pass', newPass);
+    
+    toast('Admin credentials updated successfully!');
+    closeChangePassModal();
   }
 
   function adminLogout() {
