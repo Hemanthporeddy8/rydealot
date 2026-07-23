@@ -59,18 +59,45 @@
     .search-input:focus { outline: none; border-color: var(--amber); }
     .mono { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; }
     @media (max-width: 600px) { h1 { font-size: 1.4rem; } .stats-row { grid-template-columns: 1fr 1fr; } }
+  /* Admin Auth Modal Styles */
+  #admin-auth-overlay { position: fixed; inset: 0; background: rgba(11, 12, 15, 0.95); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px; }
+  .auth-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 20px; padding: 32px 24px; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+  .auth-card h2 { font-size: 1.3rem; font-weight: 900; margin-bottom: 6px; }
+  .auth-card p { font-size: 0.85rem; color: var(--mute); margin-bottom: 20px; }
+  .auth-input { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; text-align: center; letter-spacing: 2px; font-weight: 700; margin-bottom: 16px; }
+  .auth-input:focus { outline: none; border-color: var(--amber); }
+  .auth-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--amber); color: #000; font-weight: 800; font-size: 0.95rem; cursor: pointer; transition: opacity 0.2s; }
+  .auth-btn:hover { opacity: 0.9; }
+  .auth-error { color: var(--red); font-size: 0.8rem; font-weight: 600; margin-top: 10px; display: none; }
+  #admin-main-wrap { display: none; }
   </style>
 </head>
 <body>
 
-<h1>RYDEALOT <span>ADMIN</span></h1>
-<p class="subtitle">Manage drivers, users, and bookings for your pilot</p>
-
-<div class="tabs">
-  <button class="tab active" onclick="showPanel('drivers')">🏍️ Drivers</button>
-  <button class="tab" onclick="showPanel('bookings')">📋 Bookings</button>
-  <button class="tab" onclick="showPanel('stats')">📊 Stats</button>
+<!-- PASSCODE AUTH MODAL -->
+<div id="admin-auth-overlay">
+  <div class="auth-card">
+    <div style="font-size: 40px; margin-bottom: 12px;">🔒</div>
+    <h2>RYDEALOT <span>ADMIN</span></h2>
+    <p>Enter master passcode to manage drivers & bookings</p>
+    <input type="password" id="admin-passcode-input" class="auth-input" placeholder="Enter Passcode" autofocus>
+    <button class="auth-btn" id="admin-login-btn" onclick="verifyAdminPasscode()">Unlock Dashboard</button>
+    <div class="auth-error" id="admin-auth-error">Incorrect passcode. Try again.</div>
+  </div>
 </div>
+
+<div id="admin-main-wrap">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+    <h1>RYDEALOT <span>ADMIN</span></h1>
+    <button class="btn btn-mute" style="font-size:0.78rem;" onclick="adminLogout()">🔒 Lock Admin</button>
+  </div>
+  <p class="subtitle">Manage drivers, users, and bookings for your pilot</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showPanel('drivers')">🏍️ Drivers</button>
+    <button class="tab" onclick="showPanel('bookings')">📋 Bookings</button>
+    <button class="tab" onclick="showPanel('stats')">📊 Stats</button>
+  </div>
 
 <!-- ===== DRIVERS PANEL ===== -->
 <div class="panel active" id="panel-drivers">
@@ -392,9 +419,47 @@
     document.getElementById('st-cancelled').textContent = rows.filter(function(b){ return b.status === 'cancelled'; }).length;
   }
 
-  // Auto-load on page load
-  loadDrivers();
-</script>
+  // ===== ADMIN AUTHENTICATION LOGIC =====
+  var MASTER_PASSCODE = 'rydealot2026';
 
+  function checkAdminAuth() {
+    var authed = sessionStorage.getItem('rydealot_admin_authed');
+    if (authed === 'true') {
+      document.getElementById('admin-auth-overlay').style.display = 'none';
+      document.getElementById('admin-main-wrap').style.display = 'block';
+      loadDrivers();
+    } else {
+      document.getElementById('admin-auth-overlay').style.display = 'flex';
+      document.getElementById('admin-main-wrap').style.display = 'none';
+    }
+  }
+
+  function verifyAdminPasscode() {
+    var val = document.getElementById('admin-passcode-input').value;
+    var errEl = document.getElementById('admin-auth-error');
+    if (val === MASTER_PASSCODE) {
+      sessionStorage.setItem('rydealot_admin_authed', 'true');
+      errEl.style.display = 'none';
+      checkAdminAuth();
+    } else {
+      errEl.style.display = 'block';
+      document.getElementById('admin-passcode-input').value = '';
+      document.getElementById('admin-passcode-input').focus();
+    }
+  }
+
+  function adminLogout() {
+    sessionStorage.removeItem('rydealot_admin_authed');
+    checkAdminAuth();
+  }
+
+  document.getElementById('admin-passcode-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') verifyAdminPasscode();
+  });
+
+  // Run auth check on load
+  checkAdminAuth();
+</script>
+</div>
 </body>
 </html>
