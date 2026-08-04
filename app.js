@@ -485,6 +485,8 @@
     }
   }
 
+  var lastTrackedBookingId = null;
+
   async function fetchBookings(){
     if(!state.riderId) return;
     try{
@@ -495,8 +497,21 @@
       });
 
       if (activeBooking) {
+        lastTrackedBookingId = activeBooking.id;
         showRiderTracking(activeBooking);
       } else {
+        // If driver was previously tracking an active booking and it got cancelled by user
+        if (lastTrackedBookingId) {
+          toast('⚠️ Passenger cancelled this trip');
+          lastTrackedBookingId = null;
+          // Set driver status back to available in DB
+          try {
+            await sbFetch('riders?id=eq.' + state.riderId, { method: 'PATCH', body: { status: 'available', updated_at: new Date().toISOString() } });
+            state.online = true;
+            setPill('available');
+          } catch(e) { console.error('Reset status failed', e); }
+        }
+
         document.getElementById('rd-tracking-section').style.display = 'none';
         document.getElementById('rd-main-section').style.display = 'block';
         destroyRiderMap();
@@ -1820,7 +1835,12 @@
       return;
     }
     try{
+      var bRows = await sbFetch('bookings?id=eq.' + state.activeBookingId);
+      var b = bRows && bRows[0];
       await sbFetch('bookings?id=eq.' + state.activeBookingId, { method: 'PATCH', body: { status: 'cancelled' } });
+      if (b && b.rider_id) {
+        await sbFetch('riders?id=eq.' + b.rider_id, { method: 'PATCH', body: { status: 'available', updated_at: new Date().toISOString() } });
+      }
     } catch(err){ console.error(err); }
     var feeApplies = state.lastKnownStatus === 'arrived' || state.lastKnownStatus === 'in_progress';
     toast(feeApplies ? 'Trip cancelled. A cancellation fee of Rs 20 applies.' : 'Trip cancelled \u2014 no charge.');
