@@ -38,9 +38,14 @@
         <input type="text" id="login-name" placeholder="Enter your name">
       </div>
       <div class="field">
-        <label class="field-label">Pickup label (where the rider should find you)</label>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+          <label class="field-label" style="margin-bottom:0;">Pickup label (where the rider should find you)</label>
+          <button type="button" id="btn-use-current-loc" style="background:#eef7f2; color:#1d9e75; border:1.5px solid #a3e2c9; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s ease;">
+            📍 Current location
+          </button>
+        </div>
         <div style="position:relative">
-          <input type="text" id="pickup-input" placeholder="e.g. Bus Stand" autocomplete="off">
+          <input type="text" id="pickup-input" placeholder="e.g. Bus Stand or Current Location" autocomplete="off">
           <div id="pickup-suggestions" class="autocomplete-dropdown"></div>
         </div>
       </div>

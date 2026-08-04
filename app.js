@@ -450,20 +450,27 @@
           maxZoom: 19
         }).addTo(state.map);
 
+        var vType = (r && r.vehicle_type) ? r.vehicle_type : 'auto';
+        var vIconEmoji = vType === 'bike' ? '🏍️' : (vType === 'auto' ? '🛺' : '🚗');
+
         var driverIcon = L.divIcon({
-          html: '<div style="background-color:#16181c; color:#fff; width:22px; height:22px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:bold; box-shadow:0 1px 4px rgba(0,0,0,0.4);">R</div>',
+          html: '<div style="background:#16181c; color:#fff; padding:5px 10px; border-radius:20px; font-size:11px; font-weight:800; border:2px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,0.4); display:flex; align-items:center; gap:5px; whitespace:nowrap;">' +
+                  '<span>' + vIconEmoji + '</span><span>YOU (DRIVER)</span>' +
+                '</div>',
           className: 'custom-rider-icon',
-          iconSize: [22, 22],
-          iconAnchor: [11, 11]
+          iconSize: [110, 32],
+          iconAnchor: [55, 16]
         });
         state.driverMarker = L.marker([dLat, dLng], { icon: driverIcon }).addTo(state.map);
 
         if (pLat != null && pLng != null) {
           var passengerIcon = L.divIcon({
-            html: '<div style="background-color:#1d9e75; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>',
+            html: '<div style="background:#1d9e75; color:#fff; padding:5px 10px; border-radius:20px; font-size:11px; font-weight:800; border:2px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,0.4); display:flex; align-items:center; gap:5px; whitespace:nowrap;">' +
+                    '<span>👤</span><span>PASSENGER (PICKUP)</span>' +
+                  '</div>',
             className: 'custom-passenger-icon',
-            iconSize: [12, 12],
-            iconAnchor: [6, 6]
+            iconSize: [140, 32],
+            iconAnchor: [70, 16]
           });
           state.passengerMarker = L.marker([pLat, pLng], { icon: passengerIcon }).addTo(state.map);
         }
@@ -1076,6 +1083,46 @@
       state.lng = lng;
       updateSetupMapMarkers();
     });
+
+    var useCurrentLocBtn = document.getElementById('btn-use-current-loc');
+    if (useCurrentLocBtn) {
+      useCurrentLocBtn.addEventListener('click', function(){
+        useCurrentLocBtn.style.opacity = '0.6';
+        useCurrentLocBtn.textContent = '⌛ Detecting...';
+        navigator.geolocation.getCurrentPosition(function(pos){
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          state.lat = lat;
+          state.lng = lng;
+          updateSetupMapMarkers();
+          
+          fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng)
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+              var placeName = data.address ? (data.address.suburb || data.address.neighbourhood || data.address.residential || data.address.town || data.address.city || 'Current Location') : 'Current Location';
+              document.getElementById('pickup-input').value = placeName;
+              toast('📍 Pickup set to: ' + placeName);
+            })
+            .catch(function(){
+              document.getElementById('pickup-input').value = 'Current Location';
+              toast('📍 Pickup set to Current Location');
+            })
+            .finally(function(){
+              useCurrentLocBtn.style.opacity = '1';
+              useCurrentLocBtn.textContent = '📍 Current location';
+            });
+        }, function(err){
+          useCurrentLocBtn.style.opacity = '1';
+          useCurrentLocBtn.textContent = '📍 Current location';
+          if (state.lat && state.lng) {
+            document.getElementById('pickup-input').value = 'Current Location';
+            toast('📍 Pickup set to Current Location');
+          } else {
+            toast('❌ Could not get GPS location. Enable Location in browser.');
+          }
+        }, { enableHighAccuracy: true, timeout: 10000 });
+      });
+    }
 
     // Drop: fills coordinates, label, and updates setup map
     setupAutocomplete('drop-input', 'drop-suggestions', function(lat, lng){
