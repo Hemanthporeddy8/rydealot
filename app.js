@@ -1095,28 +1095,16 @@
           state.lat = lat;
           state.lng = lng;
           updateSetupMapMarkers();
-          
-          fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng)
-            .then(function(r){ return r.json(); })
-            .then(function(data){
-              var placeName = data.address ? (data.address.suburb || data.address.neighbourhood || data.address.residential || data.address.town || data.address.city || 'Current Location') : 'Current Location';
-              document.getElementById('pickup-input').value = placeName;
-              toast('📍 Pickup set to: ' + placeName);
-            })
-            .catch(function(){
-              document.getElementById('pickup-input').value = 'Current Location';
-              toast('📍 Pickup set to Current Location');
-            })
-            .finally(function(){
-              useCurrentLocBtn.style.opacity = '1';
-              useCurrentLocBtn.textContent = '📍 Current location';
-            });
+          document.getElementById('pickup-input').value = 'Current Location (GPS)';
+          toast('📍 Pickup set to Current Location (GPS)');
+          useCurrentLocBtn.style.opacity = '1';
+          useCurrentLocBtn.textContent = '📍 Current location';
         }, function(err){
           useCurrentLocBtn.style.opacity = '1';
           useCurrentLocBtn.textContent = '📍 Current location';
           if (state.lat && state.lng) {
-            document.getElementById('pickup-input').value = 'Current Location';
-            toast('📍 Pickup set to Current Location');
+            document.getElementById('pickup-input').value = 'Current Location (GPS)';
+            toast('📍 Pickup set to Current Location (GPS)');
           } else {
             toast('❌ Could not get GPS location. Enable Location in browser.');
           }
