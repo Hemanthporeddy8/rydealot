@@ -1,4 +1,4 @@
-var CACHE_NAME = 'rydealot-v8';
+var CACHE_NAME = 'rydealot-v9';
 var urlsToCache = [
   './',
   './index.html',
@@ -32,20 +32,25 @@ self.addEventListener('activate', function(event) {
   );
 });
 
-// Fetch: NETWORK FIRST — always try network, fall back to cache
+// Fetch: NETWORK FIRST for local GET assets, BYPASS API and non-GET calls
 self.addEventListener('fetch', function(event) {
+  // Never intercept non-GET requests (POST, PATCH, DELETE) or Supabase API calls
+  if (event.request.method !== 'GET' || event.request.url.indexOf('supabase.co') !== -1) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then(function(response) {
-        // Save fresh copy to cache
-        var copy = response.clone();
-        caches.open(CACHE_NAME).then(function(cache) {
-          cache.put(event.request, copy);
-        });
+        if (response && response.status === 200 && response.type === 'basic') {
+          var copy = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, copy);
+          });
+        }
         return response;
       })
       .catch(function() {
-        // Network failed — serve from cache as fallback
         return caches.match(event.request);
       })
   );
