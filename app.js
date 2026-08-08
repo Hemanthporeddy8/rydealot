@@ -229,6 +229,13 @@
     };
     localStorage.setItem('rydealot_user_session', JSON.stringify(sess));
     authState.currentUser = sess;
+
+    var submitBtn = document.getElementById('auth-submit-btn');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = authState.mode === 'login' ? 'Sign In' : 'Create Account';
+    }
+
     applySession();
   }
 
@@ -239,9 +246,12 @@
       var sess = JSON.parse(raw);
       authState.currentUser = sess;
 
-      // Hide Auth Screen
+      // Hide Auth Screen explicitly
       var screenAuth = document.getElementById('screen-auth');
-      if (screenAuth) screenAuth.classList.remove('active');
+      if (screenAuth) {
+        screenAuth.classList.remove('active');
+        screenAuth.style.display = 'none';
+      }
 
       if (sess.role === 'customer') {
         document.getElementById('user-app-root').classList.add('active');
