@@ -169,6 +169,7 @@
     <button class="tab" onclick="showPanel('verification')">📄 Verification</button>
     <button class="tab" onclick="showPanel('bookings')">📋 Bookings</button>
     <button class="tab" onclick="showPanel('stats')">📊 Stats</button>
+    <button class="tab" onclick="showPanel('fares')">💰 Fare Settings</button>
   </div>
 
 <!-- ===== DRIVERS PANEL ===== -->
@@ -287,6 +288,87 @@
   <div class="toolbar"><button class="btn btn-amber" onclick="loadStats()">↺ Refresh Stats</button></div>
 </div>
 
+<!-- ===== FARE SETTINGS PANEL ===== -->
+<div class="panel" id="panel-fares">
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:850px;">
+    <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:6px; color:var(--amber);">💰 Dynamic Admin Fare Engine</h2>
+    <p style="font-size:0.85rem; color:var(--mute); margin-bottom:20px;">Configure Base Fares, Per-KM Rates, Scarcity Surge & Night Shift Multipliers.</p>
+
+    <!-- Fares Table Grid -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:14px; margin-bottom:24px;">
+      
+      <!-- Bike Taxi -->
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:16px;">
+        <div style="font-weight:800; margin-bottom:12px; color:var(--amber); display:flex; align-items:center; gap:6px;">🏍️ Bike Taxi</div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">Base Fare (₹)</label>
+        <input type="number" id="fare-bike-base" value="25" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:10px;">
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">Per-KM Rate (₹/KM)</label>
+        <input type="number" id="fare-bike-km" value="7" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:0;">
+      </div>
+
+      <!-- Auto Direct -->
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:16px;">
+        <div style="font-weight:800; margin-bottom:12px; color:var(--amber); display:flex; align-items:center; gap:6px;">🛺 Auto (Direct)</div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">Base Fare (₹)</label>
+        <input type="number" id="fare-auto-base" value="35" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:10px;">
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">Per-KM Rate (₹/KM)</label>
+        <input type="number" id="fare-auto-km" value="12" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:0;">
+      </div>
+
+      <!-- Auto Share -->
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:16px;">
+        <div style="font-weight:800; margin-bottom:12px; color:var(--green); display:flex; align-items:center; gap:6px;">👥 Auto Share</div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">Base Fare (₹)</label>
+        <input type="number" id="fare-auto_share-base" value="20" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:10px;">
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">Per-KM Rate (₹/KM)</label>
+        <input type="number" id="fare-auto_share-km" value="6" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:0;">
+      </div>
+
+      <!-- Car / Cab -->
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:16px;">
+        <div style="font-weight:800; margin-bottom:12px; color:var(--blue); display:flex; align-items:center; gap:6px;">🚗 Cab / EV</div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">Base Fare (₹)</label>
+        <input type="number" id="fare-car-base" value="60" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:10px;">
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">Per-KM Rate (₹/KM)</label>
+        <input type="number" id="fare-car-km" value="16" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:0;">
+      </div>
+
+    </div>
+
+    <!-- Surge Control -->
+    <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:24px;">
+      <h3 style="font-size:0.95rem; font-weight:800; margin-bottom:12px; color:var(--text);">⚡ Dynamic Surge & Night Shift</h3>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+        <div>
+          <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">Surge Mode</label>
+          <select id="fare-surge-mode" class="auth-input" style="text-align:left; font-size:0.85rem;" onchange="toggleSurgeModeInputs()">
+            <option value="auto">⚡ Automatic (Demand Scarcity)</option>
+            <option value="manual">🎛️ Manual Fixed Override</option>
+          </select>
+        </div>
+        <div id="manual-surge-wrap" style="display:none;">
+          <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">Manual Multiplier</label>
+          <select id="fare-manual-surge" class="auth-input" style="text-align:left; font-size:0.85rem;">
+            <option value="1.0">1.0x (Normal Price)</option>
+            <option value="1.25">1.25x (Mild Rush)</option>
+            <option value="1.5">1.5x (High Demand)</option>
+            <option value="2.0">2.0x (Peak Hour Surge)</option>
+            <option value="2.5">2.5x (Extreme Storm)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">Night Shift Surge (10 PM - 6 AM)</label>
+          <input type="number" step="0.1" id="fare-night-surge" value="1.2" class="auth-input" style="text-align:left; font-size:0.85rem;">
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end;">
+      <button class="btn btn-amber" style="padding:12px 28px; font-size:0.9rem;" onclick="saveFareSettings()">💾 Save & Apply Fare Rules</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -333,6 +415,106 @@
     if(name === 'verification') loadVerificationData();
     if(name === 'bookings') loadBookings();
     if(name === 'stats') loadStats();
+    if(name === 'fares') loadFareSettings();
+  }
+
+  function toggleSurgeModeInputs() {
+    var mode = document.getElementById('fare-surge-mode').value;
+    document.getElementById('manual-surge-wrap').style.display = mode === 'manual' ? 'block' : 'none';
+  }
+
+  async function loadFareSettings() {
+    try {
+      var saved = localStorage.getItem('rydealot_fare_config');
+      var cfg = saved ? JSON.parse(saved) : null;
+      try {
+        var rows = await sb('fare_settings?id=eq.default');
+        if (rows && rows.length > 0) {
+          var remote = rows[0];
+          cfg = {
+            bike: { base: remote.bike_base, perKm: remote.bike_km },
+            auto: { base: remote.auto_base, perKm: remote.auto_km },
+            auto_share: { base: remote.auto_share_base, perKm: remote.auto_share_km },
+            car: { base: remote.car_base, perKm: remote.car_km },
+            surgeMode: remote.surge_mode,
+            manualSurge: remote.manual_surge,
+            nightSurge: remote.night_surge
+          };
+          localStorage.setItem('rydealot_fare_config', JSON.stringify(cfg));
+        }
+      } catch(e){}
+
+      if (cfg) {
+        if (cfg.bike) {
+          document.getElementById('fare-bike-base').value = cfg.bike.base || 25;
+          document.getElementById('fare-bike-km').value = cfg.bike.perKm || 7;
+        }
+        if (cfg.auto) {
+          document.getElementById('fare-auto-base').value = cfg.auto.base || 35;
+          document.getElementById('fare-auto-km').value = cfg.auto.perKm || 12;
+        }
+        if (cfg.auto_share) {
+          document.getElementById('fare-auto_share-base').value = cfg.auto_share.base || 20;
+          document.getElementById('fare-auto_share-km').value = cfg.auto_share.perKm || 6;
+        }
+        if (cfg.car) {
+          document.getElementById('fare-car-base').value = cfg.car.base || 60;
+          document.getElementById('fare-car-km').value = cfg.car.perKm || 16;
+        }
+        if (cfg.surgeMode) document.getElementById('fare-surge-mode').value = cfg.surgeMode;
+        if (cfg.manualSurge) document.getElementById('fare-manual-surge').value = cfg.manualSurge;
+        if (cfg.nightSurge) document.getElementById('fare-night-surge').value = cfg.nightSurge;
+        toggleSurgeModeInputs();
+      }
+    } catch (e) {
+      console.log('Load fare settings note:', e);
+    }
+  }
+
+  async function saveFareSettings() {
+    var cfg = {
+      bike: { base: parseFloat(document.getElementById('fare-bike-base').value)||25, perKm: parseFloat(document.getElementById('fare-bike-km').value)||7 },
+      auto: { base: parseFloat(document.getElementById('fare-auto-base').value)||35, perKm: parseFloat(document.getElementById('fare-auto-km').value)||12 },
+      auto_share: { base: parseFloat(document.getElementById('fare-auto_share-base').value)||20, perKm: parseFloat(document.getElementById('fare-auto_share-km').value)||6 },
+      car: { base: parseFloat(document.getElementById('fare-car-base').value)||60, perKm: parseFloat(document.getElementById('fare-car-km').value)||16 },
+      surgeMode: document.getElementById('fare-surge-mode').value,
+      manualSurge: parseFloat(document.getElementById('fare-manual-surge').value)||1.0,
+      nightSurge: parseFloat(document.getElementById('fare-night-surge').value)||1.2
+    };
+
+    localStorage.setItem('rydealot_fare_config', JSON.stringify(cfg));
+
+    try {
+      await sb('fare_settings?id=eq.default', {
+        method: 'PATCH',
+        body: {
+          bike_base: cfg.bike.base, bike_km: cfg.bike.perKm,
+          auto_base: cfg.auto.base, auto_km: cfg.auto.perKm,
+          auto_share_base: cfg.auto_share.base, auto_share_km: cfg.auto_share.perKm,
+          car_base: cfg.car.base, car_km: cfg.car.perKm,
+          surge_mode: cfg.surgeMode, manual_surge: cfg.manualSurge, night_surge: cfg.nightSurge,
+          updated_at: new Date().toISOString()
+        }
+      });
+      toast('✅ Fare settings saved & synced live!');
+    } catch(e) {
+      try {
+        await sb('fare_settings', {
+          method: 'POST',
+          body: {
+            id: 'default',
+            bike_base: cfg.bike.base, bike_km: cfg.bike.perKm,
+            auto_base: cfg.auto.base, auto_km: cfg.auto.perKm,
+            auto_share_base: cfg.auto_share.base, auto_share_km: cfg.auto_share.perKm,
+            car_base: cfg.car.base, car_km: cfg.car.perKm,
+            surge_mode: cfg.surgeMode, manual_surge: cfg.manualSurge, night_surge: cfg.nightSurge
+          }
+        });
+        toast('✅ Fare settings saved to Supabase!');
+      } catch(err) {
+        toast('Saved locally in browser!');
+      }
+    }
   }
 
   async function loadVerificationData() {

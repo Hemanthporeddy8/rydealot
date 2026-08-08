@@ -443,6 +443,8 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,san
     text-transform: uppercase; letter-spacing: 0.03em;
   }
   #user-app-root .detail-vehicle-tag.bike { background:#e6f1fb; color:#0c447c; }
+  #user-app-root .detail-vehicle-tag.auto { background:#fae7ca; color:#7e4706; }
+  #user-app-root .detail-vehicle-tag.auto_share { background:#e2f7ed; color:#0e623b; }
   #user-app-root .detail-vehicle-tag.car { background:#eeedfe; color:#3c3489; }
   #user-app-root .close-x { background:none; border:none; font-size:20px; color:var(--text-mute); cursor:pointer; padding:4px; line-height:1; }
   #user-app-root .rider-row { display:flex; align-items:center; gap:14px; margin-bottom:18px; }

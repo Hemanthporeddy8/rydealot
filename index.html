@@ -243,9 +243,15 @@
           <span class="rt-count" id="rt-count-auto">3 waiting</span>
           <span class="rt-price" id="rt-price-auto">Rs 55</span>
         </button>
+        <button class="ride-type-card" data-type="auto_share" id="ridetype-auto_share">
+          <span class="rt-icon" id="rt-icon-auto_share">👥</span>
+          <span class="rt-name">Auto Share</span>
+          <span class="rt-count" id="rt-count-auto_share">Shared</span>
+          <span class="rt-price" id="rt-price-auto_share">Rs 25</span>
+        </button>
         <button class="ride-type-card" data-type="car" id="ridetype-car">
           <span class="rt-icon" id="rt-icon-car"></span>
-          <span class="rt-name">Car</span>
+          <span class="rt-name">Car / Cab</span>
           <span class="rt-count" id="rt-count-car">2 waiting</span>
           <span class="rt-price" id="rt-price-car">Rs 89</span>
         </button>
@@ -383,9 +389,10 @@
     <div class="field">
       <label>Vehicle type</label>
       <select id="rd-rider-vtype">
-        <option value="bike">Bike</option>
-        <option value="auto">Auto</option>
-        <option value="car">Car</option>
+        <option value="bike">Bike Taxi</option>
+        <option value="auto">Auto (Direct)</option>
+        <option value="auto_share">Auto Share (Pool)</option>
+        <option value="car">Cab / Commercial EV</option>
       </select>
     </div>
     <div class="field">

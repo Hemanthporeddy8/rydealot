@@ -1775,7 +1775,7 @@
   function paletteFor(slotId, type){
     var idx = parseInt(slotId.replace(/\D/g,''), 10) || 0;
     if(type === 'bike') return bikePalette[idx % bikePalette.length];
-    if(type === 'auto') return autoPalette[idx % autoPalette.length];
+    if(type === 'auto' || type === 'auto_share') return autoPalette[idx % autoPalette.length];
     return carPalette[idx % carPalette.length];
   }
 
@@ -1800,7 +1800,7 @@
         var rotation = s.row === 'top' ? 180 : 0;
         var pal = paletteFor(s.id, type);
         var inner = type === 'bike' ? bikeMarkup(s.id, pal.body, pal.accent)
-                  : type === 'auto' ? autoMarkup(s.id, pal.body)
+                  : (type === 'auto' || type === 'auto_share') ? autoMarkup(s.id, pal.body)
                   : carMarkup(s.id, pal.body, pal.glass);
         html += '<g transform="translate('+s.x+','+s.y+') rotate('+rotation+')" class="slot-wrap" data-slot="'+s.id+'" data-x="'+s.x+'" data-y="'+s.y+'" data-rot="'+rotation+'" style="opacity:1;">' + inner + '</g>';
       }
@@ -1821,12 +1821,59 @@
     return Object.keys(present).filter(function(k){ return present[k]; }).length;
   }
 
-  // Surge: scarcer vehicles of a type => higher multiplier, same idea as
-  // peak-time price hikes in real bike-taxi apps. Real scarcity is the only
-  // input here — no manual override, since the data is real now.
-  var BASE_PRICE = { bike: 35, auto: 55, car: 89 };
+  // ===== DYNAMIC ADMIN FARE ENGINE =====
+  var FARE_CONFIG = {
+    bike: { base: 25, perKm: 7 },
+    auto: { base: 35, perKm: 12 },
+    auto_share: { base: 20, perKm: 6 },
+    car: { base: 60, perKm: 16 },
+    surgeMode: 'auto',
+    manualSurge: 1.0,
+    nightSurge: 1.2
+  };
+
+  async function loadFareConfig(){
+    try {
+      var saved = localStorage.getItem('rydealot_fare_config');
+      if(saved){
+        var parsed = JSON.parse(saved);
+        if(parsed.bike) FARE_CONFIG.bike = parsed.bike;
+        if(parsed.auto) FARE_CONFIG.auto = parsed.auto;
+        if(parsed.auto_share) FARE_CONFIG.auto_share = parsed.auto_share;
+        if(parsed.car) FARE_CONFIG.car = parsed.car;
+        if(parsed.surgeMode) FARE_CONFIG.surgeMode = parsed.surgeMode;
+        if(parsed.manualSurge) FARE_CONFIG.manualSurge = parsed.manualSurge;
+        if(parsed.nightSurge) FARE_CONFIG.nightSurge = parsed.nightSurge;
+      }
+      var rows = await sbFetch('fare_settings?id=eq.default');
+      if(rows && rows.length > 0){
+        var remote = rows[0];
+        FARE_CONFIG.bike = { base: remote.bike_base || 25, perKm: remote.bike_km || 7 };
+        FARE_CONFIG.auto = { base: remote.auto_base || 35, perKm: remote.auto_km || 12 };
+        FARE_CONFIG.auto_share = { base: remote.auto_share_base || 20, perKm: remote.auto_share_km || 6 };
+        FARE_CONFIG.car = { base: remote.car_base || 60, perKm: remote.car_km || 16 };
+        FARE_CONFIG.surgeMode = remote.surge_mode || 'auto';
+        FARE_CONFIG.manualSurge = remote.manual_surge || 1.0;
+        FARE_CONFIG.nightSurge = remote.night_surge || 1.2;
+        localStorage.setItem('rydealot_fare_config', JSON.stringify(FARE_CONFIG));
+      }
+    } catch(e){
+      console.log('Fare config sync note:', e.message);
+    }
+  }
+
+  function getEstimatedTripDistanceKm(){
+    if(state.lat && state.lng && state.destLat && state.destLng){
+      var dist = haversineKm(state.lat, state.lng, state.destLat, state.destLng);
+      return Math.max(1.5, Math.round(dist * 1.25 * 10) / 10);
+    }
+    return 3.0; // 3 KM default for initial estimation
+  }
 
   function surgeMultiplierFor(type){
+    if(FARE_CONFIG.surgeMode === 'manual'){
+      return FARE_CONFIG.manualSurge || 1.0;
+    }
     var count = countByType(type);
     var mult = 1;
     if(count <= 0) mult = 2.2;
@@ -1836,18 +1883,24 @@
     return Math.round(mult * 100) / 100;
   }
 
-  function basePriceFor(type){
-    return BASE_PRICE[type] || BASE_PRICE.bike;
-  }
-
   function currentPriceFor(type){
-    var base = basePriceFor(type);
+    var cfg = FARE_CONFIG[type] || FARE_CONFIG.bike;
+    var distKm = getEstimatedTripDistanceKm();
+    var baseAmount = cfg.base + (distKm * cfg.perKm);
+
     var mult = surgeMultiplierFor(type);
-    return Math.round(base * mult);
+
+    // Night surge check (10 PM to 6 AM)
+    var hr = new Date().getHours();
+    if(hr >= 22 || hr < 6){
+      mult = mult * (FARE_CONFIG.nightSurge || 1.2);
+    }
+
+    return Math.max(15, Math.round(baseAmount * mult));
   }
 
   function refreshSurgeAndFares(){
-    var types = ['bike', 'auto', 'car'];
+    var types = ['bike', 'auto', 'auto_share', 'car'];
     var anySurge = false;
     types.forEach(function(type){
       var count = countByType(type);
@@ -1857,7 +1910,7 @@
 
       var countEl = document.getElementById('rt-count-' + type);
       var priceEl = document.getElementById('rt-price-' + type);
-      if(countEl) countEl.textContent = count > 0 ? (count + ' waiting') : 'none waiting';
+      if(countEl) countEl.textContent = count > 0 ? (count + ' waiting') : (type === 'auto_share' ? 'Shared' : 'none waiting');
       if(priceEl){
         priceEl.textContent = 'Rs ' + price;
         priceEl.classList.toggle('surge', mult > 1);
@@ -1881,10 +1934,11 @@
     var type = state.selectedRideType || 'bike';
     var price = currentPriceFor(type);
     var count = countByType(type);
-    if(count > 0){
-      btn.textContent = 'Book nearest ' + type + ' \u2014 Rs ' + price;
+    var typeLabel = vehicleLabelOf(type);
+    if(count > 0 || type === 'auto_share'){
+      btn.textContent = 'Book ' + typeLabel + ' \u2014 Rs ' + price;
     } else {
-      btn.textContent = 'Find a ' + type + ' nearby \u2014 Rs ' + price;
+      btn.textContent = 'Find ' + typeLabel + ' nearby \u2014 Rs ' + price;
     }
   }
 
@@ -2116,7 +2170,7 @@
         '<rect x="-1.6" y="-30" width="3.2" height="10" rx="1.4" fill="'+col+'"/>' +
         '<rect x="-6.5" y="-38" width="13" height="14" rx="4.5" fill="#202225"/>' +
         '<rect x="-5" y="-36.5" width="10" height="11" rx="3.5" fill="#3a3d42"/>';
-    } else if(type === 'auto'){
+    } else if(type === 'auto' || type === 'auto_share'){
       bodyMarkup =
         '<rect x="-15" y="14" width="11" height="16" rx="4" fill="#202225"/>' +
         '<rect x="4" y="14" width="11" height="16" rx="4" fill="#202225"/>' +
@@ -2137,7 +2191,10 @@
   }
 
   function vehicleLabelOf(type){
-    return type === 'bike' ? 'Bike' : (type === 'auto' ? 'Auto' : 'Car');
+    if(type === 'bike') return 'Bike';
+    if(type === 'auto') return 'Auto (Direct)';
+    if(type === 'auto_share') return 'Auto Share';
+    return 'Car / Cab';
   }
 
   function destroyMap() {
@@ -2366,7 +2423,10 @@
   // only loads real data once the user submits their name and location.
   document.getElementById('rt-icon-bike').innerHTML = vehicleIconSvg('bike', '#16181c');
   document.getElementById('rt-icon-auto').innerHTML = vehicleIconSvg('auto', '#16181c');
+  if(document.getElementById('rt-icon-auto_share')) document.getElementById('rt-icon-auto_share').innerHTML = vehicleIconSvg('auto_share', '#16181c');
   document.getElementById('rt-icon-car').innerHTML = vehicleIconSvg('car', '#16181c');
+
+  loadFareConfig();
 
   // Automatic startup triggers for passenger side map & location
   setTimeout(function(){
