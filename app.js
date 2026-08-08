@@ -258,6 +258,11 @@
         document.getElementById('rider-app-root').classList.remove('active');
         var screenLogin = document.getElementById('screen-login');
         if (screenLogin) screenLogin.classList.add('active');
+
+        initSetupMap();
+        setTimeout(function(){
+          if (state.destMap) state.destMap.invalidateSize();
+        }, 200);
         
         var nameInput = document.getElementById('login-name');
         if (nameInput) nameInput.value = sess.name;
@@ -1284,9 +1289,14 @@
   var setupMapInitialized = false;
   
   function initSetupMap() {
-    if (typeof L === 'undefined') return;
+    if (typeof L === 'undefined') {
+      setTimeout(initSetupMap, 300);
+      return;
+    }
     if (setupMapInitialized) {
-      if (state.destMap) state.destMap.invalidateSize();
+      if (state.destMap) {
+        setTimeout(function(){ state.destMap.invalidateSize(); }, 150);
+      }
       return;
     }
     
