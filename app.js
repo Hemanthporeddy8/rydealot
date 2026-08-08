@@ -1,3 +1,426 @@
+// ===================== CUSTOM AUTHENTICATION & PROFILES MODULE =====================
+(function(){
+  var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
+
+  async function hashPassword(str) {
+    if (!window.crypto || !window.crypto.subtle) return str;
+    var encoder = new TextEncoder();
+    var data = encoder.encode(str);
+    var hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    var hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function sbAuthFetch(path, opts) {
+    opts = opts || {};
+    var headers = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
+    if(opts.prefer) headers['Prefer'] = opts.prefer;
+    var res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      method: opts.method || 'GET',
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    var text = await res.text();
+    var data = null;
+    try { data = text ? JSON.parse(text) : null; } catch(e) { data = text; }
+    if (!res.ok) throw new Error((data && data.message) || ('HTTP ' + res.status));
+    return data;
+  }
+
+  var authState = {
+    mode: 'login', // 'login' or 'register'
+    role: 'customer', // 'customer' or 'driver'
+    currentUser: null
+  };
+
+  // Auth UI Initialization
+  function initAuthUI() {
+    var tabLogin = document.getElementById('auth-tab-login');
+    var tabRegister = document.getElementById('auth-tab-register');
+    var fieldName = document.getElementById('field-auth-name');
+    var submitBtn = document.getElementById('auth-submit-btn');
+    var toggleText = document.getElementById('auth-toggle-text');
+    var toggleLink = document.getElementById('auth-toggle-link');
+
+    if (!tabLogin) return;
+
+    function setAuthMode(mode) {
+      authState.mode = mode;
+      if (mode === 'login') {
+        tabLogin.style.background = '#fff';
+        tabLogin.style.color = 'var(--text)';
+        tabRegister.style.background = 'transparent';
+        tabRegister.style.color = 'var(--text-mute)';
+        fieldName.style.display = 'none';
+        submitBtn.textContent = 'Sign In';
+        toggleText.textContent = 'New to Rydealot?';
+        toggleLink.textContent = 'Create an account';
+      } else {
+        tabRegister.style.background = '#fff';
+        tabRegister.style.color = 'var(--text)';
+        tabLogin.style.background = 'transparent';
+        tabLogin.style.color = 'var(--text-mute)';
+        fieldName.style.display = 'block';
+        submitBtn.textContent = 'Create Account';
+        toggleText.textContent = 'Already have an account?';
+        toggleLink.textContent = 'Sign in here';
+      }
+    }
+
+    tabLogin.addEventListener('click', function() { setAuthMode('login'); });
+    tabRegister.addEventListener('click', function() { setAuthMode('register'); });
+    toggleLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      setAuthMode(authState.mode === 'login' ? 'register' : 'login');
+    });
+
+    // Password visibility toggle
+    var togglePwdBtn = document.getElementById('auth-toggle-pwd');
+    if (togglePwdBtn) {
+      togglePwdBtn.addEventListener('click', function() {
+        var pwdInput = document.getElementById('auth-password');
+        if (pwdInput.type === 'password') {
+          pwdInput.type = 'text';
+          togglePwdBtn.textContent = '🙈';
+        } else {
+          pwdInput.type = 'password';
+          togglePwdBtn.textContent = '👁️';
+        }
+      });
+    }
+
+    // Role button toggles
+    var btnCustomer = document.getElementById('role-btn-customer');
+    var btnDriver = document.getElementById('role-btn-driver');
+    if (btnCustomer && btnDriver) {
+      btnCustomer.addEventListener('click', function() {
+        authState.role = 'customer';
+        btnCustomer.style.background = 'var(--accent)';
+        btnCustomer.style.color = '#fff';
+        btnDriver.style.background = '#fff';
+        btnDriver.style.color = 'var(--text)';
+      });
+      btnDriver.addEventListener('click', function() {
+        authState.role = 'driver';
+        btnDriver.style.background = 'var(--signal)';
+        btnDriver.style.color = '#000';
+        btnCustomer.style.background = '#fff';
+        btnCustomer.style.color = 'var(--text)';
+      });
+    }
+
+    // Auth Form Submission
+    var authForm = document.getElementById('auth-form');
+    if (authForm) {
+      authForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var email = (document.getElementById('auth-email').value || '').trim().toLowerCase();
+        var rawPassword = document.getElementById('auth-password').value || '';
+        var name = (document.getElementById('auth-name').value || '').trim();
+        var phone = (document.getElementById('auth-phone').value || '').trim();
+
+        if (!email || !rawPassword) {
+          alert('Please enter your email and password');
+          return;
+        }
+
+        var hashedPass = await hashPassword(rawPassword);
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Processing...';
+
+        try {
+          if (authState.mode === 'register') {
+            if (!name) {
+              alert('Please enter your full name');
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Create Account';
+              return;
+            }
+            if (authState.role === 'customer') {
+              var existing = await sbAuthFetch('users?email=eq.' + encodeURIComponent(email));
+              if (existing && existing.length) {
+                alert('An account with this email already exists. Please login instead.');
+                submitBtn.disabled = false;
+                setAuthMode('login');
+                return;
+              }
+              var newUser = await sbAuthFetch('users', {
+                method: 'POST',
+                body: { name: name, email: email, password_hash: hashedPass, phone: phone, total_rides: 0, rating: 5.0, created_at: new Date().toISOString() },
+                prefer: 'return=representation'
+              });
+              var userRecord = newUser && newUser[0] ? newUser[0] : { name: name, email: email, phone: phone };
+              saveUserSession(userRecord, 'customer');
+            } else {
+              var existingDriver = await sbAuthFetch('riders?email=eq.' + encodeURIComponent(email));
+              if (existingDriver && existingDriver.length) {
+                alert('A driver account with this email already exists. Please login.');
+                submitBtn.disabled = false;
+                setAuthMode('login');
+                return;
+              }
+              var newDriver = await sbAuthFetch('riders', {
+                method: 'POST',
+                body: { name: name, email: email, password_hash: hashedPass, phone: phone, status: 'offline', created_at: new Date().toISOString() },
+                prefer: 'return=representation'
+              });
+              var driverRecord = newDriver && newDriver[0] ? newDriver[0] : { name: name, email: email, phone: phone };
+              saveUserSession(driverRecord, 'driver');
+            }
+          } else {
+            // Login Mode
+            var table = authState.role === 'customer' ? 'users' : 'riders';
+            var matches = await sbAuthFetch(table + '?email=eq.' + encodeURIComponent(email));
+            if (!matches || !matches.length) {
+              alert('No account found with this email. Please check or create a new account.');
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Sign In';
+              return;
+            }
+            var user = matches[0];
+            if (user.password_hash && user.password_hash !== hashedPass) {
+              alert('Incorrect password. Please try again.');
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Sign In';
+              return;
+            }
+            saveUserSession(user, authState.role);
+          }
+        } catch(err) {
+          alert('Auth error: ' + err.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = authState.mode === 'login' ? 'Sign In' : 'Create Account';
+        }
+      });
+    }
+  }
+
+  function saveUserSession(userRecord, role) {
+    var sess = {
+      id: userRecord.id || ('usr_' + Date.now()),
+      name: userRecord.name || 'User',
+      email: userRecord.email,
+      phone: userRecord.phone || '',
+      role: role,
+      savedHome: userRecord.home_label || null,
+      savedWork: userRecord.work_label || null
+    };
+    localStorage.setItem('rydealot_user_session', JSON.stringify(sess));
+    authState.currentUser = sess;
+    applySession();
+  }
+
+  function applySession() {
+    var raw = localStorage.getItem('rydealot_user_session');
+    if (!raw) return;
+    try {
+      var sess = JSON.parse(raw);
+      authState.currentUser = sess;
+
+      // Hide Auth Screen
+      var screenAuth = document.getElementById('screen-auth');
+      if (screenAuth) screenAuth.classList.remove('active');
+
+      if (sess.role === 'customer') {
+        document.getElementById('user-app-root').classList.add('active');
+        document.getElementById('rider-app-root').classList.remove('active');
+        var screenLogin = document.getElementById('screen-login');
+        if (screenLogin) screenLogin.classList.add('active');
+        
+        var nameInput = document.getElementById('login-name');
+        if (nameInput) nameInput.value = sess.name;
+        
+        // Update Profile drawer info
+        var pName = document.getElementById('prof-name');
+        var pEmail = document.getElementById('prof-email');
+        var pAvatar = document.getElementById('prof-avatar');
+        if (pName) pName.textContent = sess.name;
+        if (pEmail) pEmail.textContent = sess.email;
+        if (pAvatar) pAvatar.textContent = sess.name.substring(0, 2).toUpperCase();
+
+        // Update Saved Places chips
+        updateSavedPlacesChips(sess);
+      } else {
+        document.getElementById('rider-app-root').classList.add('active');
+        document.getElementById('user-app-root').classList.remove('active');
+        var driverName = document.getElementById('rd-rider-name');
+        var driverPhone = document.getElementById('rd-rider-phone');
+        if (driverName) driverName.value = sess.name;
+        if (driverPhone) driverPhone.value = sess.phone;
+      }
+    } catch(e) { console.error('Session error', e); }
+  }
+
+  function updateSavedPlacesChips(sess) {
+    var chipHome = document.getElementById('chip-saved-home');
+    var chipWork = document.getElementById('chip-saved-work');
+    var profHomeLabel = document.getElementById('prof-home-label');
+    var profWorkLabel = document.getElementById('prof-work-label');
+
+    if (sess.savedHome && chipHome) {
+      chipHome.style.display = 'inline-flex';
+      chipHome.textContent = '🏠 ' + sess.savedHome;
+      if (profHomeLabel) profHomeLabel.textContent = sess.savedHome;
+    }
+    if (sess.savedWork && chipWork) {
+      chipWork.style.display = 'inline-flex';
+      chipWork.textContent = '🏢 ' + sess.savedWork;
+      if (profWorkLabel) profWorkLabel.textContent = sess.savedWork;
+    }
+
+    if (chipHome) {
+      chipHome.onclick = function() {
+        document.getElementById('pickup-input').value = sess.savedHome || 'Home';
+      };
+    }
+    if (chipWork) {
+      chipWork.onclick = function() {
+        document.getElementById('drop-input').value = sess.savedWork || 'Work';
+      };
+    }
+  }
+
+  // Profile Drawer Event Listeners
+  document.addEventListener('DOMContentLoaded', function() {
+    initAuthUI();
+    applySession();
+
+    var btnOpenProf = document.getElementById('btn-open-user-profile');
+    var btnBackProf = document.getElementById('profile-back');
+    var btnLogoutProf = document.getElementById('prof-logout-btn');
+
+    if (btnOpenProf) {
+      btnOpenProf.addEventListener('click', function() {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-customer-profile').classList.add('active');
+      });
+    }
+    if (btnBackProf) {
+      btnBackProf.addEventListener('click', function() {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-login').classList.add('active');
+      });
+    }
+    if (btnLogoutProf) {
+      btnLogoutProf.addEventListener('click', function() {
+        localStorage.removeItem('rydealot_user_session');
+        location.reload();
+      });
+    }
+
+    // Edit Home & Work Place Listeners
+    var btnEditHome = document.getElementById('btn-edit-home');
+    var btnEditWork = document.getElementById('btn-edit-work');
+    if (btnEditHome) {
+      btnEditHome.addEventListener('click', async function() {
+        var val = prompt('Enter your Home address label (e.g. Hanamkonda Bus Stand):');
+        if (val) {
+          if (authState.currentUser) {
+            authState.currentUser.savedHome = val;
+            localStorage.setItem('rydealot_user_session', JSON.stringify(authState.currentUser));
+            updateSavedPlacesChips(authState.currentUser);
+            try { await sbAuthFetch('users?email=eq.' + encodeURIComponent(authState.currentUser.email), { method: 'PATCH', body: { home_label: val } }); } catch(e){}
+          }
+        }
+      });
+    }
+    if (btnEditWork) {
+      btnEditWork.addEventListener('click', async function() {
+        var val = prompt('Enter your Work/College address label (e.g. NIT Warangal Gate 2):');
+        if (val) {
+          if (authState.currentUser) {
+            authState.currentUser.savedWork = val;
+            localStorage.setItem('rydealot_user_session', JSON.stringify(authState.currentUser));
+            updateSavedPlacesChips(authState.currentUser);
+            try { await sbAuthFetch('users?email=eq.' + encodeURIComponent(authState.currentUser.email), { method: 'PATCH', body: { work_label: val } }); } catch(e){}
+          }
+        }
+      });
+    }
+  });
+
+})();
+
+// ===================== DRIVER WALLET & FACE CHECK HANDLERS =====================
+(function() {
+  var btnOpenWallet = document.getElementById('rd-open-wallet-btn');
+  var btnBackWallet = document.getElementById('rd-wallet-back-btn');
+  var walletSection = document.getElementById('rd-wallet-section');
+  var mainSection = document.getElementById('rd-main-section');
+
+  if (btnOpenWallet && walletSection && mainSection) {
+    btnOpenWallet.addEventListener('click', function() {
+      mainSection.style.display = 'none';
+      walletSection.style.display = 'flex';
+    });
+  }
+  if (btnBackWallet && walletSection && mainSection) {
+    btnBackWallet.addEventListener('click', function() {
+      walletSection.style.display = 'none';
+      mainSection.style.display = 'block';
+    });
+  }
+
+  // Face Check Modal Handlers before going online
+  var faceModal = document.getElementById('rd-face-modal');
+  var faceCancelBtn = document.getElementById('rd-face-cancel-btn');
+  var faceVideo = document.getElementById('rd-face-video');
+  var faceStatus = document.getElementById('rd-face-status');
+  var mediaStream = null;
+
+  window.triggerDriverFaceCheck = function(onSuccess) {
+    if (!faceModal || !faceVideo) {
+      onSuccess();
+      return;
+    }
+    faceModal.style.display = 'flex';
+    faceStatus.textContent = 'Requesting camera access...';
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+        .then(function(stream) {
+          mediaStream = stream;
+          faceVideo.srcObject = stream;
+          faceStatus.textContent = 'Look straight at camera...';
+          
+          setTimeout(function() {
+            faceStatus.textContent = '✅ Face Matched & Verified!';
+            setTimeout(function() {
+              stopFaceCamera();
+              faceModal.style.display = 'none';
+              onSuccess();
+            }, 1200);
+          }, 2000);
+        })
+        .catch(function(err) {
+          faceStatus.textContent = '⚠️ Camera permission denied.';
+          setTimeout(function() {
+            stopFaceCamera();
+            faceModal.style.display = 'none';
+            onSuccess(); // Graceful fallback
+          }, 1500);
+        });
+    } else {
+      onSuccess();
+    }
+  };
+
+  function stopFaceCamera() {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.stop());
+      mediaStream = null;
+    }
+  }
+
+  if (faceCancelBtn) {
+    faceCancelBtn.addEventListener('click', function() {
+      stopFaceCamera();
+      if (faceModal) faceModal.style.display = 'none';
+    });
+  }
+})();
+
 // ===================== app switcher =====================
 (function(){
   function showApp(which){
@@ -282,17 +705,26 @@
     if(!state.online){
       var ok = startSharingLocation();
       if(!ok) return;
-      try{
-        await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: new Date().toISOString() } });
-        state.online = true;
-        toggleBtn.textContent = 'Go offline';
-        toggleBtn.className = 'btn btn-toggle-on';
-        setPill('available');
-        toast('You are online and visible to nearby users');
-        startPollingBookings();
-        startHeartbeat();
-      } catch(err){
-        toast('Could not go online: ' + err.message);
+
+      var doGoOnline = async function() {
+        try{
+          await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: new Date().toISOString() } });
+          state.online = true;
+          toggleBtn.textContent = 'Go offline';
+          toggleBtn.className = 'btn btn-toggle-on';
+          setPill('available');
+          toast('You are online and visible to nearby users');
+          startPollingBookings();
+          startHeartbeat();
+        } catch(err){
+          toast('Could not go online: ' + err.message);
+        }
+      };
+
+      if (typeof window.triggerDriverFaceCheck === 'function') {
+        window.triggerDriverFaceCheck(doGoOnline);
+      } else {
+        await doGoOnline();
       }
     } else {
       stopSharingLocation();

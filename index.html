@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <link rel="manifest" href="manifest.json">
 <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
 </head>
@@ -23,14 +23,130 @@
 </div>
 <div class="phone" id="phone">
 
+  <!-- SCREEN: AUTH (LOGIN / REGISTER) -->
+  <div class="screen active" id="screen-auth" style="background:#fff; padding:24px 20px; display:flex; flex-direction:column; justify-content:center; gap:20px; overflow-y:auto;">
+    <div style="text-align:center; margin-bottom:10px;">
+      <div style="font-size:42px; font-family:'Archivo Black', sans-serif; letter-spacing:-1px; color:var(--accent);">RYDEALOT</div>
+      <p style="font-size:13px; color:var(--text-mute); margin-top:4px;">Your Zero-Commission Ride Platform</p>
+    </div>
+
+    <!-- Auth Tabs -->
+    <div style="display:flex; background:var(--bg); padding:4px; border-radius:12px; border:1px solid var(--border);">
+      <button type="button" id="auth-tab-login" class="auth-tab-btn active" style="flex:1; padding:10px; border:none; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; background:#fff; color:var(--text); box-shadow:0 2px 4px rgba(0,0,0,0.05);">Login</button>
+      <button type="button" id="auth-tab-register" class="auth-tab-btn" style="flex:1; padding:10px; border:none; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; background:transparent; color:var(--text-mute);">Create Account</button>
+    </div>
+
+    <!-- Role Selection (Customer vs Driver) -->
+    <div id="auth-role-group" style="display:flex; gap:10px;">
+      <button type="button" class="auth-role-btn selected" data-role="customer" id="role-btn-customer" style="flex:1; padding:12px; border:1.5px solid var(--accent); border-radius:12px; background:var(--accent); color:#fff; font-weight:700; font-size:13px; cursor:pointer; text-align:center;">👤 Passenger</button>
+      <button type="button" class="auth-role-btn" data-role="driver" id="role-btn-driver" style="flex:1; padding:12px; border:1.5px solid var(--border); border-radius:12px; background:#fff; color:var(--text); font-weight:700; font-size:13px; cursor:pointer; text-align:center;">🛺 Driver</button>
+    </div>
+
+    <!-- Login/Register Form -->
+    <form id="auth-form" onsubmit="return false;" style="display:flex; flex-direction:column; gap:12px;">
+      <div class="field" id="field-auth-name" style="display:none;">
+        <label class="field-label">Full Name</label>
+        <input type="text" id="auth-name" placeholder="Enter your full name">
+      </div>
+      <div class="field">
+        <label class="field-label">Email Address</label>
+        <input type="email" id="auth-email" placeholder="name@example.com" required>
+      </div>
+      <div class="field">
+        <label class="field-label">Password</label>
+        <div style="position:relative;">
+          <input type="password" id="auth-password" placeholder="••••••••" required style="padding-right:40px;">
+          <button type="button" id="auth-toggle-pwd" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-mute);">👁️</button>
+        </div>
+      </div>
+      <div class="field" id="field-auth-phone">
+        <label class="field-label">Phone Number (Optional)</label>
+        <input type="tel" id="auth-phone" placeholder="98765 43210">
+      </div>
+
+      <button type="submit" class="btn" id="auth-submit-btn" style="margin-top:8px;">Sign In</button>
+    </form>
+
+    <p style="text-align:center; font-size:12px; color:var(--text-mute); margin-top:4px;">
+      <span id="auth-toggle-text">New to Rydealot?</span> 
+      <a href="#" id="auth-toggle-link" style="color:var(--accent); font-weight:700; text-decoration:none;">Create an account</a>
+    </p>
+  </div>
+
+  <!-- SCREEN: CUSTOMER PROFILE -->
+  <div class="screen" id="screen-customer-profile" style="background:#fff;">
+    <div class="nav" style="border-bottom:1.5px solid var(--border);">
+      <button class="icon-btn" id="profile-back" aria-label="Back"><i class="ti ti-arrow-left"></i></button>
+      <h1>My Profile</h1>
+    </div>
+    <div class="content" style="padding:20px; display:flex; flex-direction:column; gap:18px; overflow-y:auto; flex:1;">
+      
+      <!-- User Avatar & Header -->
+      <div style="display:flex; align-items:center; gap:16px; background:var(--bg); padding:16px; border-radius:16px; border:1.5px solid var(--border);">
+        <div id="prof-avatar" style="width:54px; height:54px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800;">HP</div>
+        <div>
+          <h3 id="prof-name" style="font-size:17px; font-weight:800; color:var(--text); margin:0;">User Name</h3>
+          <p id="prof-email" style="font-size:12px; color:var(--text-mute); margin:2px 0 0;">user@example.com</p>
+        </div>
+      </div>
+
+      <!-- Saved Places Section -->
+      <div style="background:#fff; border:1.5px solid var(--border); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:12px;">
+        <h4 style="font-size:13px; font-weight:800; color:var(--text-mute); margin:0; text-transform:uppercase; letter-spacing:0.5px;">Saved Places</h4>
+        
+        <!-- Home -->
+        <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid var(--border);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:20px;">🏠</span>
+            <div>
+              <div style="font-weight:700; font-size:13px;">Home</div>
+              <div id="prof-home-label" style="font-size:11px; color:var(--text-mute);">Not set</div>
+            </div>
+          </div>
+          <button type="button" id="btn-edit-home" style="background:var(--bg); border:1px solid var(--border); padding:6px 12px; border-radius:8px; font-weight:700; font-size:11px; cursor:pointer;">Set</button>
+        </div>
+
+        <!-- Work -->
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:20px;">🏢</span>
+            <div>
+              <div style="font-weight:700; font-size:13px;">Work</div>
+              <div id="prof-work-label" style="font-size:11px; color:var(--text-mute);">Not set</div>
+            </div>
+          </div>
+          <button type="button" id="btn-edit-work" style="background:var(--bg); border:1px solid var(--border); padding:6px 12px; border-radius:8px; font-weight:700; font-size:11px; cursor:pointer;">Set</button>
+        </div>
+      </div>
+
+      <!-- User Stats -->
+      <div style="display:flex; gap:12px;">
+        <div style="flex:1; background:var(--bg); padding:14px; border-radius:14px; border:1px solid var(--border); text-align:center;">
+          <div id="prof-rides-count" style="font-size:22px; font-weight:900; color:var(--accent);">0</div>
+          <div style="font-size:11px; font-weight:700; color:var(--text-mute); margin-top:2px;">Total Rides</div>
+        </div>
+        <div style="flex:1; background:var(--bg); padding:14px; border-radius:14px; border:1px solid var(--border); text-align:center;">
+          <div id="prof-rating" style="font-size:22px; font-weight:900; color:var(--green);">5.0 ★</div>
+          <div style="font-size:11px; font-weight:700; color:var(--text-mute); margin-top:2px;">Rating</div>
+        </div>
+      </div>
+
+      <!-- Logout Button -->
+      <button class="btn btn-outline" id="prof-logout-btn" style="color:var(--red); border-color:#f3d4d4; margin-top:auto;">Logout Account</button>
+    </div>
+  </div>
+
   <!-- SCREEN: SETUP -->
-  <div class="screen active" id="screen-login" style="background:#fff;">
+  <div class="screen" id="screen-login" style="background:#fff;">
     <!-- Large, prominent map at the top of the screen -->
     <div id="setup-map" style="height: 380px; width: 100%; border-bottom: 1.5px solid var(--border); position: relative; z-index: 1;"></div>
     
     <!-- Form/booking details card scrollable below -->
     <div class="login-body" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
-      <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--text); margin-bottom: 2px;">Get a ride</h2>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 2px;">
+        <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--text); margin:0;">Get a ride</h2>
+        <button type="button" id="btn-open-user-profile" style="background:var(--bg); border:1.5px solid var(--border); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;" title="My Profile">👤</button>
+      </div>
       <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 8px;">Find nearby drivers and book in seconds</p>
 
       <div class="field">
@@ -47,6 +163,11 @@
         <div style="position:relative">
           <input type="text" id="pickup-input" placeholder="e.g. Bus Stand or Current Location" autocomplete="off">
           <div id="pickup-suggestions" class="autocomplete-dropdown"></div>
+        </div>
+        <!-- Saved Places Quick Chips -->
+        <div id="saved-places-chips" style="display:flex; gap:8px; margin-top:6px;">
+          <button type="button" id="chip-saved-home" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; align-items:center; gap:4px;">🏠 Home</button>
+          <button type="button" id="chip-saved-work" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; align-items:center; gap:4px;">🏢 Work</button>
         </div>
       </div>
       <div class="field">
@@ -279,14 +400,55 @@
       <label>Phone (so users can call you)</label>
       <input type="tel" id="rd-rider-phone" placeholder="98765 43210">
     </div>
-    <button class="btn" id="rd-save-profile-btn">Save and continue</button>
+
+    <!-- Document Verification Header -->
+    <div style="margin-top:16px; padding-top:16px; border-top:1.5px solid var(--border);">
+      <h3 style="font-size:14px; font-weight:800; color:var(--text); margin-bottom:4px;">📄 Driver Document Verification</h3>
+      <p style="font-size:11px; color:var(--text-mute); margin-bottom:12px;">Upload photos of your official documents for admin verification</p>
+
+      <div class="field" style="margin-bottom:10px;">
+        <label style="font-size:11px;">1. Driving License (DL)</label>
+        <input type="file" id="rd-doc-dl" accept="image/*" style="font-size:12px; padding:6px;">
+        <span id="rd-doc-dl-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+      </div>
+
+      <div class="field" style="margin-bottom:10px;">
+        <label style="font-size:11px;">2. Vehicle Registration Certificate (RC)</label>
+        <input type="file" id="rd-doc-rc" accept="image/*" style="font-size:12px; padding:6px;">
+        <span id="rd-doc-rc-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+      </div>
+
+      <div class="field" style="margin-bottom:10px;">
+        <label style="font-size:11px;">3. Aadhaar Card</label>
+        <input type="file" id="rd-doc-aadhaar" accept="image/*" style="font-size:12px; padding:6px;">
+        <span id="rd-doc-aadhaar-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+      </div>
+
+      <div class="field" style="margin-bottom:14px;">
+        <label style="font-size:11px;">4. Profile Selfie Photo</label>
+        <input type="file" id="rd-doc-selfie" accept="image/*" capture="user" style="font-size:12px; padding:6px;">
+        <span id="rd-doc-selfie-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+      </div>
+    </div>
+
+    <button class="btn" id="rd-save-profile-btn">Save profile & documents</button>
   </div>
 
   <!-- MAIN (shown after setup) -->
   <div class="section" id="rd-main-section" style="display:none;">
+    <!-- Wallet Card Summary -->
+    <div style="background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
+      <div>
+        <span style="font-size:11px; font-weight:700; color:var(--text-mute); text-transform:uppercase;">Driver Wallet Balance</span>
+        <h3 id="rd-wallet-balance-display" style="font-size:24px; font-weight:900; color:var(--text); margin-top:2px;">₹0</h3>
+      </div>
+      <button type="button" id="rd-open-wallet-btn" style="background:var(--signal); color:var(--text); border:1.5px solid var(--accent); border-radius:10px; padding:8px 14px; font-size:12px; font-weight:800; cursor:pointer;">💰 My Wallet</button>
+    </div>
+
     <div class="status-card">
       <div class="row"><span class="k">Name</span><span class="v" id="rd-display-name">-</span></div>
       <div class="row"><span class="k">Vehicle</span><span class="v" id="rd-display-vehicle">-</span></div>
+      <div class="row"><span class="k">Verification</span><span class="v" id="rd-display-verification" style="color:var(--amber); font-weight:700;">Pending Admin Approval</span></div>
       <div class="row"><span class="k">Location</span><span class="v" id="rd-display-location">Not sharing</span></div>
     </div>
 
@@ -315,6 +477,52 @@
     </div>
 
     <button class="btn" style="background:#fff;color:var(--text-mute);border:1px solid var(--border);margin-top:24px;" id="rd-edit-profile-btn">Edit profile</button>
+  </div>
+
+  <!-- DRIVER WALLET SCREEN -->
+  <div class="section" id="rd-wallet-section" style="display:none; flex-direction:column; gap:16px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid var(--border); padding-bottom:10px;">
+      <h2 style="font-size:16px; font-weight:900; margin:0;">💰 Driver Wallet & Earnings</h2>
+      <button type="button" id="rd-wallet-back-btn" style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-weight:700; font-size:11px; cursor:pointer;">&larr; Back</button>
+    </div>
+
+    <!-- Balance Hero Card -->
+    <div style="background:var(--accent); color:#fff; border-radius:16px; padding:20px; text-align:center;">
+      <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; opacity:0.8;">Total Balance</span>
+      <h1 id="rd-wallet-total-balance" style="font-size:36px; font-weight:900; margin:6px 0 0;">₹0</h1>
+    </div>
+
+    <!-- Today's Earnings Summary -->
+    <div style="display:flex; gap:10px;">
+      <div style="flex:1; background:#fff; border:1.5px solid var(--border); border-radius:12px; padding:12px; text-align:center;">
+        <span style="font-size:11px; color:var(--text-mute); font-weight:700;">Today's Trips</span>
+        <div id="rd-wallet-today-trips" style="font-size:20px; font-weight:900; color:var(--text); margin-top:2px;">0</div>
+      </div>
+      <div style="flex:1; background:#fff; border:1.5px solid var(--border); border-radius:12px; padding:12px; text-align:center;">
+        <span style="font-size:11px; color:var(--text-mute); font-weight:700;">Today's Income</span>
+        <div id="rd-wallet-today-income" style="font-size:20px; font-weight:900; color:var(--green); margin-top:2px;">₹0</div>
+      </div>
+    </div>
+
+    <!-- Transaction History List -->
+    </div>
+  </div>
+
+  <!-- FACE CHECK MODAL OVERLAY -->
+  <div id="rd-face-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:20px; color:#fff; text-align:center;">
+    <div style="background:#1e2229; border-radius:20px; padding:24px; max-width:340px; width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; border:1px solid #333;">
+      <h3 style="font-size:16px; font-weight:800; margin:0;">📸 Driver Face Verification</h3>
+      <p style="font-size:12px; color:#aaa; margin:0;">Please position your face inside the circle to verify before going online.</p>
+      
+      <div style="position:relative; width:200px; height:200px; border-radius:50%; overflow:hidden; border:3px solid var(--signal);">
+        <video id="rd-face-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1);"></video>
+        <canvas id="rd-face-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%;"></canvas>
+      </div>
+
+      <div id="rd-face-status" style="font-size:13px; font-weight:700; color:var(--signal);">Detecting camera...</div>
+      
+      <button type="button" id="rd-face-cancel-btn" style="background:transparent; border:1px solid #555; color:#fff; border-radius:10px; padding:8px 20px; font-size:12px; font-weight:700; cursor:pointer;">Cancel</button>
+    </div>
   </div>
 
   <!-- ACTIVE TRIP SCREEN (shown to driver during accepted/active trips) -->

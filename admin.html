@@ -166,6 +166,7 @@
 
   <div class="tabs">
     <button class="tab active" onclick="showPanel('drivers')">🏍️ Drivers</button>
+    <button class="tab" onclick="showPanel('verification')">📄 Verification</button>
     <button class="tab" onclick="showPanel('bookings')">📋 Bookings</button>
     <button class="tab" onclick="showPanel('stats')">📊 Stats</button>
   </div>
@@ -199,6 +200,38 @@
       </thead>
       <tbody id="drivers-tbody">
         <tr><td colspan="7" class="loading">Loading drivers...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== DOCUMENT VERIFICATION PANEL ===== -->
+<div class="panel" id="panel-verification">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="stat-pending-docs">0</div><div class="stat-label">Pending Approval</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-approved-docs">0</div><div class="stat-label">Approved Drivers</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-rejected-docs">0</div><div class="stat-label">Rejected Drivers</div></div>
+  </div>
+  <div class="toolbar">
+    <button class="btn btn-amber" onclick="loadVerificationData()">↺ Refresh</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Driver Name</th>
+          <th>Phone</th>
+          <th>Vehicle</th>
+          <th>DL Status</th>
+          <th>RC Status</th>
+          <th>Aadhaar Status</th>
+          <th>Selfie Status</th>
+          <th>Verification</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="verification-tbody">
+        <tr><td colspan="9" class="loading">Loading driver documents...</td></tr>
       </tbody>
     </table>
   </div>
@@ -295,10 +328,80 @@
     document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
     document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
     document.getElementById('panel-' + name).classList.add('active');
-    event.target.classList.add('active');
+    if (event && event.target) event.target.classList.add('active');
     if(name === 'drivers') loadDrivers();
+    if(name === 'verification') loadVerificationData();
     if(name === 'bookings') loadBookings();
     if(name === 'stats') loadStats();
+  }
+
+  async function loadVerificationData() {
+    var tbody = document.getElementById('verification-tbody');
+    tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading verification data...</td></tr>';
+    var riders = await sb('riders?order=updated_at.desc');
+    var docs = await sb('driver_documents');
+    riders = riders || [];
+    docs = docs || [];
+
+    var pendingCount = 0, approvedCount = 0, rejectedCount = 0;
+
+    tbody.innerHTML = riders.map(function(r) {
+      var rDocs = docs.filter(function(d){ return d.rider_id === r.id; });
+      var getDocStatus = function(type) {
+        var d = rDocs.find(function(item){ return item.doc_type === type; });
+        return d ? d.status : 'not_uploaded';
+      };
+      
+      var isVerified = r.is_verified || false;
+      if (isVerified) approvedCount++;
+      else pendingCount++;
+
+      var fmtDoc = function(st) {
+        if(st === 'approved') return '<span class="badge badge-green">Approved</span>';
+        if(st === 'rejected') return '<span class="badge badge-red">Rejected</span>';
+        if(st === 'pending') return '<span class="badge badge-amber">Pending</span>';
+        return '<span class="badge badge-mute">Missing</span>';
+      };
+
+      return '<tr>' +
+        '<td><strong>' + (r.name || '?') + '</strong></td>' +
+        '<td>' + (r.phone || '-') + '</td>' +
+        '<td>' + (r.vehicle_type || '-') + '</td>' +
+        '<td>' + fmtDoc(getDocStatus('driving_license')) + '</td>' +
+        '<td>' + fmtDoc(getDocStatus('vehicle_rc')) + '</td>' +
+        '<td>' + fmtDoc(getDocStatus('aadhaar')) + '</td>' +
+        '<td>' + fmtDoc(getDocStatus('selfie')) + '</td>' +
+        '<td>' + (isVerified ? '<span class="badge badge-green">VERIFIED</span>' : '<span class="badge badge-amber">UNVERIFIED</span>') + '</td>' +
+        '<td><div class="action-btns">' +
+          '<button style="background:var(--green);color:#fff" onclick="approveDriverDocs(\'' + r.id + '\')">Approve All</button>' +
+          '<button style="background:var(--red);color:#fff" onclick="rejectDriverDocs(\'' + r.id + '\')">Reject</button>' +
+        '</div></td>' +
+      '</tr>';
+    }).join('');
+
+    document.getElementById('stat-pending-docs').textContent = pendingCount;
+    document.getElementById('stat-approved-docs').textContent = approvedCount;
+    document.getElementById('stat-rejected-docs').textContent = rejectedCount;
+  }
+
+  async function approveDriverDocs(riderId) {
+    try {
+      await sb('riders?id=eq.' + riderId, { method: 'PATCH', body: { is_verified: true } });
+      await sb('driver_documents?rider_id=eq.' + riderId, { method: 'PATCH', body: { status: 'approved' } });
+      toast('Driver approved successfully!');
+      loadVerificationData();
+    } catch(e) { alert('Approval failed: ' + e.message); }
+  }
+
+  async function rejectDriverDocs(riderId) {
+    var reason = prompt('Enter rejection reason for driver:');
+    if (reason === null) return;
+    try {
+      await sb('riders?id=eq.' + riderId, { method: 'PATCH', body: { is_verified: false } });
+      await sb('driver_documents?rider_id=eq.' + riderId, { method: 'PATCH', body: { status: 'rejected', admin_notes: reason } });
+      toast('Driver documents rejected');
+      loadVerificationData();
+    } catch(e) { alert('Rejection failed: ' + e.message); }
   }
 
   function timeSince(dateStr) {
