@@ -39,6 +39,7 @@
     var tabLogin = document.getElementById('auth-tab-login');
     var tabRegister = document.getElementById('auth-tab-register');
     var fieldName = document.getElementById('field-auth-name');
+    var fieldConfirmPwd = document.getElementById('field-auth-confirm-pwd');
     var submitBtn = document.getElementById('auth-submit-btn');
     var toggleText = document.getElementById('auth-toggle-text');
     var toggleLink = document.getElementById('auth-toggle-link');
@@ -53,6 +54,7 @@
         tabRegister.style.background = 'transparent';
         tabRegister.style.color = 'var(--text-mute)';
         fieldName.style.display = 'none';
+        if (fieldConfirmPwd) fieldConfirmPwd.style.display = 'none';
         submitBtn.textContent = 'Sign In';
         toggleText.textContent = 'New to Rydealot?';
         toggleLink.textContent = 'Create an account';
@@ -62,6 +64,7 @@
         tabLogin.style.background = 'transparent';
         tabLogin.style.color = 'var(--text-mute)';
         fieldName.style.display = 'block';
+        if (fieldConfirmPwd) fieldConfirmPwd.style.display = 'block';
         submitBtn.textContent = 'Create Account';
         toggleText.textContent = 'Already have an account?';
         toggleLink.textContent = 'Sign in here';
@@ -75,7 +78,7 @@
       setAuthMode(authState.mode === 'login' ? 'register' : 'login');
     });
 
-    // Password visibility toggle
+    // Password visibility toggles
     var togglePwdBtn = document.getElementById('auth-toggle-pwd');
     if (togglePwdBtn) {
       togglePwdBtn.addEventListener('click', function() {
@@ -86,6 +89,19 @@
         } else {
           pwdInput.type = 'password';
           togglePwdBtn.textContent = '👁️';
+        }
+      });
+    }
+    var toggleConfirmPwdBtn = document.getElementById('auth-toggle-confirm-pwd');
+    if (toggleConfirmPwdBtn) {
+      toggleConfirmPwdBtn.addEventListener('click', function() {
+        var pwdInput = document.getElementById('auth-confirm-password');
+        if (pwdInput.type === 'password') {
+          pwdInput.type = 'text';
+          toggleConfirmPwdBtn.textContent = '🙈';
+        } else {
+          pwdInput.type = 'password';
+          toggleConfirmPwdBtn.textContent = '👁️';
         }
       });
     }
@@ -117,6 +133,7 @@
         e.preventDefault();
         var email = (document.getElementById('auth-email').value || '').trim().toLowerCase();
         var rawPassword = document.getElementById('auth-password').value || '';
+        var confirmPassword = (document.getElementById('auth-confirm-password') ? document.getElementById('auth-confirm-password').value : '') || '';
         var name = (document.getElementById('auth-name').value || '').trim();
         var phone = (document.getElementById('auth-phone').value || '').trim();
 
@@ -125,7 +142,6 @@
           return;
         }
 
-        var hashedPass = await hashPassword(rawPassword);
         submitBtn.disabled = true;
         submitBtn.textContent = 'Processing...';
 
@@ -137,41 +153,43 @@
               submitBtn.textContent = 'Create Account';
               return;
             }
-            if (authState.role === 'customer') {
-              var existing = await sbAuthFetch('users?email=eq.' + encodeURIComponent(email));
-              if (existing && existing.length) {
-                alert('An account with this email already exists. Please login instead.');
-                submitBtn.disabled = false;
-                setAuthMode('login');
-                return;
-              }
-              var newUser = await sbAuthFetch('users', {
-                method: 'POST',
-                body: { name: name, email: email, password_hash: hashedPass, phone: phone, total_rides: 0, rating: 5.0, created_at: new Date().toISOString() },
-                prefer: 'return=representation'
-              });
-              var userRecord = newUser && newUser[0] ? newUser[0] : { name: name, email: email, phone: phone };
-              saveUserSession(userRecord, 'customer');
-            } else {
-              var existingDriver = await sbAuthFetch('riders?email=eq.' + encodeURIComponent(email));
-              if (existingDriver && existingDriver.length) {
-                alert('A driver account with this email already exists. Please login.');
-                submitBtn.disabled = false;
-                setAuthMode('login');
-                return;
-              }
-              var newDriver = await sbAuthFetch('riders', {
-                method: 'POST',
-                body: { name: name, email: email, password_hash: hashedPass, phone: phone, status: 'offline', created_at: new Date().toISOString() },
-                prefer: 'return=representation'
-              });
-              var driverRecord = newDriver && newDriver[0] ? newDriver[0] : { name: name, email: email, phone: phone };
-              saveUserSession(driverRecord, 'driver');
+            if (rawPassword !== confirmPassword) {
+              alert('Passwords do not match. Please re-enter your password to confirm.');
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Create Account';
+              return;
             }
+
+            var hashedPass = await hashPassword(rawPassword);
+            var existing = await sbAuthFetch('users?email=eq.' + encodeURIComponent(email));
+            if (existing && existing.length) {
+              alert('An account with this email already exists. Please login instead.');
+              submitBtn.disabled = false;
+              setAuthMode('login');
+              return;
+            }
+            var newUser = await sbAuthFetch('users', {
+              method: 'POST',
+              body: { name: name, email: email, password_hash: hashedPass, phone: phone, role: authState.role, total_rides: 0, rating: 5.0, created_at: new Date().toISOString() },
+              prefer: 'return=representation'
+            });
+            var userRecord = newUser && newUser[0] ? newUser[0] : { name: name, email: email, phone: phone, role: authState.role };
+            
+            // If registering as a driver, also initialize driver profile in riders table
+            if (authState.role === 'driver') {
+              try {
+                await sbAuthFetch('riders', {
+                  method: 'POST',
+                  body: { name: name, phone: phone, vehicle_type: 'bike', status: 'offline', created_at: new Date().toISOString() }
+                });
+              } catch(e){}
+            }
+
+            saveUserSession(userRecord, authState.role);
           } else {
             // Login Mode
-            var table = authState.role === 'customer' ? 'users' : 'riders';
-            var matches = await sbAuthFetch(table + '?email=eq.' + encodeURIComponent(email));
+            var hashedPassLogin = await hashPassword(rawPassword);
+            var matches = await sbAuthFetch('users?email=eq.' + encodeURIComponent(email));
             if (!matches || !matches.length) {
               alert('No account found with this email. Please check or create a new account.');
               submitBtn.disabled = false;
@@ -179,7 +197,7 @@
               return;
             }
             var user = matches[0];
-            if (user.password_hash && user.password_hash !== hashedPass) {
+            if (user.password_hash && user.password_hash !== hashedPassLogin) {
               alert('Incorrect password. Please try again.');
               submitBtn.disabled = false;
               submitBtn.textContent = 'Sign In';
@@ -1253,6 +1271,7 @@
   var setupMapInitialized = false;
   
   function initSetupMap() {
+    if (typeof L === 'undefined') return;
     if (setupMapInitialized) {
       if (state.destMap) state.destMap.invalidateSize();
       return;
