@@ -259,7 +259,9 @@
         var screenLogin = document.getElementById('screen-login');
         if (screenLogin) screenLogin.classList.add('active');
 
-        initSetupMap();
+        if (typeof window.initSetupMap === 'function') {
+          window.initSetupMap();
+        }
         setTimeout(function(){
           if (state.destMap) state.destMap.invalidateSize();
         }, 200);
@@ -1324,6 +1326,7 @@
     setupMapInitialized = true;
     updateSetupMapMarkers();
   }
+  window.initSetupMap = initSetupMap;
 
   function updateSetupMapMarkers() {
     if (!state.destMap) return;
