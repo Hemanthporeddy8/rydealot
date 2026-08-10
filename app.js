@@ -1289,7 +1289,59 @@
 
   // ---- Setup Map Initialization and Update Functions ----
   var setupMapInitialized = false;
-  
+  var currentSetupMapTheme = 'light';
+  var setupMapTileLayer = null;
+
+  var SETUP_MAP_THEMES = {
+    light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+  };
+
+  function setSetupMapTheme(theme) {
+    if (!state.destMap) return;
+    currentSetupMapTheme = theme;
+    if (setupMapTileLayer) state.destMap.removeLayer(setupMapTileLayer);
+    setupMapTileLayer = L.tileLayer(SETUP_MAP_THEMES[theme], { maxZoom: 19 }).addTo(state.destMap);
+    var btn = document.getElementById('btn-toggle-map-theme');
+    if (btn) btn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+  }
+
+  function autoSaveCustomerLandmark(name, lat, lng) {
+    if (!name || !lat || !lng) return;
+    name = name.trim();
+    var lower = name.toLowerCase();
+    if (lower.startsWith('current location') || lower.startsWith('pinned destination') || lower.startsWith('test point') || name.length < 3) return;
+
+    var exists = TELANGANA_LANDMARKS.some(function(lm){
+      return lm.name.toLowerCase() === lower || lm.aliases.some(function(a){ return a === lower; });
+    });
+
+    if (!exists) {
+      var newLm = {
+        name: name,
+        aliases: [lower],
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+        type: 'place',
+        detail: 'Customer Ride Input'
+      };
+      TELANGANA_LANDMARKS.unshift(newLm);
+
+      try {
+        sbAuthFetch('map_places', {
+          method: 'POST',
+          body: {
+            name: name,
+            category: 'customer_ride',
+            lat: parseFloat(lat),
+            lng: parseFloat(lng),
+            address: 'Customer Ride Input'
+          }
+        });
+      } catch(e){}
+    }
+  }
+
   function initSetupMap() {
     if (typeof L === 'undefined') {
       setTimeout(initSetupMap, 300);
@@ -1307,9 +1359,17 @@
     
     state.destMap = L.map('setup-map', { zoomControl: true }).setView([defaultLat, defaultLng], 13);
     
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    setupMapTileLayer = L.tileLayer(SETUP_MAP_THEMES['light'], {
       maxZoom: 19
     }).addTo(state.destMap);
+
+    var btnTheme = document.getElementById('btn-toggle-map-theme');
+    if (btnTheme) {
+      btnTheme.addEventListener('click', function(){
+        var next = currentSetupMapTheme === 'dark' ? 'light' : 'dark';
+        setSetupMapTheme(next);
+      });
+    }
 
     // Clicking anywhere on the map pins the Destination (Drop point)
     state.destMap.on('click', function(e) {
@@ -1685,6 +1745,10 @@
     state.userName = name;
     state.pickup = pickup || 'Current Location';
     state.drop = drop || 'Destination';
+
+    // Auto-index new customer landmarks into dataset & Supabase map_places
+    autoSaveCustomerLandmark(state.drop, state.destLat || state.lat, state.destLng || state.lng);
+    autoSaveCustomerLandmark(state.pickup, state.lat, state.lng);
 
     document.getElementById('lot-title').textContent = state.pickup + ' \u2192 ' + state.drop;
     document.getElementById('lot-place-name').textContent = state.pickup;
