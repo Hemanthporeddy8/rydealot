@@ -152,6 +152,11 @@
         📍 Tap map to set exact house/gate pin
       </div>
       <button type="button" id="btn-toggle-map-theme" style="position:absolute; top:12px; right:12px; z-index:999; background:rgba(18,20,26,0.85); color:#fff; padding:6px 12px; border-radius:12px; font-size:11px; font-weight:700; backdrop-filter:blur(8px); border:1.5px solid rgba(255,255,255,0.18); cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 6px 16px rgba(0,0,0,0.3);" title="Toggle Dark/Light Map Theme">🌙 Dark</button>
+      
+      <!-- Rapido-Style Floating Reverse Geocoded Address Pill -->
+      <div id="map-address-pill" style="position:absolute; bottom:16px; left:50%; transform:translateX(-50%); z-index:999; background:rgba(255,255,255,0.92); color:#111; padding:6px 14px; border-radius:999px; font-size:11px; font-weight:700; backdrop-filter:blur(8px); border:1.5px solid rgba(0,0,0,0.12); display:none; align-items:center; gap:6px; box-shadow:0 6px 18px rgba(0,0,0,0.25); max-width:92%; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; pointer-events:none;">
+        <span style="color:#1d9e75; font-size:12px;">🟢</span> <span id="map-address-text">Locating address...</span>
+      </div>
     </div>
     
     <!-- Form/booking details card scrollable below -->

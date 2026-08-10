@@ -1381,12 +1381,60 @@
       
       var dropInput = document.getElementById('drop-input');
       dropInput.value = 'Pinned Destination (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
+      updateMapAddressPill(lat, lng);
     });
 
     setupMapInitialized = true;
+    renderSetupMapLandmarks();
     updateSetupMapMarkers();
   }
   window.initSetupMap = initSetupMap;
+
+  var reverseGeoTimer = null;
+  function updateMapAddressPill(lat, lng) {
+    var pill = document.getElementById('map-address-pill');
+    var txt = document.getElementById('map-address-text');
+    if (!pill || !txt) return;
+
+    pill.style.display = 'flex';
+    txt.textContent = 'Locating street address...';
+
+    clearTimeout(reverseGeoTimer);
+    reverseGeoTimer = setTimeout(function(){
+      fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=18&addressdetails=1', {
+        headers: { 'Accept-Language': 'en', 'User-Agent': 'RydealotApp/1.0' }
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data && data.display_name) {
+          var addr = data.address || {};
+          var mainStr = addr.road || addr.suburb || addr.neighbourhood || addr.village || data.display_name.split(',')[0];
+          var subStr = [addr.city||addr.town||addr.county, addr.state, addr.postcode].filter(Boolean).join(', ');
+          txt.textContent = mainStr + (subStr ? ', ' + subStr : '');
+        } else {
+          txt.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+        }
+      })
+      .catch(function(){
+        txt.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+      });
+    }, 350);
+  }
+
+  function renderSetupMapLandmarks() {
+    if (!state.destMap || typeof TELANGANA_LANDMARKS === 'undefined') return;
+    TELANGANA_LANDMARKS.slice(0, 16).forEach(function(lm) {
+      var iconEmoji = lm.type === 'bus_stop' ? '🚌' : (lm.type === 'station' ? '🚆' : (lm.type === 'hospital' ? '🏥' : (lm.type === 'school' ? '🏫' : (lm.type === 'temple' ? '🛕' : (lm.type === 'restaurant' ? '🍗' : '📍')))));
+      L.marker([lm.lat, lm.lng], {
+        icon: L.divIcon({
+          html: '<div style="background:rgba(255,255,255,0.92); border:1.5px solid #1c1e21; color:#1c1e21; padding:2px 6px; border-radius:6px; font-weight:800; font-size:10px; display:flex; align-items:center; gap:3px; box-shadow:0 3px 8px rgba(0,0,0,0.25); white-space:nowrap;"><span>'+iconEmoji+'</span><span>'+lm.name.split('(')[0].trim()+'</span></div>',
+          className: 'custom-map-landmark-badge',
+          iconSize: [110, 20],
+          iconAnchor: [55, 10]
+        })
+      }).addTo(state.destMap);
+    });
+  }
 
   function updateSetupMapMarkers() {
     if (!state.destMap) return;
@@ -1426,11 +1474,13 @@
       } else {
         state.setupDropMarker.setLatLng([state.destLat, state.destLng]);
       }
+      updateMapAddressPill(state.destLat, state.destLng);
     } else {
       if (state.setupDropMarker) {
         state.destMap.removeLayer(state.setupDropMarker);
         state.setupDropMarker = null;
       }
+      if (state.lat && state.lng) updateMapAddressPill(state.lat, state.lng);
     }
 
     // 3. Polyline and Bounds Fitting (Actual Street Routing using OSRM)
