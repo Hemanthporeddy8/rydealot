@@ -1813,6 +1813,7 @@
       state.destLat = lat;
       state.destLng = lng;
       updateSetupMapMarkers();
+      updateTripDistanceAndFares();
     });
   })();
 
@@ -1835,6 +1836,9 @@
     // Auto-index new customer landmarks into dataset & Supabase map_places
     autoSaveCustomerLandmark(state.drop, state.destLat || state.lat, state.destLng || state.lng);
     autoSaveCustomerLandmark(state.pickup, state.lat, state.lng);
+
+    // Calculate real street route distance & fares dynamically
+    await updateTripDistanceAndFares();
 
     document.getElementById('lot-title').textContent = state.pickup + ' \u2192 ' + state.drop;
     document.getElementById('lot-place-name').textContent = state.pickup;
@@ -2175,11 +2179,61 @@
   }
 
   function getEstimatedTripDistanceKm(){
+    if (state.tripDistanceKm && state.tripDistanceKm > 0) {
+      return state.tripDistanceKm;
+    }
     if(state.lat && state.lng && state.destLat && state.destLng){
       var dist = haversineKm(state.lat, state.lng, state.destLat, state.destLng);
-      return Math.max(1.5, Math.round(dist * 1.25 * 10) / 10);
+      return Math.max(1.0, Math.round(dist * 1.35 * 10) / 10);
     }
     return 3.0; // 3 KM default for initial estimation
+  }
+
+  async function updateTripDistanceAndFares() {
+    var distDisplay = document.getElementById('lot-trip-distance-display');
+    if (!state.lat || !state.lng) return;
+
+    // Auto-match drop text to landmark if destLat is missing
+    if (!state.destLat || !state.destLng) {
+      var dropTxt = (document.getElementById('drop-input').value || '').toLowerCase().trim();
+      if (dropTxt && typeof TELANGANA_LANDMARKS !== 'undefined') {
+        var match = TELANGANA_LANDMARKS.find(function(lm){
+          return lm.name.toLowerCase().includes(dropTxt) || lm.aliases.some(function(a){ return a.includes(dropTxt); });
+        });
+        if (match) {
+          state.destLat = match.lat;
+          state.destLng = match.lng;
+        }
+      }
+    }
+
+    if (state.lat && state.lng && state.destLat && state.destLng) {
+      var hDist = haversineKm(state.lat, state.lng, state.destLat, state.destLng);
+      state.tripDistanceKm = Math.max(1.0, Math.round(hDist * 1.35 * 10) / 10);
+      state.tripDurationMin = Math.max(3, Math.round(state.tripDistanceKm * 3));
+
+      // Try OSRM Real Street Route
+      try {
+        var url = 'https://router.project-osrm.org/route/v1/driving/' + state.lng + ',' + state.lat + ';' + state.destLng + ',' + state.destLat + '?overview=false';
+        var res = await fetch(url);
+        var data = await res.json();
+        if (data.routes && data.routes.length > 0) {
+          var r = data.routes[0];
+          state.tripDistanceKm = Math.max(1.0, Math.round((r.distance / 1000) * 10) / 10);
+          state.tripDurationMin = Math.max(2, Math.round(r.duration / 60));
+        }
+      } catch(e) {}
+    } else {
+      state.tripDistanceKm = 3.0;
+      state.tripDurationMin = 10;
+    }
+
+    if (distDisplay) {
+      distDisplay.textContent = '📏 ' + state.tripDistanceKm + ' km (' + state.tripDurationMin + ' mins)';
+    }
+
+    refreshSurgeAndFares();
+    updateBookButton();
   }
 
   function surgeMultiplierFor(type){

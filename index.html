@@ -230,9 +230,12 @@
         <span class="live-label">Live at <span id="lot-place-name">X Place</span></span>
         <span class="count ok" id="count-label">8 vehicles waiting</span>
       </div>
-      <div style="padding: 0 16px 10px; font-size: 11px; color: var(--text-mute); display: flex; align-items: center; gap: 4px;" id="lot-coords-display-container">
-        <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--green); animation: pulse 2s infinite; margin-right:4px;"></span>
-        <span id="lot-coords-display">GPS: Loading...</span>
+      <div style="padding: 8px 14px; font-size: 12px; font-weight: 800; color: var(--text); display: flex; align-items: center; justify-content: space-between; background: rgba(29, 158, 117, 0.08); border-radius: 12px; margin: 0 16px 10px; border: 1.5px solid rgba(29, 158, 117, 0.25);" id="lot-coords-display-container">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--green); animation: pulse 2s infinite;"></span>
+          <span id="lot-trip-distance-display" style="color:var(--text); font-weight:800;">📏 3.0 km (10 mins)</span>
+        </div>
+        <span id="lot-coords-display" style="font-size:10px; color:var(--text-mute); font-family:var(--font-mono);">GPS Active</span>
       </div>
       <div class="lot-wrap">
         <div class="lot">
