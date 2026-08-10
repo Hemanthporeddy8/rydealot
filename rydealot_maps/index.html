@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Rydealot Maps — Standalone Indian Navigation Engine</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabler-icons@1.39.1/iconfont/tabler-icons.min.css">
+  
+  <!-- Leaflet Maps CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Project Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Full-Screen Map Container -->
+  <div id="map-container"></div>
+
+  <!-- Floating Search Header & Chips -->
+  <div class="search-overlay">
+    <div class="search-box">
+      <span class="brand-mark">RYDEALOT MAPS</span>
+      <input type="text" id="search-input" class="search-input" placeholder="Search biryani shops, metro gates, landmarks..." autocomplete="off">
+      <button class="icon-btn" id="btn-clear-search" style="display:none;" title="Clear Search">✕</button>
+    </div>
+
+    <!-- Dropdown Autocomplete Search Results -->
+    <div class="search-results" id="search-results"></div>
+
+    <!-- Category Chips Carousel -->
+    <div class="category-chips">
+      <button class="chip active" onclick="filterCategory('all')">📍 All Places</button>
+      <button class="chip" onclick="filterCategory('food')">🍗 Biryani & Food</button>
+      <button class="chip" onclick="filterCategory('auto')">🛺 Auto Stands</button>
+      <button class="chip" onclick="filterCategory('station')">🚉 Railway & Metro</button>
+      <button class="chip" onclick="filterCategory('hospital')">🏥 Hospitals</button>
+      <button class="chip" onclick="filterCategory('temple')">🏛️ Temples</button>
+    </div>
+  </div>
+
+  <!-- Floating Map Controls (Right Side) -->
+  <div class="map-controls-right">
+    <button class="control-btn" onclick="toggleMapTheme()" title="Switch Theme (Dark/Light/Satellite)">🎨</button>
+    <button class="control-btn" onclick="recenterUserGps()" title="Re-center GPS">📍</button>
+    <button class="control-btn" onclick="openModal('modal-suggest-edit')" title="Suggest an Edit / Add Place">✍️</button>
+  </div>
+
+  <!-- Bottom Sheet Card (Selected Place Details & Routing) -->
+  <div class="bottom-sheet" id="bottom-sheet">
+    <div class="sheet-header">
+      <div>
+        <div class="sheet-title" id="sheet-title">Landmark Name</div>
+        <div class="sheet-subtitle" id="sheet-subtitle">Address / Subtitle</div>
+      </div>
+      <button class="icon-btn" onclick="hideBottomSheet()">✕</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-amber" onclick="drawRouteToSelectedPlace()">🚗 Preview Route</button>
+      <button class="btn btn-mute" onclick="hideBottomSheet()">Dismiss</button>
+    </div>
+  </div>
+
+  <!-- Suggest an Edit Modal -->
+  <div class="modal-overlay" id="modal-suggest-edit">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="font-size:1.1rem; font-weight:800; color:var(--amber);">✍️ Suggest an Edit to Rydealot Maps</h3>
+        <button class="icon-btn" onclick="closeModal('modal-suggest-edit')">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Place or Shop Name</label>
+        <input type="text" id="edit-place-name" class="form-input" placeholder="e.g. Grand Bawarchi Biryani">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select id="edit-category" class="form-select">
+          <option value="food">🍗 Food & Biryani</option>
+          <option value="auto">🛺 Auto Stand</option>
+          <option value="station">🚉 Railway / Metro Gate</option>
+          <option value="hospital">🏥 Hospital</option>
+          <option value="demolition">⚠️ Report Demolished Building</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Additional Notes / Landmarks</label>
+        <textarea id="edit-notes" class="form-textarea" rows="3" placeholder="Near RTC Bus Stand Gate 2..."></textarea>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn btn-mute" onclick="closeModal('modal-suggest-edit')">Cancel</button>
+        <button class="btn btn-amber" onclick="submitUserEditSuggestion()">Submit Suggestion</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Map Logic Integration -->
+  <script src="maps.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      initRydealotMap('map-container', false);
+
+      var searchInput = document.getElementById('search-input');
+      var searchResults = document.getElementById('search-results');
+      var clearBtn = document.getElementById('btn-clear-search');
+
+      var debounceTimer = null;
+      searchInput.addEventListener('input', function() {
+        var q = this.value.trim();
+        clearBtn.style.display = q ? 'block' : 'none';
+
+        clearTimeout(debounceTimer);
+        if (!q) {
+          searchResults.classList.remove('open');
+          searchResults.innerHTML = '';
+          return;
+        }
+
+        debounceTimer = setTimeout(async function() {
+          var items = await searchPlaces(q);
+          if (!items.length) {
+            searchResults.innerHTML = '<div class="result-item"><div class="result-title">No matching places found</div></div>';
+          } else {
+            searchResults.innerHTML = items.map(function(it) {
+              return '<div class="result-item" onclick="selectSearchResult(' + it.lat + ', ' + it.lng + ', \'' + escapeHtml(it.title) + '\', \'' + escapeHtml(it.subtitle) + '\')">' +
+                '<div class="result-icon">📍</div>' +
+                '<div><div class="result-title">' + it.title + '</div><div class="result-subtitle">' + it.subtitle + '</div></div>' +
+              '</div>';
+            }).join('');
+          }
+          searchResults.classList.add('open');
+        }, 300);
+      });
+
+      clearBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        clearBtn.style.display = 'none';
+        searchResults.classList.remove('open');
+      });
+    });
+
+    function selectSearchResult(lat, lng, title, subtitle) {
+      document.getElementById('search-results').classList.remove('open');
+      showBottomSheet({ title: title, subtitle: subtitle, lat: lat, lng: lng });
+    }
+
+    function toggleMapTheme() {
+      var nextTheme = mapState.currentTheme === 'dark' ? 'light' : (mapState.currentTheme === 'light' ? 'satellite' : 'dark');
+      setMapTheme(nextTheme);
+      toast('Map Theme Switched: ' + nextTheme.toUpperCase());
+    }
+
+    function recenterUserGps() {
+      if (mapState.map && mapState.lat && mapState.lng) {
+        mapState.map.setView([mapState.lat, mapState.lng], 15);
+        toast('Re-centered to your location 📍');
+      }
+    }
+
+    function filterCategory(cat) {
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      toast('Filtering: ' + cat.toUpperCase());
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
