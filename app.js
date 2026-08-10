@@ -263,7 +263,7 @@
           window.initSetupMap();
         }
         setTimeout(function(){
-          if (state.destMap) state.destMap.invalidateSize();
+          if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
         }, 200);
         
         var nameInput = document.getElementById('login-name');
@@ -2134,6 +2134,7 @@
   }
 
   function countPresent(){
+    if(!present) return 0;
     return Object.keys(present).filter(function(k){ return present[k]; }).length;
   }
 
@@ -2407,11 +2408,13 @@
   }
 
   function nearestId(type){
+    if(!present) return null;
     var ids = Object.keys(present).filter(function(k){ return present[k] && (!type || slotType[k] === type); });
     return ids.length ? ids[0] : null;
   }
 
   function countByType(type){
+    if(!present) return 0;
     return Object.keys(present).filter(function(k){ return present[k] && slotType[k] === type; }).length;
   }
 
