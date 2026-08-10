@@ -962,6 +962,37 @@
     }
   }
 
+  function playRideRequestAudioChime() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+      osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.3); // E6 note
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch(e){}
+  }
+
+  function showBrowserPushNotification(title, body) {
+    if ('Notification' in window) {
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body: body, icon: '/icon.svg' });
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(function(permission) {
+          if (permission === 'granted') {
+            new Notification(title, { body: body, icon: '/icon.svg' });
+          }
+        });
+      }
+    }
+  }
+
   var lastTrackedBookingId = null;
 
   async function fetchBookings(){
@@ -994,6 +1025,11 @@
         destroyRiderMap();
         
         var requests = (rows || []).filter(function(b){ return b.status === 'requested'; });
+        if (requests.length > 0 && !window._lastRideReqCount) {
+          playRideRequestAudioChime();
+          showBrowserPushNotification('🚗 New Ride Request nearby!', 'Tap to open Rydealot and accept booking.');
+        }
+        window._lastRideReqCount = requests.length;
         renderBookings(requests);
       }
     } catch(err){
