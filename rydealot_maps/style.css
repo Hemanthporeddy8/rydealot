@@ -325,3 +325,27 @@ body, html {
 }
 
 .toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Leaflet Draw Toolbar Icon Overrides */
+.leaflet-draw-toolbar a {
+  background-color: var(--card) !important;
+  color: var(--text) !important;
+  border-bottom: 1px solid var(--border) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+}
+
+.leaflet-draw-toolbar a:hover {
+  background-color: var(--amber) !important;
+  color: #000 !important;
+}
+
+.leaflet-draw-draw-polyline::before { content: '🛣️'; font-size: 14px; }
+.leaflet-draw-draw-polygon::before { content: '🏗️'; font-size: 14px; }
+.leaflet-draw-draw-rectangle::before { content: '🔲'; font-size: 14px; }
+.leaflet-draw-draw-marker::before { content: '📍'; font-size: 14px; }
+.leaflet-draw-edit-edit::before { content: '✏️'; font-size: 14px; }
+.leaflet-draw-edit-remove::before { content: '🗑️'; font-size: 14px; }
+

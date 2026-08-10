@@ -117,6 +117,7 @@ function initRydealotMap(elementId, isAdmin) {
         marker: true
       }
     });
+    mapState.drawControl = drawControl;
     mapState.map.addControl(drawControl);
 
     // Event listener for drawn shapes (Buildings, Roads, Road Blocks, Pins)

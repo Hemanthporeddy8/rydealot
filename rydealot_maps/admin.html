@@ -69,10 +69,13 @@
   <div id="map-container"></div>
 
   <!-- Admin Bar Header -->
-  <div class="admin-bar">
+  <div class="admin-bar" style="flex-wrap:wrap; gap:8px;">
     <div class="admin-title">RYDEALOT MAPS <span>EDITOR</span></div>
-    <button class="btn btn-amber" onclick="exportGeoJSON()">📥 Export GeoJSON</button>
-    <button class="btn btn-mute" onclick="toggleEditsQueue()">📄 Review Suggested Edits</button>
+    <button class="btn btn-amber" onclick="triggerDrawPolyline('road')">🛣️ Draw Road</button>
+    <button class="btn btn-amber" onclick="triggerDrawPolyline('block')" style="background:#e53e3e; color:#fff;">🚧 Mark Road Block</button>
+    <button class="btn btn-amber" onclick="triggerDrawPolygon()">🏗️ Draw Building</button>
+    <button class="btn btn-mute" onclick="exportGeoJSON()">📥 Export GeoJSON</button>
+    <button class="btn btn-mute" onclick="toggleEditsQueue()">📄 Review Edits</button>
     <button class="control-btn" onclick="toggleMapTheme()" title="Switch Theme">🎨</button>
   </div>
 
@@ -169,6 +172,28 @@
       initRydealotMap('map-container', true);
       loadSuggestedEdits();
     });
+
+    function triggerDrawPolyline(mode) {
+      if (mode === 'block') {
+        document.getElementById('road-status').value = 'blocked';
+        toggleBlockReason('blocked');
+        toast('🚧 Click points along blocked street... Double-click to finish!');
+      } else {
+        document.getElementById('road-status').value = 'active';
+        toggleBlockReason('active');
+        toast('🛣️ Click points along new road line... Double-click to finish!');
+      }
+      if (typeof L !== 'undefined' && typeof L.Draw !== 'undefined' && L.Draw.Polyline) {
+        new L.Draw.Polyline(mapState.map, (mapState.drawControl && mapState.drawControl.options.draw.polyline) || {}).enable();
+      }
+    }
+
+    function triggerDrawPolygon() {
+      toast('🏗️ Click 4+ points on map to draw building polygon... Double-click to finish!');
+      if (typeof L !== 'undefined' && typeof L.Draw !== 'undefined' && L.Draw.Polygon) {
+        new L.Draw.Polygon(mapState.map, (mapState.drawControl && mapState.drawControl.options.draw.polygon) || {}).enable();
+      }
+    }
 
     function handleAdminDrawnShape(layer, geojson, shapeType) {
       currentDrawnGeoJSON = geojson;
