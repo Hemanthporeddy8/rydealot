@@ -1486,7 +1486,43 @@
     tryLocation(true);
   }
 
-  // ---- Place autocomplete using OpenStreetMap Nominatim (free, no API key) ----
+  // ---- Place autocomplete using TELANGANA_LANDMARKS + GPS Bounded OpenStreetMap ----
+  var TELANGANA_LANDMARKS = [
+    // Warangal Tri-Cities (Kazipet, Hanamkonda, Warangal)
+    { name: 'Kazipet Junction Railway Station', aliases: ['kazipet', 'kazipet station', 'kazipet junction'], lat: 17.9754, lng: 79.5123, type: 'station', detail: 'Kazipet, Telangana' },
+    { name: 'Warangal Railway Station', aliases: ['warangal station', 'warangal rly'], lat: 17.9620, lng: 79.6050, type: 'station', detail: 'Warangal Station Rd' },
+    { name: 'Hanamkonda Central Bus Stand', aliases: ['hanamkonda bus stand', 'hanamkonda bs', 'bs hanamkonda'], lat: 17.9950, lng: 79.5520, type: 'bus_stop', detail: 'Hanamkonda Bus Station' },
+    { name: 'MGM Government Hospital', aliases: ['mgm', 'mgm hospital', 'warangal mgm'], lat: 17.9810, lng: 79.5240, type: 'hospital', detail: 'MGM Hospital Rd, Warangal' },
+    { name: 'NIT Warangal (National Institute of Technology)', aliases: ['nit', 'nit warangal', 'nitw'], lat: 17.9840, lng: 79.5310, type: 'school', detail: 'Kazipet Main Rd' },
+    { name: 'Kakatiya University (KU)', aliases: ['ku', 'kakatiya university', 'ku cross roads'], lat: 18.0180, lng: 79.5490, type: 'school', detail: 'KU Cross Roads, Hanamkonda' },
+    { name: 'Bhadrakali Temple', aliases: ['bhadrakali', 'bhadrakali temple', 'bhadrakali lake'], lat: 17.9870, lng: 79.5780, type: 'temple', detail: 'Bhadrakali Temple Rd' },
+    { name: 'Thousand Pillar Temple', aliases: ['thousand pillar', 'veye stambhala gudi'], lat: 17.9940, lng: 79.5740, type: 'temple', detail: 'Hanamkonda' },
+    { name: 'Warangal Fort', aliases: ['warangal fort', 'fort warangal', 'kila warangal'], lat: 17.9540, lng: 79.6170, type: 'place', detail: 'Kila Warangal' },
+    { name: 'Subedari', aliases: ['subedari', 'subedari hanamkonda', 'subedari water tank'], lat: 17.9930, lng: 79.5480, type: 'place', detail: 'Hanamkonda' },
+    { name: 'Naimnagar', aliases: ['naimnagar', 'naim nagar'], lat: 17.9990, lng: 79.5430, type: 'place', detail: 'Hanamkonda' },
+    { name: 'Hunter Road', aliases: ['hunter road', 'hunter rd'], lat: 17.9780, lng: 79.5580, type: 'place', detail: 'Hanamkonda' },
+    { name: 'Waddepally Lake', aliases: ['waddepally', 'waddepalli', 'waddepally tank'], lat: 17.9880, lng: 79.5390, type: 'place', detail: 'Waddepally, Hanamkonda' },
+    { name: 'Chowrasta Hanamkonda', aliases: ['chowrasta', 'hanamkonda chowrasta'], lat: 17.9970, lng: 79.5600, type: 'place', detail: 'Hanamkonda Center' },
+    { name: 'Subedari Collectorate', aliases: ['collectorate', 'warangal collectorate'], lat: 17.9910, lng: 79.5460, type: 'place', detail: 'Subedari, Hanamkonda' },
+
+    // Hyderabad & Cyberabad IT Hubs
+    { name: 'Rajiv Gandhi International Airport (RGIA)', aliases: ['shamshabad airport', 'rgia', 'hyderabad airport'], lat: 17.2403, lng: 78.4294, type: 'station', detail: 'Shamshabad, Hyderabad' },
+    { name: 'Secunderabad Junction Railway Station', aliases: ['secunderabad station', 'secunderabad rly'], lat: 17.4339, lng: 78.5017, type: 'station', detail: 'Secunderabad' },
+    { name: 'Hyderabad Deccan Station (Nampally)', aliases: ['nampally station', 'hyderabad station'], lat: 17.3930, lng: 78.4680, type: 'station', detail: 'Nampally, Hyderabad' },
+    { name: 'JBS Bus Station (Jubilee Bus Station)', aliases: ['jbs', 'jubilee bus station'], lat: 17.4470, lng: 78.4980, type: 'bus_stop', detail: 'Secunderabad' },
+    { name: 'MGBS (Mahatma Gandhi Bus Station)', aliases: ['mgbs', 'imlibun bus stand'], lat: 17.3780, lng: 78.4810, type: 'bus_stop', detail: 'Gowliguda, Hyderabad' },
+    { name: 'Hitec City Metro Station / Cyber Towers', aliases: ['hitec city', 'cyber towers', 'hitech city'], lat: 17.4504, lng: 78.3811, type: 'station', detail: 'Madhapur, Hitec City' },
+    { name: 'Mindspace IT Park', aliases: ['mindspace', 'mind space raheja'], lat: 17.4435, lng: 78.3770, type: 'place', detail: 'Hitec City, Hyderabad' },
+    { name: 'Gachibowli DLF Cybercity', aliases: ['gachibowli', 'dlf gachibowli', 'dlf cybercity'], lat: 17.4490, lng: 78.3610, type: 'place', detail: 'Gachibowli, Hyderabad' },
+    { name: 'Charminar', aliases: ['charminar', 'old city charminar'], lat: 17.3616, lng: 78.4747, type: 'place', detail: 'Old City, Hyderabad' },
+    { name: 'Ameerpet Metro Station', aliases: ['ameerpet', 'ameerpet metro'], lat: 17.4357, lng: 78.4487, type: 'station', detail: 'Ameerpet, Hyderabad' },
+    { name: 'Koti Commercial Center', aliases: ['koti', 'koti market'], lat: 17.3850, lng: 78.4840, type: 'place', detail: 'Koti, Hyderabad' },
+    { name: 'Pista House Gachibowli', aliases: ['pista house', 'pista house biryani'], lat: 17.4440, lng: 78.3660, type: 'restaurant', detail: 'Gachibowli, Hyderabad' },
+    { name: 'Hotel Bawarchi RTC X Roads', aliases: ['bawarchi', 'bawarchi biryani', 'rtc x roads bawarchi'], lat: 17.4086, lng: 78.4925, type: 'restaurant', detail: 'RTC X Roads, Hyderabad' },
+    { name: 'Paradise Biryani Secunderabad', aliases: ['paradise', 'paradise biryani'], lat: 17.4410, lng: 78.4950, type: 'restaurant', detail: 'SD Road, Secunderabad' },
+    { name: 'Shah Ghouse Hotel Gachibowli', aliases: ['shah ghouse', 'shah ghouse biryani'], lat: 17.4380, lng: 78.3640, type: 'restaurant', detail: 'Gachibowli, Hyderabad' }
+  ];
+
   (function(){
     var acTimers = {};
 
@@ -1496,49 +1532,86 @@
       if (!input || !dropdown) return;
 
       input.addEventListener('input', function(){
-        var q = input.value.trim();
+        var rawQ = input.value.trim();
+        var q = rawQ.toLowerCase();
         clearTimeout(acTimers[inputId]);
-        if (q.length < 3) { dropdown.innerHTML = ''; dropdown.classList.remove('open'); return; }
-        dropdown.innerHTML = '<div class="ac-loading">Searching...</div>';
+        if (q.length < 2) { dropdown.innerHTML = ''; dropdown.classList.remove('open'); return; }
+
+        // 1. Search TELANGANA_LANDMARKS static dataset first
+        var localMatches = TELANGANA_LANDMARKS.filter(function(lm){
+          if (lm.name.toLowerCase().includes(q)) return true;
+          return lm.aliases.some(function(al){ return al.includes(q); });
+        });
+
+        if (localMatches.length > 0) {
+          renderSuggestions(localMatches.slice(0, 5).map(function(lm){
+            return {
+              lat: lm.lat,
+              lon: lm.lng,
+              name: lm.name,
+              display_name: lm.name + ', ' + lm.detail,
+              type: lm.type,
+              address: { state: 'Telangana' }
+            };
+          }));
+          return;
+        }
+
+        dropdown.innerHTML = '<div class="ac-loading">Searching Telangana places...</div>';
         dropdown.classList.add('open');
+
+        // 2. Fetch Nominatim with GPS Bounding Box + Telangana Region Fallback
         acTimers[inputId] = setTimeout(function(){
-          fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&countrycodes=in&limit=6&addressdetails=1', {
+          var userLat = state.lat || 17.9961;
+          var userLng = state.lng || 79.5509;
+          
+          // Viewbox around user's GPS (approx 30km radius)
+          var viewboxStr = (userLng - 0.3) + ',' + (userLat + 0.3) + ',' + (userLng + 0.3) + ',' + (userLat - 0.3);
+          var searchUrl = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(rawQ + ', Telangana, India') + '&countrycodes=in&viewbox=' + viewboxStr + '&bounded=0&limit=6&addressdetails=1';
+
+          fetch(searchUrl, {
             headers: { 'Accept-Language': 'en', 'User-Agent': 'RydealotApp/1.0' }
           })
           .then(function(r){ return r.json(); })
           .then(function(results){
             if (!results.length) {
-              dropdown.innerHTML = '<div class="ac-loading">No places found. Try a different name.</div>';
+              dropdown.innerHTML = '<div class="ac-loading">No places found. Tap map above to set exact pin 📍</div>';
               return;
             }
-            dropdown.innerHTML = results.map(function(place){
-              var addr = place.address || {};
-              var name = place.name || addr.road || addr.neighbourhood || place.display_name.split(',')[0];
-              var detail = [addr.suburb||addr.neighbourhood||addr.village, addr.city||addr.town||addr.county, addr.state].filter(Boolean).join(', ');
-              var type = place.type || place.class || 'place';
-              var icon = type === 'bus_stop' ? '🚌' : type === 'railway_station' || type === 'station' ? '🚆' : type === 'hospital' ? '🏥' : type === 'school' || type === 'college' ? '🏫' : type === 'hotel' ? '🏨' : type === 'restaurant' || type === 'cafe' ? '🍽️' : '📍';
-              return '<div class="ac-item" data-lat="' + place.lat + '" data-lng="' + place.lon + '" data-name="' + (name||'').replace(/"/g,'&quot;') + '" data-display="' + place.display_name.replace(/"/g,'&quot;') + '">' +
-                '<div class="ac-icon">' + icon + '</div>' +
-                '<div><div class="ac-name">' + name + '</div><div class="ac-addr">' + (detail || place.display_name.split(',').slice(1,3).join(',').trim()) + '</div></div>' +
-              '</div>';
-            }).join('');
-            
-            Array.prototype.forEach.call(dropdown.querySelectorAll('.ac-item'), function(item){
-              item.addEventListener('mousedown', function(e){
-                e.preventDefault();
-                var selectedName = item.getAttribute('data-name');
-                var displayName = item.getAttribute('data-display');
-                input.value = selectedName;
-                dropdown.innerHTML = '';
-                dropdown.classList.remove('open');
-                if(onSelect) onSelect(parseFloat(item.getAttribute('data-lat')), parseFloat(item.getAttribute('data-lng')), selectedName, displayName);
-              });
-            });
+            renderSuggestions(results);
           })
           .catch(function(){
-            dropdown.innerHTML = '<div class="ac-loading">Search failed. Check internet.</div>';
+            dropdown.innerHTML = '<div class="ac-loading">Search failed. Tap map above to set exact pin 📍</div>';
           });
-        }, 380);
+        }, 300);
+
+        function renderSuggestions(results) {
+          dropdown.innerHTML = results.map(function(place){
+            var addr = place.address || {};
+            var name = place.name || addr.road || addr.neighbourhood || place.display_name.split(',')[0];
+            var detail = [addr.suburb||addr.neighbourhood||addr.village, addr.city||addr.town||addr.county, addr.state].filter(Boolean).join(', ');
+            var type = place.type || place.class || 'place';
+            var icon = type === 'bus_stop' ? '🚌' : type === 'railway_station' || type === 'station' ? '🚆' : type === 'hospital' ? '🏥' : type === 'school' || type === 'college' ? '🏫' : type === 'hotel' ? '🏨' : type === 'restaurant' || type === 'cafe' ? '🍽️' : '📍';
+            return '<div class="ac-item" data-lat="' + place.lat + '" data-lng="' + (place.lon || place.lng) + '" data-name="' + (name||'').replace(/"/g,'&quot;') + '" data-display="' + place.display_name.replace(/"/g,'&quot;') + '">' +
+              '<div class="ac-icon">' + icon + '</div>' +
+              '<div><div class="ac-name">' + name + '</div><div class="ac-addr">' + (detail || place.display_name.split(',').slice(1,3).join(',').trim()) + '</div></div>' +
+            '</div>';
+          }).join('');
+          
+          dropdown.classList.add('open');
+
+          Array.prototype.forEach.call(dropdown.querySelectorAll('.ac-item'), function(item){
+            item.addEventListener('mousedown', function(e){
+              e.preventDefault();
+              var selectedName = item.getAttribute('data-name');
+              var displayName = item.getAttribute('data-display');
+              input.value = selectedName;
+              dropdown.innerHTML = '';
+              dropdown.classList.remove('open');
+              if(onSelect) onSelect(parseFloat(item.getAttribute('data-lat')), parseFloat(item.getAttribute('data-lng')), selectedName, displayName);
+            });
+          });
+        }
       });
 
       document.addEventListener('click', function(e){

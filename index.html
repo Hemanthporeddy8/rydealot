@@ -147,7 +147,11 @@
   <!-- SCREEN: SETUP -->
   <div class="screen" id="screen-login" style="background:#fff;">
     <!-- Large, prominent map at the top of the screen -->
-    <div id="setup-map" style="height: 380px; width: 100%; border-bottom: 1.5px solid var(--border); position: relative; z-index: 1;"></div>
+    <div id="setup-map" style="height: 380px; width: 100%; border-bottom: 1.5px solid var(--border); position: relative; z-index: 1;">
+      <div style="position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:999; background:rgba(18,20,26,0.85); color:#fff; padding:6px 14px; border-radius:999px; font-size:11px; font-weight:700; backdrop-filter:blur(8px); border:1.5px solid rgba(255,255,255,0.18); display:flex; align-items:center; gap:6px; box-shadow:0 6px 16px rgba(0,0,0,0.3); pointer-events:none;">
+        📍 Tap map to set exact house/gate pin
+      </div>
+    </div>
     
     <!-- Form/booking details card scrollable below -->
     <div class="login-body" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
