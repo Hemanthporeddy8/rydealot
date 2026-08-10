@@ -162,6 +162,43 @@
     </div>
   </div>
 
+  <!-- Modal: Manage Coupons -->
+  <div class="modal" id="modal-manage-coupons">
+    <div class="modal-card" style="max-width:440px; background:var(--card); color:var(--text); padding:20px; border-radius:14px;">
+      <h3 style="margin-top:0; font-size:16px;">🎟️ Rydealot Coupon & Promo Manager</h3>
+      <p style="font-size:11px; color:var(--text-mute); margin-bottom:12px;">Create and publish valid promo codes for passenger discounts</p>
+
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+        <input type="text" id="coupon-code" placeholder="Coupon Code (e.g. WARANGAL50)" style="text-transform:uppercase; padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:700;">
+        <div style="display:flex; gap:8px;">
+          <select id="coupon-type" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+            <option value="percentage">Percentage Off (%)</option>
+            <option value="flat">Flat Amount Off (₹)</option>
+          </select>
+          <input type="number" id="coupon-val" placeholder="Value (e.g. 50 or 15)" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+        </div>
+        <input type="number" id="coupon-max" placeholder="Max Discount Cap in ₹ (e.g. 30)" style="padding:8px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+        <button class="btn btn-amber" onclick="saveCouponAdmin()">+ Create & Publish Coupon</button>
+      </div>
+
+      <h4 style="font-size:13px; margin:10px 0 6px;">Active Published Coupons</h4>
+      <div id="coupons-admin-list" style="max-height:160px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px; font-size:11px;">
+        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border);">
+          <span><strong>FIRST3</strong> (50% Off, Max ₹30)</span>
+          <span style="color:var(--amber); font-weight:700;">ACTIVE</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:6px 0;">
+          <span><strong>WARANGAL</strong> (Flat ₹10 Off)</span>
+          <span style="color:var(--amber); font-weight:700;">ACTIVE</span>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+        <button class="btn btn-mute" onclick="closeModal('modal-manage-coupons')">Close</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script src="maps.js"></script>
@@ -334,6 +371,65 @@
       var nextTheme = mapState.currentTheme === 'dark' ? 'light' : (mapState.currentTheme === 'light' ? 'satellite' : 'dark');
       setMapTheme(nextTheme);
       toast('Theme: ' + nextTheme.toUpperCase());
+    }
+    async function saveCouponAdmin() {
+      var code = (document.getElementById('coupon-code').value || '').trim().toUpperCase();
+      var type = document.getElementById('coupon-type').value;
+      var val = parseFloat(document.getElementById('coupon-val').value || 0);
+      var maxCap = parseFloat(document.getElementById('coupon-max').value || 0);
+
+      if (!code || val <= 0) {
+        alert('Please enter valid coupon code and discount value');
+        return;
+      }
+
+      var payload = {
+        code: code,
+        type: type,
+        value: val,
+        max_cap: maxCap,
+        status: 'active',
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        await sb('map_coupons', { method: 'POST', body: payload });
+        toast('🎟️ Coupon ' + code + ' published successfully!');
+      } catch(e) {
+        var existing = JSON.parse(localStorage.getItem('rydealot_admin_coupons') || '[]');
+        existing.push(payload);
+        localStorage.setItem('rydealot_admin_coupons', JSON.stringify(existing));
+        toast('🎟️ Coupon ' + code + ' saved!');
+      }
+
+      document.getElementById('coupon-code').value = '';
+      document.getElementById('coupon-val').value = '';
+      document.getElementById('coupon-max').value = '';
+      renderAdminCoupons();
+    }
+
+    async function renderAdminCoupons() {
+      var container = document.getElementById('coupons-admin-list');
+      var list = [];
+      try {
+        list = await sb('map_coupons?status=eq.active');
+      } catch(e) {
+        list = JSON.parse(localStorage.getItem('rydealot_admin_coupons') || '[]');
+      }
+      if (!list || !list.length) {
+        list = [
+          { code: 'FIRST3', type: 'percentage', value: 50, max_cap: 30 },
+          { code: 'WARANGAL', type: 'flat', value: 10 },
+          { code: 'STUDENT', type: 'flat', value: 15 }
+        ];
+      }
+      container.innerHTML = list.map(function(c) {
+        var desc = c.type === 'percentage' ? c.value + '% Off' + (c.max_cap ? ' (Max ₹' + c.max_cap + ')' : '') : 'Flat ₹' + c.value + ' Off';
+        return '<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border); align-items:center;">' +
+          '<span><strong>' + c.code + '</strong> (' + desc + ')</span>' +
+          '<span style="color:var(--amber); font-weight:700;">ACTIVE</span>' +
+        '</div>';
+      }).join('');
     }
   </script>
 </body>

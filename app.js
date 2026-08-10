@@ -397,6 +397,15 @@
     btnBackWallet.addEventListener('click', function() {
       walletSection.style.display = 'none';
       mainSection.style.display = 'block';
+    Array.prototype.forEach.call(document.querySelectorAll('.btn-sub-pass'), function(btn){
+      btn.addEventListener('click', function(){
+        var passType = btn.getAttribute('data-pass');
+        var passName = passType === 'weekly' ? 'Weekly Pass (₹150 - 1 Day FREE!)' : 'Daily Pass (₹25/day)';
+        var price = passType === 'weekly' ? 150 : 25;
+        if (confirm('Activate ' + passName + '? During the 3-month launch promo, subscriptions are 100% FREE!')) {
+          toast('✅ ' + passName + ' Activated Successfully! Unlimited Rides Active!');
+        }
+      });
     });
   }
 
@@ -1870,7 +1879,7 @@
 
   var btnApplyPromo = document.getElementById('btn-apply-promo');
   if (btnApplyPromo) {
-    btnApplyPromo.addEventListener('click', function(){
+    btnApplyPromo.addEventListener('click', async function(){
       var input = document.getElementById('input-promo-code');
       var msg = document.getElementById('promo-status-msg');
       var code = (input.value || '').trim().toUpperCase();
@@ -1878,33 +1887,45 @@
       if (!code) {
         msg.style.display = 'block';
         msg.style.color = 'var(--red)';
-        msg.textContent = 'Enter a coupon code (e.g. FIRST3, WARANGAL)';
+        msg.textContent = 'Enter a valid coupon code';
         return;
       }
 
-      if (code === 'FIRST3') {
-        appliedPromoCode = 'FIRST3';
-        appliedPromoDiscountVal = 50; // 50% Off
-        msg.style.display = 'block';
+      msg.style.display = 'block';
+      msg.style.color = 'var(--text-mute)';
+      msg.textContent = 'Verifying coupon code...';
+
+      var validCoupon = null;
+      try {
+        var remoteCoupons = await sbFetch('map_coupons?code=eq.' + encodeURIComponent(code) + '&status=eq.active');
+        if (remoteCoupons && remoteCoupons.length > 0) validCoupon = remoteCoupons[0];
+      } catch(e) {}
+
+      if (!validCoupon) {
+        var localCoupons = JSON.parse(localStorage.getItem('rydealot_admin_coupons') || '[]');
+        validCoupon = localCoupons.find(function(c){ return c.code === code && c.status === 'active'; });
+      }
+
+      if (!validCoupon) {
+        if (code === 'FIRST3') validCoupon = { code:'FIRST3', type:'percentage', value:50, max_cap:30 };
+        else if (code === 'WARANGAL') validCoupon = { code:'WARANGAL', type:'flat', value:10 };
+        else if (code === 'STUDENT' || code === 'NITW') validCoupon = { code:'STUDENT', type:'flat', value:15 };
+      }
+
+      if (validCoupon) {
+        appliedPromoCode = validCoupon.code;
+        appliedPromoType = validCoupon.type;
+        appliedPromoDiscountVal = validCoupon.value;
+        appliedPromoMaxCap = validCoupon.max_cap || 0;
+
         msg.style.color = 'var(--green)';
-        msg.textContent = '🎉 Coupon FIRST3 applied! 50% Off your ride!';
-      } else if (code === 'WARANGAL') {
-        appliedPromoCode = 'WARANGAL';
-        appliedPromoDiscountVal = 10; // ₹10 Off
-        msg.style.display = 'block';
-        msg.style.color = 'var(--green)';
-        msg.textContent = '🎉 Coupon WARANGAL applied! Flat ₹10 Off!';
-      } else if (code === 'STUDENT' || code === 'NITW') {
-        appliedPromoCode = 'STUDENT';
-        appliedPromoDiscountVal = 15; // ₹15 Off
-        msg.style.display = 'block';
-        msg.style.color = 'var(--green)';
-        msg.textContent = '🎉 Student Pass applied! Flat ₹15 Off!';
+        var label = validCoupon.type === 'percentage' ? validCoupon.value + '% Off' + (validCoupon.max_cap ? ' (Max ₹' + validCoupon.max_cap + ')' : '') : 'Flat ₹' + validCoupon.value + ' Off';
+        msg.textContent = '🎉 Coupon ' + validCoupon.code + ' applied! ' + label;
       } else {
-        msg.style.display = 'block';
+        appliedPromoCode = null;
+        appliedPromoDiscountVal = 0;
         msg.style.color = 'var(--red)';
-        msg.textContent = 'Invalid code. Try FIRST3, WARANGAL, or STUDENT';
-        return;
+        msg.textContent = '❌ Invalid or expired coupon code!';
       }
 
       refreshSurgeAndFares();
@@ -2251,7 +2272,9 @@
   }
 
   var appliedPromoCode = null;
+  var appliedPromoType = 'flat';
   var appliedPromoDiscountVal = 0;
+  var appliedPromoMaxCap = 0;
 
   function currentPriceFor(type){
     var cfg = FARE_CONFIG[type] || FARE_CONFIG.bike;
@@ -2276,8 +2299,10 @@
 
     // 2. Promo Code Discount Subtraction
     if (appliedPromoDiscountVal > 0) {
-      if (appliedPromoCode === 'FIRST3') {
-        total = Math.round(total * 0.5); // 50% Off
+      if (appliedPromoType === 'percentage') {
+        var pctAmt = Math.round(total * (appliedPromoDiscountVal / 100));
+        if (appliedPromoMaxCap > 0 && pctAmt > appliedPromoMaxCap) pctAmt = appliedPromoMaxCap;
+        total = Math.max(15, total - pctAmt);
       } else {
         total = Math.max(15, total - appliedPromoDiscountVal);
       }
