@@ -1828,6 +1828,50 @@
     showScreen('screen-login');
   });
 
+  var btnApplyPromo = document.getElementById('btn-apply-promo');
+  if (btnApplyPromo) {
+    btnApplyPromo.addEventListener('click', function(){
+      var input = document.getElementById('input-promo-code');
+      var msg = document.getElementById('promo-status-msg');
+      var code = (input.value || '').trim().toUpperCase();
+
+      if (!code) {
+        msg.style.display = 'block';
+        msg.style.color = 'var(--red)';
+        msg.textContent = 'Enter a coupon code (e.g. FIRST3, WARANGAL)';
+        return;
+      }
+
+      if (code === 'FIRST3') {
+        appliedPromoCode = 'FIRST3';
+        appliedPromoDiscountVal = 50; // 50% Off
+        msg.style.display = 'block';
+        msg.style.color = 'var(--green)';
+        msg.textContent = '🎉 Coupon FIRST3 applied! 50% Off your ride!';
+      } else if (code === 'WARANGAL') {
+        appliedPromoCode = 'WARANGAL';
+        appliedPromoDiscountVal = 10; // ₹10 Off
+        msg.style.display = 'block';
+        msg.style.color = 'var(--green)';
+        msg.textContent = '🎉 Coupon WARANGAL applied! Flat ₹10 Off!';
+      } else if (code === 'STUDENT' || code === 'NITW') {
+        appliedPromoCode = 'STUDENT';
+        appliedPromoDiscountVal = 15; // ₹15 Off
+        msg.style.display = 'block';
+        msg.style.color = 'var(--green)';
+        msg.textContent = '🎉 Student Pass applied! Flat ₹15 Off!';
+      } else {
+        msg.style.display = 'block';
+        msg.style.color = 'var(--red)';
+        msg.textContent = 'Invalid code. Try FIRST3, WARANGAL, or STUDENT';
+        return;
+      }
+
+      refreshSurgeAndFares();
+      updateBookButton();
+    });
+  }
+
   // ---------------- parking lot (vehicle icons + booking) ----------------
 
   function bikeMarkup(id, colorBody, colorAccent){
@@ -2115,6 +2159,9 @@
     return Math.round(mult * 100) / 100;
   }
 
+  var appliedPromoCode = null;
+  var appliedPromoDiscountVal = 0;
+
   function currentPriceFor(type){
     var cfg = FARE_CONFIG[type] || FARE_CONFIG.bike;
     var distKm = getEstimatedTripDistanceKm();
@@ -2128,7 +2175,24 @@
       mult = mult * (FARE_CONFIG.nightSurge || 1.2);
     }
 
-    return Math.max(15, Math.round(baseAmount * mult));
+    var total = Math.round(baseAmount * mult);
+
+    // 1. High Supply / Off-Peak Discount (when count >= 3 vehicles waiting)
+    var count = countByType(type);
+    if (count >= 3 && mult === 1) {
+      total = Math.round(total * 0.85); // 15% Off-Peak Supply Discount
+    }
+
+    // 2. Promo Code Discount Subtraction
+    if (appliedPromoDiscountVal > 0) {
+      if (appliedPromoCode === 'FIRST3') {
+        total = Math.round(total * 0.5); // 50% Off
+      } else {
+        total = Math.max(15, total - appliedPromoDiscountVal);
+      }
+    }
+
+    return Math.max(15, total);
   }
 
   function refreshSurgeAndFares(){
