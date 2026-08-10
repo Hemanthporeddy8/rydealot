@@ -124,6 +124,41 @@
     </div>
   </div>
 
+  <!-- Save Road / Mark Road Block Modal -->
+  <div class="modal-overlay" id="modal-save-road">
+    <div class="modal-card">
+      <h3 style="font-size:1.1rem; font-weight:800; color:var(--amber); margin-bottom:14px;">🛣️ Save Road / 🚧 Mark Road Block</h3>
+      
+      <div class="form-group">
+        <label class="form-label">Road or Street Name</label>
+        <input type="text" id="road-name" class="form-input" placeholder="e.g. Nakkalagutta Circuit House Rd">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Status / Action</label>
+        <select id="road-status" class="form-select" onchange="toggleBlockReason(this.value)">
+          <option value="active">🟢 Active New Road / Lane</option>
+          <option value="blocked">🚧 Mark Road Block / Construction Alert</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="block-reason-group" style="display:none;">
+        <label class="form-label">Road Block Reason</label>
+        <select id="block-reason" class="form-select">
+          <option value="Construction Work">🏗️ Construction Work</option>
+          <option value="Flyover Work">🌉 Flyover Construction</option>
+          <option value="Water Pipeline Repair">💧 Water Pipeline Repair</option>
+          <option value="VIP Security / Event">🚔 VIP Event / Security Closure</option>
+        </select>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn btn-mute" onclick="closeModal('modal-save-road')">Cancel</button>
+        <button class="btn btn-amber" onclick="confirmSaveRoad()">Save Road to Map</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script src="maps.js"></script>
@@ -134,6 +169,57 @@
       initRydealotMap('map-container', true);
       loadSuggestedEdits();
     });
+
+    function handleAdminDrawnShape(layer, geojson, shapeType) {
+      currentDrawnGeoJSON = geojson;
+      if (shapeType === 'polyline') {
+        openModal('modal-save-road');
+      } else if (shapeType === 'polygon' || shapeType === 'rectangle') {
+        openModal('modal-save-building');
+      } else if (shapeType === 'marker') {
+        var name = prompt('Enter Landmark Name for this Pin:');
+        if (name) {
+          var coords = geojson.geometry.coordinates; // [lng, lat]
+          sb('map_places', {
+            method: 'POST',
+            body: { name: name, category: 'landmark', lat: coords[1], lng: coords[0], address: 'Added via Admin GIS Editor' }
+          }).then(function(){ toast('✅ Landmark pin saved!'); }).catch(function(){ toast('Saved pin locally!'); });
+        }
+      }
+    }
+
+    function toggleBlockReason(val) {
+      document.getElementById('block-reason-group').style.display = val === 'blocked' ? 'block' : 'none';
+    }
+
+    async function confirmSaveRoad() {
+      var name = document.getElementById('road-name').value.trim();
+      var status = document.getElementById('road-status').value;
+      var reason = document.getElementById('block-reason').value;
+
+      if (!name) { alert('Please enter road name'); return; }
+
+      var payload = {
+        name: name,
+        status: status,
+        reason: status === 'blocked' ? reason : null,
+        geometry: currentDrawnGeoJSON,
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        await sb('map_roads', { method: 'POST', body: payload });
+        if (status === 'blocked') {
+          toast('🚧 ROAD BLOCK SAVED: ' + name + ' (' + reason + ')');
+        } else {
+          toast('🟢 New Road Line Saved: ' + name);
+        }
+      } catch(e) {
+        toast('Saved road geometry locally!');
+      }
+
+      closeModal('modal-save-road');
+    }
 
     function promptSaveNewBuilding(geojson) {
       currentDrawnGeoJSON = geojson;

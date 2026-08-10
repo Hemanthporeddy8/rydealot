@@ -119,12 +119,17 @@ function initRydealotMap(elementId, isAdmin) {
     });
     mapState.map.addControl(drawControl);
 
-    // Event listener for drawn shapes
+    // Event listener for drawn shapes (Buildings, Roads, Road Blocks, Pins)
     mapState.map.on(L.Draw.Event.CREATED, function(event) {
       var layer = event.layer;
       mapState.drawnItemsLayer.addLayer(layer);
       var geojson = layer.toGeoJSON();
-      promptSaveNewBuilding(geojson);
+      var shapeType = event.layerType; // 'polyline' (Road), 'polygon' (Building), 'marker' (Pin)
+      if (typeof handleAdminDrawnShape === 'function') {
+        handleAdminDrawnShape(layer, geojson, shapeType);
+      } else {
+        promptSaveNewBuilding(geojson);
+      }
     });
   }
 }
