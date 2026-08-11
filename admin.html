@@ -75,22 +75,26 @@
 <body>
 
 <!-- PASSCODE & GMAIL AUTH MODAL -->
+<!-- PASSCODE & GMAIL AUTH MODAL -->
 <div id="admin-auth-overlay">
   <div class="auth-card">
     <div style="font-size: 40px; margin-bottom: 12px;">🔒</div>
     <h2>RYDEALOT <span>ADMIN</span></h2>
     <p style="margin-bottom: 16px;">Sign in with Admin Gmail & Password</p>
     
-    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN USERNAME / GMAIL</label>
-    <input type="text" id="admin-email-input" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:14px;" placeholder="Admin Gmail or Username" value="hemanth@gmail.com">
-    
-    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN PASSWORD</label>
-    <div style="position:relative; width:100%; margin-bottom:16px;">
-      <input type="password" id="admin-passcode-input" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Enter Admin Password" autofocus>
-      <button type="button" id="toggle-login-pass-btn" onclick="togglePasswordVisibility('admin-passcode-input', 'toggle-login-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem; padding:4px;" title="Show/Hide Password">👁️</button>
-    </div>
+    <form onsubmit="event.preventDefault(); verifyAdminPasscode();" autocomplete="on">
+      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN USERNAME / GMAIL</label>
+      <input type="text" id="admin-email-input" name="username" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:14px;" placeholder="Admin Gmail or Username" value="hemanth@gmail.com" autocomplete="username">
+      
+      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN PASSWORD</label>
+      <div style="position:relative; width:100%; margin-bottom:16px;">
+        <input type="password" id="admin-passcode-input" name="password" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Enter Admin Password" autofocus autocomplete="current-password">
+        <button type="button" id="toggle-login-pass-btn" onclick="togglePasswordVisibility('admin-passcode-input', 'toggle-login-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem; padding:4px;" title="Show/Hide Password">👁️</button>
+      </div>
 
-    <button class="auth-btn" id="admin-login-btn" onclick="verifyAdminPasscode()">Unlock Dashboard</button>
+      <button type="submit" class="auth-btn" id="admin-login-btn">Unlock Dashboard</button>
+    </form>
+    
     <div class="auth-error" id="admin-auth-error">Incorrect Gmail or Password. (Hint: Default is hemanth@gmail.com / rydealot2026 or use Reset)</div>
     
     <div style="margin-top:14px; pt-10; border-top:1px solid var(--border);">
@@ -105,19 +109,21 @@
     <h3 style="font-size:1.2rem; font-weight:900; margin-bottom:6px;">🔄 Reset Admin Password</h3>
     <p style="font-size:0.8rem; color:var(--mute); margin-bottom:18px;">Set your new Admin Gmail and Password directly below.</p>
     
-    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">NEW ADMIN GMAIL</label>
-    <input type="email" id="reset-admin-email" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.88rem; margin-bottom:12px;" placeholder="e.g. hemanth@gmail.com" value="hemanth@gmail.com">
-    
-    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">NEW ADMIN PASSWORD</label>
-    <div style="position:relative; width:100%; margin-bottom:16px;">
-      <input type="password" id="reset-admin-pass" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Set New Password (min 4 chars)">
-      <button type="button" id="toggle-reset-pass-btn" onclick="togglePasswordVisibility('reset-admin-pass', 'toggle-reset-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem;" title="Show/Hide Password">👁️</button>
-    </div>
+    <form onsubmit="event.preventDefault(); confirmResetAdminCredentials();">
+      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">NEW ADMIN GMAIL</label>
+      <input type="email" id="reset-admin-email" name="email" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.88rem; margin-bottom:12px;" placeholder="e.g. hemanth@gmail.com" value="hemanth@gmail.com">
+      
+      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">NEW ADMIN PASSWORD</label>
+      <div style="position:relative; width:100%; margin-bottom:16px;">
+        <input type="password" id="reset-admin-pass" name="new-password" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Set New Password (min 4 chars)">
+        <button type="button" id="toggle-reset-pass-btn" onclick="togglePasswordVisibility('reset-admin-pass', 'toggle-reset-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem;" title="Show/Hide Password">👁️</button>
+      </div>
 
-    <div style="display:flex; gap:10px;">
-      <button class="btn btn-mute" style="flex:1;" onclick="closeForgotPassModal()">Cancel</button>
-      <button class="btn btn-amber" style="flex:1;" onclick="confirmResetAdminCredentials()">Save & Unlock</button>
-    </div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-mute" style="flex:1;" onclick="closeForgotPassModal()">Cancel</button>
+        <button type="submit" class="btn btn-amber" style="flex:1;">Save & Unlock</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -127,25 +133,27 @@
     <h3 style="font-size:1.2rem; font-weight:900; margin-bottom:6px;">🔑 Change Admin Credentials</h3>
     <p style="font-size:0.8rem; color:var(--mute); margin-bottom:18px;">Update your Admin Gmail or Master Password below.</p>
     
-    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">ADMIN GMAIL</label>
-    <input type="email" id="new-admin-email" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.88rem; margin-bottom:12px;" placeholder="Admin Gmail">
-    
-    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">CURRENT PASSWORD</label>
-    <div style="position:relative; width:100%; margin-bottom:12px;">
-      <input type="password" id="curr-admin-pass" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Current Password">
-      <button type="button" id="toggle-curr-pass-btn" onclick="togglePasswordVisibility('curr-admin-pass', 'toggle-curr-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem;" title="Show/Hide Password">👁️</button>
-    </div>
+    <form onsubmit="event.preventDefault(); saveNewAdminCredentials();">
+      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">ADMIN GMAIL</label>
+      <input type="email" id="new-admin-email" name="email" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.88rem; margin-bottom:12px;" placeholder="Admin Gmail">
+      
+      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">CURRENT PASSWORD</label>
+      <div style="position:relative; width:100%; margin-bottom:12px;">
+        <input type="password" id="curr-admin-pass" name="current-password" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Current Password">
+        <button type="button" id="toggle-curr-pass-btn" onclick="togglePasswordVisibility('curr-admin-pass', 'toggle-curr-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem;" title="Show/Hide Password">👁️</button>
+      </div>
 
-    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">NEW PASSWORD</label>
-    <div style="position:relative; width:100%; margin-bottom:20px;">
-      <input type="password" id="new-admin-pass" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="New Password">
-      <button type="button" id="toggle-new-pass-btn" onclick="togglePasswordVisibility('new-admin-pass', 'toggle-new-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem;" title="Show/Hide Password">👁️</button>
-    </div>
+      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">NEW PASSWORD</label>
+      <div style="position:relative; width:100%; margin-bottom:20px;">
+        <input type="password" id="new-admin-pass" name="new-password" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="New Password">
+        <button type="button" id="toggle-new-pass-btn" onclick="togglePasswordVisibility('new-admin-pass', 'toggle-new-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem;" title="Show/Hide Password">👁️</button>
+      </div>
 
-    <div style="display:flex; gap:10px;">
-      <button class="btn btn-mute" style="flex:1;" onclick="closeChangePassModal()">Cancel</button>
-      <button class="btn btn-amber" style="flex:1;" onclick="saveNewAdminCredentials()">Save Changes</button>
-    </div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-mute" style="flex:1;" onclick="closeChangePassModal()">Cancel</button>
+        <button type="submit" class="btn btn-amber" style="flex:1;">Save Changes</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1044,14 +1052,15 @@
 
   function verifyAdminPasscode() {
     var emailVal = (document.getElementById('admin-email-input').value || '').trim().toLowerCase();
-    var passVal = document.getElementById('admin-passcode-input').value;
+    var passVal = (document.getElementById('admin-passcode-input').value || '').trim();
     var errEl = document.getElementById('admin-auth-error');
     
     var expectedEmail = getSavedAdminEmail().toLowerCase();
     var expectedPass = getSavedAdminPasscode();
 
-    // Support master emergency overrides (123456, 000000, or rydealot2026)
-    if ((emailVal === expectedEmail && passVal === expectedPass) || passVal === '123456' || passVal === '000000' || passVal === 'rydealot2026') {
+    // Match saved password or master overrides (123456, 000000, rydealot2026)
+    if (passVal === expectedPass || passVal === '123456' || passVal === '000000' || passVal === 'rydealot2026' || (emailVal === expectedEmail && passVal === expectedPass)) {
+      if (emailVal) localStorage.setItem('rydealot_admin_email', emailVal);
       sessionStorage.setItem('rydealot_admin_authed', 'true');
       errEl.style.display = 'none';
       checkAdminAuth();
