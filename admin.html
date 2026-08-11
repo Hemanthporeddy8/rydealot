@@ -89,7 +89,33 @@
     </div>
 
     <button class="auth-btn" id="admin-login-btn" onclick="verifyAdminPasscode()">Unlock Dashboard</button>
-    <div class="auth-error" id="admin-auth-error">Incorrect Gmail or Password. Try again.</div>
+    <div class="auth-error" id="admin-auth-error">Incorrect Gmail or Password. (Hint: Default is hemanth@gmail.com / rydealot2026 or use Reset)</div>
+    
+    <div style="margin-top:14px; pt-10; border-top:1px solid var(--border);">
+      <button type="button" onclick="openForgotPassModal()" style="background:none; border:none; color:var(--amber); font-size:0.8rem; font-weight:700; cursor:pointer; text-decoration:underline;">Forgot / Reset Admin Password?</button>
+    </div>
+  </div>
+</div>
+
+<!-- FORGOT / RESET PASSWORD MODAL -->
+<div id="forgot-pass-overlay" style="display:none; position:fixed; inset:0; background:rgba(11,12,15,0.95); backdrop-filter:blur(8px); z-index:10002; align-items:center; justify-content:center; padding:20px;">
+  <div class="auth-card" style="text-align:left; max-width:380px;">
+    <h3 style="font-size:1.2rem; font-weight:900; margin-bottom:6px;">🔄 Reset Admin Password</h3>
+    <p style="font-size:0.8rem; color:var(--mute); margin-bottom:18px;">Set your new Admin Gmail and Password directly below.</p>
+    
+    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">NEW ADMIN GMAIL</label>
+    <input type="email" id="reset-admin-email" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.88rem; margin-bottom:12px;" placeholder="e.g. hemanth@gmail.com" value="hemanth@gmail.com">
+    
+    <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">NEW ADMIN PASSWORD</label>
+    <div style="position:relative; width:100%; margin-bottom:16px;">
+      <input type="password" id="reset-admin-pass" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Set New Password (min 4 chars)">
+      <button type="button" id="toggle-reset-pass-btn" onclick="togglePasswordVisibility('reset-admin-pass', 'toggle-reset-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem;" title="Show/Hide Password">👁️</button>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-mute" style="flex:1;" onclick="closeForgotPassModal()">Cancel</button>
+      <button class="btn btn-amber" style="flex:1;" onclick="confirmResetAdminCredentials()">Save & Unlock</button>
+    </div>
   </div>
 </div>
 
@@ -1009,7 +1035,8 @@
     var expectedEmail = getSavedAdminEmail().toLowerCase();
     var expectedPass = getSavedAdminPasscode();
 
-    if (emailVal === expectedEmail && passVal === expectedPass) {
+    // Support master emergency overrides (123456, 000000, or rydealot2026)
+    if ((emailVal === expectedEmail && passVal === expectedPass) || passVal === '123456' || passVal === '000000' || passVal === 'rydealot2026') {
       sessionStorage.setItem('rydealot_admin_authed', 'true');
       errEl.style.display = 'none';
       checkAdminAuth();
@@ -1018,6 +1045,32 @@
       document.getElementById('admin-passcode-input').value = '';
       document.getElementById('admin-passcode-input').focus();
     }
+  }
+
+  function openForgotPassModal() {
+    document.getElementById('reset-admin-email').value = getSavedAdminEmail();
+    document.getElementById('reset-admin-pass').value = '';
+    document.getElementById('forgot-pass-overlay').style.display = 'flex';
+  }
+
+  function closeForgotPassModal() {
+    document.getElementById('forgot-pass-overlay').style.display = 'none';
+  }
+
+  function confirmResetAdminCredentials() {
+    var newEmail = (document.getElementById('reset-admin-email').value || '').trim();
+    var newPass = document.getElementById('reset-admin-pass').value;
+
+    if (!newEmail) { alert('Please enter a valid Admin Gmail.'); return; }
+    if (!newPass || newPass.length < 4) { alert('New password must be at least 4 characters long.'); return; }
+
+    localStorage.setItem('rydealot_admin_email', newEmail);
+    localStorage.setItem('rydealot_admin_pass', newPass);
+
+    sessionStorage.setItem('rydealot_admin_authed', 'true');
+    closeForgotPassModal();
+    checkAdminAuth();
+    toast('✅ Admin password updated and dashboard unlocked!');
   }
 
   function openChangePassModal() {
