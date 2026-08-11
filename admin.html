@@ -820,9 +820,21 @@
         '<td><strong>' + valText + '</strong></td>' +
         '<td>' + maxText + '</td>' +
         '<td><span class="badge badge-green">ACTIVE</span></td>' +
-        '<td><button class="btn btn-red" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteAdminCouponMain(\'' + c.code + '\')">Deactivate</button></td>' +
+        '<td>' +
+          '<button class="btn btn-amber" style="padding:4px 8px; font-size:0.75rem; margin-right:4px;" onclick="editAdminCouponMain(\'' + c.code + '\', \'' + (c.type||'flat') + '\', ' + (c.value||0) + ', ' + (c.max_cap||0) + ')">✏️ Edit</button>' +
+          '<button class="btn btn-red" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteAdminCouponMain(\'' + c.code + '\')">Deactivate</button>' +
+        '</td>' +
       '</tr>';
     }).join('');
+  }
+
+  function editAdminCouponMain(code, type, val, maxCap) {
+    document.getElementById('admin-coupon-code').value = code;
+    document.getElementById('admin-coupon-type').value = type;
+    document.getElementById('admin-coupon-val').value = val;
+    document.getElementById('admin-coupon-max').value = maxCap || '';
+    document.getElementById('admin-coupon-code').focus();
+    toast('✏️ Editing coupon ' + code + '. Update values and click Create & Publish.');
   }
 
   async function deleteAdminCouponMain(code) {
@@ -956,9 +968,24 @@
         '<td><strong>+ ₹' + b.reward + ' Bonus</strong></td>' +
         '<td><span class="badge badge-blue">' + phaseText + '</span></td>' +
         '<td><span class="badge badge-green">ACTIVE</span></td>' +
-        '<td><button class="btn btn-red" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteAdminBonusScheme(' + idx + ')">Deactivate</button></td>' +
+        '<td>' +
+          '<button class="btn btn-amber" style="padding:4px 8px; font-size:0.75rem; margin-right:4px;" onclick="editAdminBonusScheme(' + idx + ')">✏️ Edit</button>' +
+          '<button class="btn btn-red" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteAdminBonusScheme(' + idx + ')">Deactivate</button>' +
+        '</td>' +
       '</tr>';
     }).join('');
+  }
+
+  function editAdminBonusScheme(idx) {
+    var list = JSON.parse(localStorage.getItem('rydealot_admin_bonuses') || '[]');
+    var item = list[idx];
+    if (!item) return;
+    document.getElementById('admin-bonus-title').value = item.title || '';
+    document.getElementById('admin-bonus-rides').value = item.rides || 5;
+    document.getElementById('admin-bonus-reward').value = item.reward || 15;
+    document.getElementById('admin-bonus-phase').value = item.phase || 'commission';
+    document.getElementById('admin-bonus-title').focus();
+    toast('✏️ Editing scheme "' + item.title + '". Update fields and click Add New Bonus Scheme.');
   }
 
   function deleteAdminBonusScheme(idx) {

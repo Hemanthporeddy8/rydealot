@@ -397,17 +397,18 @@
     btnBackWallet.addEventListener('click', function() {
       walletSection.style.display = 'none';
       mainSection.style.display = 'block';
-    Array.prototype.forEach.call(document.querySelectorAll('.btn-sub-pass'), function(btn){
-      btn.addEventListener('click', function(){
-        var passType = btn.getAttribute('data-pass');
-        var passName = passType === 'weekly' ? 'Weekly Pass (₹150 - 1 Day FREE!)' : 'Daily Pass (₹25/day)';
-        var price = passType === 'weekly' ? 150 : 25;
-        if (confirm('Activate ' + passName + '? During the 3-month launch promo, subscriptions are 100% FREE!')) {
-          toast('✅ ' + passName + ' Activated Successfully! Unlimited Rides Active!');
-        }
-      });
     });
   }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.btn-sub-pass'), function(btn){
+    btn.addEventListener('click', function(){
+      var passType = btn.getAttribute('data-pass');
+      var passName = passType === 'weekly' ? 'Weekly Pass (₹150 - 1 Day FREE!)' : 'Daily Pass (₹25/day)';
+      if (confirm('Activate ' + passName + '? During the 3-month launch promo, subscriptions are 100% FREE!')) {
+        toast('✅ ' + passName + ' Activated Successfully! Unlimited Rides Active!');
+      }
+    });
+  });
 
   // Face Check Modal Handlers before going online
   var faceModal = document.getElementById('rd-face-modal');
