@@ -26,7 +26,7 @@
     .tab { padding: 8px 20px; border-radius: 99px; border: 1px solid var(--border); background: var(--card); color: var(--mute); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
     .tab.active, .tab:hover { border-color: var(--amber); color: var(--amber); background: rgba(255,176,32,0.06); }
     .panel { display: none; }
-    .panel.active { display: block; }
+    .panel.active { display: block !important; visibility: visible !important; opacity: 1 !important; }
     .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
     .btn { padding: 8px 18px; border-radius: 8px; border: none; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
     .btn-amber { background: var(--amber); color: #000; }
@@ -1262,6 +1262,5 @@
   // Run auth check on load
   checkAdminAuth();
 </script>
-</div>
 </body>
 </html>
