@@ -2035,10 +2035,14 @@
   window.openUpiRechargeModal = function() {
     var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"upiId":"rydealot@upi"}');
     var upiId = commCfg.upiId || 'rydealot@upi';
+    var uid = getUserIdentifier();
+    var driverRefId = 'RD-' + uid;
+    var upiUri = 'upi://pay?pa=' + encodeURIComponent(upiId) + '&pn=Rydealot&tr=' + encodeURIComponent(driverRefId) + '&cu=INR';
+
     var upiQrImg = document.getElementById('rd-upi-qr-img');
-    if (upiQrImg) upiQrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent('upi://pay?pa=' + upiId + '&pn=Rydealot&cu=INR');
+    if (upiQrImg) upiQrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(upiUri);
     var displayUpiId = document.getElementById('rd-display-upi-id');
-    if (displayUpiId) displayUpiId.textContent = 'UPI ID: ' + upiId;
+    if (displayUpiId) displayUpiId.textContent = 'UPI ID: ' + upiId + ' (Ref: ' + driverRefId + ')';
 
     var modal = document.getElementById('rd-upi-recharge-modal');
     if (modal) modal.style.display = 'flex';
