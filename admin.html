@@ -532,6 +532,57 @@
       </table>
     </div>
   </div>
+
+  <!-- ===== DRIVER BONUS & DAILY INCENTIVE SCHEMES SECTION ===== -->
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:850px; margin-top:24px;">
+    <h3 style="font-size:1.1rem; font-weight:900; margin-bottom:4px; color:var(--amber);">🎁 Driver Bonus & Daily Incentive Schemes Manager</h3>
+    <p style="font-size:0.85rem; color:var(--mute); margin-bottom:20px;">Add and control driver daily ride bonus schemes (applies during paid commission phase to keep platform cash-flow positive)</p>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:20px;">
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">SCHEME TITLE</label>
+        <input type="text" id="admin-bonus-title" placeholder="e.g. 5 Rides Daily Sprint" class="auth-input" style="text-align:left; font-size:0.9rem;">
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">TARGET RIDES REQD</label>
+        <input type="number" id="admin-bonus-rides" placeholder="e.g. 5" class="auth-input" style="text-align:left; font-size:0.9rem;">
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">REWARD BONUS (₹)</label>
+        <input type="number" id="admin-bonus-reward" placeholder="e.g. 15 or 20" class="auth-input" style="text-align:left; font-size:0.9rem;">
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">APPLICABLE PHASE</label>
+        <select id="admin-bonus-phase" class="auth-input" style="text-align:left; font-size:0.85rem;">
+          <option value="commission">🔒 Paid Commission Phase Only</option>
+          <option value="all">🎉 All Phases (Immediate Launch)</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; margin-bottom:24px;">
+      <button class="btn btn-amber" style="padding:10px 24px;" onclick="publishAdminBonusScheme()">+ Add New Bonus Scheme</button>
+    </div>
+
+    <h4 style="font-size:0.95rem; font-weight:800; margin-bottom:12px; color:var(--text);">Active Driver Incentive Schemes</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Scheme Title</th>
+            <th>Rides Required</th>
+            <th>Reward Bonus</th>
+            <th>Phase Rule</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="bonuses-main-tbody">
+          <tr><td colspan="6" class="loading">Loading bonus schemes...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -644,11 +695,13 @@
       loadMainCoupons();
       loadSubscriptionSettings();
       loadReferralSettings();
+      loadMainBonuses();
     } catch (e) {
       console.log('Load fare settings note:', e);
       loadMainCoupons();
       loadSubscriptionSettings();
       loadReferralSettings();
+      loadMainBonuses();
     }
   }
 
@@ -847,6 +900,74 @@
         '<td><strong>₹' + (r.totalVal || (r.unlocked * inviterVal)) + '</strong></td>' +
       '</tr>';
     }).join('');
+  }
+
+  // ===== DRIVER BONUS SCHEMES MANAGEMENT =====
+  function publishAdminBonusScheme() {
+    var title = (document.getElementById('admin-bonus-title').value || '').trim();
+    var rides = parseInt(document.getElementById('admin-bonus-rides').value || 0);
+    var reward = parseFloat(document.getElementById('admin-bonus-reward').value || 0);
+    var phase = document.getElementById('admin-bonus-phase').value;
+
+    if (!title || rides <= 0 || reward <= 0) {
+      alert('Please enter valid scheme title, rides required, and bonus reward amount.');
+      return;
+    }
+
+    var payload = {
+      title: title,
+      rides: rides,
+      reward: reward,
+      phase: phase,
+      status: 'active',
+      created_at: new Date().toISOString()
+    };
+
+    var existing = JSON.parse(localStorage.getItem('rydealot_admin_bonuses') || '[]');
+    existing.unshift(payload);
+    localStorage.setItem('rydealot_admin_bonuses', JSON.stringify(existing));
+    toast('🎁 Bonus scheme "' + title + '" published & active!');
+
+    document.getElementById('admin-bonus-title').value = '';
+    document.getElementById('admin-bonus-rides').value = '';
+    document.getElementById('admin-bonus-reward').value = '';
+    loadMainBonuses();
+  }
+
+  function loadMainBonuses() {
+    var tbody = document.getElementById('bonuses-main-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading bonus schemes...</td></tr>';
+
+    var list = JSON.parse(localStorage.getItem('rydealot_admin_bonuses') || '[]');
+    if (!Array.isArray(list) || !list.length) {
+      list = [
+        { title: '5 Rides Daily Sprint', rides: 5, reward: 15, phase: 'commission', status: 'active' },
+        { title: 'Weekend Rush 10 Rides', rides: 10, reward: 30, phase: 'commission', status: 'active' }
+      ];
+      localStorage.setItem('rydealot_admin_bonuses', JSON.stringify(list));
+    }
+
+    tbody.innerHTML = list.map(function(b, idx) {
+      var phaseText = b.phase === 'commission' ? '🔒 Paid Commission Phase Only' : '🎉 All Phases';
+      return '<tr>' +
+        '<td><strong style="color:var(--amber);">' + b.title + '</strong></td>' +
+        '<td><span class="badge badge-amber">' + b.rides + ' Rides</span></td>' +
+        '<td><strong>+ ₹' + b.reward + ' Bonus</strong></td>' +
+        '<td><span class="badge badge-blue">' + phaseText + '</span></td>' +
+        '<td><span class="badge badge-green">ACTIVE</span></td>' +
+        '<td><button class="btn btn-red" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteAdminBonusScheme(' + idx + ')">Deactivate</button></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function deleteAdminBonusScheme(idx) {
+    if (!confirm('Deactivate this bonus scheme?')) return;
+    var list = JSON.parse(localStorage.getItem('rydealot_admin_bonuses') || '[]');
+    list.splice(idx, 1);
+    localStorage.setItem('rydealot_admin_bonuses', JSON.stringify(list));
+    toast('Bonus scheme deactivated');
+    loadMainBonuses();
   }
 
   async function loadVerificationData() {

@@ -2005,6 +2005,24 @@
     if (badge) badge.textContent = count > 0 ? ('🎉 ' + count + ' Ride' + (count>1?'s':'') + ' Unlocked!') : '0 Unlocked';
   }
 
+  function updateDriverIncentivesUI() {
+    var container = document.getElementById('rd-bonus-schemes-list');
+    if (!container) return;
+    var list = JSON.parse(localStorage.getItem('rydealot_admin_bonuses') || '[]');
+    if (!list.length) {
+      list = [
+        { title: '5 Rides Daily Sprint', rides: 5, reward: 15 },
+        { title: 'Driver Buddy Referral', rides: 1, reward: 50 }
+      ];
+    }
+    container.innerHTML = list.map(function(b) {
+      return '<div style="display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:8px 10px; border-radius:8px; border:1px solid var(--border);">' +
+        '<span>🌟 <strong>' + b.title + ':</strong> ' + (b.rides > 1 ? ('Complete ' + b.rides + ' rides') : 'Per referral') + '</span>' +
+        '<span style="color:#1d9e75; font-weight:800;">+ ₹' + b.reward + ' Bonus</span>' +
+      '</div>';
+    }).join('');
+  }
+
   var btnApplyPromo = document.getElementById('btn-apply-promo');
   if (btnApplyPromo) {
     btnApplyPromo.addEventListener('click', async function(){
@@ -2470,6 +2488,7 @@
       }
     });
     updateReferralCardUI();
+    updateDriverIncentivesUI();
 
     var surgeBanner = document.getElementById('surge-banner');
     var surgeText = document.getElementById('surge-text');
