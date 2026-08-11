@@ -205,7 +205,7 @@
     <button class="tab" onclick="showPanel('verification', this)">📄 Verification</button>
     <button class="tab" onclick="showPanel('bookings', this)">📋 Bookings</button>
     <button class="tab" onclick="showPanel('stats', this)">📊 Stats</button>
-    <button class="tab" onclick="showPanel('fares', this)">💰 Fare Settings</button>
+    <button class="tab" onclick="showPanel('fares', this)">💰 Fares & Promo Coupons</button>
   </div>
 
 <!-- ===== DRIVERS PANEL ===== -->
@@ -403,6 +403,57 @@
       <button class="btn btn-amber" style="padding:12px 28px; font-size:0.9rem;" onclick="saveFareSettings()">💾 Save & Apply Fare Rules</button>
     </div>
   </div>
+
+  <!-- ===== CUSTOMER PROMO COUPONS SECTION ===== -->
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:850px; margin-top:24px;">
+    <h3 style="font-size:1.1rem; font-weight:900; margin-bottom:4px; color:var(--amber);">🎟️ Customer Coupon & Promo Manager</h3>
+    <p style="font-size:0.85rem; color:var(--mute); margin-bottom:20px;">Create and publish valid promo codes that work live in the Rydealot app</p>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:20px;">
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">COUPON CODE</label>
+        <input type="text" id="admin-coupon-code" placeholder="e.g. WARANGAL50" class="auth-input" style="text-align:left; letter-spacing:1px; text-transform:uppercase; font-size:0.9rem;">
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">DISCOUNT TYPE</label>
+        <select id="admin-coupon-type" class="auth-input" style="text-align:left; font-size:0.85rem;">
+          <option value="percentage">Percentage Off (%)</option>
+          <option value="flat">Flat Amount Off (₹)</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">VALUE (% OR ₹)</label>
+        <input type="number" id="admin-coupon-val" placeholder="e.g. 50 or 15" class="auth-input" style="text-align:left; font-size:0.9rem;">
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">MAX DISCOUNT CAP (₹)</label>
+        <input type="number" id="admin-coupon-max" placeholder="e.g. 30" class="auth-input" style="text-align:left; font-size:0.9rem;">
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; margin-bottom:24px;">
+      <button class="btn btn-amber" style="padding:10px 24px;" onclick="publishAdminCouponMain()">+ Create & Publish Coupon</button>
+    </div>
+
+    <h4 style="font-size:0.95rem; font-weight:800; margin-bottom:12px; color:var(--text);">Active Published Coupons</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Coupon Code</th>
+            <th>Discount Type</th>
+            <th>Value</th>
+            <th>Max Cap</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="coupons-main-tbody">
+          <tr><td colspan="6" class="loading">Loading coupons...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -512,8 +563,10 @@
         if (cfg.nightSurge) document.getElementById('fare-night-surge').value = cfg.nightSurge;
         toggleSurgeModeInputs();
       }
+      loadMainCoupons();
     } catch (e) {
       console.log('Load fare settings note:', e);
+      loadMainCoupons();
     }
   }
 
@@ -561,6 +614,93 @@
         toast('Saved locally in browser!');
       }
     }
+  }
+
+  // ===== CUSTOMER COUPON & PROMO MANAGEMENT =====
+  async function publishAdminCouponMain() {
+    var code = (document.getElementById('admin-coupon-code').value || '').trim().toUpperCase();
+    var type = document.getElementById('admin-coupon-type').value;
+    var val = parseFloat(document.getElementById('admin-coupon-val').value || 0);
+    var maxCap = parseFloat(document.getElementById('admin-coupon-max').value || 0);
+
+    if (!code || val <= 0) {
+      alert('Please enter valid coupon code and discount value');
+      return;
+    }
+
+    var payload = {
+      code: code,
+      type: type,
+      value: val,
+      max_cap: maxCap,
+      status: 'active',
+      created_at: new Date().toISOString()
+    };
+
+    try {
+      await sb('map_coupons', { method: 'POST', body: payload });
+    } catch(e) {}
+    
+    var existing = JSON.parse(localStorage.getItem('rydealot_admin_coupons') || '[]');
+    existing = existing.filter(function(c){ return c.code !== code; });
+    existing.unshift(payload);
+    localStorage.setItem('rydealot_admin_coupons', JSON.stringify(existing));
+    toast('🎟️ Coupon ' + code + ' published & active!');
+
+    document.getElementById('admin-coupon-code').value = '';
+    document.getElementById('admin-coupon-val').value = '';
+    document.getElementById('admin-coupon-max').value = '';
+    loadMainCoupons();
+  }
+
+  async function loadMainCoupons() {
+    var tbody = document.getElementById('coupons-main-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading coupons...</td></tr>';
+
+    var list = null;
+    try {
+      list = await sb('map_coupons?status=eq.active');
+    } catch(e) {}
+
+    if (!Array.isArray(list) || !list.length) {
+      list = JSON.parse(localStorage.getItem('rydealot_admin_coupons') || '[]');
+    }
+
+    if (!Array.isArray(list) || !list.length) {
+      list = [
+        { code: 'FIRST3', type: 'percentage', value: 50, max_cap: 30, status: 'active' },
+        { code: 'WARANGAL', type: 'flat', value: 10, max_cap: 0, status: 'active' },
+        { code: 'STUDENT', type: 'flat', value: 15, max_cap: 0, status: 'active' }
+      ];
+    }
+
+    tbody.innerHTML = list.map(function(c) {
+      var valText = c.type === 'percentage' ? c.value + '%' : '₹' + c.value;
+      var maxText = c.max_cap ? '₹' + c.max_cap : '-';
+      return '<tr>' +
+        '<td><strong class="mono" style="color:var(--amber);">' + c.code + '</strong></td>' +
+        '<td><span class="badge badge-amber">' + (c.type || 'flat') + '</span></td>' +
+        '<td><strong>' + valText + '</strong></td>' +
+        '<td>' + maxText + '</td>' +
+        '<td><span class="badge badge-green">ACTIVE</span></td>' +
+        '<td><button class="btn btn-red" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteAdminCouponMain(\'' + c.code + '\')">Deactivate</button></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  async function deleteAdminCouponMain(code) {
+    if (!confirm('Deactivate coupon ' + code + '?')) return;
+    try {
+      await sb('map_coupons?code=eq.' + encodeURIComponent(code), { method: 'PATCH', body: { status: 'inactive' } });
+      toast('Coupon ' + code + ' deactivated');
+    } catch(e) {
+      var list = JSON.parse(localStorage.getItem('rydealot_admin_coupons') || '[]');
+      list = list.filter(function(c){ return c.code !== code; });
+      localStorage.setItem('rydealot_admin_coupons', JSON.stringify(list));
+      toast('Coupon deactivated locally');
+    }
+    loadMainCoupons();
   }
 
   async function loadVerificationData() {
