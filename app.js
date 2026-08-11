@@ -1927,7 +1927,7 @@
       var usedCoupons = getUsedCouponsForUser();
       if (usedCoupons.includes(code)) {
         msg.style.color = 'var(--red)';
-        msg.textContent = '❌ You have already redeemed coupon ' + code + '! Strictly 1-use per customer account.';
+        msg.textContent = '❌ You have already redeemed coupon';
         appliedPromoCode = null;
         appliedPromoDiscountVal = 0;
         refreshSurgeAndFares();
@@ -1950,6 +1950,7 @@
         if (code === 'FIRST3') validCoupon = { code:'FIRST3', type:'percentage', value:50, max_cap:30 };
         else if (code === 'WARANGAL') validCoupon = { code:'WARANGAL', type:'flat', value:10 };
         else if (code === 'STUDENT' || code === 'NITW') validCoupon = { code:'STUDENT', type:'flat', value:15 };
+        else if (code === 'REFER' || code === 'REFERRAL' || code === 'REFER50') validCoupon = { code:'REFER50', type:'flat', value:50 };
       }
 
       if (validCoupon) {
