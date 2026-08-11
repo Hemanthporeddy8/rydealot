@@ -205,7 +205,7 @@
     <button class="tab" onclick="showPanel('verification', this)">📄 Verification</button>
     <button class="tab" onclick="showPanel('bookings', this)">📋 Bookings</button>
     <button class="tab" onclick="showPanel('stats', this)">📊 Stats</button>
-    <button class="tab" onclick="showPanel('fares', this)">💰 Fares & Promo Coupons</button>
+    <button class="tab" onclick="showPanel('fares', this)">💰 Fares, Coupons & Subscriptions</button>
   </div>
 
 <!-- ===== DRIVERS PANEL ===== -->
@@ -454,6 +454,36 @@
       </table>
     </div>
   </div>
+
+  <!-- ===== DRIVER SUBSCRIPTION SETTINGS SECTION ===== -->
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:850px; margin-top:24px;">
+    <h3 style="font-size:1.1rem; font-weight:900; margin-bottom:4px; color:var(--amber);">⚡ Driver Subscription & Pass Pricing Controls</h3>
+    <p style="font-size:0.85rem; color:var(--mute); margin-bottom:20px;">Configure daily and weekly driver subscription pass pricing for drivers</p>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px;">
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">DAILY PASS PRICE (₹/DAY)</label>
+        <input type="number" id="sub-daily-price" value="25" class="auth-input" style="text-align:left; font-size:0.9rem;">
+        <span style="font-size:0.75rem; color:var(--mute);">Unlimited trips for 24 hours</span>
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">WEEKLY PASS PRICE (₹/WEEK)</label>
+        <input type="number" id="sub-weekly-price" value="150" class="auth-input" style="text-align:left; font-size:0.9rem;">
+        <span style="font-size:0.75rem; color:var(--amber); font-weight:700;">7 Days Access (1 Day FREE!)</span>
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">LAUNCH PROMO MODE</label>
+        <select id="sub-launch-promo" class="auth-input" style="text-align:left; font-size:0.85rem;">
+          <option value="active">🎉 Active (First 3 Months ₹0 Free)</option>
+          <option value="disabled">🔒 Disabled (Mandatory Paid Pass)</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end;">
+      <button class="btn btn-amber" style="padding:10px 24px;" onclick="saveSubscriptionSettings()">💾 Save Subscription Rates</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -564,9 +594,11 @@
         toggleSurgeModeInputs();
       }
       loadMainCoupons();
+      loadSubscriptionSettings();
     } catch (e) {
       console.log('Load fare settings note:', e);
       loadMainCoupons();
+      loadSubscriptionSettings();
     }
   }
 
@@ -701,6 +733,24 @@
       toast('Coupon deactivated locally');
     }
     loadMainCoupons();
+  }
+
+  // ===== DRIVER SUBSCRIPTION SETTINGS =====
+  function loadSubscriptionSettings() {
+    var subCfg = JSON.parse(localStorage.getItem('rydealot_sub_config') || '{"daily":25,"weekly":150,"promo":"active"}');
+    if (document.getElementById('sub-daily-price')) document.getElementById('sub-daily-price').value = subCfg.daily || 25;
+    if (document.getElementById('sub-weekly-price')) document.getElementById('sub-weekly-price').value = subCfg.weekly || 150;
+    if (document.getElementById('sub-launch-promo')) document.getElementById('sub-launch-promo').value = subCfg.promo || 'active';
+  }
+
+  function saveSubscriptionSettings() {
+    var subCfg = {
+      daily: parseFloat(document.getElementById('sub-daily-price').value || 25),
+      weekly: parseFloat(document.getElementById('sub-weekly-price').value || 150),
+      promo: document.getElementById('sub-launch-promo').value
+    };
+    localStorage.setItem('rydealot_sub_config', JSON.stringify(subCfg));
+    toast('⚡ Driver subscription rates saved live!');
   }
 
   async function loadVerificationData() {
