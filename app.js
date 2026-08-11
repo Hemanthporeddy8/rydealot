@@ -1877,6 +1877,34 @@
     showScreen('screen-login');
   });
 
+  function getUserIdentifier() {
+    if (typeof authState !== 'undefined' && authState.currentUser) {
+      return (authState.currentUser.phone || authState.currentUser.email || 'user_guest').replace(/[^a-zA-Z0-9]/g, '_');
+    }
+    var deviceId = localStorage.getItem('rydealot_device_uuid');
+    if (!deviceId) {
+      deviceId = 'dev_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('rydealot_device_uuid', deviceId);
+    }
+    return deviceId;
+  }
+
+  function getUsedCouponsForUser() {
+    var uid = getUserIdentifier();
+    var stored = localStorage.getItem('rydealot_used_coupons_' + uid);
+    return stored ? JSON.parse(stored) : [];
+  }
+
+  function markCouponUsedForUser(code) {
+    if (!code) return;
+    var uid = getUserIdentifier();
+    var usedList = getUsedCouponsForUser();
+    if (!usedList.includes(code)) {
+      usedList.push(code);
+      localStorage.setItem('rydealot_used_coupons_' + uid, JSON.stringify(usedList));
+    }
+  }
+
   var btnApplyPromo = document.getElementById('btn-apply-promo');
   if (btnApplyPromo) {
     btnApplyPromo.addEventListener('click', async function(){
@@ -1894,6 +1922,18 @@
       msg.style.display = 'block';
       msg.style.color = 'var(--text-mute)';
       msg.textContent = 'Verifying coupon code...';
+
+      // SINGLE-USE CHECK: Check if customer has already used this coupon code
+      var usedCoupons = getUsedCouponsForUser();
+      if (usedCoupons.includes(code)) {
+        msg.style.color = 'var(--red)';
+        msg.textContent = '❌ You have already redeemed coupon ' + code + '! Strictly 1-use per customer account.';
+        appliedPromoCode = null;
+        appliedPromoDiscountVal = 0;
+        refreshSurgeAndFares();
+        updateBookButton();
+        return;
+      }
 
       var validCoupon = null;
       try {
@@ -2538,6 +2578,17 @@
       state.activeRider = rider;
       state.activeType = type;
       state.activePrice = price;
+
+      // Lock used coupon so customer cannot reuse it
+      if (appliedPromoCode) {
+        markCouponUsedForUser(appliedPromoCode);
+        appliedPromoCode = null;
+        appliedPromoDiscountVal = 0;
+        var promoInp = document.getElementById('input-promo-code');
+        if (promoInp) promoInp.value = '';
+        var promoMsgEl = document.getElementById('promo-status-msg');
+        if (promoMsgEl) promoMsgEl.style.display = 'none';
+      }
       clearInterval(pollTimer);
       toast('Request sent to ' + rider.name);
       goToTracking(rider, type, price, pin);
