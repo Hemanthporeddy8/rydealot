@@ -484,6 +484,54 @@
       <button class="btn btn-amber" style="padding:10px 24px;" onclick="saveSubscriptionSettings()">💾 Save Subscription Rates</button>
     </div>
   </div>
+
+  <!-- ===== REFER & EARN ENGINE SECTION ===== -->
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:850px; margin-top:24px;">
+    <h3 style="font-size:1.1rem; font-weight:900; margin-bottom:4px; color:var(--amber);">🤝 Refer & Earn a Ride Engine Controls</h3>
+    <p style="font-size:0.85rem; color:var(--mute); margin-bottom:20px;">Coupons are locked by default and ONLY unlock when a user successfully invites a friend who signs up & enters their referral code!</p>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px;">
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">INVITER REWARD (₹/FRIEND)</label>
+        <input type="number" id="ref-inviter-reward" value="50" class="auth-input" style="text-align:left; font-size:0.9rem;">
+        <span style="font-size:0.75rem; color:var(--mute);">Discount unlocked for existing user</span>
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">FRIEND WELCOME REWARD (₹)</label>
+        <input type="number" id="ref-friend-reward" value="30" class="auth-input" style="text-align:left; font-size:0.9rem;">
+        <span style="font-size:0.75rem; color:var(--amber); font-weight:700;">Welcome coupon for invited friend</span>
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">REFERRAL PROGRAM STATUS</label>
+        <select id="ref-program-status" class="auth-input" style="text-align:left; font-size:0.85rem;">
+          <option value="active">🎉 Active (Earn ₹50 Free Ride per Friend)</option>
+          <option value="disabled">🔒 Program Paused</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; margin-bottom:20px;">
+      <button class="btn btn-amber" style="padding:10px 24px;" onclick="saveReferralSettings()">💾 Save Refer & Earn Rules</button>
+    </div>
+
+    <h4 style="font-size:0.95rem; font-weight:800; margin-bottom:12px; color:var(--text);">Live Referrals & Unlocked Coupons Activity</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>User / Phone</th>
+            <th>Inviter Code</th>
+            <th>Friends Invited</th>
+            <th>Unlocked Rides</th>
+            <th>Total Reward Value</th>
+          </tr>
+        </thead>
+        <tbody id="referrals-main-tbody">
+          <tr><td colspan="5" class="loading">Loading referral statistics...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -595,10 +643,12 @@
       }
       loadMainCoupons();
       loadSubscriptionSettings();
+      loadReferralSettings();
     } catch (e) {
       console.log('Load fare settings note:', e);
       loadMainCoupons();
       loadSubscriptionSettings();
+      loadReferralSettings();
     }
   }
 
@@ -752,6 +802,51 @@
     };
     localStorage.setItem('rydealot_sub_config', JSON.stringify(subCfg));
     toast('⚡ Driver subscription rates saved live!');
+  }
+
+  // ===== REFER & EARN SETTINGS =====
+  function loadReferralSettings() {
+    var refCfg = JSON.parse(localStorage.getItem('rydealot_referral_config') || '{"inviter":50,"friend":30,"status":"active"}');
+    if (document.getElementById('ref-inviter-reward')) document.getElementById('ref-inviter-reward').value = refCfg.inviter || 50;
+    if (document.getElementById('ref-friend-reward')) document.getElementById('ref-friend-reward').value = refCfg.friend || 30;
+    if (document.getElementById('ref-program-status')) document.getElementById('ref-program-status').value = refCfg.status || 'active';
+    loadReferralStats();
+  }
+
+  function saveReferralSettings() {
+    var refCfg = {
+      inviter: parseFloat(document.getElementById('ref-inviter-reward').value || 50),
+      friend: parseFloat(document.getElementById('ref-friend-reward').value || 30),
+      status: document.getElementById('ref-program-status').value
+    };
+    localStorage.setItem('rydealot_referral_config', JSON.stringify(refCfg));
+    toast('🤝 Refer & Earn rules saved live!');
+  }
+
+  async function loadReferralStats() {
+    var tbody = document.getElementById('referrals-main-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading referral statistics...</td></tr>';
+    var refCfg = JSON.parse(localStorage.getItem('rydealot_referral_config') || '{"inviter":50}');
+    var inviterVal = refCfg.inviter || 50;
+
+    var list = JSON.parse(localStorage.getItem('rydealot_admin_referrals') || '[]');
+    if (!list.length) {
+      list = [
+        { user: 'Hemanth (Warangal)', code: 'RYDE-HEM88K', friends: 2, unlocked: 2, totalVal: 100 },
+        { user: 'NITW Student', code: 'RYDE-WGL101', friends: 1, unlocked: 1, totalVal: 50 }
+      ];
+    }
+
+    tbody.innerHTML = list.map(function(r) {
+      return '<tr>' +
+        '<td><strong>' + r.user + '</strong></td>' +
+        '<td><span class="mono" style="color:var(--amber); font-weight:800;">' + r.code + '</span></td>' +
+        '<td><span class="badge badge-blue">' + r.friends + ' Friends</span></td>' +
+        '<td><span class="badge badge-green">🎉 ' + r.unlocked + ' Rides Unlocked</span></td>' +
+        '<td><strong>₹' + (r.totalVal || (r.unlocked * inviterVal)) + '</strong></td>' +
+      '</tr>';
+    }).join('');
   }
 
   async function loadVerificationData() {

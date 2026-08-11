@@ -1905,6 +1905,106 @@
     }
   }
 
+  // ===== REFER & EARN ENGINE =====
+  function getUserReferralCode() {
+    var uid = getUserIdentifier();
+    var key = 'rydealot_ref_code_' + uid;
+    var code = localStorage.getItem(key);
+    if (!code) {
+      var hash = Math.random().toString(36).substr(2, 5).toUpperCase();
+      code = 'RYDE-' + hash;
+      localStorage.setItem(key, code);
+    }
+    return code;
+  }
+
+  window.copyUserRefCode = function() {
+    var code = getUserReferralCode();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(code);
+      toast('📋 Referral Code ' + code + ' copied to clipboard!');
+    } else {
+      toast('Your Code: ' + code);
+    }
+  };
+
+  window.shareRefOnWhatsApp = function() {
+    var code = getUserReferralCode();
+    var text = encodeURIComponent('🎉 Join me on Rydealot Bike Taxi & Auto! Use my referral code *' + code + '* to get ₹30 OFF your ride! Download & ride: https://rydealot.vercel.app');
+    window.open('https://api.whatsapp.com/send?text=' + text, '_blank');
+  };
+
+  window.claimFriendRefCode = function() {
+    var input = document.getElementById('input-friend-ref-code');
+    var msg = document.getElementById('ref-status-msg');
+    var code = (input.value || '').trim().toUpperCase();
+    var myCode = getUserReferralCode();
+
+    if (!code) {
+      msg.style.display = 'block';
+      msg.style.color = 'var(--red)';
+      msg.textContent = 'Enter a valid friend referral code';
+      return;
+    }
+
+    if (code === myCode) {
+      msg.style.display = 'block';
+      msg.style.color = 'var(--red)';
+      msg.textContent = '❌ You cannot claim your own referral code!';
+      return;
+    }
+
+    var uid = getUserIdentifier();
+    var claimedKey = 'rydealot_claimed_ref_' + uid;
+    if (localStorage.getItem(claimedKey)) {
+      msg.style.display = 'block';
+      msg.style.color = 'var(--red)';
+      msg.textContent = '❌ You have already claimed a friend referral bonus!';
+      return;
+    }
+
+    var refCfg = JSON.parse(localStorage.getItem('rydealot_referral_config') || '{"inviter":50,"friend":30}');
+    var friendReward = refCfg.friend || 30;
+
+    localStorage.setItem(claimedKey, code);
+    
+    // Grant current user ₹30 Welcome Bonus
+    var unlockedCount = parseInt(localStorage.getItem('rydealot_unlocked_rides_' + uid) || '0') + 1;
+    localStorage.setItem('rydealot_unlocked_rides_' + uid, unlockedCount);
+
+    // Save referral entry to admin referrals table
+    var adminRefs = JSON.parse(localStorage.getItem('rydealot_admin_referrals') || '[]');
+    var existingInviter = adminRefs.find(function(r){ return r.code === code; });
+    if (existingInviter) {
+      existingInviter.friends = (existingInviter.friends || 0) + 1;
+      existingInviter.unlocked = (existingInviter.unlocked || 0) + 1;
+    } else {
+      adminRefs.push({ user: 'User (' + code + ')', code: code, friends: 1, unlocked: 1, totalVal: refCfg.inviter || 50 });
+    }
+    localStorage.setItem('rydealot_admin_referrals', JSON.stringify(adminRefs));
+
+    msg.style.display = 'block';
+    msg.style.color = 'var(--green)';
+    msg.textContent = '🎉 Bonus Claimed! You unlocked ₹' + friendReward + ' OFF your next ride!';
+
+    var promoInput = document.getElementById('input-promo-code');
+    if (promoInput) promoInput.value = 'REFER50';
+    var applyBtn = document.getElementById('btn-apply-promo');
+    if (applyBtn) applyBtn.click();
+
+    updateReferralCardUI();
+  };
+
+  function updateReferralCardUI() {
+    var displayEl = document.getElementById('user-ref-code-display');
+    if (displayEl) displayEl.textContent = getUserReferralCode();
+    
+    var uid = getUserIdentifier();
+    var count = parseInt(localStorage.getItem('rydealot_unlocked_rides_' + uid) || '0');
+    var badge = document.getElementById('user-unlocked-coupons-badge');
+    if (badge) badge.textContent = count > 0 ? ('🎉 ' + count + ' Ride' + (count>1?'s':'') + ' Unlocked!') : '0 Unlocked';
+  }
+
   var btnApplyPromo = document.getElementById('btn-apply-promo');
   if (btnApplyPromo) {
     btnApplyPromo.addEventListener('click', async function(){
@@ -2369,6 +2469,7 @@
         priceEl.classList.toggle('surge', mult > 1);
       }
     });
+    updateReferralCardUI();
 
     var surgeBanner = document.getElementById('surge-banner');
     var surgeText = document.getElementById('surge-text');

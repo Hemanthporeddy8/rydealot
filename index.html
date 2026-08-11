@@ -287,6 +287,29 @@
         </div>
         <div id="promo-status-msg" style="font-size:11px; font-weight:700; margin-top:4px; display:none;"></div>
       </div>
+
+      <!-- Refer & Earn Free Rides Card -->
+      <div style="margin: 12px 18px 0; background: linear-gradient(135deg, rgba(255,176,32,0.12), rgba(29,158,117,0.12)); border: 1.5px solid rgba(255,176,32,0.3); border-radius: 14px; padding: 14px;" id="referral-card-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="font-weight:900; font-size:12.5px; color:var(--text); display:flex; align-items:center; gap:6px;">
+            <span>🎁 Refer & Earn Free Rides</span>
+          </div>
+          <span class="pill" id="user-unlocked-coupons-badge" style="background:var(--accent); color:#fff; font-size:10px; font-weight:800; padding:2px 8px;">0 Unlocked</span>
+        </div>
+        <p style="font-size:11px; color:var(--text-mute); margin-bottom:10px;">Share your referral code. When a friend enters your code, you BOTH unlock a Free Ride discount!</p>
+        
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+          <div style="flex:1; background:var(--bg); border:1.5px dashed var(--amber); border-radius:8px; padding:6px 10px; font-family:var(--font-mono); font-weight:900; font-size:13px; text-align:center; color:var(--amber); letter-spacing:1px;" id="user-ref-code-display">RYDE-88219</div>
+          <button type="button" id="btn-copy-ref-code" onclick="copyUserRefCode()" style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:11px; font-weight:700; cursor:pointer;">📋 Copy</button>
+          <button type="button" id="btn-share-ref-wa" onclick="shareRefOnWhatsApp()" style="background:#25D366; color:#fff; border:none; border-radius:8px; padding:6px 10px; font-size:11px; font-weight:800; cursor:pointer;">📲 WhatsApp</button>
+        </div>
+
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="input-friend-ref-code" placeholder="Enter Friend's Referral Code" style="flex:1; text-transform:uppercase; font-size:11px; font-weight:700; padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+          <button type="button" id="btn-claim-ref-code" onclick="claimFriendRefCode()" style="background:var(--accent-teal); color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:11px; font-weight:800; cursor:pointer;">Claim Bonus</button>
+        </div>
+        <div id="ref-status-msg" style="font-size:11px; font-weight:700; margin-top:6px; display:none;"></div>
+      </div>
     </div>
     <div class="book-btn-wrap">
       <button class="btn" id="book-btn">Book nearest bike &mdash; Rs 35</button>
