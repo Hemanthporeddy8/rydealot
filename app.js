@@ -2031,6 +2031,8 @@
     var count = parseInt(localStorage.getItem('rydealot_unlocked_rides_' + uid) || '0');
     var badge = document.getElementById('user-unlocked-coupons-badge');
     if (badge) badge.textContent = count > 0 ? ('🎉 ' + count + ' Ride' + (count>1?'s':'') + ' Unlocked!') : '0 Unlocked';
+  }
+
   // ===== DRIVER REAL MONEY UPI RECHARGE MODAL =====
   window.openUpiRechargeModal = function() {
     var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"upiId":"rydealot@upi"}');
