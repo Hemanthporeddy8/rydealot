@@ -206,8 +206,6 @@
     <button class="tab" onclick="showPanel('bookings', this)">📋 Bookings</button>
     <button class="tab" onclick="showPanel('stats', this)">📊 Stats</button>
     <button class="tab" onclick="showPanel('fares', this)">💰 Fare Settings</button>
-    <button class="tab" onclick="showPanel('coupons', this)">🎟️ Customer Coupons</button>
-    <button class="tab" onclick="showPanel('subscriptions', this)">⚡ Driver Subscriptions</button>
   </div>
 
 <!-- ===== DRIVERS PANEL ===== -->
@@ -405,91 +403,6 @@
       <button class="btn btn-amber" style="padding:12px 28px; font-size:0.9rem;" onclick="saveFareSettings()">💾 Save & Apply Fare Rules</button>
     </div>
   </div>
-
-  <!-- ===== CUSTOMER COUPONS PANEL ===== -->
-  <div class="panel" id="panel-coupons">
-    <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:24px;">
-      <h3 style="font-size:1.1rem; font-weight:900; margin-bottom:4px; color:var(--amber);">🎟️ Customer Coupon & Promo Manager</h3>
-      <p style="font-size:0.85rem; color:var(--mute); margin-bottom:20px;">Create and publish valid promo codes that work live in the Rydealot app</p>
-
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:20px;">
-        <div>
-          <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">COUPON CODE</label>
-          <input type="text" id="admin-coupon-code" placeholder="e.g. WARANGAL50" class="auth-input" style="text-align:left; letter-spacing:1px; text-transform:uppercase; font-size:0.9rem;">
-        </div>
-        <div>
-          <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">DISCOUNT TYPE</label>
-          <select id="admin-coupon-type" class="auth-input" style="text-align:left; font-size:0.85rem;">
-            <option value="percentage">Percentage Off (%)</option>
-            <option value="flat">Flat Amount Off (₹)</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">VALUE (% OR ₹)</label>
-          <input type="number" id="admin-coupon-val" placeholder="e.g. 50 or 15" class="auth-input" style="text-align:left; font-size:0.9rem;">
-        </div>
-        <div>
-          <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">MAX DISCOUNT CAP (₹)</label>
-          <input type="number" id="admin-coupon-max" placeholder="e.g. 30" class="auth-input" style="text-align:left; font-size:0.9rem;">
-        </div>
-      </div>
-
-      <div style="display:flex; justify-content:flex-end;">
-        <button class="btn btn-amber" style="padding:10px 24px;" onclick="publishAdminCouponMain()">+ Create & Publish Coupon</button>
-      </div>
-    </div>
-
-    <h3 style="font-size:1rem; font-weight:800; margin-bottom:12px; color:var(--text);">Active Published Coupons</h3>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Coupon Code</th>
-            <th>Discount Type</th>
-            <th>Value</th>
-            <th>Max Cap</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="coupons-main-tbody">
-          <tr><td colspan="6" class="loading">Loading coupons...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ===== DRIVER SUBSCRIPTIONS PANEL ===== -->
-  <div class="panel" id="panel-subscriptions">
-    <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:24px;">
-      <h3 style="font-size:1.1rem; font-weight:900; margin-bottom:4px; color:var(--amber);">⚡ Driver Subscription & Pass Pricing Controls</h3>
-      <p style="font-size:0.85rem; color:var(--mute); margin-bottom:20px;">Configure daily and weekly driver subscription pass pricing</p>
-
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px;">
-        <div>
-          <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">DAILY PASS PRICE (₹/DAY)</label>
-          <input type="number" id="sub-daily-price" value="25" class="auth-input" style="text-align:left; font-size:0.9rem;">
-          <span style="font-size:0.75rem; color:var(--mute);">Unlimited trips for 24 hours</span>
-        </div>
-        <div>
-          <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">WEEKLY PASS PRICE (₹/WEEK)</label>
-          <input type="number" id="sub-weekly-price" value="150" class="auth-input" style="text-align:left; font-size:0.9rem;">
-          <span style="font-size:0.75rem; color:var(--amber); font-weight:700;">7 Days Access (1 Day FREE!)</span>
-        </div>
-        <div>
-          <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">LAUNCH PROMO MODE</label>
-          <select id="sub-launch-promo" class="auth-input" style="text-align:left; font-size:0.85rem;">
-            <option value="active">🎉 Active (First 3 Months ₹0 Free)</option>
-            <option value="disabled">🔒 Disabled (Mandatory Paid Pass)</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="display:flex; justify-content:flex-end;">
-        <button class="btn btn-amber" style="padding:10px 24px;" onclick="saveSubscriptionSettings()">💾 Save Subscription Rates</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -546,116 +459,9 @@
       if(name === 'bookings') loadBookings();
       if(name === 'stats') loadStats();
       if(name === 'fares') loadFareSettings();
-      if(name === 'coupons') loadMainCoupons();
-      if(name === 'subscriptions') loadSubscriptionSettings();
     } catch(err) {
       console.log('Panel load note:', err);
     }
-  }
-
-  // ===== MAIN APP COUPON MANAGEMENT =====
-  async function publishAdminCouponMain() {
-    var code = (document.getElementById('admin-coupon-code').value || '').trim().toUpperCase();
-    var type = document.getElementById('admin-coupon-type').value;
-    var val = parseFloat(document.getElementById('admin-coupon-val').value || 0);
-    var maxCap = parseFloat(document.getElementById('admin-coupon-max').value || 0);
-
-    if (!code || val <= 0) {
-      alert('Please enter valid coupon code and discount value');
-      return;
-    }
-
-    var payload = {
-      code: code,
-      type: type,
-      value: val,
-      max_cap: maxCap,
-      status: 'active',
-      created_at: new Date().toISOString()
-    };
-
-    try {
-      await sb('map_coupons', { method: 'POST', body: payload });
-    } catch(e) {}
-    
-    var existing = JSON.parse(localStorage.getItem('rydealot_admin_coupons') || '[]');
-    existing = existing.filter(function(c){ return c.code !== code; });
-    existing.unshift(payload);
-    localStorage.setItem('rydealot_admin_coupons', JSON.stringify(existing));
-    toast('🎟️ Coupon ' + code + ' published & active!');
-
-    document.getElementById('admin-coupon-code').value = '';
-    document.getElementById('admin-coupon-val').value = '';
-    document.getElementById('admin-coupon-max').value = '';
-    loadMainCoupons();
-  }
-
-  async function loadMainCoupons() {
-    var tbody = document.getElementById('coupons-main-tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading coupons...</td></tr>';
-
-    var list = null;
-    try {
-      list = await sb('map_coupons?status=eq.active');
-    } catch(e) {}
-
-    if (!Array.isArray(list) || !list.length) {
-      list = JSON.parse(localStorage.getItem('rydealot_admin_coupons') || '[]');
-    }
-
-    if (!Array.isArray(list) || !list.length) {
-      list = [
-        { code: 'FIRST3', type: 'percentage', value: 50, max_cap: 30, status: 'active' },
-        { code: 'WARANGAL', type: 'flat', value: 10, max_cap: 0, status: 'active' },
-        { code: 'STUDENT', type: 'flat', value: 15, max_cap: 0, status: 'active' }
-      ];
-    }
-
-    tbody.innerHTML = list.map(function(c) {
-      var valText = c.type === 'percentage' ? c.value + '%' : '₹' + c.value;
-      var maxText = c.max_cap ? '₹' + c.max_cap : '-';
-      return '<tr>' +
-        '<td><strong class="mono" style="color:var(--amber);">' + c.code + '</strong></td>' +
-        '<td><span class="badge badge-amber">' + (c.type || 'flat') + '</span></td>' +
-        '<td><strong>' + valText + '</strong></td>' +
-        '<td>' + maxText + '</td>' +
-        '<td><span class="badge badge-green">ACTIVE</span></td>' +
-        '<td><button class="btn btn-red" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteAdminCouponMain(\'' + c.code + '\')">Deactivate</button></td>' +
-      '</tr>';
-    }).join('');
-  }
-
-  async function deleteAdminCouponMain(code) {
-    if (!confirm('Deactivate coupon ' + code + '?')) return;
-    try {
-      await sb('map_coupons?code=eq.' + encodeURIComponent(code), { method: 'PATCH', body: { status: 'inactive' } });
-      toast('Coupon ' + code + ' deactivated');
-    } catch(e) {
-      var list = JSON.parse(localStorage.getItem('rydealot_admin_coupons') || '[]');
-      list = list.filter(function(c){ return c.code !== code; });
-      localStorage.setItem('rydealot_admin_coupons', JSON.stringify(list));
-      toast('Coupon deactivated locally');
-    }
-    loadMainCoupons();
-  }
-
-  // ===== DRIVER SUBSCRIPTION SETTINGS =====
-  function loadSubscriptionSettings() {
-    var subCfg = JSON.parse(localStorage.getItem('rydealot_sub_config') || '{"daily":25,"weekly":150,"promo":"active"}');
-    document.getElementById('sub-daily-price').value = subCfg.daily || 25;
-    document.getElementById('sub-weekly-price').value = subCfg.weekly || 150;
-    document.getElementById('sub-launch-promo').value = subCfg.promo || 'active';
-  }
-
-  function saveSubscriptionSettings() {
-    var subCfg = {
-      daily: parseFloat(document.getElementById('sub-daily-price').value || 25),
-      weekly: parseFloat(document.getElementById('sub-weekly-price').value || 150),
-      promo: document.getElementById('sub-launch-promo').value
-    };
-    localStorage.setItem('rydealot_sub_config', JSON.stringify(subCfg));
-    toast('⚡ Driver subscription rates saved live!');
   }
 
   function toggleSurgeModeInputs() {
