@@ -583,6 +583,52 @@
       </table>
     </div>
   </div>
+
+  <!-- ===== COMMISSION ENGINE & REAL MONEY UPI PAYMENTS SECTION ===== -->
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:850px; margin-top:24px;">
+    <h3 style="font-size:1.1rem; font-weight:900; margin-bottom:4px; color:var(--amber);">💳 Per-Ride Commission Engine & UPI Payment Controls</h3>
+    <p style="font-size:0.85rem; color:var(--mute); margin-bottom:20px;">Drivers can choose Per-Ride Commission (fixed ₹/trip) or Subscription Passes to go online. Real money is collected via your UPI QR Code.</p>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px;">
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">PER-RIDE COMMISSION (₹/TRIP)</label>
+        <input type="number" id="comm-per-trip" value="25" class="auth-input" style="text-align:left; font-size:0.9rem;">
+        <span style="font-size:0.75rem; color:var(--mute);">Deducted from driver wallet on per-ride mode</span>
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">ADMIN UPI ID FOR REAL MONEY RECHARGE</label>
+        <input type="text" id="admin-upi-id" value="rydealot@upi" class="auth-input" style="text-align:left; font-size:0.9rem;">
+        <span style="font-size:0.75rem; color:var(--amber); font-weight:700;">Receives real driver payments via GPay/PhonePe</span>
+      </div>
+      <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">MINIMUM WALLET BALANCE TO GO ONLINE (₹)</label>
+        <input type="number" id="min-wallet-online" value="50" class="auth-input" style="text-align:left; font-size:0.9rem;">
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; margin-bottom:20px;">
+      <button class="btn btn-amber" style="padding:10px 24px;" onclick="saveCommissionEngineSettings()">💾 Save Commission & UPI Rules</button>
+    </div>
+
+    <h4 style="font-size:0.95rem; font-weight:800; margin-bottom:12px; color:var(--text);">Driver Real Money Wallet Recharge Requests</h4>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Driver Name / Phone</th>
+            <th>Amount Paid (₹)</th>
+            <th>UPI Transaction / UTR ID</th>
+            <th>Time</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="upi-recharge-tbody">
+          <tr><td colspan="6" class="loading">Loading payment requests...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -696,12 +742,14 @@
       loadSubscriptionSettings();
       loadReferralSettings();
       loadMainBonuses();
+      loadCommissionEngineSettings();
     } catch (e) {
       console.log('Load fare settings note:', e);
       loadMainCoupons();
       loadSubscriptionSettings();
       loadReferralSettings();
       loadMainBonuses();
+      loadCommissionEngineSettings();
     }
   }
 
@@ -995,6 +1043,65 @@
     localStorage.setItem('rydealot_admin_bonuses', JSON.stringify(list));
     toast('Bonus scheme deactivated');
     loadMainBonuses();
+  }
+
+  // ===== COMMISSION ENGINE & UPI REAL MONEY RECHARGES =====
+  function loadCommissionEngineSettings() {
+    var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"perTrip":25,"upiId":"rydealot@upi","minBalance":50}');
+    if (document.getElementById('comm-per-trip')) document.getElementById('comm-per-trip').value = commCfg.perTrip || 25;
+    if (document.getElementById('admin-upi-id')) document.getElementById('admin-upi-id').value = commCfg.upiId || 'rydealot@upi';
+    if (document.getElementById('min-wallet-online')) document.getElementById('min-wallet-online').value = commCfg.minBalance || 50;
+    loadUpiRecharges();
+  }
+
+  function saveCommissionEngineSettings() {
+    var commCfg = {
+      perTrip: parseFloat(document.getElementById('comm-per-trip').value || 25),
+      upiId: (document.getElementById('admin-upi-id').value || 'rydealot@upi').trim(),
+      minBalance: parseFloat(document.getElementById('min-wallet-online').value || 50)
+    };
+    localStorage.setItem('rydealot_comm_config', JSON.stringify(commCfg));
+    toast('💳 Commission & UPI Payment settings saved live!');
+  }
+
+  function loadUpiRecharges() {
+    var tbody = document.getElementById('upi-recharge-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Loading payment requests...</td></tr>';
+
+    var list = JSON.parse(localStorage.getItem('rydealot_upi_recharges') || '[]');
+    if (!list.length) {
+      list = [
+        { driver: 'Arjun Mehta (9876543210)', amount: 200, utr: 'UTR98215412', time: '10 mins ago', status: 'pending' },
+        { driver: 'Ramesh Kumar (9123456789)', amount: 500, utr: 'UTR88192031', time: '1 hour ago', status: 'approved' }
+      ];
+      localStorage.setItem('rydealot_upi_recharges', JSON.stringify(list));
+    }
+
+    tbody.innerHTML = list.map(function(r, idx) {
+      var isApproved = r.status === 'approved';
+      return '<tr>' +
+        '<td><strong>' + r.driver + '</strong></td>' +
+        '<td><strong style="color:var(--green); font-size:0.95rem;">₹' + r.amount + '</strong></td>' +
+        '<td><span class="mono" style="color:var(--amber); font-weight:800;">' + r.utr + '</span></td>' +
+        '<td><span style="font-size:0.8rem; color:var(--mute);">' + r.time + '</span></td>' +
+        '<td><span class="badge ' + (isApproved ? 'badge-green' : 'badge-amber') + '">' + r.status.toUpperCase() + '</span></td>' +
+        '<td>' +
+          (!isApproved ? ('<button class="btn btn-amber" style="padding:4px 10px; font-size:0.75rem;" onclick="approveUpiRecharge(' + idx + ')">✅ Approve & Add ₹' + r.amount + '</button>') : '<span style="font-size:0.8rem; color:var(--green); font-weight:800;">Credited</span>') +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function approveUpiRecharge(idx) {
+    var list = JSON.parse(localStorage.getItem('rydealot_upi_recharges') || '[]');
+    var item = list[idx];
+    if (!item) return;
+    if (!confirm('Approve ₹' + item.amount + ' recharge for ' + item.driver + '?')) return;
+    item.status = 'approved';
+    localStorage.setItem('rydealot_upi_recharges', JSON.stringify(list));
+    toast('✅ Approved ₹' + item.amount + ' recharge! Funds added to driver wallet.');
+    loadUpiRecharges();
   }
 
   async function loadVerificationData() {

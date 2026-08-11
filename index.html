@@ -582,29 +582,41 @@
       </div>
     </div>
 
-    <!-- Driver Subscription Passes Card -->
+    <!-- Recharge Balance Button -->
+    <button type="button" id="btn-open-upi-recharge" onclick="openUpiRechargeModal()" style="width:100%; background:linear-gradient(135deg, var(--green), #14805e); color:#fff; border:none; border-radius:12px; padding:12px; font-weight:900; font-size:13px; cursor:pointer; margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(29,158,117,0.25);">
+      💳 Recharge Wallet via UPI QR Code
+    </button>
+
+    <!-- Active Plan & Pass Countdown Timer Banner -->
+    <div id="rd-active-pass-timer-card" style="display:none; background:rgba(29,158,117,0.12); border:1.5px solid #1d9e75; border-radius:12px; padding:10px 14px; margin-bottom:14px; align-items:center; justify-content:space-between;">
+      <div>
+        <span style="font-size:10px; font-weight:800; color:var(--text-mute); text-transform:uppercase;">Current Active Online Plan</span>
+        <div id="rd-active-plan-title" style="font-size:13px; font-weight:900; color:var(--green);">🗓️ Daily Pass (0% Commission)</div>
+      </div>
+      <div style="text-align:right;">
+        <span style="font-size:10px; font-weight:800; color:var(--amber); text-transform:uppercase;">Time Remaining</span>
+        <div id="rd-active-pass-countdown" style="font-size:14px; font-weight:900; color:var(--text); font-family:var(--font-mono);">23h 59m 50s</div>
+      </div>
+    </div>
+
+    <!-- Driver Subscription Passes & Commission Models Card -->
     <div style="background:linear-gradient(135deg, rgba(29,158,117,0.1), rgba(255,176,32,0.1)); border:1.5px solid var(--signal); border-radius:14px; padding:14px; margin-top:6px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <span style="font-size:13px; font-weight:900; color:var(--text);">⚡ Active Driver Subscription Passes</span>
-        <span style="font-size:10px; font-weight:800; background:var(--signal); color:#fff; padding:2px 8px; border-radius:99px;">0% COMMISSION</span>
+        <span style="font-size:13px; font-weight:900; color:var(--text);">⚡ Choose Online Plan & Pass</span>
+        <span style="font-size:10px; font-weight:800; background:var(--signal); color:#fff; padding:2px 8px; border-radius:99px;">2 OPTIONS AVAILABLE</span>
       </div>
 
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <!-- 3 Month Promo Banner -->
-        <div style="background:#1d9e75; color:#fff; padding:8px 12px; border-radius:10px; font-size:11px; font-weight:800; text-align:center;">
-          🎉 LAUNCH PROMO: First 3 Months ₹0 FREE Subscription Active!
-        </div>
-
-        <!-- Daily Pass -->
+        <!-- Option 1: Daily Pass -->
         <div style="display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:10px 12px; border-radius:10px; border:1px solid var(--border);">
           <div>
             <div style="font-size:12px; font-weight:800; color:var(--text);">🗓️ Daily Pass — ₹25 / day</div>
-            <div style="font-size:10px; color:var(--text-mute);">Unlimited trips for 24 Hours</div>
+            <div style="font-size:10px; color:var(--text-mute);">Unlimited 0% Commission trips for 24 Hours</div>
           </div>
           <button type="button" class="btn-sub-pass" data-pass="daily" style="background:var(--accent); color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:11px; font-weight:800; cursor:pointer;">Activate ₹25</button>
         </div>
 
-        <!-- Weekly Pass (1 Day FREE!) -->
+        <!-- Option 2: Weekly Pass -->
         <div style="display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:10px 12px; border-radius:10px; border:1.5px solid var(--amber);">
           <div>
             <div style="font-size:12px; font-weight:800; color:var(--text);">🌟 Weekly Pass — ₹150 / week</div>
@@ -612,10 +624,48 @@
           </div>
           <button type="button" class="btn-sub-pass" data-pass="weekly" style="background:var(--amber); color:#000; border:none; border-radius:8px; padding:6px 12px; font-size:11px; font-weight:800; cursor:pointer;">Activate ₹150</button>
         </div>
+
+        <!-- Option 3: Per-Ride Commission Model -->
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:10px 12px; border-radius:10px; border:1px solid var(--border);">
+          <div>
+            <div style="font-size:12px; font-weight:800; color:var(--text);">🚗 Per-Ride Commission — ₹25 / trip</div>
+            <div style="font-size:10px; color:var(--text-mute);">Pay fixed commission per trip from wallet</div>
+          </div>
+          <button type="button" class="btn-sub-pass" data-pass="commission" style="background:var(--accent-teal); color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:11px; font-weight:800; cursor:pointer;">Select ₹25/trip</button>
+        </div>
       </div>
     </div>
 
     <!-- Transaction History List -->
+    </div>
+  </div>
+
+  <!-- REAL MONEY DRIVER UPI WALLET RECHARGE MODAL -->
+  <div id="rd-upi-recharge-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:20px; color:#fff;">
+    <div style="background:#1e2229; border-radius:20px; padding:24px; max-width:360px; width:100%; display:flex; flex-direction:column; align-items:center; border:1px solid #333;">
+      <h3 style="font-size:16px; font-weight:900; margin:0 0 4px; color:var(--signal);">💳 Recharge Driver Wallet (Real Money)</h3>
+      <p style="font-size:11.5px; color:#aaa; margin:0 0 16px; text-align:center;">Scan UPI QR Code using PhonePe, Google Pay, or Paytm to pay real money into your Driver Wallet</p>
+
+      <div style="background:#fff; border-radius:12px; padding:12px; margin-bottom:12px; display:flex; flex-direction:column; align-items:center;">
+        <img id="rd-upi-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=rydealot@upi%26pn=Rydealot%26cu=INR" alt="UPI QR Code" style="width:160px; height:160px; border-radius:8px;">
+        <span style="font-size:12px; font-weight:800; color:#000; margin-top:6px; font-family:var(--font-mono);" id="rd-display-upi-id">UPI ID: rydealot@upi</span>
+      </div>
+
+      <div style="width:100%; margin-bottom:12px;">
+        <label style="font-size:11px; color:#aaa; display:block; margin-bottom:4px;">RECHARGE AMOUNT (₹)</label>
+        <input type="number" id="input-upi-amount" value="100" placeholder="e.g. 100 or 500" style="width:100%; padding:10px; border-radius:8px; border:1px solid #444; background:#111; color:#fff; font-size:14px; font-weight:800;">
+      </div>
+
+      <div style="width:100%; margin-bottom:16px;">
+        <label style="font-size:11px; color:#aaa; display:block; margin-bottom:4px;">UPI TRANSACTION / UTR ID (From PhonePe/GPay)</label>
+        <input type="text" id="input-upi-utr" placeholder="e.g. UTR 4892150912" style="width:100%; padding:10px; border-radius:8px; border:1px solid #444; background:#111; color:#fff; font-size:13px; font-weight:800; text-transform:uppercase;">
+      </div>
+
+      <div style="display:flex; gap:10px; width:100%;">
+        <button type="button" onclick="closeUpiRechargeModal()" style="flex:1; background:transparent; border:1px solid #555; color:#fff; border-radius:10px; padding:10px; font-size:12px; font-weight:700; cursor:pointer;">Cancel</button>
+        <button type="button" onclick="submitUpiRechargeRequest()" style="flex:1.5; background:var(--green); color:#fff; border:none; border-radius:10px; padding:10px; font-size:12px; font-weight:800; cursor:pointer;">Submit Recharge</button>
+      </div>
+      <div id="upi-submit-msg" style="font-size:11px; font-weight:700; margin-top:8px; display:none;"></div>
     </div>
   </div>
 

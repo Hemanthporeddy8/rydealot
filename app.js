@@ -403,9 +403,25 @@
   Array.prototype.forEach.call(document.querySelectorAll('.btn-sub-pass'), function(btn){
     btn.addEventListener('click', function(){
       var passType = btn.getAttribute('data-pass');
-      var passName = passType === 'weekly' ? 'Weekly Pass (₹150 - 1 Day FREE!)' : 'Daily Pass (₹25/day)';
-      if (confirm('Activate ' + passName + '? During the 3-month launch promo, subscriptions are 100% FREE!')) {
-        toast('✅ ' + passName + ' Activated Successfully! Unlimited Rides Active!');
+      var passName = passType === 'weekly' ? 'Weekly Pass (₹150/week)' : (passType === 'daily' ? 'Daily Pass (₹25/day)' : 'Per-Ride Commission (₹25/trip)');
+      
+      if (passType === 'commission') {
+        if (confirm('Select Per-Ride Commission Model (₹25 per trip deducted from wallet)?')) {
+          localStorage.setItem('rydealot_driver_active_plan', 'commission');
+          localStorage.removeItem('rydealot_driver_pass_expiry');
+          toast('✅ Selected Per-Ride Commission Mode! Fixed ₹25 per trip.');
+          updateDriverPassTimerUI();
+        }
+        return;
+      }
+
+      if (confirm('Activate ' + passName + ' for unlimited zero-commission rides?')) {
+        var durationMs = passType === 'weekly' ? (7 * 24 * 3600 * 1000) : (24 * 3600 * 1000);
+        var expiryTime = Date.now() + durationMs;
+        localStorage.setItem('rydealot_driver_active_plan', passType);
+        localStorage.setItem('rydealot_driver_pass_expiry', expiryTime);
+        toast('✅ ' + passName + ' Activated Successfully!');
+        updateDriverPassTimerUI();
       }
     });
   });
@@ -1114,6 +1130,17 @@
       if(action === 'complete' || action === 'decline'){
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available' } });
         setPill('available');
+      }
+      if(action === 'complete'){
+        var activePlan = localStorage.getItem('rydealot_driver_active_plan');
+        if (activePlan === 'commission') {
+          var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"perTrip":25}');
+          var commFee = commCfg.perTrip || 25;
+          var curBal = parseFloat(localStorage.getItem('rydealot_driver_wallet_balance') || '0');
+          var newBal = curBal - commFee;
+          localStorage.setItem('rydealot_driver_wallet_balance', newBal);
+          toast('💸 Per-Trip Commission ₹' + commFee + ' deducted from wallet.');
+        }
       }
       toast('Updated');
       fetchBookings();
@@ -2004,7 +2031,112 @@
     var count = parseInt(localStorage.getItem('rydealot_unlocked_rides_' + uid) || '0');
     var badge = document.getElementById('user-unlocked-coupons-badge');
     if (badge) badge.textContent = count > 0 ? ('🎉 ' + count + ' Ride' + (count>1?'s':'') + ' Unlocked!') : '0 Unlocked';
+  // ===== DRIVER REAL MONEY UPI RECHARGE MODAL =====
+  window.openUpiRechargeModal = function() {
+    var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"upiId":"rydealot@upi"}');
+    var upiId = commCfg.upiId || 'rydealot@upi';
+    var upiQrImg = document.getElementById('rd-upi-qr-img');
+    if (upiQrImg) upiQrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent('upi://pay?pa=' + upiId + '&pn=Rydealot&cu=INR');
+    var displayUpiId = document.getElementById('rd-display-upi-id');
+    if (displayUpiId) displayUpiId.textContent = 'UPI ID: ' + upiId;
+
+    var modal = document.getElementById('rd-upi-recharge-modal');
+    if (modal) modal.style.display = 'flex';
+  };
+
+  window.closeUpiRechargeModal = function() {
+    var modal = document.getElementById('rd-upi-recharge-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.submitUpiRechargeRequest = function() {
+    var amount = parseFloat(document.getElementById('input-upi-amount').value || 0);
+    var utr = (document.getElementById('input-upi-utr').value || '').trim().toUpperCase();
+    var msg = document.getElementById('upi-submit-msg');
+
+    if (amount <= 0 || !utr) {
+      msg.style.display = 'block';
+      msg.style.color = 'var(--red)';
+      msg.textContent = 'Please enter valid recharge amount and UTR Transaction ID';
+      return;
+    }
+
+    var uid = getUserIdentifier();
+    var driverName = (document.getElementById('rd-rider-name') ? document.getElementById('rd-rider-name').value : '') || 'Driver (' + uid + ')';
+
+    var payload = {
+      driver: driverName,
+      amount: amount,
+      utr: utr,
+      time: 'Just now',
+      status: 'pending',
+      timestamp: Date.now()
+    };
+
+    var list = JSON.parse(localStorage.getItem('rydealot_upi_recharges') || '[]');
+    list.unshift(payload);
+    localStorage.setItem('rydealot_upi_recharges', JSON.stringify(list));
+
+    msg.style.display = 'block';
+    msg.style.color = 'var(--green)';
+    msg.textContent = '✅ Payment submitted! Admin will verify UTR and credit ₹' + amount + ' to your wallet.';
+
+    setTimeout(function() {
+      closeUpiRechargeModal();
+      document.getElementById('input-upi-utr').value = '';
+      if (msg) msg.style.display = 'none';
+    }, 2000);
+  };
+
+  // ===== SUBSCRIPTION PASS EXPIRY TIMER ENGINE =====
+  function updateDriverPassTimerUI() {
+    var timerCard = document.getElementById('rd-active-pass-timer-card');
+    var titleEl = document.getElementById('rd-active-plan-title');
+    var countdownEl = document.getElementById('rd-active-pass-countdown');
+    if (!timerCard) return;
+
+    var plan = localStorage.getItem('rydealot_driver_active_plan');
+    var expiryStr = localStorage.getItem('rydealot_driver_pass_expiry');
+    var expiryTime = expiryStr ? parseInt(expiryStr) : 0;
+
+    if (plan === 'commission') {
+      timerCard.style.display = 'flex';
+      titleEl.textContent = '🚗 Per-Ride Commission Mode';
+      countdownEl.textContent = 'Fixed ₹25 / Trip';
+      return;
+    }
+
+    if (!plan || !expiryTime) {
+      timerCard.style.display = 'none';
+      return;
+    }
+
+    var now = Date.now();
+    var diffMs = expiryTime - now;
+
+    if (diffMs <= 0) {
+      // EXPIRED: Auto-stop subscription pass
+      localStorage.removeItem('rydealot_driver_active_plan');
+      localStorage.removeItem('rydealot_driver_pass_expiry');
+      timerCard.style.display = 'flex';
+      titleEl.textContent = '⚠️ Subscription Pass Expired';
+      countdownEl.textContent = 'Select Plan to Go Online';
+      toast('⚠️ Driver Subscription Pass expired! Please activate a new pass to go online.');
+      return;
+    }
+
+    var totalSec = Math.floor(diffMs / 1000);
+    var hrs = Math.floor(totalSec / 3600);
+    var mins = Math.floor((totalSec % 3600) / 60);
+    var secs = totalSec % 60;
+
+    var passTitle = plan === 'weekly' ? '🌟 Weekly Pass (0% Commission)' : '🗓️ Daily Pass (0% Commission)';
+    timerCard.style.display = 'flex';
+    titleEl.textContent = passTitle;
+    countdownEl.textContent = (hrs > 0 ? hrs + 'h ' : '') + mins + 'm ' + secs + 's';
   }
+
+  setInterval(updateDriverPassTimerUI, 1000);
 
   function updateDriverIncentivesUI() {
     var container = document.getElementById('rd-bonus-schemes-list');
