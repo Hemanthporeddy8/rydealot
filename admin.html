@@ -591,6 +591,11 @@
 
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px;">
       <div>
+        <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">RAZORPAY API KEY ID (LIVE / TEST)</label>
+        <input type="text" id="admin-rzp-key" value="rzp_test_TP8cQcN108C2KZ" class="auth-input" style="text-align:left; font-size:0.85rem; font-family:var(--mono);">
+        <span style="font-size:0.75rem; color:var(--green); font-weight:700;">Instant 2-Sec Auto-Recharge PG Key</span>
+      </div>
+      <div>
         <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px;">PER-RIDE COMMISSION (₹/TRIP)</label>
         <input type="number" id="comm-per-trip" value="25" class="auth-input" style="text-align:left; font-size:0.9rem;">
         <span style="font-size:0.75rem; color:var(--mute);">Deducted from driver wallet on per-ride mode</span>
@@ -1047,7 +1052,8 @@
 
   // ===== COMMISSION ENGINE & UPI REAL MONEY RECHARGES =====
   function loadCommissionEngineSettings() {
-    var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"perTrip":25,"upiId":"rydealot@upi","minBalance":50}');
+    var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"perTrip":25,"upiId":"rydealot@upi","minBalance":50,"rzpKey":"rzp_test_TP8cQcN108C2KZ"}');
+    if (document.getElementById('admin-rzp-key')) document.getElementById('admin-rzp-key').value = commCfg.rzpKey || 'rzp_test_TP8cQcN108C2KZ';
     if (document.getElementById('comm-per-trip')) document.getElementById('comm-per-trip').value = commCfg.perTrip || 25;
     if (document.getElementById('admin-upi-id')) document.getElementById('admin-upi-id').value = commCfg.upiId || 'rydealot@upi';
     if (document.getElementById('min-wallet-online')) document.getElementById('min-wallet-online').value = commCfg.minBalance || 50;
@@ -1056,12 +1062,13 @@
 
   function saveCommissionEngineSettings() {
     var commCfg = {
+      rzpKey: (document.getElementById('admin-rzp-key').value || 'rzp_test_TP8cQcN108C2KZ').trim(),
       perTrip: parseFloat(document.getElementById('comm-per-trip').value || 25),
       upiId: (document.getElementById('admin-upi-id').value || 'rydealot@upi').trim(),
       minBalance: parseFloat(document.getElementById('min-wallet-online').value || 50)
     };
     localStorage.setItem('rydealot_comm_config', JSON.stringify(commCfg));
-    toast('💳 Commission & UPI Payment settings saved live!');
+    toast('💳 Commission & Razorpay Key settings saved live!');
   }
 
   function loadUpiRecharges() {

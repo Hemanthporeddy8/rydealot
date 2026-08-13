@@ -2033,6 +2033,74 @@
     if (badge) badge.textContent = count > 0 ? ('🎉 ' + count + ' Ride' + (count>1?'s':'') + ' Unlocked!') : '0 Unlocked';
   }
 
+  // ===== INSTANT AUTOMATIC RAZORPAY PAYMENT GATEWAY =====
+  window.promptRazorpayRecharge = function() {
+    var valStr = prompt('Enter recharge amount in ₹ (e.g. 50, 100, 250, 500):', '100');
+    if (!valStr) return;
+    var amt = parseFloat(valStr);
+    if (isNaN(amt) || amt <= 0) {
+      alert('Please enter a valid recharge amount');
+      return;
+    }
+    startRazorpayRecharge(amt);
+  };
+
+  function startRazorpayRecharge(amount) {
+    var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{}');
+    var rzpKey = commCfg.rzpKey || 'rzp_test_TP8cQcN108C2KZ';
+    
+    if (typeof Razorpay === 'undefined') {
+      alert('Razorpay Payment Gateway loading... Please check internet connection and try again.');
+      return;
+    }
+
+    var uid = getUserIdentifier();
+    var driverName = (document.getElementById('rd-rider-name') ? document.getElementById('rd-rider-name').value : '') || 'Driver (' + uid + ')';
+    var driverPhone = (document.getElementById('rd-rider-phone') ? document.getElementById('rd-rider-phone').value : '') || '';
+
+    var options = {
+      "key": rzpKey,
+      "amount": Math.round(amount * 100),
+      "currency": "INR",
+      "name": "Rydealot Driver Wallet",
+      "description": "Instant Driver Wallet Top-Up (₹" + amount + ")",
+      "handler": function (response){
+        var curBal = parseFloat(localStorage.getItem('rydealot_driver_wallet_balance') || '0');
+        var newBal = curBal + amount;
+        localStorage.setItem('rydealot_driver_wallet_balance', newBal);
+        
+        var adminRecharges = JSON.parse(localStorage.getItem('rydealot_upi_recharges') || '[]');
+        adminRecharges.unshift({
+          driver: driverName + (driverPhone ? ' (' + driverPhone + ')' : ''),
+          amount: amount,
+          utr: response.razorpay_payment_id || ('RZP_' + Math.random().toString(36).substr(2,7).toUpperCase()),
+          time: 'Just now (Instant Razorpay PG)',
+          status: 'approved'
+        });
+        localStorage.setItem('rydealot_upi_recharges', JSON.stringify(adminRecharges));
+
+        var balDisplay = document.getElementById('rd-wallet-balance-display');
+        if (balDisplay) balDisplay.textContent = '₹' + newBal;
+
+        toast('🎉 Instant Auto-Recharge Successful! ₹' + amount + ' credited to your wallet!');
+      },
+      "prefill": {
+        "name": driverName,
+        "contact": driverPhone
+      },
+      "theme": {
+        "color": "#1d9e75"
+      }
+    };
+
+    try {
+      var rzp = new Razorpay(options);
+      rzp.open();
+    } catch(err) {
+      alert('Could not launch Razorpay checkout: ' + err.message);
+    }
+  }
+
   // ===== DRIVER REAL MONEY UPI RECHARGE MODAL =====
   window.openUpiRechargeModal = function() {
     var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"upiId":"rydealot@upi"}');
