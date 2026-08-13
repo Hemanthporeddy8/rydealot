@@ -403,26 +403,43 @@
   Array.prototype.forEach.call(document.querySelectorAll('.btn-sub-pass'), function(btn){
     btn.addEventListener('click', function(){
       var passType = btn.getAttribute('data-pass');
-      var passName = passType === 'weekly' ? 'Weekly Pass (₹150/week)' : (passType === 'daily' ? 'Daily Pass (₹25/day)' : 'Per-Ride Commission (₹25/trip)');
+      var subCfg = JSON.parse(localStorage.getItem('rydealot_sub_config') || '{"daily":25,"weekly":150,"promo":"active"}');
+      var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"perTrip":25,"minBalance":50}');
       
-      if (passType === 'commission') {
-        if (confirm('Select Per-Ride Commission Model (₹25 per trip deducted from wallet)?')) {
-          localStorage.setItem('rydealot_driver_active_plan', 'commission');
-          localStorage.removeItem('rydealot_driver_pass_expiry');
-          toast('✅ Selected Per-Ride Commission Mode! Fixed ₹25 per trip.');
-          updateDriverPassTimerUI();
-        }
+      var isPromoActive = subCfg.promo === 'active';
+      var curBal = parseFloat(localStorage.getItem('rydealot_driver_wallet_balance') || '0');
+      var price = passType === 'weekly' ? (subCfg.weekly||150) : (passType === 'daily' ? (subCfg.daily||25) : (commCfg.perTrip||25));
+      var passName = passType === 'weekly' ? ('Weekly Pass (₹' + price + '/week)') : (passType === 'daily' ? ('Daily Pass (₹' + price + '/day)') : ('Per-Ride Commission (₹' + price + '/trip)'));
+      
+      // Insufficient Wallet Balance Check!
+      if (!isPromoActive && curBal < price) {
+        window.openInsufficientBalModal(curBal, price, passName);
         return;
       }
 
-      if (confirm('Activate ' + passName + ' for unlimited zero-commission rides?')) {
-        var durationMs = passType === 'weekly' ? (7 * 24 * 3600 * 1000) : (24 * 3600 * 1000);
-        var expiryTime = Date.now() + durationMs;
-        localStorage.setItem('rydealot_driver_active_plan', passType);
-        localStorage.setItem('rydealot_driver_pass_expiry', expiryTime);
-        toast('✅ ' + passName + ' Activated Successfully!');
+      if (passType === 'commission') {
+        localStorage.setItem('rydealot_driver_active_plan', 'commission');
+        localStorage.removeItem('rydealot_driver_pass_expiry');
+        toast('✅ Selected Per-Ride Commission Mode! Fixed ₹' + price + ' per trip.');
         updateDriverPassTimerUI();
+        return;
       }
+
+      var durationMs = passType === 'weekly' ? (7 * 24 * 3600 * 1000) : (24 * 3600 * 1000);
+      var expiryTime = Date.now() + durationMs;
+      
+      // Deduct pass fee from wallet balance if not promo
+      if (!isPromoActive) {
+        var newBal = curBal - price;
+        localStorage.setItem('rydealot_driver_wallet_balance', newBal);
+        var balDisplay = document.getElementById('rd-wallet-balance-display');
+        if (balDisplay) balDisplay.textContent = '₹' + newBal;
+      }
+
+      localStorage.setItem('rydealot_driver_active_plan', passType);
+      localStorage.setItem('rydealot_driver_pass_expiry', expiryTime);
+      toast('✅ ' + passName + ' Activated Successfully!');
+      updateDriverPassTimerUI();
     });
   });
 
@@ -2033,15 +2050,42 @@
     if (badge) badge.textContent = count > 0 ? ('🎉 ' + count + ' Ride' + (count>1?'s':'') + ' Unlocked!') : '0 Unlocked';
   }
 
-  // ===== INSTANT AUTOMATIC RAZORPAY PAYMENT GATEWAY =====
+  // ===== INSIDE-WEBSITE MODAL HANDLERS =====
+  window.openInsufficientBalModal = function(curBal, reqPrice, passName) {
+    var modal = document.getElementById('rd-insufficient-bal-modal');
+    var desc = document.getElementById('insufficient-bal-desc');
+    if (desc) desc.textContent = 'Your current wallet balance is ₹' + curBal + '. You need ₹' + reqPrice + ' to activate ' + passName + '.';
+    if (modal) modal.style.display = 'flex';
+  };
+
+  window.closeInsufficientBalModal = function() {
+    var modal = document.getElementById('rd-insufficient-bal-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
   window.promptRazorpayRecharge = function() {
-    var valStr = prompt('Enter recharge amount in ₹ (e.g. 50, 100, 250, 500):', '100');
-    if (!valStr) return;
-    var amt = parseFloat(valStr);
+    var modal = document.getElementById('rd-rzp-amount-modal');
+    if (modal) modal.style.display = 'flex';
+  };
+
+  window.closeRzpAmountModal = function() {
+    var modal = document.getElementById('rd-rzp-amount-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.selectRzpChipAmount = function(amt) {
+    var inp = document.getElementById('input-rzp-custom-amount');
+    if (inp) inp.value = amt;
+  };
+
+  window.proceedRzpPayment = function() {
+    var inp = document.getElementById('input-rzp-custom-amount');
+    var amt = parseFloat(inp ? inp.value : 100);
     if (isNaN(amt) || amt <= 0) {
       alert('Please enter a valid recharge amount');
       return;
     }
+    closeRzpAmountModal();
     startRazorpayRecharge(amt);
   };
 
