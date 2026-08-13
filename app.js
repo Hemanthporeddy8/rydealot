@@ -2108,6 +2108,21 @@
       "currency": "INR",
       "name": "Rydealot Driver Wallet",
       "description": "Instant Driver Wallet Top-Up (₹" + amount + ")",
+      "config": {
+        "display": {
+          "blocks": {
+            "utib": {
+              "name": "Pay via UPI (GPay, PhonePe, Paytm, QR)",
+              "instruments": [
+                {
+                  "method": "upi"
+                }
+              ]
+            }
+          },
+          "sequence": ["block.utib"]
+        }
+      },
       "handler": function (response){
         var curBal = parseFloat(localStorage.getItem('rydealot_driver_wallet_balance') || '0');
         var newBal = curBal + amount;
@@ -2130,7 +2145,8 @@
       },
       "prefill": {
         "name": driverName,
-        "contact": driverPhone
+        "contact": driverPhone,
+        "method": "upi"
       },
       "theme": {
         "color": "#1d9e75"
