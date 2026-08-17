@@ -397,7 +397,7 @@
         <div class="form-group" style="margin-bottom:0;">
           <label class="form-label">Pickup City</label>
           <select id="search-from-city" class="form-select" onchange="loadParkingLotTrips()">
-            <option value="">All Origin Cities</option>
+            <option value="">Select Pickup City</option>
             <option value="Warangal">Warangal</option>
             <option value="Hyderabad">Hyderabad</option>
             <option value="Karimnagar">Karimnagar</option>
@@ -416,7 +416,7 @@
         <div class="form-group" style="margin-bottom:0;">
           <label class="form-label">Destination City</label>
           <select id="search-to-city" class="form-select" onchange="loadParkingLotTrips()">
-            <option value="">All Destinations</option>
+            <option value="">Select Destination City</option>
             <option value="Warangal">Warangal</option>
             <option value="Hyderabad">Hyderabad</option>
             <option value="Karimnagar">Karimnagar</option>
@@ -799,11 +799,19 @@
     var badge = document.getElementById('trips-count-badge');
     var counter = document.getElementById('lot-vehicle-count');
 
-    badge.textContent = 'Updating...';
+    // If route is not yet selected, show waiting state
+    if (!from || !to) {
+      activeTripsInLot = [];
+      renderVisualSVGSlots([]);
+      renderSenderTripCards([], 'Please select both Pickup City and Destination City above to view available trucks in the parking lot.');
+      badge.textContent = 'Select Route';
+      counter.textContent = 'Select route';
+      return;
+    }
 
-    var query = 'cargo_trips?status=eq.open&order=created_at.desc';
-    if (from) query += '&from_city=ilike.*' + encodeURIComponent(from) + '*';
-    if (to) query += '&to_city=ilike.*' + encodeURIComponent(to) + '*';
+    badge.textContent = 'Searching trucks...';
+
+    var query = 'cargo_trips?status=eq.open&from_city=ilike.*' + encodeURIComponent(from) + '*&to_city=ilike.*' + encodeURIComponent(to) + '*&order=created_at.desc';
 
     sbRequest('GET', query)
       .then(function(res) {
@@ -857,10 +865,20 @@
     }
   }
 
-  function renderSenderTripCards(trips) {
+  function renderSenderTripCards(trips, noticeMsg) {
     var container = document.getElementById('sender-trips-list');
     var badge = document.getElementById('trips-count-badge');
     var count = trips.length;
+
+    if (noticeMsg) {
+      container.innerHTML = '<div style="text-align:center; padding:36px 20px; color:var(--text-muted); font-size:12.5px; background:var(--card-bg); border-radius:16px; border:1.5px solid var(--card-border);">' +
+        '<div style="font-size:32px; margin-bottom:10px;">🗺️</div>' +
+        '<strong style="color:#fff; font-size:14px; display:block; margin-bottom:4px;">Select Your Route</strong>' +
+        noticeMsg +
+      '</div>';
+      return;
+    }
+
     badge.textContent = count + ' Available';
 
     if (!count) {
