@@ -679,21 +679,29 @@
     if (from) query += '&from_city=ilike.*' + encodeURIComponent(from) + '*';
     if (to) query += '&to_city=ilike.*' + encodeURIComponent(to) + '*';
 
-    // 1. Fetch from Supabase
+    // 1. Fetch from Supabase (graceful 404 handling)
     sbRequest('GET', query)
       .then(function(res) {
         var trips = Array.isArray(res) ? res : [];
         
-        // 2. Merge with LocalStorage cache so posted trips appear 100% instantly
+        // 2. Merge with LocalStorage cache
         var localTrips = JSON.parse(localStorage.getItem('rydealot_cargo_trips') || '[]');
-        var mergedMap = {};
         
+        // If completely empty, add sample demo trucks so lot is never blank on first load
+        if (!trips.length && !localTrips.length) {
+          localTrips = [
+            { id: 'sample_1', driver_name: 'Ramesh Goud', driver_phone: '9848012345', vehicle_type: 'Tata Ace', vehicle_number: 'TS03 AB 4590', from_city: 'Hyderabad', to_city: 'Warangal', departure_time: new Date(Date.now() + 14400000).toISOString(), total_capacity_kg: 1000, available_capacity_kg: 850, price_per_kg: 2400, status: 'open', notes: 'Leaving from Bowenpally Market Yard, covered body' },
+            { id: 'sample_2', driver_name: 'Srinivas Rao', driver_phone: '9989054321', vehicle_type: 'Bolero Pickup', vehicle_number: 'TS04 CD 7812', from_city: 'Warangal', to_city: 'Hyderabad', departure_time: new Date(Date.now() + 21600000).toISOString(), total_capacity_kg: 1500, available_capacity_kg: 1200, price_per_kg: 2800, status: 'open', notes: 'Empty return trip from Hanamkonda to Uppal' }
+          ];
+          localStorage.setItem('rydealot_cargo_trips', JSON.stringify(localTrips));
+        }
+
+        var mergedMap = {};
         trips.forEach(function(t) { if (t && t.id) mergedMap[t.id] = t; });
         localTrips.forEach(function(t) {
           if (t && t.id && !mergedMap[t.id]) {
-            // Apply search filters to local trips if searched
-            var matchFrom = !from || (t.from_city && t.from_city.toLowerCase().indexOf(from.toLowerCase()) !== -1);
-            var matchTo = !to || (t.to_city && t.to_city.toLowerCase().indexOf(to.toLowerCase()) !== -1);
+            var matchFrom = !from || (t.from_city && t.from_city.toLowerCase() === from.toLowerCase());
+            var matchTo = !to || (t.to_city && t.to_city.toLowerCase() === to.toLowerCase());
             if (matchFrom && matchTo && t.status === 'open') {
               mergedMap[t.id] = t;
             }
@@ -701,7 +709,13 @@
         });
 
         var finalTrips = Object.values(mergedMap);
-        renderSenderParkingLot(finalTrips);
+        
+        // If route filter produced 0 results, show all available trucks with a note
+        if (finalTrips.length === 0 && (from || to) && localTrips.length > 0) {
+          renderSenderParkingLot(localTrips, 'No exact trucks for ' + (from || 'Any') + ' ➔ ' + (to || 'Any') + '. Showing all active freight bays below:');
+        } else {
+          renderSenderParkingLot(finalTrips);
+        }
       })
       .finally(function() {
         if (btn) {
@@ -711,7 +725,7 @@
       });
   }
 
-  function renderSenderParkingLot(trips) {
+  function renderSenderParkingLot(trips, noticeMsg) {
     var container = document.getElementById('sender-trips-list');
     var badge = document.getElementById('trips-count-badge');
     var sub = document.getElementById('parking-lot-sub');
@@ -724,12 +738,15 @@
       container.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:16px; border:1px solid var(--card-border);">' +
         '<div style="font-size:32px; margin-bottom:10px;">🅿️</div>' +
         '<strong style="color:#fff; font-size:14px; display:block; margin-bottom:4px;">No Trucks in this Freight Bay</strong>' +
-        'No empty return trucks posted for this route yet.<br>Switch to "Post Trip" to post a truck or check back soon!' +
+        'No empty return trucks found. Select "All Pickup Cities" or switch to "Post Trip" to post a truck!' +
       '</div>';
       return;
     }
 
     var html = '';
+    if (noticeMsg) {
+      html += '<div style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); color:#fbbf24; font-size:11.5px; font-weight:700; padding:10px 14px; border-radius:10px; margin-bottom:14px;">⚠️ ' + noticeMsg + '</div>';
+    }
     for (var i = 0; i < trips.length; i++) {
       var t = trips[i];
       var depDate = new Date(t.departure_time);
