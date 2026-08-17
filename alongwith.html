@@ -975,6 +975,12 @@
     btn.textContent = '⏳ Parking Truck in Bay...';
     btn.disabled = true;
 
+    var formattedNotes = notes;
+    if (exp) {
+      var expD = new Date(exp);
+      formattedNotes = (notes ? notes + ' • ' : '') + 'Valid until: ' + expD.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+    }
+
     var tripPayload = {
       driver_name: name,
       driver_phone: phone,
@@ -983,18 +989,18 @@
       from_city: from,
       to_city: to,
       departure_time: new Date(dep).toISOString(),
-      expires_at: exp ? new Date(exp).toISOString() : new Date(Date.now() + 24 * 3600000).toISOString(),
       total_capacity_kg: capacity,
       available_capacity_kg: capacity,
       price_per_kg: price,
       status: 'open',
-      notes: notes
+      notes: formattedNotes
     };
 
     sbRequest('POST', 'cargo_trips', tripPayload)
-      .then(function() {
+      .then(function(res) {
         showToast('🎉 Trip posted! Truck parked in the live lot.');
         loadMyDriverTrips();
+        loadParkingLotTrips();
       })
       .catch(function(err) {
         showToast('❌ Error posting trip');
