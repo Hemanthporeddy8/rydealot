@@ -326,11 +326,57 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Pickup Location / City</label>
-          <input type="text" id="search-from-city" list="city-suggestions" class="form-input" placeholder="Origin city/town" oninput="searchAvailableTrips()">
+          <select id="search-from-city" class="form-select" onchange="searchAvailableTrips()">
+            <option value="">All Pickup Cities</option>
+            <option value="Warangal">Warangal</option>
+            <option value="Hyderabad">Hyderabad</option>
+            <option value="Karimnagar">Karimnagar</option>
+            <option value="Khammam">Khammam</option>
+            <option value="Nizamabad">Nizamabad</option>
+            <option value="Suryapet">Suryapet</option>
+            <option value="Mahbubnagar">Mahbubnagar</option>
+            <option value="Nalgonda">Nalgonda</option>
+            <option value="Adilabad">Adilabad</option>
+            <option value="Mancherial">Mancherial</option>
+            <option value="Ramagundam">Ramagundam</option>
+            <option value="Siddipet">Siddipet</option>
+            <option value="Vijayawada">Vijayawada</option>
+            <option value="Visakhapatnam">Visakhapatnam</option>
+            <option value="Guntur">Guntur</option>
+            <option value="Tirupati">Tirupati</option>
+            <option value="Bengaluru">Bengaluru</option>
+            <option value="Chennai">Chennai</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Pune">Pune</option>
+            <option value="Nagpur">Nagpur</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">Destination Location / City</label>
-          <input type="text" id="search-to-city" list="city-suggestions" class="form-input" placeholder="Destination city/town" oninput="searchAvailableTrips()">
+          <select id="search-to-city" class="form-select" onchange="searchAvailableTrips()">
+            <option value="">All Destination Cities</option>
+            <option value="Warangal">Warangal</option>
+            <option value="Hyderabad">Hyderabad</option>
+            <option value="Karimnagar">Karimnagar</option>
+            <option value="Khammam">Khammam</option>
+            <option value="Nizamabad">Nizamabad</option>
+            <option value="Suryapet">Suryapet</option>
+            <option value="Mahbubnagar">Mahbubnagar</option>
+            <option value="Nalgonda">Nalgonda</option>
+            <option value="Adilabad">Adilabad</option>
+            <option value="Mancherial">Mancherial</option>
+            <option value="Ramagundam">Ramagundam</option>
+            <option value="Siddipet">Siddipet</option>
+            <option value="Vijayawada">Vijayawada</option>
+            <option value="Visakhapatnam">Visakhapatnam</option>
+            <option value="Guntur">Guntur</option>
+            <option value="Tirupati">Tirupati</option>
+            <option value="Bengaluru">Bengaluru</option>
+            <option value="Chennai">Chennai</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Pune">Pune</option>
+            <option value="Nagpur">Nagpur</option>
+          </select>
         </div>
       </div>
       <button class="btn-action" id="btn-search-trucks" onclick="searchAvailableTrips()">🔍 Find Available Trucks & Bays</button>
@@ -360,11 +406,55 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">From City / Town</label>
-          <input type="text" id="drv-from" list="city-suggestions" class="form-input" placeholder="Origin (e.g. Warangal)">
+          <select id="drv-from" class="form-select">
+            <option value="Warangal">Warangal</option>
+            <option value="Hyderabad" selected>Hyderabad</option>
+            <option value="Karimnagar">Karimnagar</option>
+            <option value="Khammam">Khammam</option>
+            <option value="Nizamabad">Nizamabad</option>
+            <option value="Suryapet">Suryapet</option>
+            <option value="Mahbubnagar">Mahbubnagar</option>
+            <option value="Nalgonda">Nalgonda</option>
+            <option value="Adilabad">Adilabad</option>
+            <option value="Mancherial">Mancherial</option>
+            <option value="Ramagundam">Ramagundam</option>
+            <option value="Siddipet">Siddipet</option>
+            <option value="Vijayawada">Vijayawada</option>
+            <option value="Visakhapatnam">Visakhapatnam</option>
+            <option value="Guntur">Guntur</option>
+            <option value="Tirupati">Tirupati</option>
+            <option value="Bengaluru">Bengaluru</option>
+            <option value="Chennai">Chennai</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Pune">Pune</option>
+            <option value="Nagpur">Nagpur</option>
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">To City / Town</label>
-          <input type="text" id="drv-to" list="city-suggestions" class="form-input" placeholder="Destination (e.g. Hyderabad)">
+          <select id="drv-to" class="form-select">
+            <option value="Warangal" selected>Warangal</option>
+            <option value="Hyderabad">Hyderabad</option>
+            <option value="Karimnagar">Karimnagar</option>
+            <option value="Khammam">Khammam</option>
+            <option value="Nizamabad">Nizamabad</option>
+            <option value="Suryapet">Suryapet</option>
+            <option value="Mahbubnagar">Mahbubnagar</option>
+            <option value="Nalgonda">Nalgonda</option>
+            <option value="Adilabad">Adilabad</option>
+            <option value="Mancherial">Mancherial</option>
+            <option value="Ramagundam">Ramagundam</option>
+            <option value="Siddipet">Siddipet</option>
+            <option value="Vijayawada">Vijayawada</option>
+            <option value="Visakhapatnam">Visakhapatnam</option>
+            <option value="Guntur">Guntur</option>
+            <option value="Tirupati">Tirupati</option>
+            <option value="Bengaluru">Bengaluru</option>
+            <option value="Chennai">Chennai</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Pune">Pune</option>
+            <option value="Nagpur">Nagpur</option>
+          </select>
         </div>
       </div>
 
