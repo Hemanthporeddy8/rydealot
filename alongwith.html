@@ -441,6 +441,15 @@
       <span id="trips-count-badge" style="font-size: 11px; color: #4ade80; font-weight: 700;">Loading...</span>
     </div>
     <div id="sender-trips-list"></div>
+
+    <!-- Customer Active Cargo Bookings / Tracking Section -->
+    <div style="margin-top: 28px; border-top: 1.5px solid var(--card-border); padding-top: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.5px;">📦 My Cargo Bookings & Live Status</h3>
+        <button onclick="loadMySenderBookings()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer;">↻ Refresh</button>
+      </div>
+      <div id="sender-bookings-list"></div>
+    </div>
   </div>
 
   <!-- ==================== DRIVER VIEW (Truck Drivers Posting Trips) ==================== -->
@@ -1355,11 +1364,115 @@
         viewTripBookings(tripId, route);
         loadMyDriverTrips();
         loadParkingLotTrips();
+        loadMySenderBookings();
       });
+  }
+
+  // ── SENDER: LOAD MY CARGO BOOKINGS & LIVE TRACKING ──
+  function loadMySenderBookings() {
+    var phone = '';
+    try {
+      phone = localStorage.getItem('rydealot_sender_phone') || '';
+    } catch(e) {}
+
+    var container = document.getElementById('sender-bookings-list');
+    if (!container) return;
+
+    if (!phone) {
+      container.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-faint); font-size:12px; background:var(--card-bg); border-radius:12px; border:1px solid var(--card-border);">' +
+        'No active shipments yet. Book a truck above to track live driver acceptance status!' +
+      '</div>';
+      return;
+    }
+
+    sbRequest('GET', 'cargo_bookings?sender_phone=eq.' + encodeURIComponent(phone) + '&order=created_at.desc&limit=5')
+      .then(function(bookings) {
+        var bList = Array.isArray(bookings) ? bookings : [];
+        if (!bList.length) {
+          container.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-faint); font-size:12px; background:var(--card-bg); border-radius:12px; border:1px solid var(--card-border);">' +
+            'No active shipments found for phone ' + phone + '.' +
+          '</div>';
+          return;
+        }
+
+        // Fetch trips for these bookings to show driver details
+        sbRequest('GET', 'cargo_trips?order=created_at.desc')
+          .then(function(allTrips) {
+            var tripsList = Array.isArray(allTrips) ? allTrips : [];
+            bList.forEach(function(b) {
+              b.trip = tripsList.find(function(t) { return t.id === b.trip_id; }) || {};
+            });
+            renderSenderBookings(bList);
+          })
+          .catch(function() {
+            renderSenderBookings(bList);
+          });
+      });
+  }
+
+  function renderSenderBookings(bookings) {
+    var container = document.getElementById('sender-bookings-list');
+    if (!container) return;
+
+    var html = '';
+    for (var i = 0; i < bookings.length; i++) {
+      var b = bookings[i];
+      var t = b.trip || {};
+      var statusBadge = '';
+      var statusAlert = '';
+
+      if (b.status === 'accepted') {
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#4ade80; background:rgba(34,197,94,0.2); padding:3px 10px; border-radius:12px; border:1px solid #22c55e;">✅ ACCEPTED BY DRIVER</span>';
+        statusAlert = '<div style="background:rgba(34,197,94,0.15); border:1px solid #22c55e; border-radius:10px; padding:10px 12px; margin:10px 0; color:#4ade80; font-size:12px;">' +
+          '<div style="font-weight:900; font-size:13px; margin-bottom:4px;">🎉 Driver Accepted Your Cargo!</div>' +
+          'Driver: <strong style="color:#fff;">' + (t.driver_name || 'Driver') + '</strong> (' + (t.vehicle_type || 'Truck') + ' • <strong style="color:#38bdf8;">' + (t.vehicle_number || '') + '</strong>)<br>' +
+          '<div style="margin-top:8px; display:flex; gap:8px;">' +
+            (t.driver_phone ? '<a href="tel:' + t.driver_phone + '" style="background:#1e293b; color:#38bdf8; padding:5px 12px; border-radius:6px; font-size:11.5px; text-decoration:none; font-weight:700; border:1px solid #334155;">📞 Call Driver</a>' : '') +
+            (t.driver_phone ? '<a href="https://wa.me/91' + (t.driver_phone || '').replace(/\D/g,'') + '" target="_blank" style="background:#064e3b; color:#4ade80; padding:5px 12px; border-radius:6px; font-size:11.5px; text-decoration:none; font-weight:700; border:1px solid #047857;">💬 WhatsApp</a>' : '') +
+          '</div>' +
+        '</div>';
+      } else if (b.status === 'pending') {
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#facc15; background:rgba(250,204,21,0.2); padding:3px 10px; border-radius:12px; border:1px solid #eab308;">⏳ WAITING FOR DRIVER</span>';
+        statusAlert = '<div style="background:rgba(234,179,8,0.12); border:1px solid #ca8a04; border-radius:8px; padding:8px 10px; margin:8px 0; color:#fde047; font-size:11.5px;">' +
+          '🚚 Sent to Driver ' + (t.driver_name ? '(' + t.driver_name + ' • ' + (t.vehicle_number || '') + ')' : '') + '. Live driver acceptance will update here automatically!' +
+        '</div>';
+      } else if (b.status === 'delivered') {
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#38bdf8; background:rgba(56,189,248,0.2); padding:3px 10px; border-radius:12px; border:1px solid #0284c7;">🎉 DELIVERED</span>';
+      } else {
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#f87171; background:rgba(239,68,68,0.2); padding:3px 10px; border-radius:12px; border:1px solid #dc2626;">❌ DECLINED (TRUCK FULL)</span>';
+        statusAlert = '<div style="background:rgba(239,68,68,0.1); border:1px solid #b91c1c; border-radius:8px; padding:8px 10px; margin:8px 0; color:#fca5a5; font-size:11.5px;">' +
+          'This truck was full. Please choose another available truck from the parking lot above!' +
+        '</div>';
+      }
+
+      var routeStr = (t.from_city && t.to_city) ? (t.from_city + ' ➔ ' + t.to_city) : 'Cargo Shipment';
+
+      html += '<div class="bay-card" style="margin-bottom:10px; ' + (b.status === 'accepted' ? 'border:1.5px solid #22c55e;' : '') + '">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
+          '<span style="font-size:14px; font-weight:900; color:#fff;">' + routeStr + '</span>' +
+          statusBadge +
+        '</div>' +
+        '<div style="font-size:12px; color:var(--text-muted);">' +
+          '📦 <strong>' + b.cargo_weight_kg + ' KG</strong> • Total Freight: <strong style="color:#4ade80;">₹' + b.total_price + '</strong>' +
+        '</div>' +
+        (b.cargo_description ? '<div style="font-size:11.5px; color:var(--text-faint); margin:4px 0;">📋 ' + b.cargo_description + '</div>' : '') +
+        '<div style="font-size:11px; color:var(--text-faint);">📍 Pickup: ' + b.pickup_address + '</div>' +
+        '<div style="font-size:11px; color:var(--text-faint);">📍 Drop: ' + b.drop_address + '</div>' +
+        statusAlert +
+      '</div>';
+    }
+    container.innerHTML = html;
   }
 
   // Initialize after all definitions are ready
   initDates();
+  loadMySenderBookings();
+  
+  // Real-time live polling every 5 seconds so updates appear automatically!
+  setInterval(function() {
+    loadMySenderBookings();
+    loadMyDriverTrips();
+  }, 5000);
 </script>
 
 </body>
