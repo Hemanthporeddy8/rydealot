@@ -1286,19 +1286,30 @@
         var html = '';
         for (var i = 0; i < bookings.length; i++) {
           var b = bookings[i];
-          html += '<div style="background:#0b0f19; border:1px solid var(--card-border); border-radius:12px; padding:12px;">' +
+          var statusColor = b.status === 'accepted' ? '#22c55e' : b.status === 'pending' ? '#eab308' : b.status === 'delivered' ? '#3b82f6' : '#ef4444';
+          var cleanPhone = (b.sender_phone || '').replace(/\D/g, '');
+
+          html += '<div style="background:#0b0f19; border:1px solid var(--card-border); border-radius:12px; padding:12px; margin-bottom:8px;">' +
             '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
-              '<span style="font-size:13px; font-weight:800; color:#fff;">' + b.sender_name + '</span>' +
-              '<span class="badge badge-open">' + b.status.toUpperCase() + '</span>' +
+              '<span style="font-size:14px; font-weight:800; color:#fff;">' + b.sender_name + '</span>' +
+              '<span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:rgba(' + (b.status === 'accepted' ? '34,197,94,0.2' : b.status === 'pending' ? '234,179,8,0.2' : '239,68,68,0.2') + '); color:' + statusColor + ';">' + b.status.toUpperCase() + '</span>' +
             '</div>' +
-            '<div style="font-size:11.5px; color:var(--text-muted); margin-bottom:4px;">📞 <a href="tel:' + b.sender_phone + '" style="color:#60a5fa; text-decoration:none;">' + b.sender_phone + '</a> • 📦 ' + b.cargo_weight_kg + ' KG</div>' +
+            '<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">' +
+              '<span>📦 ' + b.cargo_weight_kg + ' KG • You Earn: <strong style="color:#4ade80;">₹' + b.driver_earning + '</strong></span>' +
+              '<div style="display:flex; gap:6px;">' +
+                '<a href="tel:' + cleanPhone + '" style="background:#1e293b; color:#38bdf8; padding:3px 8px; border-radius:6px; font-size:11px; text-decoration:none; font-weight:700; border:1px solid #334155;">📞 Call</a>' +
+                '<a href="https://wa.me/91' + cleanPhone + '" target="_blank" style="background:#064e3b; color:#4ade80; padding:3px 8px; border-radius:6px; font-size:11px; text-decoration:none; font-weight:700; border:1px solid #047857;">💬 WA</a>' +
+              '</div>' +
+            '</div>' +
             (b.cargo_description ? '<div style="font-size:11px; color:var(--text-faint); margin-bottom:4px;">📋 ' + b.cargo_description + '</div>' : '') +
             '<div style="font-size:11px; color:var(--text-faint);">📍 Pickup: ' + b.pickup_address + '</div>' +
-            '<div style="font-size:11px; color:var(--text-faint); margin-bottom:8px;">📍 Drop: ' + b.drop_address + '</div>' +
-            '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #1c2438; padding-top:8px;">' +
-              '<span style="font-size:13px; font-weight:900; color:#4ade80;">You Earn: ₹' + b.driver_earning + '</span>' +
-              (b.status === 'pending' ? '<button class="btn-action" style="width:auto; padding:5px 12px; font-size:11px; background:#16a34a;" onclick="updateBookingStatus(\'' + b.id + '\', \'accepted\', \'' + tripId + '\', \'' + route + '\')">Accept</button>' : '') +
-              (b.status === 'accepted' ? '<button class="btn-action" style="width:auto; padding:5px 12px; font-size:11px; background:#7c3aed;" onclick="updateBookingStatus(\'' + b.id + '\', \'delivered\', \'' + tripId + '\', \'' + route + '\')">Delivered</button>' : '') +
+            '<div style="font-size:11px; color:var(--text-faint); margin-bottom:10px;">📍 Drop: ' + b.drop_address + '</div>' +
+            '<div style="display:flex; justify-content:flex-end; gap:8px; border-top:1px solid #1c2438; padding-top:8px;">' +
+              (b.status === 'pending' ? 
+                '<button class="btn-action" style="width:auto; padding:6px 14px; font-size:11.5px; background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5;" onclick="updateBookingStatus(\'' + b.id + '\', \'rejected\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">❌ Decline</button>' +
+                '<button class="btn-action" style="width:auto; padding:6px 16px; font-size:11.5px; background:#16a34a; font-weight:800;" onclick="updateBookingStatus(\'' + b.id + '\', \'accepted\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">✅ Accept Order</button>'
+                : '') +
+              (b.status === 'accepted' ? '<button class="btn-action" style="width:auto; padding:6px 14px; font-size:11.5px; background:#7c3aed;" onclick="updateBookingStatus(\'' + b.id + '\', \'delivered\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">📦 Mark Delivered</button>' : '') +
             '</div>' +
           '</div>';
         }
@@ -1306,11 +1317,44 @@
       });
   }
 
-  function updateBookingStatus(bookingId, status, tripId, route) {
+  function updateBookingStatus(bookingId, status, tripId, route, cargoWeight) {
+    var weight = parseInt(cargoWeight) || 0;
+
     sbRequest('PATCH', 'cargo_bookings?id=eq.' + bookingId, { status: status })
       .then(function() {
-        showToast('✅ Booking marked as ' + status.toUpperCase());
+        if (status === 'accepted') {
+          showToast('✅ Order Accepted! Customer notified.');
+
+          // If a Full Truck Load (or >= 1000kg) was accepted, auto-decline other pending orders for this trip
+          if (weight >= 1000) {
+            sbRequest('GET', 'cargo_bookings?trip_id=eq.' + tripId + '&status=eq.pending')
+              .then(function(otherPending) {
+                if (Array.isArray(otherPending)) {
+                  otherPending.forEach(function(item) {
+                    if (item.id !== bookingId) {
+                      sbRequest('PATCH', 'cargo_bookings?id=eq.' + item.id, { status: 'declined_full' });
+                    }
+                  });
+                }
+              });
+          }
+        } else if (status === 'rejected') {
+          showToast('❌ Order Declined. Space released.');
+          // Restore available capacity
+          sbRequest('GET', 'cargo_trips?id=eq.' + tripId)
+            .then(function(res) {
+              if (Array.isArray(res) && res[0]) {
+                var restored = Math.min(res[0].total_capacity_kg, (res[0].available_capacity_kg || 0) + weight);
+                sbRequest('PATCH', 'cargo_trips?id=eq.' + tripId, { available_capacity_kg: restored });
+              }
+            });
+        } else if (status === 'delivered') {
+          showToast('🎉 Order Marked as Delivered!');
+        }
+
         viewTripBookings(tripId, route);
+        loadMyDriverTrips();
+        loadParkingLotTrips();
       });
   }
 
