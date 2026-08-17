@@ -643,6 +643,20 @@
   var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
 
+  // 8 Slot Coordinates for the Visual Parking Lot SVG (Two facing rows across center lane)
+  var PARKING_SLOTS = [
+    { id: 'bay_0', x: 55,  y: 52,  row: 'top',    labelX: 20, labelY: 20 },
+    { id: 'bay_1', x: 145, y: 52,  row: 'top',    labelX: 110, labelY: 20 },
+    { id: 'bay_2', x: 235, y: 52,  row: 'top',    labelX: 200, labelY: 20 },
+    { id: 'bay_3', x: 325, y: 52,  row: 'top',    labelX: 290, labelY: 20 },
+    { id: 'bay_4', x: 55,  y: 168, row: 'bottom', labelX: 20, labelY: 208 },
+    { id: 'bay_5', x: 145, y: 168, row: 'bottom', labelX: 110, labelY: 208 },
+    { id: 'bay_6', x: 235, y: 168, row: 'bottom', labelX: 200, labelY: 208 },
+    { id: 'bay_7', x: 325, y: 168, row: 'bottom', labelX: 290, labelY: 208 }
+  ];
+
+  var truckPalettes = ['#1d9e75', '#2563eb', '#d97706', '#dc2626', '#7c3aed', '#0891b2'];
+
   function sbRequest(method, path, body) {
     var headers = {
       'apikey': SUPABASE_ANON_KEY,
@@ -686,8 +700,7 @@
     document.getElementById(id).style.display = 'none';
   }
 
-  // Set default departure and expiration dates (Default: Departure in 4h, Expires in 12h)
-  (function initDates() {
+  function initDates() {
     var now = new Date();
     var dep = new Date(now.getTime() + 4 * 3600000);
     var exp = new Date(now.getTime() + 12 * 3600000);
@@ -704,25 +717,9 @@
       if (saved.vNum) document.getElementById('drv-vehicle-num').value = saved.vNum;
     } catch(e) {}
 
-    // Clear any previous mock data so only REAL trips show
     localStorage.removeItem('rydealot_cargo_trips');
-
     loadParkingLotTrips();
-  })();
-
-  // 8 Slot Coordinates for the Visual Parking Lot SVG (Two facing rows across center lane)
-  var PARKING_SLOTS = [
-    { id: 'bay_0', x: 55,  y: 52,  row: 'top',    labelX: 20, labelY: 20 },
-    { id: 'bay_1', x: 145, y: 52,  row: 'top',    labelX: 110, labelY: 20 },
-    { id: 'bay_2', x: 235, y: 52,  row: 'top',    labelX: 200, labelY: 20 },
-    { id: 'bay_3', x: 325, y: 52,  row: 'top',    labelX: 290, labelY: 20 },
-    { id: 'bay_4', x: 55,  y: 168, row: 'bottom', labelX: 20, labelY: 208 },
-    { id: 'bay_5', x: 145, y: 168, row: 'bottom', labelX: 110, labelY: 208 },
-    { id: 'bay_6', x: 235, y: 168, row: 'bottom', labelX: 200, labelY: 208 },
-    { id: 'bay_7', x: 325, y: 168, row: 'bottom', labelX: 290, labelY: 208 }
-  ];
-
-  var truckPalettes = ['#1d9e75', '#2563eb', '#d97706', '#dc2626', '#7c3aed', '#0891b2'];
+  }
 
   // Detailed Realistic SVG Vector Generators for Trucks (Like main app)
   function renderTruckVector(type, palColor) {
@@ -1175,6 +1172,9 @@
         viewTripBookings(tripId, route);
       });
   }
+
+  // Initialize after all definitions are ready
+  initDates();
 </script>
 
 </body>
