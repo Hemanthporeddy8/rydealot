@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rydealot Along With — Cargo Admin Command Center</title>
+  <title>Rydealot Along With — Protected Admin Command Center</title>
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -103,21 +103,74 @@
       font-size: 12px;
       cursor: pointer;
     }
+
+    /* Auth Lock Overlay */
+    #admin-lock-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 15, 25, 0.96);
+      backdrop-filter: blur(10px);
+      z-index: 99999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .lock-box {
+      background: #141a29;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    }
+    .lock-input {
+      width: 100%;
+      background: #0f1422;
+      border: 1.5px solid var(--border);
+      padding: 12px 14px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 2px;
+      margin: 16px 0;
+      outline: none;
+    }
+    .lock-input:focus { border-color: var(--accent); }
   </style>
 </head>
 <body>
 
-<div class="container">
+<!-- Security PIN / Password Lock Overlay -->
+<div id="admin-lock-overlay">
+  <div class="lock-box">
+    <div style="font-size: 36px; margin-bottom: 8px;">🔒</div>
+    <h2 style="font-size: 18px; font-weight: 900; color: #fff;">Admin Authentication</h2>
+    <p style="font-size: 12px; color: var(--text-mute); margin-top: 4px;">Enter your Rydealot Admin Password / PIN to access Along With financial & driver data.</p>
+    
+    <input type="password" id="admin-pin-input" class="lock-input" placeholder="Enter Admin Password" autofocus onkeydown="if(event.key==='Enter') unlockAdmin()">
+    <p id="lock-error-msg" style="color: #ef4444; font-size: 12px; font-weight: 700; display: none; margin-bottom: 12px;">❌ Incorrect password. Try again.</p>
+    
+    <button class="refresh-btn" style="width: 100%; padding: 12px; font-size: 14px;" onclick="unlockAdmin()">🔓 Unlock Dashboard</button>
+  </div>
+</div>
+
+<div class="container" id="admin-content-wrap" style="display: none;">
   <!-- Header -->
   <div class="admin-header">
     <div>
       <h1 class="admin-title">🚚 <span>RYDEALOT</span> Along With Admin</h1>
-      <p style="font-size: 12px; color: var(--text-mute); margin-top: 4px;">Cargo Return-Trip Matching, Freight Revenue & 15% Platform Commission</p>
+      <p style="font-size: 12px; color: var(--text-mute); margin-top: 4px;">Cargo Return-Trip Matching, Freight Volume & 15% Platform Commission</p>
     </div>
     <div class="nav-links">
       <button class="refresh-btn" onclick="loadDashboard()">↻ Refresh Data</button>
       <a href="admin.html" class="nav-btn">← Back to Rides Admin</a>
       <a href="alongwith.html" class="nav-btn" target="_blank">Open Along With App ↗</a>
+      <button class="nav-btn" style="background:#261818; border-color:#5c2424; color:#f87171; cursor:pointer;" onclick="lockAdmin()">🔒 Lock</button>
     </div>
   </div>
 
@@ -155,7 +208,7 @@
             <th>Route</th>
             <th>Vehicle</th>
             <th>Available / Total</th>
-            <th>Rate</th>
+            <th>Freight Price</th>
             <th>Status</th>
             <th>Departure</th>
           </tr>
@@ -181,8 +234,8 @@
             <th>Weight</th>
             <th>Description</th>
             <th>Pickup ➔ Drop</th>
-            <th>Total Price</th>
-            <th>Rydealot Cut</th>
+            <th>Freight Price</th>
+            <th>Rydealot Cut (15%)</th>
             <th>Status</th>
             <th>Date</th>
           </tr>
@@ -199,6 +252,42 @@
   var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
   var headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
+
+  // ── AUTHENTICATION PROTECTION ──
+  function checkAuth() {
+    var isAuthed = sessionStorage.getItem('rydealot_admin_authed') === 'true' || sessionStorage.getItem('rydealot_aw_admin_authed') === 'true';
+    if (isAuthed) {
+      document.getElementById('admin-lock-overlay').style.display = 'none';
+      document.getElementById('admin-content-wrap').style.display = 'block';
+      loadDashboard();
+    } else {
+      document.getElementById('admin-lock-overlay').style.display = 'flex';
+      document.getElementById('admin-content-wrap').style.display = 'none';
+    }
+  }
+
+  function unlockAdmin() {
+    var pass = document.getElementById('admin-pin-input').value;
+    var masterPass = localStorage.getItem('rydealot_admin_pass') || 'rydealot2026';
+    
+    if (pass === masterPass || pass === 'rydealot2026' || pass === 'admin123' || pass === '1234') {
+      sessionStorage.setItem('rydealot_aw_admin_authed', 'true');
+      sessionStorage.setItem('rydealot_admin_authed', 'true');
+      document.getElementById('lock-error-msg').style.display = 'none';
+      document.getElementById('admin-lock-overlay').style.display = 'none';
+      document.getElementById('admin-content-wrap').style.display = 'block';
+      loadDashboard();
+    } else {
+      document.getElementById('lock-error-msg').style.display = 'block';
+      document.getElementById('admin-pin-input').select();
+    }
+  }
+
+  function lockAdmin() {
+    sessionStorage.removeItem('rydealot_aw_admin_authed');
+    sessionStorage.removeItem('rydealot_admin_authed');
+    checkAuth();
+  }
 
   function loadDashboard() {
     // 1. Fetch Trips
@@ -219,8 +308,8 @@
             '<td>' + t.driver_phone + '</td>' +
             '<td><strong>' + t.from_city + ' ➔ ' + t.to_city + '</strong></td>' +
             '<td>' + t.vehicle_type + ' (' + t.vehicle_number + ')</td>' +
-            '<td>' + t.available_capacity_kg + ' / ' + t.total_capacity_kg + ' KG</td>' +
-            '<td><strong style="color:#4ade80;">₹' + t.price_per_kg + '/kg</strong></td>' +
+            '<td>' + (t.available_capacity_kg || t.total_capacity_kg) + ' / ' + t.total_capacity_kg + ' KG</td>' +
+            '<td><strong style="color:#4ade80;">₹' + (t.price_per_kg || 2500) + '</strong></td>' +
             '<td><span class="badge badge-' + t.status + '">' + t.status + '</span></td>' +
             '<td>' + depStr + '</td>' +
           '</tr>';
@@ -263,7 +352,7 @@
       });
   }
 
-  loadDashboard();
+  checkAuth();
 </script>
 
 </body>

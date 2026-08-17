@@ -231,6 +231,28 @@
 </head>
 <body>
 
+<!-- Universal Datalist for Indian Cities / Towns -->
+<datalist id="city-suggestions">
+  <option value="Warangal">
+  <option value="Hyderabad">
+  <option value="Karimnagar">
+  <option value="Khammam">
+  <option value="Nizamabad">
+  <option value="Suryapet">
+  <option value="Mahbubnagar">
+  <option value="Nalgonda">
+  <option value="Adilabad">
+  <option value="Vijayawada">
+  <option value="Visakhapatnam">
+  <option value="Guntur">
+  <option value="Tirupati">
+  <option value="Bengaluru">
+  <option value="Chennai">
+  <option value="Mumbai">
+  <option value="Pune">
+  <option value="Nagpur">
+</datalist>
+
 <div class="app-frame">
   <!-- Top Navigation Header -->
   <div class="header">
@@ -251,33 +273,19 @@
     <!-- Hero Box -->
     <div style="background: linear-gradient(135deg, #1e2330, #141721); border: 1.5px solid var(--card-border); border-radius: 16px; padding: 16px; margin-bottom: 16px;">
       <h2 style="font-size: 15px; font-weight: 900; color: #fff; margin-bottom: 4px;">Send Goods on Empty Return Trucks</h2>
-      <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">Save 50% on freight costs by utilizing unused return capacity on Warangal ↔ Hyderabad routes.</p>
+      <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">Save up to 50% on freight charges by booking empty space on trucks returning on your route.</p>
     </div>
 
-    <!-- Search Form -->
+    <!-- Search Form (Universal Inputs) -->
     <div style="background: var(--card-bg); border: 1.5px solid var(--card-border); border-radius: 16px; padding: 16px; margin-bottom: 18px;">
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">From City</label>
-          <select id="search-from-city" class="form-select">
-            <option value="Hyderabad">Hyderabad</option>
-            <option value="Warangal">Warangal</option>
-            <option value="Karimnagar">Karimnagar</option>
-            <option value="Khammam">Khammam</option>
-            <option value="Nizamabad">Nizamabad</option>
-            <option value="Suryapet">Suryapet</option>
-          </select>
+          <label class="form-label">From City / Town</label>
+          <input type="text" id="search-from-city" list="city-suggestions" class="form-input" placeholder="Type any city/town">
         </div>
         <div class="form-group">
-          <label class="form-label">To City</label>
-          <select id="search-to-city" class="form-select">
-            <option value="Warangal">Warangal</option>
-            <option value="Hyderabad">Hyderabad</option>
-            <option value="Karimnagar">Karimnagar</option>
-            <option value="Khammam">Khammam</option>
-            <option value="Nizamabad">Nizamabad</option>
-            <option value="Suryapet">Suryapet</option>
-          </select>
+          <label class="form-label">To City / Town</label>
+          <input type="text" id="search-to-city" list="city-suggestions" class="form-input" placeholder="Type destination">
         </div>
       </div>
       <button class="btn-action" id="btn-search-trucks" onclick="searchAvailableTrips()">🔍 Search Available Trucks</button>
@@ -290,7 +298,7 @@
     </div>
     <div id="sender-trips-list">
       <div style="text-align: center; padding: 40px 20px; color: var(--text-faint); font-size: 12.5px;">
-        Click "Search Available Trucks" to find empty return capacity on your route.
+        Type your pickup and destination locations above to find empty return trucks on your route!
       </div>
     </div>
   </div>
@@ -306,26 +314,12 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">From City</label>
-          <select id="drv-from" class="form-select">
-            <option value="Hyderabad">Hyderabad</option>
-            <option value="Warangal">Warangal</option>
-            <option value="Karimnagar">Karimnagar</option>
-            <option value="Khammam">Khammam</option>
-            <option value="Nizamabad">Nizamabad</option>
-            <option value="Suryapet">Suryapet</option>
-          </select>
+          <label class="form-label">From City / Town</label>
+          <input type="text" id="drv-from" list="city-suggestions" class="form-input" placeholder="Origin city">
         </div>
         <div class="form-group">
-          <label class="form-label">To City</label>
-          <select id="drv-to" class="form-select">
-            <option value="Warangal">Warangal</option>
-            <option value="Hyderabad">Hyderabad</option>
-            <option value="Karimnagar">Karimnagar</option>
-            <option value="Khammam">Khammam</option>
-            <option value="Nizamabad">Nizamabad</option>
-            <option value="Suryapet">Suryapet</option>
-          </select>
+          <label class="form-label">To City / Town</label>
+          <input type="text" id="drv-to" list="city-suggestions" class="form-input" placeholder="Destination city">
         </div>
       </div>
 
@@ -339,6 +333,7 @@
             <option value="Eicher 14ft">Eicher 14ft (4 Ton)</option>
             <option value="Tata 407">Tata 407</option>
             <option value="Mini Truck / Auto">Mini Truck / Goods Auto</option>
+            <option value="Container / Lorry">Container / Heavy Lorry</option>
           </select>
         </div>
         <div class="form-group">
@@ -349,12 +344,12 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Available Capacity (KG)</label>
-          <input type="number" id="drv-capacity" class="form-input" placeholder="1000" value="800">
+          <label class="form-label">Available Capacity (KG / Load)</label>
+          <input type="number" id="drv-capacity" class="form-input" placeholder="e.g. 1000" value="1000">
         </div>
         <div class="form-group">
-          <label class="form-label">Your Rate (₹ per KG)</label>
-          <input type="number" id="drv-price" class="form-input" placeholder="3" value="3" step="0.5">
+          <label class="form-label">Trip Freight Amount (₹)</label>
+          <input type="number" id="drv-price" class="form-input" placeholder="e.g. 2500" value="2500" step="50">
         </div>
       </div>
 
@@ -365,18 +360,18 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Driver Name</label>
+          <label class="form-label">Driver / Owner Name</label>
           <input type="text" id="drv-name" class="form-input" placeholder="Your name">
         </div>
         <div class="form-group">
-          <label class="form-label">Driver Phone</label>
+          <label class="form-label">Contact Phone</label>
           <input type="tel" id="drv-phone" class="form-input" placeholder="9876543210">
         </div>
       </div>
 
       <div class="form-group">
         <label class="form-label">Trip Notes (Optional)</label>
-        <input type="text" id="drv-notes" class="form-input" placeholder="e.g. Tarpaulin covered, fragile goods ok">
+        <input type="text" id="drv-notes" class="form-input" placeholder="e.g. Tarpaulin covered, urgent delivery possible">
       </div>
 
       <button class="btn-action" id="btn-post-trip" onclick="postReturnTrip()">🚛 Post Return Trip</button>
@@ -419,27 +414,27 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Cargo Weight (KG)</label>
-        <input type="number" id="book-cargo-weight" class="form-input" placeholder="e.g. 500" oninput="calculateBookingFare()">
+        <input type="number" id="book-cargo-weight" class="form-input" placeholder="e.g. 500">
       </div>
       <div class="form-group">
-        <label class="form-label">Total Freight</label>
-        <div id="book-fare-display" style="font-size: 20px; font-weight: 900; color: #4ade80; padding-top: 6px;">₹0</div>
+        <label class="form-label">Agreed Freight Price (₹)</label>
+        <input type="number" id="book-fare-amount" class="form-input" placeholder="₹" oninput="calculateBookingFare()">
       </div>
     </div>
 
     <div class="form-group">
       <label class="form-label">Cargo Description</label>
-      <input type="text" id="book-cargo-desc" class="form-input" placeholder="e.g. Hardware fittings, Groceries, Clothes">
+      <input type="text" id="book-cargo-desc" class="form-input" placeholder="e.g. Hardware, Agricultural goods, Boxes">
     </div>
 
     <div class="form-group">
-      <label class="form-label">Pickup Address</label>
-      <input type="text" id="book-pickup-addr" class="form-input" placeholder="Shop # / Area in Origin city">
+      <label class="form-label">Pickup Address / LandMark</label>
+      <input type="text" id="book-pickup-addr" class="form-input" placeholder="Shop / Warehouse address">
     </div>
 
     <div class="form-group">
-      <label class="form-label">Delivery Address</label>
-      <input type="text" id="book-drop-addr" class="form-input" placeholder="Destination shop / warehouse address">
+      <label class="form-label">Delivery Address / Destination</label>
+      <input type="text" id="book-drop-addr" class="form-input" placeholder="Drop destination address">
     </div>
 
     <div style="background: #11131a; border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; border: 1px solid var(--card-border); font-size: 11px; color: var(--text-muted);">
@@ -473,7 +468,6 @@
   var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
 
-  // API Client
   function sbRequest(method, path, body) {
     var headers = {
       'apikey': SUPABASE_ANON_KEY,
@@ -511,7 +505,6 @@
     document.getElementById(id).style.display = 'none';
   }
 
-  // Set default departure to 4 hours from now
   (function initDates() {
     var d = new Date();
     d.setHours(d.getHours() + 4);
@@ -519,7 +512,6 @@
     var el = document.getElementById('drv-departure');
     if (el) el.value = dStr;
 
-    // Load saved driver info if available
     try {
       var saved = JSON.parse(localStorage.getItem('rydealot_alongwith_driver') || '{}');
       if (saved.name) document.getElementById('drv-name').value = saved.name;
@@ -530,19 +522,16 @@
 
   // ── SENDER: SEARCH TRIPS ──
   function searchAvailableTrips() {
-    var from = document.getElementById('search-from-city').value;
-    var to = document.getElementById('search-to-city').value;
+    var from = (document.getElementById('search-from-city').value || '').trim();
+    var to = (document.getElementById('search-to-city').value || '').trim();
     var btn = document.getElementById('btn-search-trucks');
-
-    if (from === to) {
-      showToast('⚠️ From and To cities must be different');
-      return;
-    }
 
     btn.textContent = '⏳ Searching Trucks...';
     btn.disabled = true;
 
-    var query = 'cargo_trips?from_city=eq.' + encodeURIComponent(from) + '&to_city=eq.' + encodeURIComponent(to) + '&status=eq.open&available_capacity_kg=gt.0&order=departure_time.asc';
+    var query = 'cargo_trips?status=eq.open&order=departure_time.asc';
+    if (from) query += '&from_city=ilike.*' + encodeURIComponent(from) + '*';
+    if (to) query += '&to_city=ilike.*' + encodeURIComponent(to) + '*';
 
     sbRequest('GET', query)
       .then(function(trips) {
@@ -562,7 +551,7 @@
     document.getElementById('trips-count-badge').textContent = trips.length + ' available';
 
     if (!trips.length) {
-      container.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--text-faint); font-size:12.5px;">No empty return trucks found on this route right now.<br>Check back soon or post a request!</div>';
+      container.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--text-faint); font-size:12.5px;">No empty return trucks found on this route right now.<br>Check back soon or post a new search!</div>';
       return;
     }
 
@@ -575,7 +564,7 @@
       html += '<div class="trip-card">' +
         '<div style="display:flex; justify-content:space-between; align-items:center;">' +
           '<span style="font-size:15px; font-weight:900; color:#fff;">' + t.from_city + ' ➔ ' + t.to_city + '</span>' +
-          '<span class="badge badge-open">' + t.available_capacity_kg + ' KG LEFT</span>' +
+          '<span class="badge badge-open">' + (t.available_capacity_kg || t.total_capacity_kg) + ' KG CAP</span>' +
         '</div>' +
         '<div style="font-size:12px; color:var(--text-muted); display:flex; gap:14px;">' +
           '<span>🚚 ' + t.vehicle_type + ' (' + t.vehicle_number + ')</span>' +
@@ -584,8 +573,8 @@
         (t.notes ? '<div style="font-size:11.5px; color:var(--text-faint); font-style:italic;">💬 "' + t.notes + '"</div>' : '') +
         '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--card-border); padding-top:10px; margin-top:4px;">' +
           '<div>' +
-            '<span style="font-size:10.5px; color:var(--text-faint); text-transform:uppercase; display:block;">Rate</span>' +
-            '<span style="font-size:18px; font-weight:900; color:#4ade80;">₹' + t.price_per_kg + ' <span style="font-size:11px; font-weight:600; color:var(--text-muted);">/ kg</span></span>' +
+            '<span style="font-size:10.5px; color:var(--text-faint); text-transform:uppercase; display:block;">Trip Freight Price</span>' +
+            '<span style="font-size:18px; font-weight:900; color:#4ade80;">₹' + (t.price_per_kg || 2500) + '</span>' +
           '</div>' +
           '<button class="btn-action" style="width:auto; padding:8px 18px; font-size:12.5px;" onclick=\'openBookingModal(' + JSON.stringify(t) + ')\'>📦 Book Cargo</button>' +
         '</div>' +
@@ -599,23 +588,21 @@
 
   function openBookingModal(trip) {
     activeTripForBooking = trip;
-    document.getElementById('modal-trip-summary').innerHTML = '<strong>' + trip.from_city + ' ➔ ' + trip.to_city + '</strong> (' + trip.vehicle_type + ') • Max ' + trip.available_capacity_kg + ' KG @ ₹' + trip.price_per_kg + '/kg';
+    document.getElementById('modal-trip-summary').innerHTML = '<strong>' + trip.from_city + ' ➔ ' + trip.to_city + '</strong> (' + trip.vehicle_type + ') • Expected Freight: ₹' + (trip.price_per_kg || 2500);
     document.getElementById('book-cargo-weight').value = '';
     document.getElementById('book-cargo-desc').value = '';
     document.getElementById('book-pickup-addr').value = '';
     document.getElementById('book-drop-addr').value = '';
+    document.getElementById('book-fare-amount').value = trip.price_per_kg || 2500;
     calculateBookingFare();
     document.getElementById('modal-book-cargo').style.display = 'flex';
   }
 
   function calculateBookingFare() {
-    if (!activeTripForBooking) return;
-    var weight = parseFloat(document.getElementById('book-cargo-weight').value) || 0;
-    var total = Math.round(weight * activeTripForBooking.price_per_kg);
+    var total = parseFloat(document.getElementById('book-fare-amount').value) || 0;
     var comm = Math.round(total * 0.15);
     var drvShare = total - comm;
 
-    document.getElementById('book-fare-display').textContent = '₹' + total;
     document.getElementById('calc-driver-share').textContent = '₹' + drvShare;
     document.getElementById('calc-platform-fee').textContent = '₹' + comm;
   }
@@ -624,21 +611,17 @@
     var name = document.getElementById('book-sender-name').value.trim();
     var phone = document.getElementById('book-sender-phone').value.trim();
     var weight = parseInt(document.getElementById('book-cargo-weight').value) || 0;
+    var total = parseFloat(document.getElementById('book-fare-amount').value) || 0;
     var desc = document.getElementById('book-cargo-desc').value.trim();
     var pickup = document.getElementById('book-pickup-addr').value.trim();
     var drop = document.getElementById('book-drop-addr').value.trim();
     var btn = document.getElementById('btn-confirm-booking');
 
-    if (!name || !phone || !weight || !pickup || !drop) {
+    if (!name || !phone || !total || !pickup || !drop) {
       showToast('⚠️ Please fill all required fields');
       return;
     }
-    if (weight > activeTripForBooking.available_capacity_kg) {
-      showToast('⚠️ Cargo weight exceeds truck capacity (' + activeTripForBooking.available_capacity_kg + ' KG)');
-      return;
-    }
 
-    var total = Math.round(weight * activeTripForBooking.price_per_kg);
     var comm = Math.round(total * 0.15);
     var drvShare = total - comm;
 
@@ -649,7 +632,7 @@
       trip_id: activeTripForBooking.id,
       sender_name: name,
       sender_phone: phone,
-      cargo_weight_kg: weight,
+      cargo_weight_kg: weight || 100,
       cargo_description: desc,
       pickup_address: pickup,
       drop_address: drop,
@@ -660,14 +643,6 @@
     };
 
     sbRequest('POST', 'cargo_bookings', bookingPayload)
-      .then(function() {
-        // Decrement trip capacity
-        var newCapacity = activeTripForBooking.available_capacity_kg - weight;
-        return sbRequest('PATCH', 'cargo_trips?id=eq.' + activeTripForBooking.id, {
-          available_capacity_kg: newCapacity,
-          status: newCapacity <= 0 ? 'full' : 'open'
-        });
-      })
       .then(function() {
         showToast('✅ Cargo Booked! Driver will contact you shortly.');
         closeModal('modal-book-cargo');
@@ -684,25 +659,23 @@
 
   // ── DRIVER: POST RETURN TRIP ──
   function postReturnTrip() {
-    var from = document.getElementById('drv-from').value;
-    var to = document.getElementById('drv-to').value;
+    var from = document.getElementById('drv-from').value.trim();
+    var to = document.getElementById('drv-to').value.trim();
     var vType = document.getElementById('drv-vehicle-type').value;
     var vNum = document.getElementById('drv-vehicle-num').value.trim().toUpperCase();
-    var capacity = parseInt(document.getElementById('drv-capacity').value) || 0;
-    var price = parseFloat(document.getElementById('drv-price').value) || 0;
+    var capacity = parseInt(document.getElementById('drv-capacity').value) || 1000;
+    var price = parseFloat(document.getElementById('drv-price').value) || 2500;
     var dep = document.getElementById('drv-departure').value;
     var name = document.getElementById('drv-name').value.trim();
     var phone = document.getElementById('drv-phone').value.trim();
     var notes = document.getElementById('drv-notes').value.trim();
     var btn = document.getElementById('btn-post-trip');
 
-    if (from === to) { showToast('⚠️ From and To cities must be different'); return; }
-    if (!vNum || !capacity || !price || !dep || !name || !phone) {
+    if (!from || !to || !vNum || !price || !dep || !name || !phone) {
       showToast('⚠️ Please fill all required fields');
       return;
     }
 
-    // Save driver profile locally
     try {
       localStorage.setItem('rydealot_alongwith_driver', JSON.stringify({ name: name, phone: phone, vNum: vNum }));
     } catch(e) {}
@@ -776,7 +749,7 @@
         '</div>' +
         '<div style="font-size:11.5px; color:var(--text-muted);">' + t.vehicle_type + ' (' + t.vehicle_number + ') • ' + timeStr + '</div>' +
         '<div style="font-size:12px; color:var(--text-muted);">' +
-          '📦 Available: <strong>' + t.available_capacity_kg + ' / ' + t.total_capacity_kg + ' KG</strong> @ ₹' + t.price_per_kg + '/kg' +
+          '📦 Available Capacity: <strong>' + (t.available_capacity_kg || t.total_capacity_kg) + ' KG</strong> • Freight: <strong style="color:#4ade80;">₹' + (t.price_per_kg || 2500) + '</strong>' +
         '</div>' +
         '<div style="display:flex; gap:8px; margin-top:6px;">' +
           '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#1e293b; border:1px solid var(--card-border);" onclick="viewTripBookings(\'' + t.id + '\', \'' + t.from_city + ' ➔ ' + t.to_city + '\')">📋 View Bookings</button>' +
@@ -796,7 +769,6 @@
       });
   }
 
-  // ── DRIVER: VIEW BOOKINGS PER TRIP ──
   function viewTripBookings(tripId, route) {
     document.getElementById('modal-trip-meta').textContent = 'Bookings for ' + route;
     var container = document.getElementById('modal-bookings-container');
