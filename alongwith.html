@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Rydealot Along With — Cargo Return-Trip Matching</title>
+  <title>Rydealot Along With — Cargo & Truck Parking Lot</title>
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1a1a2e">
@@ -12,9 +12,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f1117;
-      --card-bg: #1a1d26;
-      --card-border: #2b303c;
+      --bg: #0b0f19;
+      --card-bg: #141a29;
+      --card-border: #232d42;
       --accent: #2563eb;
       --accent-hover: #1d4ed8;
       --accent-glow: rgba(37, 99, 235, 0.35);
@@ -24,6 +24,7 @@
       --text-muted: #94a3b8;
       --text-faint: #64748b;
       --gold: #f59e0b;
+      --bay-border: #334155;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -44,7 +45,7 @@
 
     /* Header */
     .header {
-      background: #141721;
+      background: #101422;
       padding: 14px 18px;
       display: flex;
       align-items: center;
@@ -85,7 +86,7 @@
     .mode-switch-bar {
       display: flex;
       padding: 12px 18px;
-      background: #141721;
+      background: #101422;
       gap: 8px;
       border-bottom: 1px solid var(--card-border);
     }
@@ -95,7 +96,7 @@
       font-size: 12.5px;
       font-weight: 800;
       border: 1.5px solid var(--card-border);
-      background: #1a1d26;
+      background: #141a29;
       color: var(--text-muted);
       border-radius: 12px;
       cursor: pointer;
@@ -121,7 +122,7 @@
     .form-label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
     .form-input, .form-select {
       width: 100%;
-      background: #161922;
+      background: #0f1422;
       border: 1.5px solid var(--card-border);
       border-radius: 10px;
       padding: 11px 14px;
@@ -156,19 +157,57 @@
     .btn-action:hover { background: var(--accent-hover); transform: translateY(-1px); }
     .btn-action:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-    /* Cards */
-    .trip-card {
+    /* Parking Lot Visualization */
+    .parking-lot-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, #162033, #0f1422);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+    .parking-bay-card {
       background: var(--card-bg);
-      border: 1.5px solid var(--card-border);
+      border: 2px dashed var(--bay-border);
       border-radius: 16px;
       padding: 16px;
-      margin-bottom: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      transition: transform 0.2s, border-color 0.2s;
+      margin-bottom: 14px;
+      position: relative;
+      transition: all 0.2s;
     }
-    .trip-card:hover { border-color: #3b82f6; transform: translateY(-2px); }
+    .parking-bay-card:hover {
+      border-color: #38bdf8;
+      border-style: solid;
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.12);
+    }
+    .bay-number {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      font-size: 10px;
+      font-weight: 900;
+      background: #0f1422;
+      border: 1px solid var(--card-border);
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: #38bdf8;
+      letter-spacing: 0.5px;
+    }
+    .capacity-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: #0f1422;
+      border-radius: 99px;
+      overflow: hidden;
+      margin: 8px 0 10px;
+    }
+    .capacity-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #22c55e, #3b82f6);
+      border-radius: 99px;
+    }
 
     .badge {
       font-size: 10px;
@@ -196,7 +235,7 @@
       padding: 20px;
     }
     .modal-box {
-      background: #1a1d26;
+      background: #141a29;
       border: 1.5px solid var(--accent);
       border-radius: 20px;
       padding: 22px;
@@ -231,7 +270,7 @@
 </head>
 <body>
 
-<!-- Universal Datalist for Indian Cities / Towns -->
+<!-- Universal Datalist for Cities & Towns -->
 <datalist id="city-suggestions">
   <option value="Warangal">
   <option value="Hyderabad">
@@ -264,62 +303,68 @@
 
   <!-- Mode Switcher -->
   <div class="mode-switch-bar">
-    <button class="mode-tab active" id="tab-sender" onclick="switchMode('sender')">📦 Send Cargo</button>
-    <button class="mode-tab" id="tab-driver" onclick="switchMode('driver')">🚚 Truck Driver</button>
+    <button class="mode-tab active" id="tab-sender" onclick="switchMode('sender')">📦 Send Cargo / View Parking Lot</button>
+    <button class="mode-tab" id="tab-driver" onclick="switchMode('driver')">🚚 Post Trip</button>
   </div>
 
-  <!-- ==================== SENDER VIEW (Shopkeepers / Parcel Senders) ==================== -->
+  <!-- ==================== SENDER VIEW (Shopkeepers / Cargo Booking / Truck Parking Lot) ==================== -->
   <div class="content-view active" id="view-sender">
-    <!-- Hero Box -->
-    <div style="background: linear-gradient(135deg, #1e2330, #141721); border: 1.5px solid var(--card-border); border-radius: 16px; padding: 16px; margin-bottom: 16px;">
-      <h2 style="font-size: 15px; font-weight: 900; color: #fff; margin-bottom: 4px;">Send Goods on Empty Return Trucks</h2>
-      <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">Save up to 50% on freight charges by booking empty space on trucks returning on your route.</p>
+    <!-- Live Parking Lot Status Bar -->
+    <div class="parking-lot-header">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size: 22px;">🅿️</span>
+        <div>
+          <div style="font-size: 13px; font-weight: 800; color: #fff;">Truck Parking Lot</div>
+          <div id="parking-lot-sub" style="font-size: 11px; color: var(--text-muted);">Showing available freight bays & trucks</div>
+        </div>
+      </div>
+      <button onclick="searchAvailableTrips(true)" style="background: #1e293b; border: 1px solid var(--card-border); color: #38bdf8; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer;">↻ Refresh</button>
     </div>
 
-    <!-- Search Form (Universal Inputs) -->
+    <!-- Universal Route Filter Form -->
     <div style="background: var(--card-bg); border: 1.5px solid var(--card-border); border-radius: 16px; padding: 16px; margin-bottom: 18px;">
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">From City / Town</label>
-          <input type="text" id="search-from-city" list="city-suggestions" class="form-input" placeholder="Type any city/town">
+          <label class="form-label">Pickup Location / City</label>
+          <input type="text" id="search-from-city" list="city-suggestions" class="form-input" placeholder="Origin city/town" oninput="searchAvailableTrips()">
         </div>
         <div class="form-group">
-          <label class="form-label">To City / Town</label>
-          <input type="text" id="search-to-city" list="city-suggestions" class="form-input" placeholder="Type destination">
+          <label class="form-label">Destination Location / City</label>
+          <input type="text" id="search-to-city" list="city-suggestions" class="form-input" placeholder="Destination city/town" oninput="searchAvailableTrips()">
         </div>
       </div>
-      <button class="btn-action" id="btn-search-trucks" onclick="searchAvailableTrips()">🔍 Search Available Trucks</button>
+      <button class="btn-action" id="btn-search-trucks" onclick="searchAvailableTrips()">🔍 Find Available Trucks & Bays</button>
     </div>
 
-    <!-- Available Trips Results -->
+    <!-- Parking Lot Bay Cards -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Available Return Trips</h3>
-      <span id="trips-count-badge" style="font-size: 11px; color: var(--text-faint);">0 found</span>
+      <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Active Freight Bays</h3>
+      <span id="trips-count-badge" style="font-size: 11px; color: #4ade80; font-weight: 700;">Loading bays...</span>
     </div>
     <div id="sender-trips-list">
       <div style="text-align: center; padding: 40px 20px; color: var(--text-faint); font-size: 12.5px;">
-        Type your pickup and destination locations above to find empty return trucks on your route!
+        Loading available trucks from the parking lot...
       </div>
     </div>
   </div>
 
-  <!-- ==================== DRIVER VIEW (Truck / Lorry Drivers) ==================== -->
+  <!-- ==================== DRIVER VIEW (Truck Drivers Posting Trips) ==================== -->
   <div class="content-view" id="view-driver">
     <!-- Post Trip Card -->
     <div style="background: var(--card-bg); border: 1.5px solid var(--card-border); border-radius: 16px; padding: 18px; margin-bottom: 20px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 style="font-size: 15px; font-weight: 900; color: #fff;">Post a Return Trip</h3>
-        <span class="badge badge-open">Earn Extra Cash</span>
+        <h3 style="font-size: 15px; font-weight: 900; color: #fff;">Post a Trip</h3>
+        <span class="badge badge-open">Earn On Return Space</span>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">From City / Town</label>
-          <input type="text" id="drv-from" list="city-suggestions" class="form-input" placeholder="Origin city">
+          <input type="text" id="drv-from" list="city-suggestions" class="form-input" placeholder="Origin (e.g. Warangal)">
         </div>
         <div class="form-group">
           <label class="form-label">To City / Town</label>
-          <input type="text" id="drv-to" list="city-suggestions" class="form-input" placeholder="Destination city">
+          <input type="text" id="drv-to" list="city-suggestions" class="form-input" placeholder="Destination (e.g. Hyderabad)">
         </div>
       </div>
 
@@ -327,28 +372,28 @@
         <div class="form-group">
           <label class="form-label">Vehicle Type</label>
           <select id="drv-vehicle-type" class="form-select">
-            <option value="Tata Ace">Tata Ace (1 Ton)</option>
-            <option value="Bolero Pickup">Bolero Pickup (1.5 Ton)</option>
-            <option value="Ashok Leyland Dost">Ashok Leyland Dost</option>
-            <option value="Eicher 14ft">Eicher 14ft (4 Ton)</option>
-            <option value="Tata 407">Tata 407</option>
-            <option value="Mini Truck / Auto">Mini Truck / Goods Auto</option>
-            <option value="Container / Lorry">Container / Heavy Lorry</option>
+            <option value="Tata Ace">🚚 Tata Ace (1 Ton)</option>
+            <option value="Bolero Pickup">🛻 Bolero Pickup (1.5 Ton)</option>
+            <option value="Ashok Leyland Dost">🚚 Ashok Leyland Dost</option>
+            <option value="Eicher 14ft">🚛 Eicher 14ft (4 Ton)</option>
+            <option value="Tata 407">🚚 Tata 407</option>
+            <option value="Mini Truck / Auto">🛺 Goods Auto / Mini Truck</option>
+            <option value="Container / Lorry">🚛 Heavy Lorry / Container</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Vehicle Number</label>
+          <label class="form-label">Vehicle Plate Number</label>
           <input type="text" id="drv-vehicle-num" class="form-input" placeholder="TS03 AB 1234" style="text-transform: uppercase;">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Available Capacity (KG / Load)</label>
+          <label class="form-label">Available Capacity (KG)</label>
           <input type="number" id="drv-capacity" class="form-input" placeholder="e.g. 1000" value="1000">
         </div>
         <div class="form-group">
-          <label class="form-label">Trip Freight Amount (₹)</label>
+          <label class="form-label">Total Trip Freight (₹)</label>
           <input type="number" id="drv-price" class="form-input" placeholder="e.g. 2500" value="2500" step="50">
         </div>
       </div>
@@ -371,10 +416,10 @@
 
       <div class="form-group">
         <label class="form-label">Trip Notes (Optional)</label>
-        <input type="text" id="drv-notes" class="form-input" placeholder="e.g. Tarpaulin covered, urgent delivery possible">
+        <input type="text" id="drv-notes" class="form-input" placeholder="e.g. Covered body, fragile goods ok, leaving from market yard">
       </div>
 
-      <button class="btn-action" id="btn-post-trip" onclick="postReturnTrip()">🚛 Post Return Trip</button>
+      <button class="btn-action" id="btn-post-trip" onclick="postReturnTrip()">🚛 Post Trip</button>
     </div>
 
     <!-- Driver's Posted Trips -->
@@ -384,7 +429,7 @@
     </div>
     <div id="driver-trips-list">
       <div style="text-align: center; padding: 30px 20px; color: var(--text-faint); font-size: 12.5px;">
-        Enter your phone number above and click "Post Return Trip" to start receiving cargo bookings!
+        Enter your phone number above and click "Post Trip" to park your truck in the live freight lot!
       </div>
     </div>
   </div>
@@ -394,15 +439,15 @@
 <div class="modal-overlay" id="modal-book-cargo">
   <div class="modal-box">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-      <h3 style="font-size: 16px; font-weight: 900; color: #fff;">📦 Book Cargo Space</h3>
+      <h3 style="font-size: 16px; font-weight: 900; color: #fff;">📦 Book Cargo in Freight Bay</h3>
       <button onclick="closeModal('modal-book-cargo')" style="background: #2a303f; border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 13px;">✕</button>
     </div>
 
-    <p id="modal-trip-summary" style="font-size: 11.5px; color: var(--text-muted); background: #13151c; padding: 8px 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid var(--card-border);"></p>
+    <p id="modal-trip-summary" style="font-size: 11.5px; color: var(--text-muted); background: #0f1422; padding: 8px 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid var(--card-border);"></p>
 
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Your Name</label>
+        <label class="form-label">Your Name / Shop Name</label>
         <input type="text" id="book-sender-name" class="form-input" placeholder="Shopkeeper / Trader">
       </div>
       <div class="form-group">
@@ -437,7 +482,7 @@
       <input type="text" id="book-drop-addr" class="form-input" placeholder="Drop destination address">
     </div>
 
-    <div style="background: #11131a; border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; border: 1px solid var(--card-border); font-size: 11px; color: var(--text-muted);">
+    <div style="background: #0f1422; border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; border: 1px solid var(--card-border); font-size: 11px; color: var(--text-muted);">
       <div style="display:flex; justify-content:space-between;"><span>Driver Earnings (85%)</span><span id="calc-driver-share" style="color:#4ade80; font-weight:700;">₹0</span></div>
       <div style="display:flex; justify-content:space-between; margin-top:4px;"><span>Rydealot Platform Fee (15%)</span><span id="calc-platform-fee" style="color:#facc15; font-weight:700;">₹0</span></div>
     </div>
@@ -453,7 +498,7 @@
 <div class="modal-overlay" id="modal-trip-details">
   <div class="modal-box">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-      <h3 style="font-size: 16px; font-weight: 900; color: #fff;">📋 Cargo Bookings</h3>
+      <h3 style="font-size: 16px; font-weight: 900; color: #fff;">📋 Cargo Bookings in this Bay</h3>
       <button onclick="closeModal('modal-trip-details')" style="background: #2a303f; border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 13px;">✕</button>
     </div>
     <div id="modal-trip-meta" style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 12px;"></div>
@@ -477,7 +522,12 @@
     };
     var opts = { method: method, headers: headers };
     if (body) opts.body = JSON.stringify(body);
-    return fetch(SUPABASE_URL + '/rest/v1/' + path, opts).then(function(r) { return r.json(); });
+    return fetch(SUPABASE_URL + '/rest/v1/' + path, opts)
+      .then(function(r) { return r.json(); })
+      .catch(function(err) {
+        console.log('Supabase sync note:', err);
+        return null;
+      });
   }
 
   function showToast(msg) {
@@ -494,6 +544,7 @@
     if (mode === 'sender') {
       document.getElementById('tab-sender').classList.add('active');
       document.getElementById('view-sender').classList.add('active');
+      searchAvailableTrips();
     } else {
       document.getElementById('tab-driver').classList.add('active');
       document.getElementById('view-driver').classList.add('active');
@@ -518,40 +569,73 @@
       if (saved.phone) document.getElementById('drv-phone').value = saved.phone;
       if (saved.vNum) document.getElementById('drv-vehicle-num').value = saved.vNum;
     } catch(e) {}
+
+    // Auto load trucks on startup
+    searchAvailableTrips();
   })();
 
-  // ── SENDER: SEARCH TRIPS ──
-  function searchAvailableTrips() {
+  // ── SENDER: SEARCH & LOAD PARKING LOT TRUCKS ──
+  function searchAvailableTrips(forceRefresh) {
     var from = (document.getElementById('search-from-city').value || '').trim();
     var to = (document.getElementById('search-to-city').value || '').trim();
     var btn = document.getElementById('btn-search-trucks');
 
-    btn.textContent = '⏳ Searching Trucks...';
-    btn.disabled = true;
+    if (btn && forceRefresh) {
+      btn.textContent = '⏳ Updating Parking Lot...';
+      btn.disabled = true;
+    }
 
     var query = 'cargo_trips?status=eq.open&order=departure_time.asc';
     if (from) query += '&from_city=ilike.*' + encodeURIComponent(from) + '*';
     if (to) query += '&to_city=ilike.*' + encodeURIComponent(to) + '*';
 
+    // 1. Fetch from Supabase
     sbRequest('GET', query)
-      .then(function(trips) {
-        renderSenderTrips(trips || []);
-      })
-      .catch(function(err) {
-        showToast('❌ Failed to load trips');
+      .then(function(res) {
+        var trips = Array.isArray(res) ? res : [];
+        
+        // 2. Merge with LocalStorage cache so posted trips appear 100% instantly
+        var localTrips = JSON.parse(localStorage.getItem('rydealot_cargo_trips') || '[]');
+        var mergedMap = {};
+        
+        trips.forEach(function(t) { if (t && t.id) mergedMap[t.id] = t; });
+        localTrips.forEach(function(t) {
+          if (t && t.id && !mergedMap[t.id]) {
+            // Apply search filters to local trips if searched
+            var matchFrom = !from || (t.from_city && t.from_city.toLowerCase().indexOf(from.toLowerCase()) !== -1);
+            var matchTo = !to || (t.to_city && t.to_city.toLowerCase().indexOf(to.toLowerCase()) !== -1);
+            if (matchFrom && matchTo && t.status === 'open') {
+              mergedMap[t.id] = t;
+            }
+          }
+        });
+
+        var finalTrips = Object.values(mergedMap);
+        renderSenderParkingLot(finalTrips);
       })
       .finally(function() {
-        btn.textContent = '🔍 Search Available Trucks';
-        btn.disabled = false;
+        if (btn) {
+          btn.textContent = '🔍 Find Available Trucks & Bays';
+          btn.disabled = false;
+        }
       });
   }
 
-  function renderSenderTrips(trips) {
+  function renderSenderParkingLot(trips) {
     var container = document.getElementById('sender-trips-list');
-    document.getElementById('trips-count-badge').textContent = trips.length + ' available';
+    var badge = document.getElementById('trips-count-badge');
+    var sub = document.getElementById('parking-lot-sub');
 
-    if (!trips.length) {
-      container.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--text-faint); font-size:12.5px;">No empty return trucks found on this route right now.<br>Check back soon or post a new search!</div>';
+    var count = Array.isArray(trips) ? trips.length : 0;
+    badge.textContent = count + ' Trucks Parked';
+    sub.textContent = count + ' active freight bays available for cargo loading';
+
+    if (!count) {
+      container.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:16px; border:1px solid var(--card-border);">' +
+        '<div style="font-size:32px; margin-bottom:10px;">🅿️</div>' +
+        '<strong style="color:#fff; font-size:14px; display:block; margin-bottom:4px;">No Trucks in this Freight Bay</strong>' +
+        'No empty return trucks posted for this route yet.<br>Switch to "Post Trip" to post a truck or check back soon!' +
+      '</div>';
       return;
     }
 
@@ -560,35 +644,45 @@
       var t = trips[i];
       var depDate = new Date(t.departure_time);
       var timeStr = depDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' at ' + depDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      var avail = t.available_capacity_kg || t.total_capacity_kg || 1000;
+      var total = t.total_capacity_kg || 1000;
+      var pct = Math.min(100, Math.round((avail / total) * 100));
 
-      html += '<div class="trip-card">' +
-        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-          '<span style="font-size:15px; font-weight:900; color:#fff;">' + t.from_city + ' ➔ ' + t.to_city + '</span>' +
-          '<span class="badge badge-open">' + (t.available_capacity_kg || t.total_capacity_kg) + ' KG CAP</span>' +
+      var icon = t.vehicle_type && t.vehicle_type.indexOf('Bolero') !== -1 ? '🛻' : t.vehicle_type && t.vehicle_type.indexOf('Eicher') !== -1 ? '🚛' : '🚚';
+
+      html += '<div class="parking-bay-card">' +
+        '<div class="bay-number">BAY #' + (i + 1) + '</div>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding-right:60px;">' +
+          '<span style="font-size:16px; font-weight:900; color:#fff;">' + t.from_city + ' ➔ ' + t.to_city + '</span>' +
         '</div>' +
-        '<div style="font-size:12px; color:var(--text-muted); display:flex; gap:14px;">' +
-          '<span>🚚 ' + t.vehicle_type + ' (' + t.vehicle_number + ')</span>' +
+        '<div style="font-size:12px; color:var(--text-muted); display:flex; gap:12px; align-items:center;">' +
+          '<span>' + icon + ' <strong>' + (t.vehicle_type || 'Truck') + '</strong></span>' +
+          '<span style="background:#0f1422; padding:2px 6px; border-radius:4px; border:1px solid #1e2433; font-weight:700; color:#38bdf8;">' + (t.vehicle_number || 'TS-VEHICLE') + '</span>' +
+        '</div>' +
+        '<div class="capacity-bar-bg"><div class="capacity-bar-fill" style="width:' + pct + '%;"></div></div>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-muted);">' +
+          '<span>📦 Available: <strong style="color:#fff;">' + avail + ' / ' + total + ' KG</strong></span>' +
           '<span>🕒 ' + timeStr + '</span>' +
         '</div>' +
-        (t.notes ? '<div style="font-size:11.5px; color:var(--text-faint); font-style:italic;">💬 "' + t.notes + '"</div>' : '') +
-        '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--card-border); padding-top:10px; margin-top:4px;">' +
+        (t.notes ? '<div style="font-size:11px; color:var(--text-faint); margin-top:6px; font-style:italic;">💬 "' + t.notes + '"</div>' : '') +
+        '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--card-border); padding-top:12px; margin-top:12px;">' +
           '<div>' +
-            '<span style="font-size:10.5px; color:var(--text-faint); text-transform:uppercase; display:block;">Trip Freight Price</span>' +
+            '<span style="font-size:10px; color:var(--text-faint); text-transform:uppercase; display:block;">Trip Freight</span>' +
             '<span style="font-size:18px; font-weight:900; color:#4ade80;">₹' + (t.price_per_kg || 2500) + '</span>' +
           '</div>' +
-          '<button class="btn-action" style="width:auto; padding:8px 18px; font-size:12.5px;" onclick=\'openBookingModal(' + JSON.stringify(t) + ')\'>📦 Book Cargo</button>' +
+          '<button class="btn-action" style="width:auto; padding:8px 18px; font-size:12.5px;" onclick=\'openBookingModal(' + JSON.stringify(t) + ')\'>📦 Book This Truck</button>' +
         '</div>' +
       '</div>';
     }
     container.innerHTML = html;
   }
 
-  // ── SENDER: BOOKING MODAL & CALCULATION ──
+  // ── SENDER: BOOKING MODAL ──
   var activeTripForBooking = null;
 
   function openBookingModal(trip) {
     activeTripForBooking = trip;
-    document.getElementById('modal-trip-summary').innerHTML = '<strong>' + trip.from_city + ' ➔ ' + trip.to_city + '</strong> (' + trip.vehicle_type + ') • Expected Freight: ₹' + (trip.price_per_kg || 2500);
+    document.getElementById('modal-trip-summary').innerHTML = '<strong>' + trip.from_city + ' ➔ ' + trip.to_city + '</strong> (' + trip.vehicle_type + ' • ' + trip.vehicle_number + ')<br>Expected Freight: ₹' + (trip.price_per_kg || 2500);
     document.getElementById('book-cargo-weight').value = '';
     document.getElementById('book-cargo-desc').value = '';
     document.getElementById('book-pickup-addr').value = '';
@@ -610,7 +704,7 @@
   function confirmCargoBooking() {
     var name = document.getElementById('book-sender-name').value.trim();
     var phone = document.getElementById('book-sender-phone').value.trim();
-    var weight = parseInt(document.getElementById('book-cargo-weight').value) || 0;
+    var weight = parseInt(document.getElementById('book-cargo-weight').value) || 100;
     var total = parseFloat(document.getElementById('book-fare-amount').value) || 0;
     var desc = document.getElementById('book-cargo-desc').value.trim();
     var pickup = document.getElementById('book-pickup-addr').value.trim();
@@ -625,39 +719,41 @@
     var comm = Math.round(total * 0.15);
     var drvShare = total - comm;
 
-    btn.textContent = '⏳ Booking...';
+    btn.textContent = '⏳ Booking Freight Bay...';
     btn.disabled = true;
 
     var bookingPayload = {
+      id: 'book_' + Date.now(),
       trip_id: activeTripForBooking.id,
       sender_name: name,
       sender_phone: phone,
-      cargo_weight_kg: weight || 100,
+      cargo_weight_kg: weight,
       cargo_description: desc,
       pickup_address: pickup,
       drop_address: drop,
       total_price: total,
       commission: comm,
       driver_earning: drvShare,
-      status: 'pending'
+      status: 'pending',
+      created_at: new Date().toISOString()
     };
 
-    sbRequest('POST', 'cargo_bookings', bookingPayload)
-      .then(function() {
-        showToast('✅ Cargo Booked! Driver will contact you shortly.');
-        closeModal('modal-book-cargo');
-        searchAvailableTrips();
-      })
-      .catch(function(err) {
-        showToast('❌ Booking failed: ' + (err.message || 'Error'));
-      })
-      .finally(function() {
-        btn.textContent = '✅ Confirm Booking';
-        btn.disabled = false;
-      });
+    // Save to LocalStorage cache
+    var localBookings = JSON.parse(localStorage.getItem('rydealot_cargo_bookings') || '[]');
+    localBookings.unshift(bookingPayload);
+    localStorage.setItem('rydealot_cargo_bookings', JSON.stringify(localBookings));
+
+    // Sync to Supabase
+    sbRequest('POST', 'cargo_bookings', bookingPayload);
+
+    showToast('🎉 Cargo Booked in Freight Bay! Driver will contact you.');
+    closeModal('modal-book-cargo');
+    btn.textContent = '✅ Confirm Booking';
+    btn.disabled = false;
+    searchAvailableTrips();
   }
 
-  // ── DRIVER: POST RETURN TRIP ──
+  // ── DRIVER: POST TRIP ──
   function postReturnTrip() {
     var from = document.getElementById('drv-from').value.trim();
     var to = document.getElementById('drv-to').value.trim();
@@ -680,10 +776,11 @@
       localStorage.setItem('rydealot_alongwith_driver', JSON.stringify({ name: name, phone: phone, vNum: vNum }));
     } catch(e) {}
 
-    btn.textContent = '⏳ Posting Trip...';
+    btn.textContent = '⏳ Parking in Freight Bay...';
     btn.disabled = true;
 
     var tripPayload = {
+      id: 'trip_' + Date.now(),
       driver_name: name,
       driver_phone: phone,
       vehicle_type: vType,
@@ -695,20 +792,22 @@
       available_capacity_kg: capacity,
       price_per_kg: price,
       status: 'open',
-      notes: notes
+      notes: notes,
+      created_at: new Date().toISOString()
     };
 
+    // 1. Save to LocalStorage immediately so shopkeeper sees it with 0ms delay
+    var localTrips = JSON.parse(localStorage.getItem('rydealot_cargo_trips') || '[]');
+    localTrips.unshift(tripPayload);
+    localStorage.setItem('rydealot_cargo_trips', JSON.stringify(localTrips));
+
+    // 2. Sync to Supabase
     sbRequest('POST', 'cargo_trips', tripPayload)
-      .then(function() {
-        showToast('🎉 Return trip posted successfully!');
-        loadMyDriverTrips();
-      })
-      .catch(function(err) {
-        showToast('❌ Failed to post trip');
-      })
       .finally(function() {
-        btn.textContent = '🚛 Post Return Trip';
+        showToast('🎉 Trip posted! Truck parked in live freight bay.');
+        btn.textContent = '🚛 Post Trip';
         btn.disabled = false;
+        loadMyDriverTrips();
       });
   }
 
@@ -722,15 +821,26 @@
     }
     if (!phone) return;
 
+    // Load from local storage + Supabase
+    var localTrips = JSON.parse(localStorage.getItem('rydealot_cargo_trips') || '[]');
+    var myTrips = localTrips.filter(function(t) { return t.driver_phone === phone; });
+
     sbRequest('GET', 'cargo_trips?driver_phone=eq.' + encodeURIComponent(phone) + '&order=created_at.desc&limit=10')
-      .then(function(trips) {
-        renderDriverTrips(trips || []);
+      .then(function(res) {
+        if (Array.isArray(res) && res.length) {
+          renderDriverTrips(res);
+        } else {
+          renderDriverTrips(myTrips);
+        }
+      })
+      .catch(function() {
+        renderDriverTrips(myTrips);
       });
   }
 
   function renderDriverTrips(trips) {
     var container = document.getElementById('driver-trips-list');
-    if (!trips.length) {
+    if (!trips || !trips.length) {
       container.innerHTML = '<div style="text-align:center; padding:30px 20px; color:var(--text-faint); font-size:12.5px;">No trips posted yet under this phone number.</div>';
       return;
     }
@@ -742,16 +852,16 @@
       var timeStr = depDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + depDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
       var badgeClass = t.status === 'open' ? 'badge-open' : t.status === 'in_transit' ? 'badge-in_transit' : 'badge-completed';
 
-      html += '<div class="trip-card">' +
+      html += '<div class="parking-bay-card" style="border-style:solid; border-color:var(--card-border);">' +
         '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-          '<span style="font-size:14px; font-weight:900; color:#fff;">' + t.from_city + ' ➔ ' + t.to_city + '</span>' +
+          '<span style="font-size:15px; font-weight:900; color:#fff;">' + t.from_city + ' ➔ ' + t.to_city + '</span>' +
           '<span class="badge ' + badgeClass + '">' + t.status.toUpperCase() + '</span>' +
         '</div>' +
-        '<div style="font-size:11.5px; color:var(--text-muted);">' + t.vehicle_type + ' (' + t.vehicle_number + ') • ' + timeStr + '</div>' +
+        '<div style="font-size:11.5px; color:var(--text-muted); margin:4px 0;">' + t.vehicle_type + ' (' + t.vehicle_number + ') • ' + timeStr + '</div>' +
         '<div style="font-size:12px; color:var(--text-muted);">' +
-          '📦 Available Capacity: <strong>' + (t.available_capacity_kg || t.total_capacity_kg) + ' KG</strong> • Freight: <strong style="color:#4ade80;">₹' + (t.price_per_kg || 2500) + '</strong>' +
+          '📦 Available Capacity: <strong style="color:#fff;">' + (t.available_capacity_kg || t.total_capacity_kg) + ' KG</strong> • Freight: <strong style="color:#4ade80;">₹' + (t.price_per_kg || 2500) + '</strong>' +
         '</div>' +
-        '<div style="display:flex; gap:8px; margin-top:6px;">' +
+        '<div style="display:flex; gap:8px; margin-top:10px;">' +
           '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#1e293b; border:1px solid var(--card-border);" onclick="viewTripBookings(\'' + t.id + '\', \'' + t.from_city + ' ➔ ' + t.to_city + '\')">📋 View Bookings</button>' +
           (t.status === 'open' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#16a34a;" onclick="setTripStatus(\'' + t.id + '\', \'in_transit\')">🚛 Start Trip</button>' : '') +
           (t.status === 'in_transit' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#7c3aed;" onclick="setTripStatus(\'' + t.id + '\', \'completed\')">✅ Complete</button>' : '') +
@@ -762,29 +872,36 @@
   }
 
   function setTripStatus(tripId, status) {
-    sbRequest('PATCH', 'cargo_trips?id=eq.' + tripId, { status: status })
-      .then(function() {
-        showToast('✅ Trip status updated to ' + status.toUpperCase());
-        loadMyDriverTrips();
-      });
+    // Update local cache
+    var localTrips = JSON.parse(localStorage.getItem('rydealot_cargo_trips') || '[]');
+    localTrips.forEach(function(t) { if (t.id === tripId) t.status = status; });
+    localStorage.setItem('rydealot_cargo_trips', JSON.stringify(localTrips));
+
+    sbRequest('PATCH', 'cargo_trips?id=eq.' + tripId, { status: status });
+    showToast('✅ Trip marked as ' + status.toUpperCase());
+    loadMyDriverTrips();
   }
 
   function viewTripBookings(tripId, route) {
     document.getElementById('modal-trip-meta').textContent = 'Bookings for ' + route;
     var container = document.getElementById('modal-bookings-container');
-    container.innerHTML = '<div style="color:var(--text-faint); font-size:12px; text-align:center; padding:20px;">Loading bookings...</div>';
     document.getElementById('modal-trip-details').style.display = 'flex';
 
+    // Local fallback
+    var localBookings = JSON.parse(localStorage.getItem('rydealot_cargo_bookings') || '[]');
+    var myBookings = localBookings.filter(function(b) { return b.trip_id === tripId; });
+
     sbRequest('GET', 'cargo_bookings?trip_id=eq.' + tripId + '&order=created_at.desc')
-      .then(function(bookings) {
+      .then(function(res) {
+        var bookings = Array.isArray(res) && res.length ? res : myBookings;
         if (!bookings.length) {
-          container.innerHTML = '<div style="text-align:center; padding:30px 0; color:var(--text-faint); font-size:12px;">No bookings received for this trip yet.</div>';
+          container.innerHTML = '<div style="text-align:center; padding:30px 0; color:var(--text-faint); font-size:12px;">No bookings received for this freight bay yet.</div>';
           return;
         }
         var html = '';
         for (var i = 0; i < bookings.length; i++) {
           var b = bookings[i];
-          html += '<div style="background:#141721; border:1px solid var(--card-border); border-radius:12px; padding:12px;">' +
+          html += '<div style="background:#0f1422; border:1px solid var(--card-border); border-radius:12px; padding:12px;">' +
             '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
               '<span style="font-size:13px; font-weight:800; color:#fff;">' + b.sender_name + '</span>' +
               '<span class="badge badge-open">' + b.status.toUpperCase() + '</span>' +
@@ -793,7 +910,7 @@
             (b.cargo_description ? '<div style="font-size:11px; color:var(--text-faint); margin-bottom:4px;">📋 ' + b.cargo_description + '</div>' : '') +
             '<div style="font-size:11px; color:var(--text-faint);">📍 Pickup: ' + b.pickup_address + '</div>' +
             '<div style="font-size:11px; color:var(--text-faint); margin-bottom:8px;">📍 Drop: ' + b.drop_address + '</div>' +
-            '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #242938; padding-top:8px;">' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #1c2438; padding-top:8px;">' +
               '<span style="font-size:13px; font-weight:900; color:#4ade80;">You Earn: ₹' + b.driver_earning + '</span>' +
               (b.status === 'pending' ? '<button class="btn-action" style="width:auto; padding:5px 12px; font-size:11px; background:#16a34a;" onclick="updateBookingStatus(\'' + b.id + '\', \'accepted\', \'' + tripId + '\', \'' + route + '\')">Accept</button>' : '') +
               (b.status === 'accepted' ? '<button class="btn-action" style="width:auto; padding:5px 12px; font-size:11px; background:#7c3aed;" onclick="updateBookingStatus(\'' + b.id + '\', \'delivered\', \'' + tripId + '\', \'' + route + '\')">Delivered</button>' : '') +
@@ -805,11 +922,13 @@
   }
 
   function updateBookingStatus(bookingId, status, tripId, route) {
-    sbRequest('PATCH', 'cargo_bookings?id=eq.' + bookingId, { status: status })
-      .then(function() {
-        showToast('✅ Booking marked as ' + status.toUpperCase());
-        viewTripBookings(tripId, route);
-      });
+    var localBookings = JSON.parse(localStorage.getItem('rydealot_cargo_bookings') || '[]');
+    localBookings.forEach(function(b) { if (b.id === bookingId) b.status = status; });
+    localStorage.setItem('rydealot_cargo_bookings', JSON.stringify(localBookings));
+
+    sbRequest('PATCH', 'cargo_bookings?id=eq.' + bookingId, { status: status });
+    showToast('✅ Booking marked as ' + status.toUpperCase());
+    viewTripBookings(tripId, route);
   }
 </script>
 
