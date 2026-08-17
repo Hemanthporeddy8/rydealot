@@ -710,17 +710,85 @@
     loadParkingLotTrips();
   })();
 
-  // 8 Slot Coordinates for the Visual Parking Lot SVG
+  // 8 Slot Coordinates for the Visual Parking Lot SVG (Two facing rows across center lane)
   var PARKING_SLOTS = [
-    { id: 'bay_0', x: 20,  y: 20, row: 'top' },
-    { id: 'bay_1', x: 115, y: 20, row: 'top' },
-    { id: 'bay_2', x: 210, y: 20, row: 'top' },
-    { id: 'bay_3', x: 305, y: 20, row: 'top' },
-    { id: 'bay_4', x: 20,  y: 140, row: 'bottom' },
-    { id: 'bay_5', x: 115, y: 140, row: 'bottom' },
-    { id: 'bay_6', x: 210, y: 140, row: 'bottom' },
-    { id: 'bay_7', x: 305, y: 140, row: 'bottom' }
+    { id: 'bay_0', x: 55,  y: 52,  row: 'top',    labelX: 20, labelY: 20 },
+    { id: 'bay_1', x: 145, y: 52,  row: 'top',    labelX: 110, labelY: 20 },
+    { id: 'bay_2', x: 235, y: 52,  row: 'top',    labelX: 200, labelY: 20 },
+    { id: 'bay_3', x: 325, y: 52,  row: 'top',    labelX: 290, labelY: 20 },
+    { id: 'bay_4', x: 55,  y: 168, row: 'bottom', labelX: 20, labelY: 208 },
+    { id: 'bay_5', x: 145, y: 168, row: 'bottom', labelX: 110, labelY: 208 },
+    { id: 'bay_6', x: 235, y: 168, row: 'bottom', labelX: 200, labelY: 208 },
+    { id: 'bay_7', x: 325, y: 168, row: 'bottom', labelX: 290, labelY: 208 }
   ];
+
+  var truckPalettes = ['#1d9e75', '#2563eb', '#d97706', '#dc2626', '#7c3aed', '#0891b2'];
+
+  // Detailed Realistic SVG Vector Generators for Trucks (Like main app)
+  function renderTruckVector(type, palColor) {
+    var vType = (type || '').toLowerCase();
+    if (vType.indexOf('bolero') !== -1 || vType.indexOf('pickup') !== -1) {
+      // 🛻 Bolero Pickup Truck SVG
+      return (
+        '<g class="vehicle-shape">' +
+          '<rect x="-18" y="-28" width="5" height="12" rx="2" fill="#14171c"/>' +
+          '<rect x="13" y="-28" width="5" height="12" rx="2" fill="#14171c"/>' +
+          '<rect x="-18" y="16" width="5" height="12" rx="2" fill="#14171c"/>' +
+          '<rect x="13" y="16" width="5" height="12" rx="2" fill="#14171c"/>' +
+          '<rect x="-15" y="-36" width="30" height="72" rx="6" fill="#1c202a"/>' +
+          '<rect x="-14" y="-2" width="28" height="36" rx="3" fill="' + palColor + '"/>' +
+          '<rect x="-11" y="2" width="22" height="28" rx="2" fill="#10141d" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>' +
+          '<rect x="-13" y="-34" width="26" height="18" rx="4" fill="' + palColor + '"/>' +
+          '<rect x="-13.5" y="-16" width="27" height="15" rx="3" fill="#232a38"/>' +
+          '<rect x="-11" y="-18" width="22" height="6" rx="1.5" fill="#93c5fd" opacity="0.85"/>' +
+          '<rect x="-12" y="-35" width="4" height="2" rx="1" fill="#facc15"/>' +
+          '<rect x="8" y="-35" width="4" height="2" rx="1" fill="#facc15"/>' +
+        '</g>'
+      );
+    } else if (vType.indexOf('eicher') !== -1 || vType.indexOf('lorry') !== -1 || vType.indexOf('container') !== -1) {
+      // 🚛 Eicher 14ft / Heavy Commercial Lorry SVG
+      return (
+        '<g class="vehicle-shape">' +
+          '<rect x="-20" y="-32" width="5.5" height="13" rx="2" fill="#14171c"/>' +
+          '<rect x="14.5" y="-32" width="5.5" height="13" rx="2" fill="#14171c"/>' +
+          '<rect x="-20" y="10" width="5.5" height="13" rx="2" fill="#14171c"/>' +
+          '<rect x="14.5" y="10" width="5.5" height="13" rx="2" fill="#14171c"/>' +
+          '<rect x="-20" y="26" width="5.5" height="13" rx="2" fill="#14171c"/>' +
+          '<rect x="14.5" y="26" width="5.5" height="13" rx="2" fill="#14171c"/>' +
+          '<rect x="-16.5" y="-16" width="33" height="58" rx="4" fill="' + palColor + '"/>' +
+          '<line x1="-16.5" y1="-4" x2="16.5" y2="-4" stroke="rgba(0,0,0,0.35)" stroke-width="1.5"/>' +
+          '<line x1="-16.5" y1="8" x2="16.5" y2="8" stroke="rgba(0,0,0,0.35)" stroke-width="1.5"/>' +
+          '<line x1="-16.5" y1="20" x2="16.5" y2="20" stroke="rgba(0,0,0,0.35)" stroke-width="1.5"/>' +
+          '<line x1="-16.5" y1="32" x2="16.5" y2="32" stroke="rgba(0,0,0,0.35)" stroke-width="1.5"/>' +
+          '<rect x="-15.5" y="-42" width="31" height="24" rx="4" fill="#1e293b"/>' +
+          '<rect x="-14" y="-36" width="28" height="10" rx="2" fill="' + palColor + '"/>' +
+          '<rect x="-12.5" y="-40" width="25" height="8" rx="2" fill="#93c5fd" opacity="0.9"/>' +
+          '<rect x="-14.5" y="-43" width="29" height="2" rx="1" fill="#f59e0b"/>' +
+          '<rect x="-13" y="-44" width="4.5" height="2" rx="1" fill="#fef08a"/>' +
+          '<rect x="8.5" y="-44" width="4.5" height="2" rx="1" fill="#fef08a"/>' +
+        '</g>'
+      );
+    } else {
+      // 🚚 Tata Ace / Dost / Mini Truck SVG (Default)
+      return (
+        '<g class="vehicle-shape">' +
+          '<rect x="-17" y="-24" width="4.5" height="11" rx="2" fill="#14171c"/>' +
+          '<rect x="12.5" y="-24" width="4.5" height="11" rx="2" fill="#14171c"/>' +
+          '<rect x="-17" y="14" width="4.5" height="11" rx="2" fill="#14171c"/>' +
+          '<rect x="12.5" y="14" width="4.5" height="11" rx="2" fill="#14171c"/>' +
+          '<rect x="-14" y="-32" width="28" height="64" rx="5" fill="#1c202a"/>' +
+          '<rect x="-13.5" y="-8" width="27" height="38" rx="3" fill="' + palColor + '"/>' +
+          '<rect x="-11" y="-5" width="22" height="32" rx="2" fill="#10141d" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>' +
+          '<rect x="-13" y="-30" width="26" height="20" rx="4" fill="' + palColor + '"/>' +
+          '<rect x="-11" y="-28" width="22" height="7" rx="2" fill="#93c5fd" opacity="0.85"/>' +
+          '<rect x="-15.5" y="-26" width="2" height="5" rx="1" fill="#334155"/>' +
+          '<rect x="13.5" y="-26" width="2" height="5" rx="1" fill="#334155"/>' +
+          '<circle cx="-9" cy="-30" r="1.8" fill="#facc15"/>' +
+          '<circle cx="9" cy="-30" r="1.8" fill="#facc15"/>' +
+        '</g>'
+      );
+    }
+  }
 
   // ── SENDER: LOAD REAL TRUCKS FROM SUPABASE ──
   var activeTripsInLot = [];
@@ -733,7 +801,6 @@
 
     badge.textContent = 'Updating...';
 
-    var nowIso = new Date().toISOString();
     var query = 'cargo_trips?status=eq.open&order=created_at.desc';
     if (from) query += '&from_city=ilike.*' + encodeURIComponent(from) + '*';
     if (to) query += '&to_city=ilike.*' + encodeURIComponent(to) + '*';
@@ -741,18 +808,9 @@
     sbRequest('GET', query)
       .then(function(res) {
         var rawTrips = Array.isArray(res) ? res : [];
-        
-        // Filter out expired trips
-        var validTrips = rawTrips.filter(function(t) {
-          if (t.expires_at) {
-            return new Date(t.expires_at) > new Date();
-          }
-          return true;
-        });
-
-        activeTripsInLot = validTrips;
-        renderVisualSVGSlots(validTrips);
-        renderSenderTripCards(validTrips);
+        activeTripsInLot = rawTrips;
+        renderVisualSVGSlots(rawTrips);
+        renderSenderTripCards(rawTrips);
       });
   }
 
@@ -767,36 +825,25 @@
 
     PARKING_SLOTS.forEach(function(slot, index) {
       var trip = trips[index];
+      var rot = slot.row === 'top' ? 180 : 0;
+      
       if (trip) {
-        var rot = slot.row === 'top' ? 180 : 0;
-        var cx = slot.x + 35;
-        var cy = slot.y + 30;
+        var palColor = truckPalettes[index % truckPalettes.length];
+        var truckInner = renderTruckVector(trip.vehicle_type, palColor);
         
-        // Color based on vehicle type
-        var cabColor = trip.vehicle_type && trip.vehicle_type.indexOf('Eicher') !== -1 ? '#3b82f6' : trip.vehicle_type && trip.vehicle_type.indexOf('Bolero') !== -1 ? '#ef4444' : '#10b981';
-
-        svgContent += '<g transform="translate(' + slot.x + ',' + slot.y + ')" class="truck-slot" onclick="openBookingFromSlot(' + index + ')" style="cursor:pointer;">' +
-          '<!-- Bay Number -->' +
-          '<text x="5" y="12" fill="#38bdf8" font-size="8" font-weight="bold" font-family="IBM Plex Mono">P' + (index + 1) + '</text>' +
-          '<!-- Truck Silhouette -->' +
-          '<rect x="15" y="6" width="45" height="48" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>' +
-          '<!-- Truck Cargo Bed -->' +
-          '<rect x="18" y="16" width="39" height="34" rx="4" fill="#0f172a" stroke="#2563eb" stroke-width="1"/>' +
-          '<!-- Truck Cabin -->' +
-          '<rect x="22" y="8" width="31" height="12" rx="3" fill="' + cabColor + '"/>' +
-          '<!-- Windshield -->' +
-          '<rect x="25" y="10" width="25" height="5" rx="2" fill="#93c5fd" opacity="0.8"/>' +
-          '<!-- Status Indicator -->' +
-          '<circle cx="56" cy="11" r="3" fill="#22c55e"/>' +
-          '<!-- Route Label -->' +
-          '<text x="37" y="32" fill="#fff" font-size="7.5" font-weight="bold" text-anchor="middle">' + trip.from_city.slice(0,3).toUpperCase() + '➔' + trip.to_city.slice(0,3).toUpperCase() + '</text>' +
-          '<text x="37" y="44" fill="#4ade80" font-size="7" font-weight="bold" text-anchor="middle">₹' + (trip.price_per_kg || 2500) + '</text>' +
+        svgContent += '<g transform="translate(' + slot.x + ',' + slot.y + ') rotate(' + rot + ')" class="truck-slot" onclick="openBookingFromSlot(' + index + ')" style="cursor:pointer;">' +
+          truckInner +
+        '</g>' +
+        '<!-- Bay Label -->' +
+        '<g transform="translate(' + slot.x + ',' + (slot.row === 'top' ? slot.y + 38 : slot.y - 36) + ')">' +
+          '<rect x="-24" y="-8" width="48" height="16" rx="4" fill="#0f131f" stroke="#232c3f" stroke-width="1"/>' +
+          '<text x="0" y="3" fill="#38bdf8" font-size="7" font-weight="900" font-family="IBM Plex Mono" text-anchor="middle">P' + (index + 1) + ' • ₹' + (trip.price_per_kg || 2500) + '</text>' +
         '</g>';
       } else {
         // Empty Bay Marker
         svgContent += '<g transform="translate(' + slot.x + ',' + slot.y + ')">' +
-          '<text x="5" y="12" fill="#475569" font-size="8" font-weight="bold" font-family="IBM Plex Mono">P' + (index + 1) + '</text>' +
-          '<text x="37" y="36" fill="#334155" font-size="8" font-weight="bold" text-anchor="middle">EMPTY</text>' +
+          '<rect x="-20" y="-28" width="40" height="56" rx="6" fill="none" stroke="#232c3f" stroke-dasharray="3 3" stroke-width="1"/>' +
+          '<text x="0" y="3" fill="#334155" font-size="8" font-weight="bold" font-family="IBM Plex Mono" text-anchor="middle">P' + (index + 1) + '</text>' +
         '</g>';
       }
     });
