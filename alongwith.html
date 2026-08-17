@@ -341,7 +341,7 @@
 
   <!-- Mode Switcher -->
   <div class="mode-switch-bar">
-    <button class="mode-tab active" id="tab-sender" onclick="switchMode('sender')">📦 Truck Parking Lot</button>
+    <button class="mode-tab active" id="tab-sender" onclick="switchMode('sender')">📦 Send Cargo</button>
     <button class="mode-tab" id="tab-driver" onclick="switchMode('driver')">🚚 Post Trip</button>
   </div>
 
@@ -351,7 +351,7 @@
     <!-- Visual Truck Parking Lot View (Same as Main App!) -->
     <div class="lot-container">
       <div class="lot-header">
-        <span class="lot-title">🅿️ Active Truck Parking Lot</span>
+        <span class="lot-title">🅿️ Freight Parking Lot</span>
         <span id="lot-vehicle-count" style="font-size: 11px; font-weight: 700; color: #4ade80;">0 Trucks Parked</span>
       </div>
       
@@ -545,6 +545,14 @@
       </div>
 
       <div class="form-group">
+        <label class="form-label">Trip Load Type</label>
+        <select id="drv-load-mode" class="form-select">
+          <option value="Shared Space (Multiple Senders)" selected>👥 Shared Space (Multiple shopkeepers can share space)</option>
+          <option value="Dedicated Full Truck">🔒 Dedicated Full Load (Single sender only)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
         <label class="form-label">Trip Notes (Optional)</label>
         <input type="text" id="drv-notes" class="form-input" placeholder="e.g. Tarpaulin covered, leaving from market yard">
       </div>
@@ -575,6 +583,15 @@
 
     <p id="modal-trip-summary" style="font-size: 11.5px; color: var(--text-muted); background: #0b0f19; padding: 8px 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid var(--card-border);"></p>
 
+    <!-- Booking Mode Selector: Shared vs Full -->
+    <div class="form-group" style="margin-bottom: 14px;">
+      <label class="form-label">Booking Mode</label>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn-action" id="book-mode-shared" style="flex:1; padding:8px; font-size:11.5px; background:var(--accent);" onclick="setSenderLoadMode('shared')">👥 Shared Space</button>
+        <button type="button" class="btn-action" id="book-mode-full" style="flex:1; padding:8px; font-size:11.5px; background:#1e293b; border:1px solid var(--card-border); color:var(--text-muted);" onclick="setSenderLoadMode('full')">🔒 Full Truck</button>
+      </div>
+    </div>
+
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Your Name / Shop Name</label>
@@ -589,10 +606,10 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Cargo Weight (KG)</label>
-        <input type="number" id="book-cargo-weight" class="form-input" placeholder="e.g. 500">
+        <input type="number" id="book-cargo-weight" class="form-input" placeholder="e.g. 300" oninput="onSenderWeightChange()">
       </div>
       <div class="form-group">
-        <label class="form-label">Agreed Freight Price (₹)</label>
+        <label class="form-label">Calculated Freight (₹)</label>
         <input type="number" id="book-fare-amount" class="form-input" placeholder="₹" oninput="calculateBookingFare()">
       </div>
     </div>
@@ -934,17 +951,63 @@
 
   // ── SENDER: BOOKING MODAL ──
   var activeTripForBooking = null;
+  var currentSenderLoadMode = 'shared';
 
   function openBookingModal(trip) {
     activeTripForBooking = trip;
-    document.getElementById('modal-trip-summary').innerHTML = '<strong>' + trip.from_city + ' ➔ ' + trip.to_city + '</strong> (' + trip.vehicle_type + ' • ' + trip.vehicle_number + ')<br>Expected Freight: ₹' + (trip.price_per_kg || 2500);
-    document.getElementById('book-cargo-weight').value = '';
+    var modeBadge = (trip.notes && trip.notes.indexOf('Dedicated') !== -1) ? '🔒 Dedicated Trip' : '👥 Shared Space Allowed';
+    document.getElementById('modal-trip-summary').innerHTML = '<strong>' + trip.from_city + ' ➔ ' + trip.to_city + '</strong> (' + trip.vehicle_type + ' • ' + trip.vehicle_number + ')<br>Trip Freight: ₹' + (trip.price_per_kg || 2500) + ' • <span style="color:#38bdf8;">' + modeBadge + '</span>';
+    
+    document.getElementById('book-sender-name').value = '';
+    document.getElementById('book-sender-phone').value = '';
     document.getElementById('book-cargo-desc').value = '';
     document.getElementById('book-pickup-addr').value = '';
     document.getElementById('book-drop-addr').value = '';
-    document.getElementById('book-fare-amount').value = trip.price_per_kg || 2500;
-    calculateBookingFare();
+    
+    setSenderLoadMode('shared');
     document.getElementById('modal-book-cargo').style.display = 'flex';
+  }
+
+  function setSenderLoadMode(mode) {
+    currentSenderLoadMode = mode;
+    var btnShared = document.getElementById('book-mode-shared');
+    var btnFull = document.getElementById('book-mode-full');
+    var weightInput = document.getElementById('book-cargo-weight');
+    var fareInput = document.getElementById('book-fare-amount');
+
+    var totalCap = activeTripForBooking ? (activeTripForBooking.available_capacity_kg || activeTripForBooking.total_capacity_kg || 1000) : 1000;
+    var fullPrice = activeTripForBooking ? (activeTripForBooking.price_per_kg || 2500) : 2500;
+
+    if (mode === 'shared') {
+      btnShared.style.background = 'var(--accent)';
+      btnShared.style.color = '#fff';
+      btnFull.style.background = '#1e293b';
+      btnFull.style.color = 'var(--text-muted)';
+      weightInput.readOnly = false;
+      weightInput.value = Math.min(250, totalCap);
+      onSenderWeightChange();
+    } else {
+      btnFull.style.background = 'var(--accent)';
+      btnFull.style.color = '#fff';
+      btnShared.style.background = '#1e293b';
+      btnShared.style.color = 'var(--text-muted)';
+      weightInput.value = totalCap;
+      weightInput.readOnly = true;
+      fareInput.value = fullPrice;
+      calculateBookingFare();
+    }
+  }
+
+  function onSenderWeightChange() {
+    if (currentSenderLoadMode === 'full') return;
+    var weight = parseInt(document.getElementById('book-cargo-weight').value) || 0;
+    var totalCap = activeTripForBooking ? (activeTripForBooking.total_capacity_kg || 1000) : 1000;
+    var fullPrice = activeTripForBooking ? (activeTripForBooking.price_per_kg || 2500) : 2500;
+    
+    // Proportionate fair price for shared parcel
+    var calculated = Math.max(300, Math.round((weight / totalCap) * fullPrice));
+    document.getElementById('book-fare-amount').value = calculated;
+    calculateBookingFare();
   }
 
   function calculateBookingFare() {
@@ -977,12 +1040,14 @@
     btn.textContent = '⏳ Booking Freight Bay...';
     btn.disabled = true;
 
+    var formattedDesc = (currentSenderLoadMode === 'shared' ? '👥 Shared: ' : '🔒 Full: ') + (desc || 'Cargo');
+
     var bookingPayload = {
       trip_id: activeTripForBooking.id,
       sender_name: name,
       sender_phone: phone,
       cargo_weight_kg: weight,
-      cargo_description: desc,
+      cargo_description: formattedDesc,
       pickup_address: pickup,
       drop_address: drop,
       total_price: total,
@@ -1006,12 +1071,13 @@
       });
   }
 
-  // ── DRIVER: POST TRIP ──
+  // ── DRIVER: POST TRIP (With Duplicate Prevention) ──
   function postReturnTrip() {
     var from = document.getElementById('drv-from').value;
     var to = document.getElementById('drv-to').value;
     var vType = document.getElementById('drv-vehicle-type').value;
     var vNum = document.getElementById('drv-vehicle-num').value.trim().toUpperCase();
+    var loadMode = document.getElementById('drv-load-mode') ? document.getElementById('drv-load-mode').value : 'Shared Space';
     var capacity = parseInt(document.getElementById('drv-capacity').value) || 1000;
     var price = parseFloat(document.getElementById('drv-price').value) || 2500;
     var dep = document.getElementById('drv-departure').value;
@@ -1034,13 +1100,14 @@
       localStorage.setItem('rydealot_alongwith_driver', JSON.stringify({ name: name, phone: phone, vNum: vNum }));
     } catch(e) {}
 
-    btn.textContent = '⏳ Parking Truck in Bay...';
+    btn.textContent = '⏳ Checking & Parking Truck...';
     btn.disabled = true;
 
-    var formattedNotes = notes;
+    var formattedNotes = (loadMode.indexOf('Shared') !== -1 ? '👥 Shared Space' : '🔒 Dedicated Load');
+    if (notes) formattedNotes += ' • ' + notes;
     if (exp) {
       var expD = new Date(exp);
-      formattedNotes = (notes ? notes + ' • ' : '') + 'Valid until: ' + expD.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+      formattedNotes += ' • Valid until: ' + expD.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
     }
 
     var tripPayload = {
@@ -1058,14 +1125,29 @@
       notes: formattedNotes
     };
 
-    sbRequest('POST', 'cargo_trips', tripPayload)
-      .then(function(res) {
-        showToast('🎉 Trip posted! Truck parked in the live lot.');
+    // Check if an active open trip already exists for this driver and route to prevent duplicates
+    sbRequest('GET', 'cargo_trips?driver_phone=eq.' + encodeURIComponent(phone) + '&from_city=eq.' + encodeURIComponent(from) + '&to_city=eq.' + encodeURIComponent(to) + '&status=eq.open&limit=1')
+      .then(function(existing) {
+        if (Array.isArray(existing) && existing.length > 0) {
+          // Update the existing active trip instead of creating a duplicate
+          return sbRequest('PATCH', 'cargo_trips?id=eq.' + existing[0].id, tripPayload)
+            .then(function() {
+              showToast('✅ Updated your active trip for ' + from + ' ➔ ' + to);
+            });
+        } else {
+          // Post as a new trip
+          return sbRequest('POST', 'cargo_trips', tripPayload)
+            .then(function() {
+              showToast('🎉 Trip posted! Truck parked in the live lot.');
+            });
+        }
+      })
+      .then(function() {
         loadMyDriverTrips();
         loadParkingLotTrips();
       })
       .catch(function(err) {
-        showToast('❌ Error posting trip');
+        showToast('❌ Error saving trip');
       })
       .finally(function() {
         btn.textContent = '🚛 Post Trip';
@@ -1083,7 +1165,7 @@
     }
     if (!phone) return;
 
-    sbRequest('GET', 'cargo_trips?driver_phone=eq.' + encodeURIComponent(phone) + '&order=created_at.desc&limit=10')
+    sbRequest('GET', 'cargo_trips?driver_phone=eq.' + encodeURIComponent(phone) + '&status=neq.cancelled&order=created_at.desc&limit=10')
       .then(function(res) {
         renderDriverTrips(Array.isArray(res) ? res : []);
       });
@@ -1092,7 +1174,7 @@
   function renderDriverTrips(trips) {
     var container = document.getElementById('driver-trips-list');
     if (!trips || !trips.length) {
-      container.innerHTML = '<div style="text-align:center; padding:30px 20px; color:var(--text-faint); font-size:12.5px;">No trips posted yet under this phone number.</div>';
+      container.innerHTML = '<div style="text-align:center; padding:30px 20px; color:var(--text-faint); font-size:12.5px;">No active trips posted under this phone number.</div>';
       return;
     }
 
@@ -1112,14 +1194,34 @@
         '<div style="font-size:12px; color:var(--text-muted);">' +
           '📦 Available: <strong style="color:#fff;">' + (t.available_capacity_kg || t.total_capacity_kg) + ' KG</strong> • Freight: <strong style="color:#4ade80;">₹' + (t.price_per_kg || 2500) + '</strong>' +
         '</div>' +
+        (t.notes ? '<div style="font-size:11px; color:var(--text-faint); margin-top:4px;">💬 ' + t.notes + '</div>' : '') +
         '<div style="display:flex; gap:8px; margin-top:10px;">' +
           '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#1e293b; border:1px solid var(--card-border);" onclick="viewTripBookings(\'' + t.id + '\', \'' + t.from_city + ' ➔ ' + t.to_city + '\')">📋 View Bookings</button>' +
           (t.status === 'open' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#16a34a;" onclick="setTripStatus(\'' + t.id + '\', \'in_transit\')">🚛 Start Trip</button>' : '') +
           (t.status === 'in_transit' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#7c3aed;" onclick="setTripStatus(\'' + t.id + '\', \'completed\')">✅ Complete</button>' : '') +
+          '<button class="btn-action" style="flex:0.6; padding:8px; font-size:11px; background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5;" onclick="deleteTrip(\'' + t.id + '\')">🗑️ Cancel</button>' +
         '</div>' +
       '</div>';
     }
     container.innerHTML = html;
+  }
+
+  function deleteTrip(tripId) {
+    if (!confirm('Are you sure you want to cancel and remove this trip from the freight lot?')) return;
+    sbRequest('DELETE', 'cargo_trips?id=eq.' + tripId)
+      .then(function() {
+        showToast('🗑️ Trip removed from freight lot');
+        loadMyDriverTrips();
+        loadParkingLotTrips();
+      })
+      .catch(function() {
+        sbRequest('PATCH', 'cargo_trips?id=eq.' + tripId, { status: 'cancelled' })
+          .then(function() {
+            showToast('🗑️ Trip marked as cancelled');
+            loadMyDriverTrips();
+            loadParkingLotTrips();
+          });
+      });
   }
 
   function setTripStatus(tripId, status) {
