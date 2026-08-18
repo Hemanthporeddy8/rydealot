@@ -816,6 +816,44 @@
   // ── SENDER: LOAD REAL TRUCKS FROM SUPABASE ──
   var activeTripsInLot = [];
 
+  function isTripExpired(trip) {
+    if (!trip) return true;
+    var now = new Date();
+
+    if (trip.status === 'expired' || trip.status === 'completed' || trip.status === 'cancelled') {
+      return true;
+    }
+
+    // 1. Check embedded [EXP:...] tag in notes
+    if (trip.notes && trip.notes.indexOf('[EXP:') !== -1) {
+      var match = trip.notes.match(/\[EXP:([^\]]+)\]/);
+      if (match && match[1]) {
+        var expDate = new Date(match[1]);
+        if (!isNaN(expDate.getTime()) && expDate < now) {
+          return true;
+        }
+      }
+    }
+
+    // 2. Check departure_time (if departure time has already passed)
+    if (trip.departure_time) {
+      var depDate = new Date(trip.departure_time);
+      if (!isNaN(depDate.getTime()) && depDate < now) {
+        return true;
+      }
+    }
+
+    // 3. If trip created more than 24 hours ago
+    if (trip.created_at) {
+      var createdDate = new Date(trip.created_at);
+      if (!isNaN(createdDate.getTime()) && (now.getTime() - createdDate.getTime()) > 24 * 3600000) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   function loadParkingLotTrips() {
     var from = (document.getElementById('search-from-city').value || '').trim();
     var to = (document.getElementById('search-to-city').value || '').trim();
@@ -839,9 +877,20 @@
     sbRequest('GET', query)
       .then(function(res) {
         var rawTrips = Array.isArray(res) ? res : [];
-        activeTripsInLot = rawTrips;
-        renderVisualSVGSlots(rawTrips);
-        renderSenderTripCards(rawTrips);
+        var activeValidTrips = [];
+
+        rawTrips.forEach(function(t) {
+          if (isTripExpired(t)) {
+            // Auto update expired trip status in database
+            sbRequest('PATCH', 'cargo_trips?id=eq.' + t.id, { status: 'expired' });
+          } else {
+            activeValidTrips.push(t);
+          }
+        });
+
+        activeTripsInLot = activeValidTrips;
+        renderVisualSVGSlots(activeValidTrips);
+        renderSenderTripCards(activeValidTrips);
       });
   }
 
@@ -930,6 +979,7 @@
       }
 
       var icon = t.vehicle_type && t.vehicle_type.indexOf('Bolero') !== -1 ? '🛻' : t.vehicle_type && t.vehicle_type.indexOf('Eicher') !== -1 ? '🚛' : '🚚';
+      var cleanNotes = (t.notes || '').replace(/\[EXP:[^\]]+\]/g, '').trim();
 
       html += '<div class="bay-card">' +
         '<div class="bay-tag">BAY #' + (i + 1) + '</div>' +
@@ -945,7 +995,7 @@
           '<span>📦 Capacity: <strong style="color:#fff;">' + avail + ' / ' + total + ' KG</strong></span>' +
           '<span>🕒 ' + timeStr + expStr + '</span>' +
         '</div>' +
-        (t.notes ? '<div style="font-size:11px; color:var(--text-faint); margin-top:6px; font-style:italic;">💬 "' + t.notes + '"</div>' : '') +
+        (cleanNotes ? '<div style="font-size:11px; color:var(--text-faint); margin-top:6px; font-style:italic;">💬 "' + cleanNotes + '"</div>' : '') +
         '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--card-border); padding-top:12px; margin-top:12px;">' +
           '<div>' +
             '<span style="font-size:10px; color:var(--text-faint); text-transform:uppercase; display:block;">Trip Freight</span>' +
@@ -1120,12 +1170,14 @@
     btn.textContent = '⏳ Checking & Parking Truck...';
     btn.disabled = true;
 
+    var expIso = exp ? new Date(exp).toISOString() : new Date(dep).toISOString();
     var formattedNotes = (loadMode.indexOf('Shared') !== -1 ? '👥 Shared Space' : '🔒 Dedicated Load');
     if (notes) formattedNotes += ' • ' + notes;
     if (exp) {
       var expD = new Date(exp);
-      formattedNotes += ' • Valid until: ' + expD.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+      formattedNotes += ' • Valid until: ' + expD.toLocaleDateString('en-IN', {day:'numeric', month:'short'}) + ' ' + expD.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
     }
+    formattedNotes += ' [EXP:' + expIso + ']';
 
     var tripPayload = {
       driver_name: name,
@@ -1232,21 +1284,26 @@
         '</div>';
       }
 
+      var isExp = isTripExpired(t);
+      var badgeClass = isExp ? 'badge-expiring' : (t.status === 'open' ? 'badge-open' : 'badge-expiring');
+      var badgeText = isExp ? 'EXPIRED' : t.status.toUpperCase();
+      var cleanDrvNotes = (t.notes || '').replace(/\[EXP:[^\]]+\]/g, '').trim();
+
       html += '<div class="bay-card" style="' + (bookingCount > 0 ? 'border:1.5px solid #22c55e;' : '') + '">' +
         '<div style="display:flex; justify-content:space-between; align-items:center;">' +
           '<span style="font-size:15px; font-weight:900; color:#fff;">' + t.from_city + ' ➔ ' + t.to_city + '</span>' +
-          '<span class="badge ' + badgeClass + '">' + t.status.toUpperCase() + '</span>' +
+          '<span class="badge ' + badgeClass + '">' + badgeText + '</span>' +
         '</div>' +
         '<div style="font-size:11.5px; color:var(--text-muted); margin:4px 0;">' + t.vehicle_type + ' (' + t.vehicle_number + ') • ' + timeStr + '</div>' +
         '<div style="font-size:12px; color:var(--text-muted);">' +
           '📦 Available: <strong style="color:#fff;">' + (t.available_capacity_kg !== undefined ? t.available_capacity_kg : t.total_capacity_kg) + ' / ' + (t.total_capacity_kg || 1000) + ' KG</strong> • Trip Freight: <strong style="color:#4ade80;">₹' + (t.price_per_kg || 2500) + '</strong>' +
         '</div>' +
-        (t.notes ? '<div style="font-size:11px; color:var(--text-faint); margin-top:4px;">💬 ' + t.notes + '</div>' : '') +
+        (cleanDrvNotes ? '<div style="font-size:11px; color:var(--text-faint); margin-top:4px;">💬 ' + cleanDrvNotes + '</div>' : '') +
         bookingAlertHtml +
         '<div style="display:flex; gap:8px; margin-top:10px;">' +
           '<button class="btn-action" style="flex:1.2; padding:8px; font-size:11.5px; background:' + (bookingCount > 0 ? '#15803d' : '#1e293b') + '; border:1px solid var(--card-border); font-weight:800;" onclick="viewTripBookings(\'' + t.id + '\', \'' + t.from_city + ' ➔ ' + t.to_city + '\')">📋 View Bookings (' + bookingCount + ')</button>' +
-          (t.status === 'open' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#16a34a;" onclick="setTripStatus(\'' + t.id + '\', \'in_transit\')">🚛 Start Trip</button>' : '') +
-          (t.status === 'in_transit' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#7c3aed;" onclick="setTripStatus(\'' + t.id + '\', \'completed\')">✅ Complete</button>' : '') +
+          (!isExp && t.status === 'open' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#16a34a;" onclick="setTripStatus(\'' + t.id + '\', \'in_transit\')">🚛 Start Trip</button>' : '') +
+          (!isExp && t.status === 'in_transit' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#7c3aed;" onclick="setTripStatus(\'' + t.id + '\', \'completed\')">✅ Complete</button>' : '') +
           '<button class="btn-action" style="flex:0.6; padding:8px; font-size:11px; background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5;" onclick="deleteTrip(\'' + t.id + '\')">🗑️ Cancel</button>' +
         '</div>' +
       '</div>';
