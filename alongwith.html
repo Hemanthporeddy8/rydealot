@@ -209,6 +209,162 @@
     .form-row { display: flex; gap: 10px; }
     .form-row > * { flex: 1; }
 
+    /* Animated Truck Journey Tracker */
+    .truck-journey-tracker {
+      background: #080c14;
+      border: 1.5px solid #1e293b;
+      border-radius: 14px;
+      padding: 14px;
+      margin: 12px 0 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    .tracker-stage-visual {
+      background: #0d131f;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .road-track-bg {
+      position: absolute;
+      bottom: 10px;
+      left: 0;
+      width: 100%;
+      height: 22px;
+      background: #111827;
+      border-top: 2px solid #374151;
+      border-bottom: 2px solid #374151;
+    }
+    .road-dashed-line {
+      position: absolute;
+      top: 9px;
+      left: 0;
+      width: 200%;
+      height: 2px;
+      background: repeating-linear-gradient(90deg, #facc15 0px, #facc15 14px, transparent 14px, transparent 28px);
+    }
+    .road-animated {
+      animation: roadDrive 0.8s linear infinite;
+    }
+    @keyframes roadDrive {
+      from { transform: translateX(0); }
+      to { transform: translateX(-28px); }
+    }
+    .truck-driving {
+      animation: truckSuspension 0.4s ease-in-out infinite alternate;
+    }
+    @keyframes truckSuspension {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-3px); }
+    }
+    .crate-loading-anim {
+      animation: crateSlideIn 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+    }
+    @keyframes crateSlideIn {
+      0% { transform: translate(-25px, -15px) scale(0.6); opacity: 0; }
+      50% { transform: translate(-8px, -4px) scale(1); opacity: 1; }
+      100% { transform: translate(4px, 2px) scale(0.9); opacity: 0.9; }
+    }
+    .crate-unloading-anim {
+      animation: crateSlideOut 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+    }
+    @keyframes crateSlideOut {
+      0% { transform: translate(0px, 0px) scale(0.9); opacity: 1; }
+      50% { transform: translate(18px, -6px) scale(1); opacity: 1; }
+      100% { transform: translate(34px, 10px) scale(0.6); opacity: 0; }
+    }
+    .waving-hand {
+      display: inline-block;
+      animation: waveHandAnim 1.2s ease-in-out infinite;
+      transform-origin: 70% 70%;
+    }
+    @keyframes waveHandAnim {
+      0%, 100% { transform: rotate(0deg); }
+      20%, 60% { transform: rotate(14deg); }
+      40%, 80% { transform: rotate(-14deg); }
+    }
+    
+    /* Vertical Step Timeline */
+    .timeline-steps {
+      position: relative;
+      padding-left: 28px;
+    }
+    .timeline-steps::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 6px;
+      bottom: 12px;
+      width: 2.5px;
+      background: #1e293b;
+    }
+    .timeline-progress-bar {
+      position: absolute;
+      left: 10px;
+      top: 6px;
+      width: 2.5px;
+      background: linear-gradient(180deg, #22c55e, #38bdf8);
+      transition: height 0.4s ease;
+    }
+    .timeline-step-item {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .timeline-step-item:last-child { margin-bottom: 0; }
+    .timeline-dot {
+      position: absolute;
+      left: -28px;
+      top: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 2px solid #475569;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      font-size: 9px;
+      color: #000;
+      font-weight: 900;
+    }
+    .timeline-step-item.active .timeline-dot {
+      background: #22c55e;
+      border-color: #4ade80;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    }
+    .timeline-step-item.current .timeline-dot {
+      background: #38bdf8;
+      border-color: #7dd3fc;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+      animation: pulseDot 1.5s infinite;
+    }
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.25); }
+    }
+    .timeline-step-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #94a3b8;
+    }
+    .timeline-step-item.active .timeline-step-title,
+    .timeline-step-item.current .timeline-step-title {
+      color: #f8fafc;
+    }
+    .timeline-step-sub {
+      font-size: 10.5px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
     /* Primary Action Buttons */
     .btn-action {
       width: 100%;
@@ -1596,6 +1752,130 @@
       });
   }
 
+  function renderLiveTruckJourneyTimeline(status, b, t) {
+    var stageNum = 1;
+    if (status === 'accepted') stageNum = 1;
+    else if (status === 'arrived_pickup') stageNum = 2;
+    else if (status === 'in_transit') stageNum = 3;
+    else if (status === 'arrived_drop') stageNum = 4;
+    else if (status === 'delivered') stageNum = 5;
+
+    var progressHeightPct = Math.min(100, Math.round(((stageNum - 1) / 4) * 100));
+
+    // Animated Stage Visual Card
+    var visualStageHtml = '';
+    if (stageNum === 1) {
+      visualStageHtml = '<div class="tracker-stage-visual">' +
+        '<div style="text-align:center;">' +
+          '<div style="font-size:10px; color:#38bdf8; font-weight:800; margin-bottom:6px; letter-spacing:0.5px;">📦 STAGE 1: ORDER CONFIRMED</div>' +
+          '<svg width="120" height="44" viewBox="0 0 120 44" fill="none">' +
+            '<!-- Empty Truck Deck -->' +
+            '<rect x="10" y="8" width="55" height="22" rx="3" fill="#1e293b" stroke="#38bdf8" stroke-dasharray="3 3" stroke-width="1.5"/>' +
+            '<text x="37" y="22" fill="#64748b" font-size="7.5" font-weight="700" text-anchor="middle">EMPTY DECK</text>' +
+            '<path d="M65 14h18l8 8v8h-26v-16z" fill="#0284c7"/>' +
+            '<rect x="74" y="16" width="9" height="6" rx="1" fill="#bae6fd" opacity="0.8"/>' +
+            '<circle cx="26" cy="32" r="5" fill="#0f172a" stroke="#475569" stroke-width="2"/>' +
+            '<circle cx="78" cy="32" r="5" fill="#0f172a" stroke="#475569" stroke-width="2"/>' +
+          '</svg>' +
+          '<div style="font-size:11.5px; color:#94a3b8; margin-top:4px;">Truck assigned • Waiting for driver arrival</div>' +
+        '</div>' +
+      '</div>';
+    } else if (stageNum === 2) {
+      visualStageHtml = '<div class="tracker-stage-visual" style="border-color:#facc15;">' +
+        '<div style="text-align:center;">' +
+          '<div style="font-size:10px; color:#facc15; font-weight:900; margin-bottom:6px; letter-spacing:0.5px;">📦 STAGE 2: LOADING CARGO AT SHOP</div>' +
+          '<div style="display:flex; align-items:center; justify-content:center; gap:12px;">' +
+            '<div class="crate-loading-anim" style="font-size:18px;">📦</div>' +
+            '<svg width="110" height="44" viewBox="0 0 110 44" fill="none">' +
+              '<rect x="10" y="8" width="55" height="22" rx="3" fill="#1e293b" stroke="#facc15" stroke-width="1.5"/>' +
+              '<rect x="16" y="12" width="14" height="14" rx="2" fill="#d97706"/>' +
+              '<text x="23" y="22" fill="#fef3c7" font-size="7" font-weight="900" text-anchor="middle">📦</text>' +
+              '<path d="M65 14h18l8 8v8h-26v-16z" fill="#ca8a04"/>' +
+              '<rect x="74" y="16" width="9" height="6" rx="1" fill="#fef08a" opacity="0.8"/>' +
+              '<circle cx="26" cy="32" r="5" fill="#0f172a" stroke="#facc15" stroke-width="2"/>' +
+              '<circle cx="78" cy="32" r="5" fill="#0f172a" stroke="#facc15" stroke-width="2"/>' +
+            '</svg>' +
+          '</div>' +
+          '<div style="font-size:11.5px; color:#fef08a; margin-top:4px; font-weight:700;">Loading ' + b.cargo_weight_kg + ' KG cargo into truck deck...</div>' +
+        '</div>' +
+      '</div>';
+    } else if (stageNum === 3) {
+      visualStageHtml = '<div class="tracker-stage-visual" style="border-color:#38bdf8; padding-bottom:26px;">' +
+        '<div class="road-track-bg"><div class="road-dashed-line road-animated"></div></div>' +
+        '<div style="text-align:center; position:relative; z-index:2;">' +
+          '<div style="font-size:10px; color:#38bdf8; font-weight:900; margin-bottom:4px; letter-spacing:0.5px;">🛣️ STAGE 3: ON THE ROAD</div>' +
+          '<div class="truck-driving">' +
+            '<svg width="120" height="44" viewBox="0 0 120 44" fill="none">' +
+              '<rect x="10" y="8" width="55" height="22" rx="3" fill="#0369a1" stroke="#38bdf8" stroke-width="1.5"/>' +
+              '<rect x="14" y="11" width="10" height="10" rx="1.5" fill="#f59e0b"/>' +
+              '<rect x="27" y="11" width="10" height="10" rx="1.5" fill="#f59e0b"/>' +
+              '<rect x="40" y="11" width="10" height="10" rx="1.5" fill="#f59e0b"/>' +
+              '<path d="M65 14h18l8 8v8h-26v-16z" fill="#0284c7"/>' +
+              '<rect x="74" y="16" width="9" height="6" rx="1" fill="#bae6fd"/>' +
+              '<polygon points="91,24 106,21 106,28" fill="#fef08a" opacity="0.6"/>' +
+              '<circle cx="26" cy="32" r="5" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>' +
+              '<circle cx="78" cy="32" r="5" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>' +
+            '</svg>' +
+          '</div>' +
+          '<div style="font-size:12px; color:#e0f2fe; font-weight:800; margin-top:2px;">Heading towards destination 🛣️</div>' +
+        '</div>' +
+      '</div>';
+    } else if (stageNum === 4) {
+      visualStageHtml = '<div class="tracker-stage-visual" style="border-color:#c084fc;">' +
+        '<div style="text-align:center;">' +
+          '<div style="font-size:10px; color:#c084fc; font-weight:900; margin-bottom:6px; letter-spacing:0.5px;">📦 STAGE 4: ARRIVED AT DESTINATION — UNLOADING</div>' +
+          '<div style="display:flex; align-items:center; justify-content:center; gap:12px;">' +
+            '<svg width="110" height="44" viewBox="0 0 110 44" fill="none">' +
+              '<rect x="10" y="8" width="55" height="22" rx="3" fill="#1e293b" stroke="#c084fc" stroke-width="1.5"/>' +
+              '<path d="M65 14h18l8 8v8h-26v-16z" fill="#7c3aed"/>' +
+              '<rect x="74" y="16" width="9" height="6" rx="1" fill="#e9d5ff" opacity="0.8"/>' +
+              '<circle cx="26" cy="32" r="5" fill="#0f172a" stroke="#c084fc" stroke-width="2"/>' +
+              '<circle cx="78" cy="32" r="5" fill="#0f172a" stroke="#c084fc" stroke-width="2"/>' +
+            '</svg>' +
+            '<div class="crate-unloading-anim" style="font-size:18px;">📦</div>' +
+          '</div>' +
+          '<div style="font-size:11.5px; color:#e9d5ff; margin-top:4px; font-weight:700;">Unloading cargo at destination warehouse...</div>' +
+        '</div>' +
+      '</div>';
+    } else {
+      visualStageHtml = '<div class="tracker-stage-visual" style="border-color:#22c55e; background:linear-gradient(135deg, rgba(34,197,94,0.15), rgba(16,185,129,0.05));">' +
+        '<div style="text-align:center;">' +
+          '<div style="font-size:26px; margin-bottom:4px;">🎉 <span class="waving-hand">👋</span></div>' +
+          '<div style="font-size:14px; color:#4ade80; font-weight:900; margin-bottom:2px;">Delivered Successfully! Say bye 👋</div>' +
+          '<div style="font-size:11.5px; color:#cbd5e1;">Your ' + b.cargo_weight_kg + ' KG shipment reached safely. Thank you!</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    var steps = [
+      { num: 1, title: '1. Order Placed & Confirmed', sub: 'Truck assigned • Empty deck' },
+      { num: 2, title: '2. Driver Arrived & Loading', sub: 'Cargo loading animation in progress' },
+      { num: 3, title: '3. Heading towards destination', sub: 'Truck in transit on highway' },
+      { num: 4, title: '4. Arrived at Drop — Unloading', sub: 'Cargo unloading at destination' },
+      { num: 5, title: '5. Delivered & Say Bye 👋', sub: 'Delivery complete' }
+    ];
+
+    var timelineListHtml = '<div class="timeline-steps">' +
+      '<div class="timeline-progress-bar" style="height:' + progressHeightPct + '%;"></div>';
+
+    steps.forEach(function(s) {
+      var itemClass = s.num < stageNum ? 'timeline-step-item active' : s.num === stageNum ? 'timeline-step-item current' : 'timeline-step-item';
+      var dotContent = s.num < stageNum ? '✓' : '';
+      timelineListHtml += '<div class="' + itemClass + '">' +
+        '<div class="timeline-dot">' + dotContent + '</div>' +
+        '<div class="timeline-step-title">' + s.title + '</div>' +
+        '<div class="timeline-step-sub">' + s.sub + '</div>' +
+      '</div>';
+    });
+
+    timelineListHtml += '</div>';
+
+    return '<div class="truck-journey-tracker">' +
+      visualStageHtml +
+      timelineListHtml +
+    '</div>';
+  }
+
   function renderSenderBookings(bookings) {
     var container = document.getElementById('sender-bookings-list');
     if (!container) return;
@@ -1605,65 +1885,29 @@
       var b = bookings[i];
       var t = b.trip || {};
       var statusBadge = '';
-      var arrivalCard = '';
 
       if (b.status === 'arrived_pickup') {
         statusBadge = '<span style="font-size:10px; font-weight:900; color:#facc15; background:rgba(250,204,21,0.25); padding:3px 10px; border-radius:12px; border:1.5px solid #facc15;">🔔 DRIVER ARRIVED</span>';
-        arrivalCard = '<div style="background:linear-gradient(135deg, rgba(234,179,8,0.22), rgba(202,138,4,0.1)); border:2px solid #facc15; border-radius:12px; padding:12px; margin:10px 0;">' +
-          '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
-            '<span style="font-size:13.5px; font-weight:900; color:#facc15;">🔔 DRIVER HAS ARRIVED OUTSIDE!</span>' +
-            '<span style="font-size:9px; font-weight:900; background:#facc15; color:#000; padding:2px 6px; border-radius:10px;">AT YOUR SHOP</span>' +
-          '</div>' +
-          '<div style="font-size:12px; color:#fff; font-weight:700; margin-bottom:3px;">' +
-            'Driver ' + (t.driver_name || 'Driver') + ' (' + (t.vehicle_type || 'Truck') + ' • ' + (t.vehicle_number || '') + ') is outside your shop for loading!' +
-          '</div>' +
-          '<div style="font-size:11px; color:#cbd5e1;">Please hand over your ' + b.cargo_weight_kg + ' KG cargo to the driver.</div>' +
-        '</div>';
       } else if (b.status === 'accepted') {
-        statusBadge = '<span style="font-size:10px; font-weight:900; color:#4ade80; background:rgba(34,197,94,0.25); padding:3px 10px; border-radius:12px; border:1px solid #22c55e;">✅ ACCEPTED — ON THE WAY</span>';
-        arrivalCard = '<div style="background:linear-gradient(135deg, rgba(34,197,94,0.18), rgba(16,185,129,0.08)); border:1.5px solid #22c55e; border-radius:12px; padding:12px; margin:10px 0;">' +
-          '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
-            '<span style="font-size:13px; font-weight:900; color:#4ade80;">🚛 Driver Will Be At Your Location Soon!</span>' +
-            '<span style="font-size:9px; font-weight:900; background:#22c55e; color:#000; padding:2px 6px; border-radius:10px;">CONFIRMED</span>' +
-          '</div>' +
-          '<div style="font-size:12px; color:#f1f5f9; line-height:1.4;">' +
-            'Driver <strong style="color:#38bdf8;">' + (t.driver_name || 'Driver') + '</strong> (' + (t.vehicle_type || 'Truck') + ' • <strong style="color:#facc15;">' + (t.vehicle_number || '') + '</strong>) confirmed your booking and is heading to your pickup location.' +
-          '</div>' +
-        '</div>';
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#4ade80; background:rgba(34,197,94,0.25); padding:3px 10px; border-radius:12px; border:1px solid #22c55e;">✅ ACCEPTED</span>';
       } else if (b.status === 'in_transit') {
-        statusBadge = '<span style="font-size:10px; font-weight:900; color:#38bdf8; background:rgba(56,189,248,0.25); padding:3px 10px; border-radius:12px; border:1px solid #38bdf8;">🚛 IN TRANSIT</span>';
-        arrivalCard = '<div style="background:linear-gradient(135deg, rgba(56,189,248,0.18), rgba(2,132,199,0.08)); border:1.5px solid #38bdf8; border-radius:12px; padding:12px; margin:10px 0;">' +
-          '<div style="font-size:13px; font-weight:900; color:#38bdf8; margin-bottom:3px;">🛣️ CARGO LOADED — ON THE HIGHWAY!</div>' +
-          '<div style="font-size:12px; color:#e2e8f0;">' +
-            'Your <strong>' + b.cargo_weight_kg + ' KG</strong> load is safely inside ' + (t.vehicle_number || 'the truck') + ' and on the road to ' + (t.to_city || 'destination') + '.' +
-          '</div>' +
-        '</div>';
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#38bdf8; background:rgba(56,189,248,0.25); padding:3px 10px; border-radius:12px; border:1px solid #38bdf8;">🚛 ON THE ROAD</span>';
       } else if (b.status === 'arrived_drop') {
         statusBadge = '<span style="font-size:10px; font-weight:900; color:#c084fc; background:rgba(168,85,247,0.25); padding:3px 10px; border-radius:12px; border:1px solid #a855f7;">🏁 AT DESTINATION</span>';
-        arrivalCard = '<div style="background:linear-gradient(135deg, rgba(168,85,247,0.18), rgba(126,34,206,0.08)); border:1.5px solid #a855f7; border-radius:12px; padding:12px; margin:10px 0;">' +
-          '<div style="font-size:13px; font-weight:900; color:#c084fc; margin-bottom:3px;">🏁 ARRIVED AT DROP DESTINATION!</div>' +
-          '<div style="font-size:12px; color:#e2e8f0;">Driver reached destination and is unloading your cargo.</div>' +
-        '</div>';
       } else if (b.status === 'delivered') {
         statusBadge = '<span style="font-size:10px; font-weight:900; color:#38bdf8; background:rgba(56,189,248,0.2); padding:3px 10px; border-radius:12px; border:1px solid #0284c7;">🎉 DELIVERED</span>';
-        arrivalCard = '<div style="background:rgba(56,189,248,0.12); border:1px solid #0284c7; border-radius:8px; padding:8px 10px; margin:8px 0; color:#38bdf8; font-size:11.5px;">' +
-          '✅ Your shipment was delivered successfully! Thank you for choosing Rydealot.' +
-        '</div>';
       } else if (b.status === 'pending') {
         statusBadge = '<span style="font-size:10px; font-weight:900; color:#facc15; background:rgba(250,204,21,0.2); padding:3px 10px; border-radius:12px; border:1px solid #eab308;">⏳ WAITING FOR DRIVER</span>';
-        arrivalCard = '<div style="background:rgba(234,179,8,0.12); border:1px solid #ca8a04; border-radius:8px; padding:8px 10px; margin:8px 0; color:#fde047; font-size:11.5px;">' +
-          '🚚 Request sent to Driver. Live driver confirmation & arrival status will alert here automatically!' +
-        '</div>';
       } else {
         statusBadge = '<span style="font-size:10px; font-weight:900; color:#f87171; background:rgba(239,68,68,0.2); padding:3px 10px; border-radius:12px; border:1px solid #dc2626;">❌ DECLINED</span>';
-        arrivalCard = '<div style="background:rgba(239,68,68,0.1); border:1px solid #b91c1c; border-radius:8px; padding:8px 10px; margin:8px 0; color:#fca5a5; font-size:11.5px;">' +
-          'This truck was full. Please choose another available truck from the parking lot above!' +
-        '</div>';
       }
 
       var routeStr = (t.from_city && t.to_city) ? (t.from_city + ' ➔ ' + t.to_city) : 'Cargo Shipment';
+      var journeyTrackerHtml = (b.status !== 'pending' && b.status !== 'rejected' && b.status !== 'declined_full') 
+        ? renderLiveTruckJourneyTimeline(b.status, b, t)
+        : '<div style="background:rgba(234,179,8,0.1); border:1px solid #ca8a04; border-radius:8px; padding:8px 10px; margin:8px 0; color:#fde047; font-size:11.5px;">⏳ Request sent to Driver. Waiting for confirmation.</div>';
 
-      html += '<div class="bay-card" style="margin-bottom:10px; ' + (b.status === 'arrived_pickup' ? 'border:2px solid #facc15;' : b.status === 'accepted' ? 'border:1.5px solid #22c55e;' : '') + '">' +
+      html += '<div class="bay-card" style="margin-bottom:12px; ' + (b.status === 'arrived_pickup' ? 'border:2px solid #facc15;' : b.status === 'accepted' ? 'border:1.5px solid #22c55e;' : '') + '">' +
         '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
           '<span style="font-size:14px; font-weight:900; color:#fff;">' + routeStr + '</span>' +
           statusBadge +
@@ -1674,7 +1918,7 @@
         (b.cargo_description ? '<div style="font-size:11.5px; color:var(--text-faint); margin:4px 0;">📋 ' + b.cargo_description + '</div>' : '') +
         '<div style="font-size:11px; color:var(--text-faint);">📍 Pickup: ' + b.pickup_address + '</div>' +
         '<div style="font-size:11px; color:var(--text-faint);">📍 Drop: ' + b.drop_address + '</div>' +
-        arrivalCard +
+        journeyTrackerHtml +
       '</div>';
     }
     container.innerHTML = html;
