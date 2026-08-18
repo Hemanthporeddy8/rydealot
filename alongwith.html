@@ -1401,6 +1401,25 @@
     loadMySenderBookings();
   }
 
+  function playAlertChime() {
+    try {
+      var AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      var ctx = new AudioCtx();
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch(e) {}
+  }
+
   function setTripStatus(tripId, status) {
     sbRequest('PATCH', 'cargo_trips?id=eq.' + tripId, { status: status })
       .then(function() {
@@ -1424,38 +1443,46 @@
         var html = '';
         for (var i = 0; i < bookings.length; i++) {
           var b = bookings[i];
-          var statusColor = b.status === 'accepted' ? '#22c55e' : b.status === 'pending' ? '#eab308' : b.status === 'delivered' ? '#3b82f6' : '#ef4444';
+          var statusColor = b.status === 'accepted' || b.status === 'arrived_pickup' ? '#22c55e' : b.status === 'in_transit' ? '#38bdf8' : b.status === 'delivered' ? '#3b82f6' : b.status === 'pending' ? '#eab308' : '#ef4444';
           var cleanPhone = (b.sender_phone || '').replace(/\D/g, '');
           var pickupNav = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(b.pickup_address);
           var dropNav = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(b.drop_address);
 
+          var actionButtons = '';
+          if (b.status === 'pending') {
+            actionButtons = '<button class="btn-action" style="width:auto; padding:6px 12px; font-size:11.5px; background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5;" onclick="updateBookingStatus(\'' + b.id + '\', \'rejected\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">❌ Decline</button>' +
+              '<button class="btn-action" style="width:auto; padding:6px 16px; font-size:11.5px; background:#16a34a; font-weight:800;" onclick="updateBookingStatus(\'' + b.id + '\', \'accepted\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">✅ Accept Order</button>';
+          } else if (b.status === 'accepted') {
+            actionButtons = '<button class="btn-action" style="width:auto; padding:6px 16px; font-size:11.5px; background:#0284c7; font-weight:800;" onclick="updateBookingStatus(\'' + b.id + '\', \'arrived_pickup\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">📍 I Arrived at Pickup</button>';
+          } else if (b.status === 'arrived_pickup') {
+            actionButtons = '<button class="btn-action" style="width:auto; padding:6px 16px; font-size:11.5px; background:#eab308; color:#000; font-weight:800;" onclick="updateBookingStatus(\'' + b.id + '\', \'in_transit\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">🚛 Loaded & Moving</button>';
+          } else if (b.status === 'in_transit') {
+            actionButtons = '<button class="btn-action" style="width:auto; padding:6px 16px; font-size:11.5px; background:#0891b2; font-weight:800;" onclick="updateBookingStatus(\'' + b.id + '\', \'arrived_drop\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">🏁 Arrived at Destination</button>';
+          } else if (b.status === 'arrived_drop') {
+            actionButtons = '<button class="btn-action" style="width:auto; padding:6px 16px; font-size:11.5px; background:#7c3aed; font-weight:800;" onclick="updateBookingStatus(\'' + b.id + '\', \'delivered\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">✅ Mark Delivered</button>';
+          }
+
+          var statusLabel = b.status === 'arrived_pickup' ? 'ARRIVED AT PICKUP' : b.status === 'in_transit' ? 'IN TRANSIT' : b.status === 'arrived_drop' ? 'ARRIVED AT DROP' : b.status.toUpperCase();
+
           html += '<div style="background:#0b0f19; border:1px solid var(--card-border); border-radius:12px; padding:12px; margin-bottom:8px;">' +
             '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
               '<span style="font-size:14px; font-weight:800; color:#fff;">' + b.sender_name + '</span>' +
-              '<span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:rgba(' + (b.status === 'accepted' ? '34,197,94,0.2' : b.status === 'pending' ? '234,179,8,0.2' : '239,68,68,0.2') + '); color:' + statusColor + ';">' + b.status.toUpperCase() + '</span>' +
+              '<span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:rgba(255,255,255,0.08); color:' + statusColor + '; border:1px solid ' + statusColor + ';">' + statusLabel + '</span>' +
             '</div>' +
-            '<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">' +
-              '<span>📦 ' + b.cargo_weight_kg + ' KG • You Earn: <strong style="color:#4ade80;">₹' + b.driver_earning + '</strong></span>' +
-              '<div style="display:flex; gap:6px;">' +
-                '<a href="tel:' + cleanPhone + '" style="background:#1e293b; color:#38bdf8; padding:3px 8px; border-radius:6px; font-size:11px; text-decoration:none; font-weight:700; border:1px solid #334155;">📞 Call</a>' +
-                '<a href="https://wa.me/91' + cleanPhone + '" target="_blank" style="background:#064e3b; color:#4ade80; padding:3px 8px; border-radius:6px; font-size:11px; text-decoration:none; font-weight:700; border:1px solid #047857;">💬 WA</a>' +
-              '</div>' +
+            '<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">' +
+              '📦 ' + b.cargo_weight_kg + ' KG • You Earn: <strong style="color:#4ade80;">₹' + b.driver_earning + '</strong>' +
             '</div>' +
             (b.cargo_description ? '<div style="font-size:11px; color:var(--text-faint); margin-bottom:6px;">📋 ' + b.cargo_description + '</div>' : '') +
             '<div style="font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
               '<span>📍 Pickup: ' + b.pickup_address + '</span>' +
-              '<a href="' + pickupNav + '" target="_blank" style="background:#0f172a; color:#38bdf8; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; border:1px solid #1e293b; white-space:nowrap; margin-left:6px;">🗺️ Maps Pickup</a>' +
+              '<a href="' + pickupNav + '" target="_blank" style="background:#0f172a; color:#38bdf8; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; border:1px solid #1e293b; white-space:nowrap; margin-left:6px;">🗺️ Maps</a>' +
             '</div>' +
             '<div style="font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
               '<span>📍 Drop: ' + b.drop_address + '</span>' +
-              '<a href="' + dropNav + '" target="_blank" style="background:#0f172a; color:#a78bfa; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; border:1px solid #1e293b; white-space:nowrap; margin-left:6px;">🗺️ Maps Drop</a>' +
+              '<a href="' + dropNav + '" target="_blank" style="background:#0f172a; color:#a78bfa; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; border:1px solid #1e293b; white-space:nowrap; margin-left:6px;">🗺️ Maps</a>' +
             '</div>' +
             '<div style="display:flex; justify-content:flex-end; gap:8px; border-top:1px solid #1c2438; padding-top:8px;">' +
-              (b.status === 'pending' ? 
-                '<button class="btn-action" style="width:auto; padding:6px 14px; font-size:11.5px; background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5;" onclick="updateBookingStatus(\'' + b.id + '\', \'rejected\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">❌ Decline</button>' +
-                '<button class="btn-action" style="width:auto; padding:6px 16px; font-size:11.5px; background:#16a34a; font-weight:800;" onclick="updateBookingStatus(\'' + b.id + '\', \'accepted\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">✅ Accept Order</button>'
-                : '') +
-              (b.status === 'accepted' ? '<button class="btn-action" style="width:auto; padding:6px 14px; font-size:11.5px; background:#7c3aed;" onclick="updateBookingStatus(\'' + b.id + '\', \'delivered\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">📦 Mark Delivered</button>' : '') +
+              actionButtons +
             '</div>' +
           '</div>';
         }
@@ -1469,7 +1496,7 @@
     sbRequest('PATCH', 'cargo_bookings?id=eq.' + bookingId, { status: status })
       .then(function() {
         if (status === 'accepted') {
-          showToast('✅ Order Accepted! Customer notified.');
+          showToast('✅ Order Accepted! Heading to pickup.');
 
           // If a Full Truck Load (or >= 1000kg) was accepted, auto-decline other pending orders for this trip
           if (weight >= 1000) {
@@ -1484,6 +1511,14 @@
                 }
               });
           }
+        } else if (status === 'arrived_pickup') {
+          showToast('📍 Notified shopkeeper: You arrived at pickup!');
+        } else if (status === 'in_transit') {
+          showToast('🚛 Notified shopkeeper: Goods loaded & on the highway!');
+        } else if (status === 'arrived_drop') {
+          showToast('🏁 Notified shopkeeper: Arrived at destination!');
+        } else if (status === 'delivered') {
+          showToast('🎉 Order Marked as Delivered!');
         } else if (status === 'rejected') {
           showToast('❌ Order Declined. Space released.');
           // Restore available capacity
@@ -1494,8 +1529,6 @@
                 sbRequest('PATCH', 'cargo_trips?id=eq.' + tripId, { available_capacity_kg: restored });
               }
             });
-        } else if (status === 'delivered') {
-          showToast('🎉 Order Marked as Delivered!');
         }
 
         viewTripBookings(tripId, route);
@@ -1506,6 +1539,8 @@
   }
 
   // ── SENDER: LOAD MY CARGO BOOKINGS & LIVE TRACKING ──
+  var lastKnownStatuses = {};
+
   function loadMySenderBookings() {
     var phone = '';
     try {
@@ -1536,6 +1571,16 @@
           return;
         }
 
+        // Check if driver just arrived and trigger in-app chime!
+        bList.forEach(function(b) {
+          if (lastKnownStatuses[b.id] && lastKnownStatuses[b.id] !== b.status) {
+            if (b.status === 'arrived_pickup' || b.status === 'accepted' || b.status === 'delivered') {
+              playAlertChime();
+            }
+          }
+          lastKnownStatuses[b.id] = b.status;
+        });
+
         // Fetch trips for these bookings to show driver details
         sbRequest('GET', 'cargo_trips?order=created_at.desc')
           .then(function(allTrips) {
@@ -1561,42 +1606,56 @@
       var t = b.trip || {};
       var statusBadge = '';
       var arrivalCard = '';
-      var cleanDrvPhone = (t.driver_phone || '').replace(/\D/g, '');
 
-      var depTimeStr = '';
-      if (t.departure_time) {
-        var d = new Date(t.departure_time);
-        depTimeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-      }
-
-      if (b.status === 'accepted') {
+      if (b.status === 'arrived_pickup') {
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#facc15; background:rgba(250,204,21,0.25); padding:3px 10px; border-radius:12px; border:1.5px solid #facc15;">🔔 DRIVER ARRIVED</span>';
+        arrivalCard = '<div style="background:linear-gradient(135deg, rgba(234,179,8,0.22), rgba(202,138,4,0.1)); border:2px solid #facc15; border-radius:12px; padding:12px; margin:10px 0;">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
+            '<span style="font-size:13.5px; font-weight:900; color:#facc15;">🔔 DRIVER HAS ARRIVED OUTSIDE!</span>' +
+            '<span style="font-size:9px; font-weight:900; background:#facc15; color:#000; padding:2px 6px; border-radius:10px;">AT YOUR SHOP</span>' +
+          '</div>' +
+          '<div style="font-size:12px; color:#fff; font-weight:700; margin-bottom:3px;">' +
+            'Driver ' + (t.driver_name || 'Driver') + ' (' + (t.vehicle_type || 'Truck') + ' • ' + (t.vehicle_number || '') + ') is outside your shop for loading!' +
+          '</div>' +
+          '<div style="font-size:11px; color:#cbd5e1;">Please hand over your ' + b.cargo_weight_kg + ' KG cargo to the driver.</div>' +
+        '</div>';
+      } else if (b.status === 'accepted') {
         statusBadge = '<span style="font-size:10px; font-weight:900; color:#4ade80; background:rgba(34,197,94,0.25); padding:3px 10px; border-radius:12px; border:1px solid #22c55e;">✅ ACCEPTED — ON THE WAY</span>';
         arrivalCard = '<div style="background:linear-gradient(135deg, rgba(34,197,94,0.18), rgba(16,185,129,0.08)); border:1.5px solid #22c55e; border-radius:12px; padding:12px; margin:10px 0;">' +
           '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
             '<span style="font-size:13px; font-weight:900; color:#4ade80;">🚛 Driver Will Be At Your Location Soon!</span>' +
             '<span style="font-size:9px; font-weight:900; background:#22c55e; color:#000; padding:2px 6px; border-radius:10px;">CONFIRMED</span>' +
           '</div>' +
-          '<div style="font-size:12px; color:#f1f5f9; margin-bottom:8px; line-height:1.4;">' +
-            'Driver <strong style="color:#38bdf8;">' + (t.driver_name || 'Driver') + '</strong> (' + (t.vehicle_type || 'Truck') + ' • <strong style="color:#facc15;">' + (t.vehicle_number || '') + '</strong>) confirmed your cargo and is arriving for pickup.' +
-          '</div>' +
-          '<div style="display:flex; gap:8px;">' +
-            (cleanDrvPhone ? '<a href="tel:' + cleanDrvPhone + '" style="flex:1; text-align:center; background:#1e293b; color:#38bdf8; padding:7px 10px; border-radius:8px; font-size:11.5px; text-decoration:none; font-weight:800; border:1px solid #334155;">📞 Call Driver</a>' : '') +
-            (cleanDrvPhone ? '<a href="https://wa.me/91' + cleanDrvPhone + '?text=' + encodeURIComponent('Hello ' + (t.driver_name || 'Driver') + ', I booked ' + b.cargo_weight_kg + ' KG cargo for ' + (t.from_city || '') + ' to ' + (t.to_city || '') + '. When will you reach my pickup location?') + '" target="_blank" style="flex:1; text-align:center; background:#064e3b; color:#4ade80; padding:7px 10px; border-radius:8px; font-size:11.5px; text-decoration:none; font-weight:800; border:1px solid #047857;">💬 WhatsApp</a>' : '') +
-            '<a href="https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(b.pickup_address) + '" target="_blank" style="background:#0f172a; color:#a78bfa; padding:7px 10px; border-radius:8px; font-size:11.5px; text-decoration:none; font-weight:800; border:1px solid #334155;">🗺️ Route</a>' +
+          '<div style="font-size:12px; color:#f1f5f9; line-height:1.4;">' +
+            'Driver <strong style="color:#38bdf8;">' + (t.driver_name || 'Driver') + '</strong> (' + (t.vehicle_type || 'Truck') + ' • <strong style="color:#facc15;">' + (t.vehicle_number || '') + '</strong>) confirmed your booking and is heading to your pickup location.' +
           '</div>' +
         '</div>';
-      } else if (b.status === 'pending') {
-        statusBadge = '<span style="font-size:10px; font-weight:900; color:#facc15; background:rgba(250,204,21,0.2); padding:3px 10px; border-radius:12px; border:1px solid #eab308;">⏳ WAITING FOR DRIVER</span>';
-        arrivalCard = '<div style="background:rgba(234,179,8,0.12); border:1px solid #ca8a04; border-radius:8px; padding:8px 10px; margin:8px 0; color:#fde047; font-size:11.5px;">' +
-          '🚚 Request sent to Driver ' + (t.driver_name ? '(' + t.driver_name + ' • ' + (t.vehicle_number || '') + ')' : '') + '. When driver accepts, arrival confirmation will alert here!' +
+      } else if (b.status === 'in_transit') {
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#38bdf8; background:rgba(56,189,248,0.25); padding:3px 10px; border-radius:12px; border:1px solid #38bdf8;">🚛 IN TRANSIT</span>';
+        arrivalCard = '<div style="background:linear-gradient(135deg, rgba(56,189,248,0.18), rgba(2,132,199,0.08)); border:1.5px solid #38bdf8; border-radius:12px; padding:12px; margin:10px 0;">' +
+          '<div style="font-size:13px; font-weight:900; color:#38bdf8; margin-bottom:3px;">🛣️ CARGO LOADED — ON THE HIGHWAY!</div>' +
+          '<div style="font-size:12px; color:#e2e8f0;">' +
+            'Your <strong>' + b.cargo_weight_kg + ' KG</strong> load is safely inside ' + (t.vehicle_number || 'the truck') + ' and on the road to ' + (t.to_city || 'destination') + '.' +
+          '</div>' +
+        '</div>';
+      } else if (b.status === 'arrived_drop') {
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#c084fc; background:rgba(168,85,247,0.25); padding:3px 10px; border-radius:12px; border:1px solid #a855f7;">🏁 AT DESTINATION</span>';
+        arrivalCard = '<div style="background:linear-gradient(135deg, rgba(168,85,247,0.18), rgba(126,34,206,0.08)); border:1.5px solid #a855f7; border-radius:12px; padding:12px; margin:10px 0;">' +
+          '<div style="font-size:13px; font-weight:900; color:#c084fc; margin-bottom:3px;">🏁 ARRIVED AT DROP DESTINATION!</div>' +
+          '<div style="font-size:12px; color:#e2e8f0;">Driver reached destination and is unloading your cargo.</div>' +
         '</div>';
       } else if (b.status === 'delivered') {
         statusBadge = '<span style="font-size:10px; font-weight:900; color:#38bdf8; background:rgba(56,189,248,0.2); padding:3px 10px; border-radius:12px; border:1px solid #0284c7;">🎉 DELIVERED</span>';
         arrivalCard = '<div style="background:rgba(56,189,248,0.12); border:1px solid #0284c7; border-radius:8px; padding:8px 10px; margin:8px 0; color:#38bdf8; font-size:11.5px;">' +
-          '✅ Your shipment was delivered to destination successfully!' +
+          '✅ Your shipment was delivered successfully! Thank you for choosing Rydealot.' +
+        '</div>';
+      } else if (b.status === 'pending') {
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#facc15; background:rgba(250,204,21,0.2); padding:3px 10px; border-radius:12px; border:1px solid #eab308;">⏳ WAITING FOR DRIVER</span>';
+        arrivalCard = '<div style="background:rgba(234,179,8,0.12); border:1px solid #ca8a04; border-radius:8px; padding:8px 10px; margin:8px 0; color:#fde047; font-size:11.5px;">' +
+          '🚚 Request sent to Driver. Live driver confirmation & arrival status will alert here automatically!' +
         '</div>';
       } else {
-        statusBadge = '<span style="font-size:10px; font-weight:900; color:#f87171; background:rgba(239,68,68,0.2); padding:3px 10px; border-radius:12px; border:1px solid #dc2626;">❌ DECLINED (TRUCK FULL)</span>';
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#f87171; background:rgba(239,68,68,0.2); padding:3px 10px; border-radius:12px; border:1px solid #dc2626;">❌ DECLINED</span>';
         arrivalCard = '<div style="background:rgba(239,68,68,0.1); border:1px solid #b91c1c; border-radius:8px; padding:8px 10px; margin:8px 0; color:#fca5a5; font-size:11.5px;">' +
           'This truck was full. Please choose another available truck from the parking lot above!' +
         '</div>';
@@ -1604,7 +1663,7 @@
 
       var routeStr = (t.from_city && t.to_city) ? (t.from_city + ' ➔ ' + t.to_city) : 'Cargo Shipment';
 
-      html += '<div class="bay-card" style="margin-bottom:10px; ' + (b.status === 'accepted' ? 'border:1.5px solid #22c55e;' : '') + '">' +
+      html += '<div class="bay-card" style="margin-bottom:10px; ' + (b.status === 'arrived_pickup' ? 'border:2px solid #facc15;' : b.status === 'accepted' ? 'border:1.5px solid #22c55e;' : '') + '">' +
         '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
           '<span style="font-size:14px; font-weight:900; color:#fff;">' + routeStr + '</span>' +
           statusBadge +
