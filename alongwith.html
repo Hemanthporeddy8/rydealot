@@ -688,12 +688,21 @@
       'apikey': SUPABASE_ANON_KEY,
       'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
       'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'return=representation' : ''
+      'Prefer': 'return=representation'
     };
     var opts = { method: method, headers: headers };
     if (body) opts.body = JSON.stringify(body);
     return fetch(SUPABASE_URL + '/rest/v1/' + path, opts)
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        if (r.status === 204) return [];
+        return r.text().then(function(text) {
+          try {
+            return text ? JSON.parse(text) : [];
+          } catch(e) {
+            return [];
+          }
+        });
+      })
       .catch(function(err) {
         console.log('Supabase sync note:', err);
         return null;
@@ -726,15 +735,20 @@
     document.getElementById(id).style.display = 'none';
   }
 
+  function toLocalDatetimeString(date) {
+    var d = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return d.toISOString().slice(0, 16);
+  }
+
   function initDates() {
     var now = new Date();
-    var dep = new Date(now.getTime() + 4 * 3600000);
-    var exp = new Date(now.getTime() + 12 * 3600000);
+    var dep = new Date(now.getTime() + 2 * 3600000); // 2 hours from now in local time
+    var exp = new Date(now.getTime() + 10 * 3600000); // 10 hours from now in local time
     
     var elDep = document.getElementById('drv-departure');
     var elExp = document.getElementById('drv-expires');
-    if (elDep) elDep.value = dep.toISOString().slice(0, 16);
-    if (elExp) elExp.value = exp.toISOString().slice(0, 16);
+    if (elDep) elDep.value = toLocalDatetimeString(dep);
+    if (elExp) elExp.value = toLocalDatetimeString(exp);
 
     try {
       var saved = JSON.parse(localStorage.getItem('rydealot_alongwith_driver') || '{}');
@@ -820,7 +834,7 @@
     if (!trip) return true;
     var now = new Date();
 
-    if (trip.status === 'expired' || trip.status === 'completed' || trip.status === 'cancelled') {
+    if (trip.status === 'completed' || trip.status === 'cancelled') {
       return true;
     }
 
@@ -829,24 +843,24 @@
       var match = trip.notes.match(/\[EXP:([^\]]+)\]/);
       if (match && match[1]) {
         var expDate = new Date(match[1]);
-        if (!isNaN(expDate.getTime()) && expDate < now) {
-          return true;
+        if (!isNaN(expDate.getTime())) {
+          return expDate.getTime() < now.getTime();
         }
       }
     }
 
-    // 2. Check departure_time (if departure time has already passed)
-    if (trip.departure_time) {
-      var depDate = new Date(trip.departure_time);
-      if (!isNaN(depDate.getTime()) && depDate < now) {
+    // 2. Fallback: If trip was created more than 24 hours ago, consider expired
+    if (trip.created_at) {
+      var createdDate = new Date(trip.created_at);
+      if (!isNaN(createdDate.getTime()) && (now.getTime() - createdDate.getTime()) > 24 * 3600000) {
         return true;
       }
     }
 
-    // 3. If trip created more than 24 hours ago
-    if (trip.created_at) {
-      var createdDate = new Date(trip.created_at);
-      if (!isNaN(createdDate.getTime()) && (now.getTime() - createdDate.getTime()) > 24 * 3600000) {
+    // 3. Fallback: If departure_time has passed by more than 12 hours
+    if (trip.departure_time) {
+      var depDate = new Date(trip.departure_time);
+      if (!isNaN(depDate.getTime()) && (now.getTime() - depDate.getTime()) > 12 * 3600000) {
         return true;
       }
     }
@@ -872,20 +886,13 @@
 
     badge.textContent = 'Searching trucks...';
 
-    var query = 'cargo_trips?status=eq.open&from_city=ilike.*' + encodeURIComponent(from) + '*&to_city=ilike.*' + encodeURIComponent(to) + '*&order=created_at.desc';
+    var query = 'cargo_trips?status=neq.cancelled&status=neq.completed&from_city=ilike.*' + encodeURIComponent(from) + '*&to_city=ilike.*' + encodeURIComponent(to) + '*&order=created_at.desc';
 
     sbRequest('GET', query)
       .then(function(res) {
         var rawTrips = Array.isArray(res) ? res : [];
-        var activeValidTrips = [];
-
-        rawTrips.forEach(function(t) {
-          if (isTripExpired(t)) {
-            // Auto update expired trip status in database
-            sbRequest('PATCH', 'cargo_trips?id=eq.' + t.id, { status: 'expired' });
-          } else {
-            activeValidTrips.push(t);
-          }
+        var activeValidTrips = rawTrips.filter(function(t) {
+          return !isTripExpired(t);
         });
 
         activeTripsInLot = activeValidTrips;
