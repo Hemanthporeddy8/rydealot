@@ -444,10 +444,20 @@
 
     <!-- Customer Active Cargo Bookings / Tracking Section -->
     <div style="margin-top: 28px; border-top: 1.5px solid var(--card-border); padding-top: 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.5px;">📦 My Cargo Bookings & Live Status</h3>
-        <button onclick="loadMySenderBookings()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer;">↻ Refresh</button>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 10px; color: #4ade80; font-weight: 700; background: rgba(34,197,94,0.15); padding: 2px 6px; border-radius: 6px;">● Auto-Sync ON</span>
+          <button onclick="loadMySenderBookings()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer;">↻ Refresh</button>
+        </div>
       </div>
+
+      <!-- Quick Phone Filter Bar -->
+      <div style="display: flex; gap: 8px; margin-bottom: 12px; background: var(--card-bg); padding: 8px; border-radius: 12px; border: 1px solid var(--card-border);">
+        <input type="tel" id="track-phone-input" class="form-input" placeholder="Enter your phone to track shipments" style="margin-bottom:0; font-size:12px; padding:8px 12px;">
+        <button type="button" class="btn-action" style="width:auto; padding:0 14px; font-size:11.5px; margin:0;" onclick="saveAndTrackPhone()">🔍 Track</button>
+      </div>
+
       <div id="sender-bookings-list"></div>
     </div>
   </div>
@@ -629,13 +639,19 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">Pickup Address / LandMark</label>
-      <input type="text" id="book-pickup-addr" class="form-input" placeholder="Shop / Warehouse address">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <label class="form-label" style="margin-bottom:0;">Pickup Address / Landmark</label>
+        <button type="button" onclick="getSenderLocation('pickup')" style="background:#0f172a; border:1px solid #38bdf8; color:#38bdf8; padding:3px 8px; border-radius:6px; font-size:10.5px; font-weight:700; cursor:pointer;">📍 Use Current GPS</button>
+      </div>
+      <input type="text" id="book-pickup-addr" class="form-input" placeholder="Shop / Warehouse address or tap GPS">
     </div>
 
     <div class="form-group">
-      <label class="form-label">Delivery Address / Destination</label>
-      <input type="text" id="book-drop-addr" class="form-input" placeholder="Drop destination address">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <label class="form-label" style="margin-bottom:0;">Delivery Address / Destination</label>
+        <button type="button" onclick="getSenderLocation('drop')" style="background:#0f172a; border:1px solid #38bdf8; color:#38bdf8; padding:3px 8px; border-radius:6px; font-size:10.5px; font-weight:700; cursor:pointer;">📍 Use Current GPS</button>
+      </div>
+      <input type="text" id="book-drop-addr" class="form-input" placeholder="Drop destination address or tap GPS">
     </div>
 
     <div style="background: #0b0f19; border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; border: 1px solid var(--card-border); font-size: 11px; color: var(--text-muted);">
@@ -1336,6 +1352,39 @@
       });
   }
 
+  function getSenderLocation(type) {
+    if (!navigator.geolocation) {
+      showToast('⚠️ Geolocation not supported by your browser');
+      return;
+    }
+    showToast('📍 Getting GPS location...');
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      var lat = pos.coords.latitude.toFixed(6);
+      var lng = pos.coords.longitude.toFixed(6);
+      var input = type === 'pickup' ? document.getElementById('book-pickup-addr') : document.getElementById('book-drop-addr');
+      if (input) {
+        input.value = '📍 GPS: ' + lat + ', ' + lng;
+        showToast('✅ ' + (type === 'pickup' ? 'Pickup' : 'Drop') + ' GPS Captured!');
+      }
+    }, function(err) {
+      showToast('⚠️ Location access denied. Please type address.');
+    }, { enableHighAccuracy: true, timeout: 8000 });
+  }
+
+  function saveAndTrackPhone() {
+    var input = document.getElementById('track-phone-input');
+    var val = input ? input.value.trim().replace(/\D/g, '') : '';
+    if (!val) {
+      showToast('⚠️ Enter your 10-digit phone number');
+      return;
+    }
+    try {
+      localStorage.setItem('rydealot_sender_phone', val);
+    } catch(e) {}
+    showToast('🔍 Tracking shipments for ' + val);
+    loadMySenderBookings();
+  }
+
   function setTripStatus(tripId, status) {
     sbRequest('PATCH', 'cargo_trips?id=eq.' + tripId, { status: status })
       .then(function() {
@@ -1361,6 +1410,8 @@
           var b = bookings[i];
           var statusColor = b.status === 'accepted' ? '#22c55e' : b.status === 'pending' ? '#eab308' : b.status === 'delivered' ? '#3b82f6' : '#ef4444';
           var cleanPhone = (b.sender_phone || '').replace(/\D/g, '');
+          var pickupNav = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(b.pickup_address);
+          var dropNav = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(b.drop_address);
 
           html += '<div style="background:#0b0f19; border:1px solid var(--card-border); border-radius:12px; padding:12px; margin-bottom:8px;">' +
             '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
@@ -1374,9 +1425,15 @@
                 '<a href="https://wa.me/91' + cleanPhone + '" target="_blank" style="background:#064e3b; color:#4ade80; padding:3px 8px; border-radius:6px; font-size:11px; text-decoration:none; font-weight:700; border:1px solid #047857;">💬 WA</a>' +
               '</div>' +
             '</div>' +
-            (b.cargo_description ? '<div style="font-size:11px; color:var(--text-faint); margin-bottom:4px;">📋 ' + b.cargo_description + '</div>' : '') +
-            '<div style="font-size:11px; color:var(--text-faint);">📍 Pickup: ' + b.pickup_address + '</div>' +
-            '<div style="font-size:11px; color:var(--text-faint); margin-bottom:10px;">📍 Drop: ' + b.drop_address + '</div>' +
+            (b.cargo_description ? '<div style="font-size:11px; color:var(--text-faint); margin-bottom:6px;">📋 ' + b.cargo_description + '</div>' : '') +
+            '<div style="font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
+              '<span>📍 Pickup: ' + b.pickup_address + '</span>' +
+              '<a href="' + pickupNav + '" target="_blank" style="background:#0f172a; color:#38bdf8; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; border:1px solid #1e293b; white-space:nowrap; margin-left:6px;">🗺️ Maps Pickup</a>' +
+            '</div>' +
+            '<div style="font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+              '<span>📍 Drop: ' + b.drop_address + '</span>' +
+              '<a href="' + dropNav + '" target="_blank" style="background:#0f172a; color:#a78bfa; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; border:1px solid #1e293b; white-space:nowrap; margin-left:6px;">🗺️ Maps Drop</a>' +
+            '</div>' +
             '<div style="display:flex; justify-content:flex-end; gap:8px; border-top:1px solid #1c2438; padding-top:8px;">' +
               (b.status === 'pending' ? 
                 '<button class="btn-action" style="width:auto; padding:6px 14px; font-size:11.5px; background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5;" onclick="updateBookingStatus(\'' + b.id + '\', \'rejected\', \'' + tripId + '\', \'' + route + '\', ' + b.cargo_weight_kg + ')">❌ Decline</button>' +
@@ -1439,22 +1496,29 @@
       phone = localStorage.getItem('rydealot_sender_phone') || '';
     } catch(e) {}
 
+    var trackInput = document.getElementById('track-phone-input');
+    if (trackInput && phone && !trackInput.value) {
+      trackInput.value = phone;
+    }
+
     var container = document.getElementById('sender-bookings-list');
     if (!container) return;
 
     if (!phone) {
       container.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-faint); font-size:12px; background:var(--card-bg); border-radius:12px; border:1px solid var(--card-border);">' +
-        'No active shipments yet. Book a truck above to track live driver acceptance status!' +
+        'No active shipments yet. Enter your phone number above or book a truck to track live driver status!' +
       '</div>';
       return;
     }
 
-    sbRequest('GET', 'cargo_bookings?sender_phone=eq.' + encodeURIComponent(phone) + '&order=created_at.desc&limit=5')
+    var cleanDigits = phone.replace(/\D/g, '').slice(-10);
+
+    sbRequest('GET', 'cargo_bookings?sender_phone=ilike.*' + encodeURIComponent(cleanDigits) + '*&order=created_at.desc&limit=5')
       .then(function(bookings) {
         var bList = Array.isArray(bookings) ? bookings : [];
         if (!bList.length) {
           container.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-faint); font-size:12px; background:var(--card-bg); border-radius:12px; border:1px solid var(--card-border);">' +
-            'No active shipments found for phone ' + phone + '.' +
+            'No active shipments found for phone <strong>' + cleanDigits + '</strong>.' +
           '</div>';
           return;
         }
@@ -1532,11 +1596,11 @@
   initDates();
   loadMySenderBookings();
   
-  // Real-time live polling every 5 seconds so updates appear automatically!
+  // Real-time live polling every 3 seconds so updates appear automatically on both sides!
   setInterval(function() {
     loadMySenderBookings();
     loadMyDriverTrips();
-  }, 5000);
+  }, 3000);
 </script>
 
 </body>
