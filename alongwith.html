@@ -896,7 +896,18 @@
       </div>
     </div>
 
-    <div class="form-row">
+    <!-- Cargo Measure Mode Selector: Weight vs Boxes vs Whole Truck -->
+    <div class="form-group" style="margin-bottom: 12px;">
+      <label class="form-label">Cargo Measure Mode</label>
+      <div style="display: flex; gap: 6px;">
+        <button type="button" class="btn-action" id="wh-mode-weight" style="flex:1; padding:7px 4px; font-size:11px; background:var(--accent);" onclick="setWarehouseMeasureMode('weight')">⚖️ By Weight</button>
+        <button type="button" class="btn-action" id="wh-mode-boxes" style="flex:1; padding:7px 4px; font-size:11px; background:#1e293b; border:1px solid var(--card-border); color:var(--text-muted);" onclick="setWarehouseMeasureMode('boxes')">📦 Boxes/Cartons</button>
+        <button type="button" class="btn-action" id="wh-mode-full" style="flex:1; padding:7px 4px; font-size:11px; background:#1e293b; border:1px solid var(--card-border); color:var(--text-muted);" onclick="setWarehouseMeasureMode('full')">🔒 Whole Truck</button>
+      </div>
+    </div>
+
+    <!-- Mode 1: Weight Inputs -->
+    <div id="wh-input-weight-section" class="form-row">
       <div class="form-group">
         <label class="form-label">Cargo Weight (KG)</label>
         <input type="number" id="wh-post-weight" class="form-input" placeholder="e.g. 50" oninput="calculateWarehouseFare()">
@@ -905,6 +916,31 @@
         <label class="form-label">Offered Freight (₹)</label>
         <input type="number" id="wh-post-price" class="form-input" placeholder="e.g. 350" oninput="calculateWarehouseFare()">
       </div>
+    </div>
+
+    <!-- Mode 2: Boxes / Cartons / Items Section -->
+    <div id="wh-input-boxes-section" style="display:none; margin-bottom:10px;">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Number of Items</label>
+          <input type="number" id="wh-post-item-count" class="form-input" placeholder="e.g. 10" value="5" oninput="onWarehouseItemCountChange()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Item / Package Type</label>
+          <select id="wh-post-item-type" class="form-select" onchange="onWarehouseItemCountChange()">
+            <option value="Cartons of Paper Plates / Cups">📦 Cartons (Paper Plates / Cups)</option>
+            <option value="Crates of Water Bottles / Drinks">🥤 Crates (Water Bottles / Soda)</option>
+            <option value="Boxes of Glasses / Fragile">🥛 Boxes (Glasses / Fragile)</option>
+            <option value="Sacks / Bundles (Textile / Clothes)">🛍️ Sacks / Bundles (Clothes)</option>
+            <option value="General Retail Cartons">📦 General Retail Cartons</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode 3: Dedicated Whole Truck Banner -->
+    <div id="wh-input-full-section" style="display:none; background:rgba(37,99,235,0.15); border:1.5px solid #3b82f6; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:11.5px; color:#93c5fd;">
+      🔒 <strong>Dedicated Whole Truck:</strong> You get the entire vehicle deck reserved 100% exclusively for your cargo. No weighing or item counting required!
     </div>
 
     <!-- Urgency Selector: Express vs Flexible -->
@@ -917,8 +953,8 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label">Cargo Description</label>
-      <input type="text" id="wh-post-desc" class="form-input" placeholder="e.g. 2 boxes of books, auto parts, textile bundle">
+      <label class="form-label">Cargo Description / Item Details</label>
+      <input type="text" id="wh-post-desc" class="form-input" placeholder="e.g. Paper plates, water bottle crates, glass cups">
     </div>
 
     <div class="form-group">
@@ -1009,12 +1045,13 @@
 
     <p id="modal-trip-summary" style="font-size: 11.5px; color: var(--text-muted); background: #0b0f19; padding: 8px 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid var(--card-border);"></p>
 
-    <!-- Booking Mode Selector: Shared vs Full -->
+    <!-- Booking Mode Selector: Weight vs Boxes vs Whole Truck -->
     <div class="form-group" style="margin-bottom: 14px;">
       <label class="form-label">Booking Mode</label>
-      <div style="display: flex; gap: 8px;">
-        <button type="button" class="btn-action" id="book-mode-shared" style="flex:1; padding:8px; font-size:11.5px; background:var(--accent);" onclick="setSenderLoadMode('shared')">👥 Shared Space</button>
-        <button type="button" class="btn-action" id="book-mode-full" style="flex:1; padding:8px; font-size:11.5px; background:#1e293b; border:1px solid var(--card-border); color:var(--text-muted);" onclick="setSenderLoadMode('full')">🔒 Full Truck</button>
+      <div style="display: flex; gap: 6px;">
+        <button type="button" class="btn-action" id="book-mode-weight" style="flex:1; padding:8px 4px; font-size:11px; background:var(--accent);" onclick="setSenderLoadMode('weight')">⚖️ By Weight</button>
+        <button type="button" class="btn-action" id="book-mode-boxes" style="flex:1; padding:8px 4px; font-size:11px; background:#1e293b; border:1px solid var(--card-border); color:var(--text-muted);" onclick="setSenderLoadMode('boxes')">📦 Boxes/Cartons</button>
+        <button type="button" class="btn-action" id="book-mode-full" style="flex:1; padding:8px 4px; font-size:11px; background:#1e293b; border:1px solid var(--card-border); color:var(--text-muted);" onclick="setSenderLoadMode('full')">🔒 Whole Truck</button>
       </div>
     </div>
 
@@ -1029,7 +1066,8 @@
       </div>
     </div>
 
-    <div class="form-row">
+    <!-- Mode 1: Weight Input Section -->
+    <div id="book-input-weight-section" class="form-row">
       <div class="form-group">
         <label class="form-label">Cargo Weight (KG)</label>
         <input type="number" id="book-cargo-weight" class="form-input" placeholder="e.g. 300" oninput="onSenderWeightChange()">
@@ -1040,9 +1078,34 @@
       </div>
     </div>
 
+    <!-- Mode 2: Boxes / Cartons / Items Section -->
+    <div id="book-input-boxes-section" style="display:none; margin-bottom:10px;">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Number of Items</label>
+          <input type="number" id="book-item-count" class="form-input" placeholder="e.g. 10" value="5" oninput="onSenderItemCountChange()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Item / Package Type</label>
+          <select id="book-item-type" class="form-select" onchange="onSenderItemCountChange()">
+            <option value="Cartons of Paper Plates / Cups">📦 Cartons (Paper Plates / Cups)</option>
+            <option value="Crates of Water Bottles / Drinks">🥤 Crates (Water Bottles / Soda)</option>
+            <option value="Boxes of Glasses / Fragile">🥛 Boxes (Glasses / Fragile)</option>
+            <option value="Sacks / Bundles (Textile / Clothes)">🛍️ Sacks / Bundles (Clothes)</option>
+            <option value="General Retail Cartons">📦 General Retail Cartons</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mode 3: Whole Truck Dedicated Banner -->
+    <div id="book-input-full-section" style="display:none; background:rgba(34,197,94,0.15); border:1.5px solid #22c55e; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:11.5px; color:#86efac;">
+      🔒 <strong>Dedicated Whole Truck (No Questions Asked):</strong> You get the entire truck deck reserved exclusively for your shipment! No weighing or counting needed.
+    </div>
+
     <div class="form-group">
       <label class="form-label">Cargo Description</label>
-      <input type="text" id="book-cargo-desc" class="form-input" placeholder="e.g. Hardware, Agricultural goods, Boxes">
+      <input type="text" id="book-cargo-desc" class="form-input" placeholder="e.g. Paper plates, water bottles, glasses, hardware">
     </div>
 
     <div class="form-group">
@@ -1445,12 +1508,12 @@
 
   // ── SENDER: BOOKING MODAL ──
   var activeTripForBooking = null;
-  var currentSenderLoadMode = 'shared';
+  var currentSenderLoadMode = 'weight';
 
   function openBookingModal(trip) {
     activeTripForBooking = trip;
     var modeBadge = (trip.notes && trip.notes.indexOf('Dedicated') !== -1) ? '🔒 Dedicated Trip' : '👥 Shared Space Allowed';
-    document.getElementById('modal-trip-summary').innerHTML = '<strong>' + trip.from_city + ' ➔ ' + trip.to_city + '</strong> (' + trip.vehicle_type + ' • ' + trip.vehicle_number + ')<br>Trip Freight: ₹' + (trip.price_per_kg || 2500) + ' • <span style="color:#38bdf8;">' + modeBadge + '</span>';
+    document.getElementById('modal-trip-summary').innerHTML = '<strong>' + trip.from_city + ' ➔ ' + trip.to_city + '</strong> (' + trip.vehicle_type + ' • ' + trip.vehicle_number + ')<br>Full Trip Freight: ₹' + (trip.price_per_kg || 2500) + ' • <span style="color:#38bdf8;">' + modeBadge + '</span>';
     
     document.getElementById('book-sender-name').value = '';
     document.getElementById('book-sender-phone').value = '';
@@ -1458,33 +1521,52 @@
     document.getElementById('book-pickup-addr').value = '';
     document.getElementById('book-drop-addr').value = '';
     
-    setSenderLoadMode('shared');
+    setSenderLoadMode('weight');
     document.getElementById('modal-book-cargo').style.display = 'flex';
   }
 
   function setSenderLoadMode(mode) {
     currentSenderLoadMode = mode;
-    var btnShared = document.getElementById('book-mode-shared');
+    var btnWeight = document.getElementById('book-mode-weight');
+    var btnBoxes = document.getElementById('book-mode-boxes');
     var btnFull = document.getElementById('book-mode-full');
+
+    var secWeight = document.getElementById('book-input-weight-section');
+    var secBoxes = document.getElementById('book-input-boxes-section');
+    var secFull = document.getElementById('book-input-full-section');
+
     var weightInput = document.getElementById('book-cargo-weight');
     var fareInput = document.getElementById('book-fare-amount');
 
     var totalCap = activeTripForBooking ? (activeTripForBooking.available_capacity_kg || activeTripForBooking.total_capacity_kg || 1000) : 1000;
     var fullPrice = activeTripForBooking ? (activeTripForBooking.price_per_kg || 2500) : 2500;
 
-    if (mode === 'shared') {
-      btnShared.style.background = 'var(--accent)';
-      btnShared.style.color = '#fff';
-      btnFull.style.background = '#1e293b';
-      btnFull.style.color = 'var(--text-muted)';
+    // Reset button states
+    [btnWeight, btnBoxes, btnFull].forEach(function(b) {
+      if (b) { b.style.background = '#1e293b'; b.style.color = 'var(--text-muted)'; }
+    });
+
+    if (mode === 'weight') {
+      if (btnWeight) { btnWeight.style.background = 'var(--accent)'; btnWeight.style.color = '#fff'; }
+      if (secWeight) secWeight.style.display = 'flex';
+      if (secBoxes) secBoxes.style.display = 'none';
+      if (secFull) secFull.style.display = 'none';
       weightInput.readOnly = false;
       weightInput.value = Math.min(250, totalCap);
       onSenderWeightChange();
+    } else if (mode === 'boxes') {
+      if (btnBoxes) { btnBoxes.style.background = 'var(--accent)'; btnBoxes.style.color = '#fff'; }
+      if (secWeight) secWeight.style.display = 'flex';
+      if (secBoxes) secBoxes.style.display = 'block';
+      if (secFull) secFull.style.display = 'none';
+      weightInput.readOnly = true;
+      onSenderItemCountChange();
     } else {
-      btnFull.style.background = 'var(--accent)';
-      btnFull.style.color = '#fff';
-      btnShared.style.background = '#1e293b';
-      btnShared.style.color = 'var(--text-muted)';
+      // Full Dedicated Truck
+      if (btnFull) { btnFull.style.background = '#16a34a'; btnFull.style.color = '#fff'; }
+      if (secWeight) secWeight.style.display = 'none';
+      if (secBoxes) secBoxes.style.display = 'none';
+      if (secFull) secFull.style.display = 'block';
       weightInput.value = totalCap;
       weightInput.readOnly = true;
       fareInput.value = fullPrice;
@@ -1492,8 +1574,29 @@
     }
   }
 
+  function onSenderItemCountChange() {
+    if (currentSenderLoadMode !== 'boxes') return;
+    var count = parseInt(document.getElementById('book-item-count').value) || 1;
+    var type = document.getElementById('book-item-type').value;
+
+    var ratePerItem = 70;
+    var estKgPerItem = 15;
+
+    if (type.indexOf('Crates') !== -1) { ratePerItem = 65; estKgPerItem = 20; }
+    else if (type.indexOf('Glasses') !== -1) { ratePerItem = 85; estKgPerItem = 12; }
+    else if (type.indexOf('Sacks') !== -1) { ratePerItem = 90; estKgPerItem = 35; }
+    else if (type.indexOf('Paper') !== -1) { ratePerItem = 75; estKgPerItem = 10; }
+
+    var estWeight = count * estKgPerItem;
+    var estFare = Math.max(250, count * ratePerItem);
+
+    document.getElementById('book-cargo-weight').value = estWeight;
+    document.getElementById('book-fare-amount').value = estFare;
+    calculateBookingFare();
+  }
+
   function onSenderWeightChange() {
-    if (currentSenderLoadMode === 'full') return;
+    if (currentSenderLoadMode === 'full' || currentSenderLoadMode === 'boxes') return;
     var weight = parseInt(document.getElementById('book-cargo-weight').value) || 0;
     var totalCap = activeTripForBooking ? (activeTripForBooking.total_capacity_kg || 1000) : 1000;
     var fullPrice = activeTripForBooking ? (activeTripForBooking.price_per_kg || 2500) : 2500;
@@ -1542,7 +1645,16 @@
     btn.textContent = '⏳ Booking Freight Bay...';
     btn.disabled = true;
 
-    var formattedDesc = (currentSenderLoadMode === 'shared' ? '👥 Shared: ' : '🔒 Full: ') + (desc || 'Cargo');
+    var formattedDesc = '';
+    if (currentSenderLoadMode === 'full') {
+      formattedDesc = '🔒 Dedicated Whole Truck: ' + (desc || 'Full Vehicle Booking');
+    } else if (currentSenderLoadMode === 'boxes') {
+      var count = document.getElementById('book-item-count').value || '5';
+      var itemType = document.getElementById('book-item-type').value;
+      formattedDesc = '📦 ' + count + ' ' + itemType + (desc ? ' • ' + desc : '');
+    } else {
+      formattedDesc = '⚖️ ' + weight + ' KG: ' + (desc || 'General Cargo');
+    }
 
     var bookingPayload = {
       trip_id: activeTripForBooking.id,
@@ -2407,6 +2519,8 @@
   }
 
   // ── WAREHOUSE CARGO LOGIC (Open Load Board) ──
+  var currentWarehouseMeasureMode = 'weight';
+
   function openPostWarehouseModal() {
     var modal = document.getElementById('modal-post-warehouse');
     if (!modal) return;
@@ -2417,8 +2531,74 @@
       if (savedPhone) document.getElementById('wh-post-phone').value = savedPhone;
     } catch(e) {}
     
-    calculateWarehouseFare();
+    setWarehouseMeasureMode('weight');
     modal.style.display = 'flex';
+  }
+
+  function setWarehouseMeasureMode(mode) {
+    currentWarehouseMeasureMode = mode;
+    var btnWeight = document.getElementById('wh-mode-weight');
+    var btnBoxes = document.getElementById('wh-mode-boxes');
+    var btnFull = document.getElementById('wh-mode-full');
+
+    var secWeight = document.getElementById('wh-input-weight-section');
+    var secBoxes = document.getElementById('wh-input-boxes-section');
+    var secFull = document.getElementById('wh-input-full-section');
+
+    var weightInput = document.getElementById('wh-post-weight');
+    var priceInput = document.getElementById('wh-post-price');
+
+    // Reset button states
+    [btnWeight, btnBoxes, btnFull].forEach(function(b) {
+      if (b) { b.style.background = '#1e293b'; b.style.color = 'var(--text-muted)'; }
+    });
+
+    if (mode === 'weight') {
+      if (btnWeight) { btnWeight.style.background = 'var(--accent)'; btnWeight.style.color = '#fff'; }
+      if (secWeight) secWeight.style.display = 'flex';
+      if (secBoxes) secBoxes.style.display = 'none';
+      if (secFull) secFull.style.display = 'none';
+      weightInput.readOnly = false;
+      calculateWarehouseFare();
+    } else if (mode === 'boxes') {
+      if (btnBoxes) { btnBoxes.style.background = 'var(--accent)'; btnBoxes.style.color = '#fff'; }
+      if (secWeight) secWeight.style.display = 'flex';
+      if (secBoxes) secBoxes.style.display = 'block';
+      if (secFull) secFull.style.display = 'none';
+      weightInput.readOnly = true;
+      onWarehouseItemCountChange();
+    } else {
+      // Whole Dedicated Truck
+      if (btnFull) { btnFull.style.background = '#2563eb'; btnFull.style.color = '#fff'; }
+      if (secWeight) secWeight.style.display = 'none';
+      if (secBoxes) secBoxes.style.display = 'none';
+      if (secFull) secFull.style.display = 'block';
+      weightInput.value = 1000;
+      weightInput.readOnly = true;
+      priceInput.value = 2500;
+      calculateWarehouseFare();
+    }
+  }
+
+  function onWarehouseItemCountChange() {
+    if (currentWarehouseMeasureMode !== 'boxes') return;
+    var count = parseInt(document.getElementById('wh-post-item-count').value) || 1;
+    var type = document.getElementById('wh-post-item-type').value;
+
+    var ratePerItem = 70;
+    var estKgPerItem = 15;
+
+    if (type.indexOf('Crates') !== -1) { ratePerItem = 65; estKgPerItem = 20; }
+    else if (type.indexOf('Glasses') !== -1) { ratePerItem = 85; estKgPerItem = 12; }
+    else if (type.indexOf('Sacks') !== -1) { ratePerItem = 90; estKgPerItem = 35; }
+    else if (type.indexOf('Paper') !== -1) { ratePerItem = 75; estKgPerItem = 10; }
+
+    var estWeight = count * estKgPerItem;
+    var estFare = Math.max(250, count * ratePerItem);
+
+    document.getElementById('wh-post-weight').value = estWeight;
+    document.getElementById('wh-post-price').value = estFare;
+    calculateWarehouseFare();
   }
 
   function calculateWarehouseFare() {
@@ -2427,7 +2607,7 @@
     var price = parseFloat(priceInput.value) || 0;
 
     // Suggest realistic freight if weight entered but price blank
-    if (w > 0 && !price) {
+    if (w > 0 && !price && currentWarehouseMeasureMode === 'weight') {
       price = Math.max(150, Math.round(w * 3.5));
       priceInput.value = price;
     }
@@ -2458,7 +2638,7 @@
       showToast('⚠️ Origin and Destination cities must be different');
       return;
     }
-    if (!name || !phone || !weight || !price || !pickup || !drop) {
+    if (!name || !phone || !price || !pickup || !drop) {
       showToast('⚠️ Please fill all required fields');
       return;
     }
@@ -2473,7 +2653,18 @@
     var commission = Math.round(price * 0.15);
     var driverEarn = price - commission;
 
-    var fullDesc = urgency + (desc ? ' • ' + desc : '');
+    var fullDesc = '';
+    if (currentWarehouseMeasureMode === 'full') {
+      fullDesc = '🔒 Dedicated Whole Truck • ' + urgency + (desc ? ' • ' + desc : '');
+      weight = 1000;
+    } else if (currentWarehouseMeasureMode === 'boxes') {
+      var count = document.getElementById('wh-post-item-count').value || '5';
+      var itemType = document.getElementById('wh-post-item-type').value;
+      fullDesc = '📦 ' + count + ' ' + itemType + ' • ' + urgency + (desc ? ' • ' + desc : '');
+    } else {
+      fullDesc = '⚖️ ' + weight + ' KG • ' + urgency + (desc ? ' • ' + desc : '');
+    }
+
     fullDesc += ' [FROM:' + from + '|TO:' + to + ']';
 
     var payload = {
