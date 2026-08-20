@@ -938,9 +938,28 @@
       </div>
     </div>
 
-    <!-- Mode 3: Dedicated Whole Truck Banner -->
-    <div id="wh-input-full-section" style="display:none; background:rgba(37,99,235,0.15); border:1.5px solid #3b82f6; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:11.5px; color:#93c5fd;">
-      🔒 <strong>Dedicated Whole Truck:</strong> You get the entire vehicle deck reserved 100% exclusively for your cargo. No weighing or item counting required!
+    <!-- Mode 3: Dedicated Whole Truck Banner & Multi-Item List -->
+    <div id="wh-input-full-section" style="display:none; background:rgba(37,99,235,0.12); border:1.5px solid #3b82f6; border-radius:12px; padding:12px; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span style="font-size:12px; font-weight:800; color:#93c5fd;">🔒 Whole Truck (One Pay — Load Multiple Items)</span>
+        <span style="font-size:10px; background:#1d4ed8; color:#fff; padding:2px 8px; border-radius:6px; font-weight:800;">1 Fixed Pay</span>
+      </div>
+      <p style="font-size:11px; color:#cbd5e1; margin:0 0 10px; line-height:1.4;">
+        Add all different items you want to put in this truck (Water bottles, Paper plates, Glasses, Sacks). Everything is included in <strong>1 Single Payment</strong>!
+      </p>
+
+      <!-- Multi-Item Rows Container -->
+      <div id="wh-multi-items-container" style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;">
+        <div class="multi-item-row" style="display:flex; gap:6px; align-items:center;">
+          <input type="text" class="form-input multi-item-name" placeholder="Item (e.g. 20 Crates Water Bottles)" style="flex:2; padding:7px 10px; font-size:12px;" value="20 Crates of Water Bottles">
+          <input type="text" class="form-input multi-item-qty" placeholder="Qty / Notes" style="flex:1; padding:7px 10px; font-size:12px;" value="20 Crates">
+          <button type="button" onclick="removeMultiItemRow(this)" style="background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:11px;">✕</button>
+        </div>
+      </div>
+      
+      <button type="button" onclick="addMultiItemRow('wh-multi-items-container')" style="background:#1e293b; border:1px dashed #38bdf8; color:#38bdf8; border-radius:8px; padding:6px 12px; font-size:11.5px; font-weight:700; cursor:pointer; width:100%;">
+        ➕ Add Another Item to Truck (Plates, Glasses, Sacks, Bottles)
+      </button>
     </div>
 
     <!-- Urgency Selector: Express vs Flexible -->
@@ -1051,7 +1070,7 @@
       <div style="display: flex; gap: 6px;">
         <button type="button" class="btn-action" id="book-mode-weight" style="flex:1; padding:8px 4px; font-size:11px; background:var(--accent);" onclick="setSenderLoadMode('weight')">⚖️ By Weight</button>
         <button type="button" class="btn-action" id="book-mode-boxes" style="flex:1; padding:8px 4px; font-size:11px; background:#1e293b; border:1px solid var(--card-border); color:var(--text-muted);" onclick="setSenderLoadMode('boxes')">📦 Boxes/Cartons</button>
-        <button type="button" class="btn-action" id="book-mode-full" style="flex:1; padding:8px 4px; font-size:11px; background:#1e293b; border:1px solid var(--card-border); color:var(--text-muted);" onclick="setSenderLoadMode('full')">🔒 Whole Truck</button>
+        <button type="button" class="btn-action" id="book-mode-full" style="flex:1; padding:8px 4px; font-size:11px; background:#1e293b; border:1px solid var(--card-border); color:var(--text-muted);" onclick="setSenderLoadMode('full')">🔒 Whole Truck (One Pay)</button>
       </div>
     </div>
 
@@ -1098,9 +1117,28 @@
       </div>
     </div>
 
-    <!-- Mode 3: Whole Truck Dedicated Banner -->
-    <div id="book-input-full-section" style="display:none; background:rgba(34,197,94,0.15); border:1.5px solid #22c55e; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:11.5px; color:#86efac;">
-      🔒 <strong>Dedicated Whole Truck (No Questions Asked):</strong> You get the entire truck deck reserved exclusively for your shipment! No weighing or counting needed.
+    <!-- Mode 3: Whole Truck Dedicated Banner & Multi-Item List -->
+    <div id="book-input-full-section" style="display:none; background:rgba(34,197,94,0.1); border:1.5px solid #22c55e; border-radius:12px; padding:12px; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span style="font-size:12px; font-weight:800; color:#86efac;">🔒 Whole Truck (One Pay — Load Multiple Items)</span>
+        <span style="font-size:10px; background:#15803d; color:#fff; padding:2px 8px; border-radius:6px; font-weight:800;">1 Fixed Pay</span>
+      </div>
+      <p style="font-size:11px; color:#cbd5e1; margin:0 0 10px; line-height:1.4;">
+        Add all different items you want to put in this truck (Water bottles, Paper plates, Glasses, Sacks). Everything is included in <strong>1 Single Payment</strong>!
+      </p>
+
+      <!-- Multi-Item Rows Container -->
+      <div id="book-multi-items-container" style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;">
+        <div class="multi-item-row" style="display:flex; gap:6px; align-items:center;">
+          <input type="text" class="form-input multi-item-name" placeholder="Item (e.g. 10 Cartons Paper Plates)" style="flex:2; padding:7px 10px; font-size:12px;" value="10 Cartons of Paper Plates">
+          <input type="text" class="form-input multi-item-qty" placeholder="Qty / Notes" style="flex:1; padding:7px 10px; font-size:12px;" value="10 Boxes">
+          <button type="button" onclick="removeMultiItemRow(this)" style="background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:11px;">✕</button>
+        </div>
+      </div>
+      
+      <button type="button" onclick="addMultiItemRow('book-multi-items-container')" style="background:#1e293b; border:1px dashed #4ade80; color:#4ade80; border-radius:8px; padding:6px 12px; font-size:11.5px; font-weight:700; cursor:pointer; width:100%;">
+        ➕ Add Another Item to Truck (Plates, Glasses, Sacks, Bottles)
+      </button>
     </div>
 
     <div class="form-group">
@@ -1616,6 +1654,43 @@
     document.getElementById('calc-platform-fee').textContent = '₹' + comm;
   }
 
+  // ── MULTI-ITEM WHOLE TRUCK MANIFEST HELPERS ──
+  function addMultiItemRow(containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    var row = document.createElement('div');
+    row.className = 'multi-item-row';
+    row.style.cssText = 'display:flex; gap:6px; align-items:center;';
+    row.innerHTML = '<input type="text" class="form-input multi-item-name" placeholder="Item name (e.g. 10 Boxes Glasses)" style="flex:2; padding:7px 10px; font-size:12px;">' +
+      '<input type="text" class="form-input multi-item-qty" placeholder="Qty" style="flex:1; padding:7px 10px; font-size:12px;">' +
+      '<button type="button" onclick="removeMultiItemRow(this)" style="background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:11px;">✕</button>';
+    container.appendChild(row);
+  }
+
+  function removeMultiItemRow(btn) {
+    var row = btn.parentElement;
+    if (row && row.parentElement && row.parentElement.children.length > 1) {
+      row.remove();
+    } else {
+      showToast('⚠️ Keep at least 1 item in the truck manifest');
+    }
+  }
+
+  function collectMultiItems(containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return [];
+    var rows = container.querySelectorAll('.multi-item-row');
+    var items = [];
+    rows.forEach(function(r) {
+      var name = (r.querySelector('.multi-item-name').value || '').trim();
+      var qty = (r.querySelector('.multi-item-qty').value || '').trim();
+      if (name) {
+        items.push(name + (qty ? ' (' + qty + ')' : ''));
+      }
+    });
+    return items;
+  }
+
   function confirmCargoBooking() {
     var name = document.getElementById('book-sender-name').value.trim();
     var phone = document.getElementById('book-sender-phone').value.trim();
@@ -1647,7 +1722,9 @@
 
     var formattedDesc = '';
     if (currentSenderLoadMode === 'full') {
-      formattedDesc = '🔒 Dedicated Whole Truck: ' + (desc || 'Full Vehicle Booking');
+      var items = collectMultiItems('book-multi-items-container');
+      formattedDesc = '🔒 Whole Truck (1 Pay): ' + (items.length ? items.join(' + ') : 'Dedicated Full Vehicle') + (desc ? ' • ' + desc : '');
+      weight = activeTripForBooking ? (activeTripForBooking.available_capacity_kg || activeTripForBooking.total_capacity_kg || 1000) : 1000;
     } else if (currentSenderLoadMode === 'boxes') {
       var count = document.getElementById('book-item-count').value || '5';
       var itemType = document.getElementById('book-item-type').value;
@@ -2655,7 +2732,8 @@
 
     var fullDesc = '';
     if (currentWarehouseMeasureMode === 'full') {
-      fullDesc = '🔒 Dedicated Whole Truck • ' + urgency + (desc ? ' • ' + desc : '');
+      var whItems = collectMultiItems('wh-multi-items-container');
+      fullDesc = '🔒 Whole Truck (1 Pay): ' + (whItems.length ? whItems.join(' + ') : 'Dedicated Full Vehicle') + ' • ' + urgency + (desc ? ' • ' + desc : '');
       weight = 1000;
     } else if (currentWarehouseMeasureMode === 'boxes') {
       var count = document.getElementById('wh-post-item-count').value || '5';
