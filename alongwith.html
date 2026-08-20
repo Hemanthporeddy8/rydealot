@@ -769,6 +769,46 @@
       </button>
     </div>
 
+    <!-- Visual Warehouse Storage Racks (Interactive Pallet Stands) -->
+    <div class="lot-container">
+      <div class="lot-header">
+        <span class="lot-title">🏬 Warehouse Storage Racks</span>
+        <span id="wh-rack-package-count" style="font-size: 11px; font-weight: 700; color: #38bdf8;">0 Parcels on Stand</span>
+      </div>
+      
+      <!-- Interactive SVG Warehouse Rack Stand -->
+      <div class="lot-svg-wrap">
+        <svg id="warehouse-rack-svg" viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="wh-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#161e2e" stroke-width="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="400" height="220" fill="url(#wh-grid)" />
+          
+          <!-- Industrial Steel Storage Rack Shelf 1 (Top Level) -->
+          <rect x="10" y="15" width="380" height="85" rx="6" fill="#0b101b" stroke="#334155" stroke-width="2"/>
+          <line x1="105" y1="15" x2="105" y2="100" stroke="#1e293b" stroke-width="2" stroke-dasharray="3 3"/>
+          <line x1="200" y1="15" x2="200" y2="100" stroke="#1e293b" stroke-width="2" stroke-dasharray="3 3"/>
+          <line x1="295" y1="15" x2="295" y2="100" stroke="#1e293b" stroke-width="2" stroke-dasharray="3 3"/>
+          
+          <!-- Middle Steel Beam with Caution Stripes -->
+          <rect x="8" y="105" width="384" height="10" rx="2" fill="#1e293b" stroke="#f59e0b" stroke-width="1" stroke-dasharray="8 6"/>
+          
+          <!-- Industrial Steel Storage Rack Shelf 2 (Bottom Level) -->
+          <rect x="10" y="120" width="380" height="85" rx="6" fill="#0b101b" stroke="#334155" stroke-width="2"/>
+          <line x1="105" y1="120" x2="105" y2="205" stroke="#1e293b" stroke-width="2" stroke-dasharray="3 3"/>
+          <line x1="200" y1="120" x2="200" y2="205" stroke="#1e293b" stroke-width="2" stroke-dasharray="3 3"/>
+          <line x1="295" y1="120" x2="295" y2="205" stroke="#1e293b" stroke-width="2" stroke-dasharray="3 3"/>
+          
+          <g id="svg-packages-layer"></g>
+        </svg>
+      </div>
+      <p style="text-align: center; font-size: 11px; color: var(--text-faint); margin-top: 8px; font-weight: 600;">
+        📦 Tap any package stand on the rack or list below to accept and earn freight money
+      </p>
+    </div>
+
     <!-- Warehouse Route & Filter Bar -->
     <div style="background: var(--card-bg); border: 1.5px solid var(--card-border); border-radius: 16px; padding: 12px 14px; margin-bottom: 14px;">
       <div class="form-row">
@@ -1645,26 +1685,27 @@
     }
     if (!phone) return;
 
-    // Fetch driver trips along with all associated cargo bookings
+    // Fetch driver trips along with all associated cargo bookings and claimed warehouse packages
     sbRequest('GET', 'cargo_trips?driver_phone=eq.' + encodeURIComponent(phone) + '&status=neq.cancelled&order=created_at.desc&limit=10')
       .then(function(trips) {
         var tripList = Array.isArray(trips) ? trips : [];
-        if (!tripList.length) {
-          renderDriverTrips([]);
-          return;
-        }
 
-        // Fetch bookings for these trips
+        // Fetch bookings for these trips AND warehouse packages claimed by this driver
         sbRequest('GET', 'cargo_bookings?order=created_at.desc')
           .then(function(allBookings) {
             var bookingsList = Array.isArray(allBookings) ? allBookings : [];
             tripList.forEach(function(t) {
               t.bookings = bookingsList.filter(function(b) { return b.trip_id === t.id; });
             });
-            renderDriverTrips(tripList);
+
+            var claimedWarehouse = bookingsList.filter(function(b) {
+              return !b.trip_id && b.cargo_description && b.cargo_description.indexOf('DRIVER:') !== -1 && b.cargo_description.indexOf(phone) !== -1;
+            });
+
+            renderDriverTrips(tripList, claimedWarehouse);
           })
           .catch(function() {
-            renderDriverTrips(tripList);
+            renderDriverTrips(tripList, []);
           });
       });
   }
@@ -1691,11 +1732,13 @@
     loadMyDriverTrips();
   }
 
-  function renderDriverTrips(trips) {
+  function renderDriverTrips(trips, claimedWarehouse) {
     var container = document.getElementById('driver-trips-list');
     if (!container) return;
 
     var allTrips = Array.isArray(trips) ? trips : [];
+    var whJobs = Array.isArray(claimedWarehouse) ? claimedWarehouse : [];
+
     var activeTrips = allTrips.filter(function(t) {
       return !isTripExpired(t) && t.status !== 'completed' && t.status !== 'cancelled';
     });
@@ -1703,12 +1746,16 @@
       return isTripExpired(t) || t.status === 'completed' || t.status === 'cancelled';
     });
 
-    var displayTrips = driverTripTab === 'active' ? activeTrips : historyTrips;
+    var activeWhJobs = whJobs.filter(function(b) { return b.status !== 'delivered' && b.status !== 'cancelled'; });
+    var historyWhJobs = whJobs.filter(function(b) { return b.status === 'delivered' || b.status === 'cancelled'; });
 
-    if (!displayTrips.length) {
+    var displayTrips = driverTripTab === 'active' ? activeTrips : historyTrips;
+    var displayWh = driverTripTab === 'active' ? activeWhJobs : historyWhJobs;
+
+    if (!displayTrips.length && !displayWh.length) {
       if (driverTripTab === 'active') {
         container.innerHTML = '<div style="text-align:center; padding:30px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:14px; border:1px solid var(--card-border);">' +
-          'No active open trips right now. Post your return trip above to start receiving cargo bookings!' +
+          'No active open trips or warehouse loads right now. Post your return trip above or browse the 🏬 <strong>Cargo Warehouse</strong> to claim available loads!' +
         '</div>';
       } else {
         container.innerHTML = '<div style="text-align:center; padding:30px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:14px; border:1px solid var(--card-border);">' +
@@ -1722,16 +1769,16 @@
 
     // If viewing Driver History, show Earnings Summary Header
     if (driverTripTab === 'history') {
-      var totalCompleted = historyTrips.filter(function(t) { return t.status === 'completed'; }).length;
+      var totalCompleted = historyTrips.filter(function(t) { return t.status === 'completed'; }).length + historyWhJobs.filter(function(b) { return b.status === 'delivered'; }).length;
       var totalEarned = historyTrips.reduce(function(sum, t) {
         var bList = t.bookings || [];
         return sum + bList.filter(function(b) { return b.status === 'delivered'; }).reduce(function(s, b) { return s + (parseFloat(b.driver_earning) || 0); }, 0);
-      }, 0);
+      }, 0) + historyWhJobs.reduce(function(sum, b) { return sum + (parseFloat(b.driver_earning) || 0); }, 0);
 
       html += '<div style="background:linear-gradient(135deg, rgba(34,197,94,0.15), rgba(16,185,129,0.05)); border:1.5px solid #22c55e; border-radius:14px; padding:14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">' +
         '<div>' +
           '<div style="font-size:11px; color:#4ade80; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">📜 Completed History</div>' +
-          '<div style="font-size:13px; font-weight:900; color:#fff; margin-top:2px;">' + totalCompleted + ' Completed Trips</div>' +
+          '<div style="font-size:13px; font-weight:900; color:#fff; margin-top:2px;">' + totalCompleted + ' Completed Jobs</div>' +
         '</div>' +
         '<div style="text-align:right;">' +
           '<div style="font-size:11px; color:var(--text-muted); font-weight:700;">Total Earned</div>' +
@@ -1740,47 +1787,102 @@
       '</div>';
     }
 
-    for (var i = 0; i < displayTrips.length; i++) {
-      var t = displayTrips[i];
-      var depDate = new Date(t.departure_time);
-      var timeStr = depDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + depDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-      var isExp = isTripExpired(t);
-      var badgeClass = isExp ? 'badge-expiring' : (t.status === 'open' ? 'badge-open' : t.status === 'completed' ? 'badge-delivered' : 'badge-expiring');
-      var badgeText = isExp ? 'EXPIRED' : t.status.toUpperCase();
-      var bookings = t.bookings || [];
-      var bookingCount = bookings.length;
+    // ── RENDER CLAIMED WAREHOUSE PACKAGES FIRST ──
+    if (displayWh.length > 0) {
+      html += '<div style="font-size:12px; font-weight:800; color:#38bdf8; text-transform:uppercase; margin:8px 0 10px; display:flex; align-items:center; gap:6px;">🏬 Claimed Warehouse Packages (' + displayWh.length + ')</div>';
+      for (var w = 0; w < displayWh.length; w++) {
+        var wb = displayWh[w];
+        var matchFromTo = (wb.cargo_description || '').match(/\[FROM:([^|]+)\|TO:([^\]]+)\]/);
+        var routeStr = matchFromTo ? (matchFromTo[1] + ' ➔ ' + matchFromTo[2]) : 'Warehouse Cargo';
+        var cleanDesc = (wb.cargo_description || '').replace(/\[DRIVER:[^\]]+\]/g, '').replace(/\[FROM:[^|]+\|TO:[^\]]+\]/g, '').trim();
 
-      var bookingAlertHtml = '';
-      if (bookingCount > 0) {
-        var totalBookedKg = bookings.reduce(function(sum, b) { return sum + (parseInt(b.cargo_weight_kg) || 0); }, 0);
-        var totalEarned = bookings.reduce(function(sum, b) { return sum + (parseFloat(b.driver_earning) || 0); }, 0);
-        bookingAlertHtml = '<div style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; border-radius: 8px; padding: 8px 12px; margin: 8px 0; font-size: 12px; color: #4ade80; display:flex; justify-content:space-between; align-items:center;">' +
-          '<span>🔔 <strong>' + bookingCount + ' Booking' + (bookingCount > 1 ? 's' : '') + ' Received!</strong> (' + totalBookedKg + ' KG)</span>' +
-          '<strong style="color:#fff;">+₹' + totalEarned + '</strong>' +
+        var pickupNav = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(wb.pickup_address);
+        var dropNav = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(wb.drop_address);
+
+        var statusColor = wb.status === 'accepted' || wb.status === 'arrived_pickup' ? '#22c55e' : wb.status === 'in_transit' ? '#38bdf8' : wb.status === 'delivered' ? '#3b82f6' : '#eab308';
+        var statusLabel = wb.status === 'arrived_pickup' ? 'ARRIVED AT PICKUP' : wb.status === 'in_transit' ? 'IN TRANSIT' : wb.status === 'arrived_drop' ? 'ARRIVED AT DROP' : wb.status.toUpperCase();
+
+        var actionBtns = '';
+        if (wb.status === 'accepted') {
+          actionBtns = '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#0284c7; font-weight:800;" onclick="updateBookingStatus(\'' + wb.id + '\', \'arrived_pickup\', null, \'' + routeStr + '\', ' + wb.cargo_weight_kg + ')">📍 I Arrived at Pickup</button>';
+        } else if (wb.status === 'arrived_pickup') {
+          actionBtns = '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#eab308; color:#000; font-weight:800;" onclick="updateBookingStatus(\'' + wb.id + '\', \'in_transit\', null, \'' + routeStr + '\', ' + wb.cargo_weight_kg + ')">🚛 Loaded & Moving</button>';
+        } else if (wb.status === 'in_transit') {
+          actionBtns = '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#0891b2; font-weight:800;" onclick="updateBookingStatus(\'' + wb.id + '\', \'arrived_drop\', null, \'' + routeStr + '\', ' + wb.cargo_weight_kg + ')">🏁 Arrived at Destination</button>';
+        } else if (wb.status === 'arrived_drop') {
+          actionBtns = '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#7c3aed; font-weight:800;" onclick="updateBookingStatus(\'' + wb.id + '\', \'delivered\', null, \'' + routeStr + '\', ' + wb.cargo_weight_kg + ')">✅ Mark Delivered</button>';
+        }
+
+        html += '<div class="bay-card" style="border:1.5px solid #38bdf8; margin-bottom:12px;">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
+            '<span style="font-size:14px; font-weight:900; color:#fff;">' + routeStr + '</span>' +
+            '<span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:rgba(255,255,255,0.08); color:' + statusColor + '; border:1px solid ' + statusColor + ';">' + statusLabel + '</span>' +
+          '</div>' +
+          '<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">' +
+            '📦 ' + wb.cargo_weight_kg + ' KG • You Earn: <strong style="color:#4ade80;">₹' + wb.driver_earning + '</strong> • Shopkeeper: <strong style="color:#fff;">' + wb.sender_name + '</strong>' +
+          '</div>' +
+          (cleanDesc ? '<div style="font-size:11px; color:var(--text-faint); margin-bottom:6px;">📋 ' + cleanDesc + '</div>' : '') +
+          '<div style="font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
+            '<span>📍 Pickup: ' + wb.pickup_address + '</span>' +
+            '<a href="' + pickupNav + '" target="_blank" style="background:#0f172a; color:#38bdf8; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; border:1px solid #1e293b; white-space:nowrap; margin-left:6px;">🗺️ Maps</a>' +
+          '</div>' +
+          '<div style="font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+            '<span>📍 Drop: ' + wb.drop_address + '</span>' +
+            '<a href="' + dropNav + '" target="_blank" style="background:#0f172a; color:#a78bfa; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; border:1px solid #1e293b; white-space:nowrap; margin-left:6px;">🗺️ Maps</a>' +
+          '</div>' +
+          (actionBtns ? '<div style="display:flex; gap:8px; border-top:1px solid #1c2438; padding-top:8px;">' + actionBtns + '</div>' : '') +
         '</div>';
       }
-
-      var cleanDrvNotes = (t.notes || '').replace(/\[EXP:[^\]]+\]/g, '').trim();
-
-      html += '<div class="bay-card" style="' + (bookingCount > 0 && driverTripTab === 'active' ? 'border:1.5px solid #22c55e;' : '') + '">' +
-        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-          '<span style="font-size:15px; font-weight:900; color:#fff;">' + t.from_city + ' ➔ ' + t.to_city + '</span>' +
-          '<span class="badge ' + badgeClass + '">' + badgeText + '</span>' +
-        '</div>' +
-        '<div style="font-size:11.5px; color:var(--text-muted); margin:4px 0;">' + t.vehicle_type + ' (' + t.vehicle_number + ') • ' + timeStr + '</div>' +
-        '<div style="font-size:12px; color:var(--text-muted);">' +
-          '📦 Available: <strong style="color:#fff;">' + (t.available_capacity_kg !== undefined ? t.available_capacity_kg : t.total_capacity_kg) + ' / ' + (t.total_capacity_kg || 1000) + ' KG</strong> • Trip Freight: <strong style="color:#4ade80;">₹' + (t.price_per_kg || 2500) + '</strong>' +
-        '</div>' +
-        (cleanDrvNotes ? '<div style="font-size:11px; color:var(--text-faint); margin-top:4px;">💬 ' + cleanDrvNotes + '</div>' : '') +
-        bookingAlertHtml +
-        '<div style="display:flex; gap:8px; margin-top:10px;">' +
-          '<button class="btn-action" style="flex:1.2; padding:8px; font-size:11.5px; background:' + (bookingCount > 0 ? '#15803d' : '#1e293b') + '; border:1px solid var(--card-border); font-weight:800;" onclick="viewTripBookings(\'' + t.id + '\', \'' + t.from_city + ' ➔ ' + t.to_city + '\')">📋 View Bookings (' + bookingCount + ')</button>' +
-          (!isExp && t.status === 'open' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#16a34a;" onclick="setTripStatus(\'' + t.id + '\', \'in_transit\')">🚛 Start Trip</button>' : '') +
-          (!isExp && t.status === 'in_transit' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#7c3aed;" onclick="setTripStatus(\'' + t.id + '\', \'completed\')">✅ Complete</button>' : '') +
-          (!isExp && t.status !== 'completed' ? '<button class="btn-action" style="flex:0.6; padding:8px; font-size:11px; background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5;" onclick="deleteTrip(\'' + t.id + '\')">🗑️ Cancel</button>' : '') +
-        '</div>' +
-      '</div>';
     }
+
+    // ── RENDER REGULAR RETURN TRIPS ──
+    if (displayTrips.length > 0) {
+      if (displayWh.length > 0) {
+        html += '<div style="font-size:12px; font-weight:800; color:#4ade80; text-transform:uppercase; margin:16px 0 10px;">🚚 My Posted Return Trips (' + displayTrips.length + ')</div>';
+      }
+      for (var i = 0; i < displayTrips.length; i++) {
+        var t = displayTrips[i];
+        var depDate = new Date(t.departure_time);
+        var timeStr = depDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + depDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        var isExp = isTripExpired(t);
+        var badgeClass = isExp ? 'badge-expiring' : (t.status === 'open' ? 'badge-open' : t.status === 'completed' ? 'badge-delivered' : 'badge-expiring');
+        var badgeText = isExp ? 'EXPIRED' : t.status.toUpperCase();
+        var bookings = t.bookings || [];
+        var bookingCount = bookings.length;
+
+        var bookingAlertHtml = '';
+        if (bookingCount > 0) {
+          var totalBookedKg = bookings.reduce(function(sum, b) { return sum + (parseInt(b.cargo_weight_kg) || 0); }, 0);
+          var totalEarned = bookings.reduce(function(sum, b) { return sum + (parseFloat(b.driver_earning) || 0); }, 0);
+          bookingAlertHtml = '<div style="background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; border-radius: 8px; padding: 8px 12px; margin: 8px 0; font-size: 12px; color: #4ade80; display:flex; justify-content:space-between; align-items:center;">' +
+            '<span>🔔 <strong>' + bookingCount + ' Booking' + (bookingCount > 1 ? 's' : '') + ' Received!</strong> (' + totalBookedKg + ' KG)</span>' +
+            '<strong style="color:#fff;">+₹' + totalEarned + '</strong>' +
+          '</div>';
+        }
+
+        var cleanDrvNotes = (t.notes || '').replace(/\[EXP:[^\]]+\]/g, '').trim();
+
+        html += '<div class="bay-card" style="' + (bookingCount > 0 && driverTripTab === 'active' ? 'border:1.5px solid #22c55e;' : '') + '">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+            '<span style="font-size:15px; font-weight:900; color:#fff;">' + t.from_city + ' ➔ ' + t.to_city + '</span>' +
+            '<span class="badge ' + badgeClass + '">' + badgeText + '</span>' +
+          '</div>' +
+          '<div style="font-size:11.5px; color:var(--text-muted); margin:4px 0;">' + t.vehicle_type + ' (' + t.vehicle_number + ') • ' + timeStr + '</div>' +
+          '<div style="font-size:12px; color:var(--text-muted);">' +
+            '📦 Available: <strong style="color:#fff;">' + (t.available_capacity_kg !== undefined ? t.available_capacity_kg : t.total_capacity_kg) + ' / ' + (t.total_capacity_kg || 1000) + ' KG</strong> • Trip Freight: <strong style="color:#4ade80;">₹' + (t.price_per_kg || 2500) + '</strong>' +
+          '</div>' +
+          (cleanDrvNotes ? '<div style="font-size:11px; color:var(--text-faint); margin-top:4px;">💬 ' + cleanDrvNotes + '</div>' : '') +
+          bookingAlertHtml +
+          '<div style="display:flex; gap:8px; margin-top:10px;">' +
+            '<button class="btn-action" style="flex:1.2; padding:8px; font-size:11.5px; background:' + (bookingCount > 0 ? '#15803d' : '#1e293b') + '; border:1px solid var(--card-border); font-weight:800;" onclick="viewTripBookings(\'' + t.id + '\', \'' + t.from_city + ' ➔ ' + t.to_city + '\')">📋 View Bookings (' + bookingCount + ')</button>' +
+            (!isExp && t.status === 'open' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#16a34a;" onclick="setTripStatus(\'' + t.id + '\', \'in_transit\')">🚛 Start Trip</button>' : '') +
+            (!isExp && t.status === 'in_transit' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#7c3aed;" onclick="setTripStatus(\'' + t.id + '\', \'completed\')">✅ Complete</button>' : '') +
+            (!isExp && t.status !== 'completed' ? '<button class="btn-action" style="flex:0.6; padding:8px; font-size:11px; background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5;" onclick="deleteTrip(\'' + t.id + '\')">🗑️ Cancel</button>' : '') +
+          '</div>' +
+        '</div>';
+      }
+    }
+
     container.innerHTML = html;
   }
 
@@ -2020,7 +2122,21 @@
           .then(function(allTrips) {
             var tripsList = Array.isArray(allTrips) ? allTrips : [];
             bList.forEach(function(b) {
-              b.trip = tripsList.find(function(t) { return t.id === b.trip_id; }) || {};
+              if (b.trip_id) {
+                b.trip = tripsList.find(function(t) { return t.id === b.trip_id; }) || {};
+              } else {
+                // Warehouse parcel: parse assigned driver and route from description
+                var matchDriver = (b.cargo_description || '').match(/\[DRIVER:([^|]+)\|([^|]+)\|([^\]]+)\]/);
+                var matchFromTo = (b.cargo_description || '').match(/\[FROM:([^|]+)\|TO:([^\]]+)\]/);
+                b.trip = {
+                  driver_name: matchDriver ? matchDriver[1] : (b.status === 'warehouse_open' ? 'Waiting for Driver' : 'Assigned Driver'),
+                  driver_phone: matchDriver ? matchDriver[2] : '',
+                  vehicle_type: matchDriver ? matchDriver[3] : 'Delivery Vehicle',
+                  vehicle_number: '',
+                  from_city: matchFromTo ? matchFromTo[1] : '',
+                  to_city: matchFromTo ? matchFromTo[2] : ''
+                };
+              }
             });
             renderSenderBookings(bList);
           })
@@ -2390,6 +2506,83 @@
       });
   }
 
+  var WAREHOUSE_SLOTS = [
+    { x: 57, y: 55, shelf: 'top' },
+    { x: 152, y: 55, shelf: 'top' },
+    { x: 247, y: 55, shelf: 'top' },
+    { x: 342, y: 55, shelf: 'top' },
+    { x: 57, y: 160, shelf: 'bottom' },
+    { x: 152, y: 160, shelf: 'bottom' },
+    { x: 247, y: 160, shelf: 'bottom' },
+    { x: 342, y: 160, shelf: 'bottom' }
+  ];
+
+  var activeWarehousePackages = [];
+
+  function renderPackageVector(pkg, index) {
+    var isExp = pkg && pkg.cargo_description && pkg.cargo_description.indexOf('Express') !== -1;
+    var boxColor = isExp ? '#d97706' : '#0284c7';
+    var ribbonColor = isExp ? '#fbbf24' : '#38bdf8';
+    var w = pkg ? pkg.cargo_weight_kg : 0;
+    var earn = pkg ? pkg.driver_earning : 0;
+
+    return '<g>' +
+      '<!-- Wooden Pallet Stand Base -->' +
+      '<rect x="-38" y="16" width="76" height="7" rx="1.5" fill="#78350f" stroke="#451a03" stroke-width="1"/>' +
+      '<rect x="-32" y="23" width="14" height="4" fill="#451a03"/>' +
+      '<rect x="-7" y="23" width="14" height="4" fill="#451a03"/>' +
+      '<rect x="18" y="23" width="14" height="4" fill="#451a03"/>' +
+      '<!-- Stacked Cargo Crates / Parcels -->' +
+      '<rect x="-32" y="-12" width="30" height="28" rx="2" fill="' + boxColor + '" stroke="#1e293b" stroke-width="1"/>' +
+      '<line x1="-32" y1="2" x2="-2" y2="2" stroke="' + ribbonColor + '" stroke-width="1.5"/>' +
+      '<line x1="-17" y1="-12" x2="-17" y2="16" stroke="' + ribbonColor + '" stroke-width="1.5"/>' +
+      '<rect x="-2" y="-18" width="34" height="34" rx="2" fill="#b45309" stroke="#1e293b" stroke-width="1"/>' +
+      '<line x1="-2" y1="-1" x2="32" y2="-1" stroke="#fde68a" stroke-width="1.5"/>' +
+      '<line x1="15" y1="-18" x2="15" y2="16" stroke="#fde68a" stroke-width="1.5"/>' +
+      '<!-- Small Top Box -->' +
+      '<rect x="-22" y="-24" width="22" height="12" rx="1.5" fill="#ca8a04" stroke="#713f12" stroke-width="1"/>' +
+      '<!-- Weight & Earn Badge -->' +
+      '<rect x="-32" y="2" width="64" height="12" rx="3" fill="#0f172a" stroke="' + ribbonColor + '" stroke-width="1"/>' +
+      '<text x="0" y="11" fill="#fff" font-size="7.5" font-weight="900" font-family="system-ui" text-anchor="middle">📦 ' + w + ' KG • ₹' + earn + '</text>' +
+    '</g>';
+  }
+
+  function renderVisualWarehouseRack(packages) {
+    var layer = document.getElementById('svg-packages-layer');
+    var counter = document.getElementById('wh-rack-package-count');
+    var count = packages.length;
+    if (counter) counter.textContent = count + (count === 1 ? ' Parcel on Stand' : ' Parcels on Stand');
+    if (!layer) return;
+
+    var svgContent = '';
+
+    WAREHOUSE_SLOTS.forEach(function(slot, index) {
+      var pkg = packages[index];
+      if (pkg) {
+        var pkgInner = renderPackageVector(pkg, index);
+        svgContent += '<g transform="translate(' + slot.x + ',' + slot.y + ')" class="truck-slot" onclick="openClaimFromSlot(' + index + ')" style="cursor:pointer;">' +
+          pkgInner +
+        '</g>';
+      } else {
+        svgContent += '<g transform="translate(' + slot.x + ',' + slot.y + ')" opacity="0.3">' +
+          '<rect x="-38" y="16" width="76" height="7" rx="1.5" fill="#1e293b" stroke="#334155" stroke-width="1" stroke-dasharray="2 2"/>' +
+          '<text x="0" y="3" fill="#334155" font-size="8" font-weight="bold" font-family="IBM Plex Mono" text-anchor="middle">Rack ' + (index + 1) + '</text>' +
+        '</g>';
+      }
+    });
+
+    layer.innerHTML = svgContent;
+  }
+
+  function openClaimFromSlot(index) {
+    if (activeWarehousePackages[index]) {
+      var p = activeWarehousePackages[index];
+      var matchFrom = (p.cargo_description || '').match(/\[FROM:([^|]+)\|TO:([^\]]+)\]/);
+      var routeStr = matchFrom ? (matchFrom[1] + ' ➔ ' + matchFrom[2]) : 'Open Cargo Package';
+      openClaimWarehouseModal(p.id, routeStr, p.cargo_weight_kg, p.total_price, p.driver_earning, encodeURIComponent(p.pickup_address), encodeURIComponent(p.drop_address), encodeURIComponent(p.sender_name), p.sender_phone);
+    }
+  }
+
   function loadWarehousePackages() {
     var from = document.getElementById('wh-filter-from') ? document.getElementById('wh-filter-from').value : '';
     var to = document.getElementById('wh-filter-to') ? document.getElementById('wh-filter-to').value : '';
@@ -2412,9 +2605,13 @@
           });
         }
 
+        activeWarehousePackages = pList;
+        renderVisualWarehouseRack(pList);
         renderWarehousePackages(pList);
       })
       .catch(function() {
+        activeWarehousePackages = [];
+        renderVisualWarehouseRack([]);
         renderWarehousePackages([]);
       });
   }
