@@ -598,13 +598,13 @@
     </div>
     <div id="sender-trips-list"></div>
 
-    <!-- Customer Active Cargo Bookings / Tracking Section -->
+    <!-- Customer Active Cargo Bookings / Tracking & History Section -->
     <div style="margin-top: 28px; border-top: 1.5px solid var(--card-border); padding-top: 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.5px;">📦 My Cargo Bookings & Live Status</h3>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 10px; color: #4ade80; font-weight: 700; background: rgba(34,197,94,0.15); padding: 2px 6px; border-radius: 6px;">● Auto-Sync ON</span>
-          <button onclick="loadMySenderBookings()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer;">↻ Refresh</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.5px;">📦 My Cargo Shipments</h3>
+        <div style="display:flex; gap:4px; background:#0d131f; padding:3px; border-radius:8px; border:1px solid var(--card-border);">
+          <button id="sender-toggle-active" onclick="setSenderBookingTab('active')" style="background:var(--accent); color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">Live Active</button>
+          <button id="sender-toggle-history" onclick="setSenderBookingTab('history')" style="background:none; color:var(--text-muted); border:none; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">📜 History</button>
         </div>
       </div>
 
@@ -735,10 +735,13 @@
       <button class="btn-action" id="btn-post-trip" onclick="postReturnTrip()">🚛 Post Trip</button>
     </div>
 
-    <!-- Driver's Posted Trips -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+    <!-- Driver's Posted Trips & History Toggle -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
       <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">My Posted Trips</h3>
-      <button onclick="loadMyDriverTrips()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer;">↻ Refresh</button>
+      <div style="display:flex; gap:4px; background:#0d131f; padding:3px; border-radius:8px; border:1px solid var(--card-border);">
+        <button id="drv-toggle-active" onclick="setDriverTripTab('active')" style="background:var(--accent); color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">Active</button>
+        <button id="drv-toggle-history" onclick="setDriverTripTab('history')" style="background:none; color:var(--text-muted); border:none; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">📜 History</button>
+      </div>
     </div>
     <div id="driver-trips-list">
       <div style="text-align: center; padding: 30px 20px; color: var(--text-faint); font-size: 12.5px;">
@@ -1453,19 +1456,84 @@
       });
   }
 
+  var driverTripTab = 'active';
+
+  function setDriverTripTab(tab) {
+    driverTripTab = tab;
+    var btnActive = document.getElementById('drv-toggle-active');
+    var btnHist = document.getElementById('drv-toggle-history');
+    if (btnActive && btnHist) {
+      if (tab === 'active') {
+        btnActive.style.background = 'var(--accent)';
+        btnActive.style.color = '#fff';
+        btnHist.style.background = 'none';
+        btnHist.style.color = 'var(--text-muted)';
+      } else {
+        btnHist.style.background = 'var(--accent)';
+        btnHist.style.color = '#fff';
+        btnActive.style.background = 'none';
+        btnActive.style.color = 'var(--text-muted)';
+      }
+    }
+    loadMyDriverTrips();
+  }
+
   function renderDriverTrips(trips) {
     var container = document.getElementById('driver-trips-list');
-    if (!trips || !trips.length) {
-      container.innerHTML = '<div style="text-align:center; padding:30px 20px; color:var(--text-faint); font-size:12.5px;">No active trips posted under this phone number.</div>';
+    if (!container) return;
+
+    var allTrips = Array.isArray(trips) ? trips : [];
+    var activeTrips = allTrips.filter(function(t) {
+      return !isTripExpired(t) && t.status !== 'completed' && t.status !== 'cancelled';
+    });
+    var historyTrips = allTrips.filter(function(t) {
+      return isTripExpired(t) || t.status === 'completed' || t.status === 'cancelled';
+    });
+
+    var displayTrips = driverTripTab === 'active' ? activeTrips : historyTrips;
+
+    if (!displayTrips.length) {
+      if (driverTripTab === 'active') {
+        container.innerHTML = '<div style="text-align:center; padding:30px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:14px; border:1px solid var(--card-border);">' +
+          'No active open trips right now. Post your return trip above to start receiving cargo bookings!' +
+        '</div>';
+      } else {
+        container.innerHTML = '<div style="text-align:center; padding:30px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:14px; border:1px solid var(--card-border);">' +
+          'No past trip history found under this phone number.' +
+        '</div>';
+      }
       return;
     }
 
     var html = '';
-    for (var i = 0; i < trips.length; i++) {
-      var t = trips[i];
+
+    // If viewing Driver History, show Earnings Summary Header
+    if (driverTripTab === 'history') {
+      var totalCompleted = historyTrips.filter(function(t) { return t.status === 'completed'; }).length;
+      var totalEarned = historyTrips.reduce(function(sum, t) {
+        var bList = t.bookings || [];
+        return sum + bList.filter(function(b) { return b.status === 'delivered'; }).reduce(function(s, b) { return s + (parseFloat(b.driver_earning) || 0); }, 0);
+      }, 0);
+
+      html += '<div style="background:linear-gradient(135deg, rgba(34,197,94,0.15), rgba(16,185,129,0.05)); border:1.5px solid #22c55e; border-radius:14px; padding:14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">' +
+        '<div>' +
+          '<div style="font-size:11px; color:#4ade80; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">📜 Completed History</div>' +
+          '<div style="font-size:13px; font-weight:900; color:#fff; margin-top:2px;">' + totalCompleted + ' Completed Trips</div>' +
+        '</div>' +
+        '<div style="text-align:right;">' +
+          '<div style="font-size:11px; color:var(--text-muted); font-weight:700;">Total Earned</div>' +
+          '<div style="font-size:18px; font-weight:900; color:#4ade80;">₹' + totalEarned + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    for (var i = 0; i < displayTrips.length; i++) {
+      var t = displayTrips[i];
       var depDate = new Date(t.departure_time);
       var timeStr = depDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + depDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-      var badgeClass = t.status === 'open' ? 'badge-open' : 'badge-expiring';
+      var isExp = isTripExpired(t);
+      var badgeClass = isExp ? 'badge-expiring' : (t.status === 'open' ? 'badge-open' : t.status === 'completed' ? 'badge-delivered' : 'badge-expiring');
+      var badgeText = isExp ? 'EXPIRED' : t.status.toUpperCase();
       var bookings = t.bookings || [];
       var bookingCount = bookings.length;
 
@@ -1479,12 +1547,9 @@
         '</div>';
       }
 
-      var isExp = isTripExpired(t);
-      var badgeClass = isExp ? 'badge-expiring' : (t.status === 'open' ? 'badge-open' : 'badge-expiring');
-      var badgeText = isExp ? 'EXPIRED' : t.status.toUpperCase();
       var cleanDrvNotes = (t.notes || '').replace(/\[EXP:[^\]]+\]/g, '').trim();
 
-      html += '<div class="bay-card" style="' + (bookingCount > 0 ? 'border:1.5px solid #22c55e;' : '') + '">' +
+      html += '<div class="bay-card" style="' + (bookingCount > 0 && driverTripTab === 'active' ? 'border:1.5px solid #22c55e;' : '') + '">' +
         '<div style="display:flex; justify-content:space-between; align-items:center;">' +
           '<span style="font-size:15px; font-weight:900; color:#fff;">' + t.from_city + ' ➔ ' + t.to_city + '</span>' +
           '<span class="badge ' + badgeClass + '">' + badgeText + '</span>' +
@@ -1499,7 +1564,7 @@
           '<button class="btn-action" style="flex:1.2; padding:8px; font-size:11.5px; background:' + (bookingCount > 0 ? '#15803d' : '#1e293b') + '; border:1px solid var(--card-border); font-weight:800;" onclick="viewTripBookings(\'' + t.id + '\', \'' + t.from_city + ' ➔ ' + t.to_city + '\')">📋 View Bookings (' + bookingCount + ')</button>' +
           (!isExp && t.status === 'open' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#16a34a;" onclick="setTripStatus(\'' + t.id + '\', \'in_transit\')">🚛 Start Trip</button>' : '') +
           (!isExp && t.status === 'in_transit' ? '<button class="btn-action" style="flex:1; padding:8px; font-size:11.5px; background:#7c3aed;" onclick="setTripStatus(\'' + t.id + '\', \'completed\')">✅ Complete</button>' : '') +
-          '<button class="btn-action" style="flex:0.6; padding:8px; font-size:11px; background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5;" onclick="deleteTrip(\'' + t.id + '\')">🗑️ Cancel</button>' +
+          (!isExp && t.status !== 'completed' ? '<button class="btn-action" style="flex:0.6; padding:8px; font-size:11px; background:#450a0a; border:1px solid #7f1d1d; color:#fca5a5;" onclick="deleteTrip(\'' + t.id + '\')">🗑️ Cancel</button>' : '') +
         '</div>' +
       '</div>';
     }
@@ -1876,13 +1941,87 @@
     '</div>';
   }
 
+  var senderBookingTab = 'active';
+
+  function setSenderBookingTab(tab) {
+    senderBookingTab = tab;
+    var btnActive = document.getElementById('sender-toggle-active');
+    var btnHist = document.getElementById('sender-toggle-history');
+    if (btnActive && btnHist) {
+      if (tab === 'active') {
+        btnActive.style.background = 'var(--accent)';
+        btnActive.style.color = '#fff';
+        btnHist.style.background = 'none';
+        btnHist.style.color = 'var(--text-muted)';
+      } else {
+        btnHist.style.background = 'var(--accent)';
+        btnHist.style.color = '#fff';
+        btnActive.style.background = 'none';
+        btnActive.style.color = 'var(--text-muted)';
+      }
+    }
+    loadMySenderBookings();
+  }
+
   function renderSenderBookings(bookings) {
     var container = document.getElementById('sender-bookings-list');
     if (!container) return;
 
+    var allBookings = Array.isArray(bookings) ? bookings : [];
+
+    var activeList = allBookings.filter(function(b) {
+      var isDelivered = b.status === 'delivered';
+      var isDeclined = b.status === 'rejected' || b.status === 'declined_full';
+      var tripExp = b.trip ? isTripExpired(b.trip) : false;
+      return !isDelivered && !isDeclined && !tripExp;
+    });
+
+    var historyList = allBookings.filter(function(b) {
+      var isDelivered = b.status === 'delivered';
+      var isDeclined = b.status === 'rejected' || b.status === 'declined_full';
+      var tripExp = b.trip ? isTripExpired(b.trip) : false;
+      return isDelivered || isDeclined || tripExp;
+    });
+
+    var displayList = senderBookingTab === 'active' ? activeList : historyList;
+
+    if (!displayList.length) {
+      if (senderBookingTab === 'active') {
+        container.innerHTML = '<div style="text-align:center; padding:24px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:14px; border:1px solid var(--card-border);">' +
+          '<div style="font-size:24px; margin-bottom:6px;">📦</div>' +
+          '<strong style="color:#fff; display:block; margin-bottom:4px;">No Active Ongoing Shipments</strong>' +
+          'Book a truck in the freight parking lot above or switch to <strong>📜 History</strong> to view your past deliveries.' +
+        '</div>';
+      } else {
+        container.innerHTML = '<div style="text-align:center; padding:24px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:14px; border:1px solid var(--card-border);">' +
+          '<div style="font-size:24px; margin-bottom:6px;">📜</div>' +
+          '<strong style="color:#fff; display:block; margin-bottom:4px;">No Past Booking History</strong>' +
+          'All your completed deliveries and past shipment receipts will be saved here.' +
+        '</div>';
+      }
+      return;
+    }
+
     var html = '';
-    for (var i = 0; i < bookings.length; i++) {
-      var b = bookings[i];
+
+    // If in history mode, show summary header
+    if (senderBookingTab === 'history') {
+      var totalDelivered = historyList.filter(function(b) { return b.status === 'delivered'; }).length;
+      var totalFreightSpent = historyList.filter(function(b) { return b.status === 'delivered'; }).reduce(function(sum, b) { return sum + (parseFloat(b.total_price) || 0); }, 0);
+      html += '<div style="background:linear-gradient(135deg, rgba(56,189,248,0.15), rgba(30,58,138,0.05)); border:1.5px solid #38bdf8; border-radius:14px; padding:12px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">' +
+        '<div>' +
+          '<div style="font-size:11px; color:#38bdf8; font-weight:800; text-transform:uppercase;">📜 Past Deliveries</div>' +
+          '<div style="font-size:13px; font-weight:900; color:#fff; margin-top:2px;">' + totalDelivered + ' Shipments Completed</div>' +
+        '</div>' +
+        '<div style="text-align:right;">' +
+          '<div style="font-size:10.5px; color:var(--text-muted); font-weight:700;">Total Freight Paid</div>' +
+          '<div style="font-size:17px; font-weight:900; color:#38bdf8;">₹' + totalFreightSpent + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    for (var i = 0; i < displayList.length; i++) {
+      var b = displayList[i];
       var t = b.trip || {};
       var statusBadge = '';
 
@@ -1903,11 +2042,25 @@
       }
 
       var routeStr = (t.from_city && t.to_city) ? (t.from_city + ' ➔ ' + t.to_city) : 'Cargo Shipment';
-      var journeyTrackerHtml = (b.status !== 'pending' && b.status !== 'rejected' && b.status !== 'declined_full') 
-        ? renderLiveTruckJourneyTimeline(b.status, b, t)
-        : '<div style="background:rgba(234,179,8,0.1); border:1px solid #ca8a04; border-radius:8px; padding:8px 10px; margin:8px 0; color:#fde047; font-size:11.5px;">⏳ Request sent to Driver. Waiting for confirmation.</div>';
+      var journeyTrackerHtml = '';
 
-      html += '<div class="bay-card" style="margin-bottom:12px; ' + (b.status === 'arrived_pickup' ? 'border:2px solid #facc15;' : b.status === 'accepted' ? 'border:1.5px solid #22c55e;' : '') + '">' +
+      if (senderBookingTab === 'active') {
+        journeyTrackerHtml = (b.status !== 'pending' && b.status !== 'rejected' && b.status !== 'declined_full') 
+          ? renderLiveTruckJourneyTimeline(b.status, b, t)
+          : '<div style="background:rgba(234,179,8,0.1); border:1px solid #ca8a04; border-radius:8px; padding:8px 10px; margin:8px 0; color:#fde047; font-size:11.5px;">⏳ Request sent to Driver. Waiting for confirmation.</div>';
+      } else {
+        // History Receipt summary card
+        var bookDateStr = b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '';
+        journeyTrackerHtml = '<div style="background:#0d131f; border:1px solid var(--card-border); border-radius:10px; padding:10px; margin-top:8px; font-size:11.5px; color:#94a3b8;">' +
+          '<div style="display:flex; justify-content:space-between; margin-bottom:4px;">' +
+            '<span>Driver: <strong style="color:#fff;">' + (t.driver_name || 'Driver') + '</strong> (' + (t.vehicle_number || 'Truck') + ')</span>' +
+            '<span style="color:#64748b;">' + bookDateStr + '</span>' +
+          '</div>' +
+          '<div style="color:#4ade80; font-weight:700;">✅ Paid Freight: ₹' + b.total_price + ' • Receipt Verified</div>' +
+        '</div>';
+      }
+
+      html += '<div class="bay-card" style="margin-bottom:12px; ' + (b.status === 'arrived_pickup' && senderBookingTab === 'active' ? 'border:2px solid #facc15;' : b.status === 'accepted' && senderBookingTab === 'active' ? 'border:1.5px solid #22c55e;' : '') + '">' +
         '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
           '<span style="font-size:14px; font-weight:900; color:#fff;">' + routeStr + '</span>' +
           statusBadge +
