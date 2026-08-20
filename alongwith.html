@@ -495,10 +495,11 @@
     <a href="index.html" class="back-to-rides-btn">← Back to Rides</a>
   </div>
 
-  <!-- Mode Switcher -->
+  <!-- Mode Switcher (3 Clean Pillars) -->
   <div class="mode-switch-bar">
     <button class="mode-tab active" id="tab-sender" onclick="switchMode('sender')">📦 Send Cargo</button>
     <button class="mode-tab" id="tab-driver" onclick="switchMode('driver')">🚚 Post Trip</button>
+    <button class="mode-tab" id="tab-warehouse" onclick="switchMode('warehouse')">🏬 Cargo Warehouse</button>
   </div>
 
   <!-- ==================== SENDER VIEW (Shopkeepers / Cargo Booking / Truck Parking Lot) ==================== -->
@@ -749,6 +750,213 @@
       </div>
     </div>
   </div>
+
+  <!-- ==================== WAREHOUSE VIEW (Open Load Board for Drivers, Bikers & Shopkeepers) ==================== -->
+  <div class="content-view" id="view-warehouse">
+    <!-- Warehouse Banner -->
+    <div style="background: linear-gradient(135deg, #141926, #0d121f); border: 1.5px solid var(--accent); border-radius: 16px; padding: 18px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+        <div>
+          <h3 style="font-size: 16px; font-weight: 900; color: #fff;">🏬 Open Cargo Warehouse</h3>
+          <p style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.4;">
+            Open load board for <strong style="color:#38bdf8;">Full-Time Drivers, Return Truckers & Bike Couriers</strong> to claim available packages!
+          </p>
+        </div>
+        <span class="badge badge-open" id="wh-packages-count-badge">0 Open Loads</span>
+      </div>
+      <button class="btn-action" style="background: linear-gradient(135deg, #2563eb, #3b82f6); font-size: 12.5px; padding: 10px; margin-top: 8px;" onclick="openPostWarehouseModal()">
+        ➕ Shopkeeper: Drop Package in Warehouse
+      </button>
+    </div>
+
+    <!-- Warehouse Route & Filter Bar -->
+    <div style="background: var(--card-bg); border: 1.5px solid var(--card-border); border-radius: 16px; padding: 12px 14px; margin-bottom: 14px;">
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Pickup City</label>
+          <select id="wh-filter-from" class="form-select" onchange="loadWarehousePackages()">
+            <option value="">All Origin Cities</option>
+            <option value="Warangal">Warangal</option>
+            <option value="Hyderabad">Hyderabad</option>
+            <option value="Karimnagar">Karimnagar</option>
+            <option value="Khammam">Khammam</option>
+            <option value="Nizamabad">Nizamabad</option>
+            <option value="Suryapet">Suryapet</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Destination City</label>
+          <select id="wh-filter-to" class="form-select" onchange="loadWarehousePackages()">
+            <option value="">All Destination Cities</option>
+            <option value="Warangal">Warangal</option>
+            <option value="Hyderabad">Hyderabad</option>
+            <option value="Karimnagar">Karimnagar</option>
+            <option value="Khammam">Khammam</option>
+            <option value="Nizamabad">Nizamabad</option>
+            <option value="Suryapet">Suryapet</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Available Warehouse Packages List -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Available Loads to Pick Up</h3>
+      <button onclick="loadWarehousePackages()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer;">↻ Refresh</button>
+    </div>
+    <div id="warehouse-packages-list"></div>
+  </div>
+</div>
+
+<!-- ==================== POST CARGO TO WAREHOUSE MODAL (Shopkeeper Side) ==================== -->
+<div class="modal-overlay" id="modal-post-warehouse">
+  <div class="modal-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <h3 style="font-size: 16px; font-weight: 900; color: #fff;">🏬 Drop Cargo in Warehouse</h3>
+      <button onclick="closeModal('modal-post-warehouse')" style="background: #2a303f; border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 13px;">✕</button>
+    </div>
+
+    <p style="font-size: 11.5px; color: var(--text-muted); background: #0b0f19; padding: 8px 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid var(--card-border);">
+      Post your package to the open pool. Available drivers, return trucks, and bike riders can accept your load!
+    </p>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Pickup City</label>
+        <select id="wh-post-from" class="form-select">
+          <option value="Hyderabad" selected>Hyderabad</option>
+          <option value="Warangal">Warangal</option>
+          <option value="Karimnagar">Karimnagar</option>
+          <option value="Khammam">Khammam</option>
+          <option value="Nizamabad">Nizamabad</option>
+          <option value="Suryapet">Suryapet</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Destination City</label>
+        <select id="wh-post-to" class="form-select">
+          <option value="Warangal" selected>Warangal</option>
+          <option value="Hyderabad">Hyderabad</option>
+          <option value="Karimnagar">Karimnagar</option>
+          <option value="Khammam">Khammam</option>
+          <option value="Nizamabad">Nizamabad</option>
+          <option value="Suryapet">Suryapet</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Your Name / Shop Name</label>
+        <input type="text" id="wh-post-name" class="form-input" placeholder="Shopkeeper name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contact Phone</label>
+        <input type="tel" id="wh-post-phone" class="form-input" placeholder="9876543210">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Cargo Weight (KG)</label>
+        <input type="number" id="wh-post-weight" class="form-input" placeholder="e.g. 50" oninput="calculateWarehouseFare()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Offered Freight (₹)</label>
+        <input type="number" id="wh-post-price" class="form-input" placeholder="e.g. 350" oninput="calculateWarehouseFare()">
+      </div>
+    </div>
+
+    <!-- Urgency Selector: Express vs Flexible -->
+    <div class="form-group">
+      <label class="form-label">Package Urgency</label>
+      <select id="wh-post-urgency" class="form-select">
+        <option value="⚡ Express / Same-Day (Need pickup today)">⚡ Express / Same-Day (Need pickup within 2–4 hrs)</option>
+        <option value="📦 Flexible / Economy (Pickup within 24-48 hrs)" selected>📦 Flexible / Economy (Pickup within 24–48 hrs)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Cargo Description</label>
+      <input type="text" id="wh-post-desc" class="form-input" placeholder="e.g. 2 boxes of books, auto parts, textile bundle">
+    </div>
+
+    <div class="form-group">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <label class="form-label" style="margin-bottom:0;">Pickup Location / Shop Address</label>
+        <button type="button" onclick="getSenderLocation('pickup')" style="background:none; border:none; color:#38bdf8; font-size:10.5px; font-weight:800; cursor:pointer;">📍 Use Current GPS</button>
+      </div>
+      <input type="text" id="wh-post-pickup" class="form-input" placeholder="e.g. Shop 12, Begum Bazar, Hyderabad">
+    </div>
+
+    <div class="form-group">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <label class="form-label" style="margin-bottom:0;">Drop Destination Address</label>
+        <button type="button" onclick="getSenderLocation('drop')" style="background:none; border:none; color:#38bdf8; font-size:10.5px; font-weight:800; cursor:pointer;">📍 Use Current GPS</button>
+      </div>
+      <input type="text" id="wh-post-drop" class="form-input" placeholder="e.g. Hanamkonda Main Road, Warangal">
+    </div>
+
+    <!-- Fare Breakdown Card -->
+    <div style="background: #0f131f; border: 1px solid var(--card-border); border-radius: 12px; padding: 12px; margin-bottom: 16px; font-size: 12px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span style="color: var(--text-muted);">Driver Payout (85%)</span>
+        <strong style="color: #4ade80;" id="wh-post-driver-earn">₹0</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Rydealot Platform Fee (15%)</span>
+        <span style="color: #facc15; font-weight: 700;" id="wh-post-commission">₹0</span>
+      </div>
+    </div>
+
+    <button class="btn-action" id="btn-confirm-warehouse-post" onclick="submitWarehousePackage()">
+      🏬 Post Package to Warehouse
+    </button>
+  </div>
+</div>
+
+<!-- ==================== CLAIM WAREHOUSE PACKAGE MODAL (Driver / Rider Side) ==================== -->
+<div class="modal-overlay" id="modal-claim-warehouse">
+  <div class="modal-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <h3 style="font-size: 16px; font-weight: 900; color: #fff;">📦 Accept & Pick Up Load</h3>
+      <button onclick="closeModal('modal-claim-warehouse')" style="background: #2a303f; border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 13px;">✕</button>
+    </div>
+
+    <div id="modal-claim-pkg-summary" style="background:#0b0f19; border:1px solid var(--card-border); border-radius:10px; padding:12px; margin-bottom:14px; font-size:12px; color:#e2e8f0;"></div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Driver / Rider Name</label>
+        <input type="text" id="claim-driver-name" class="form-input" placeholder="Your name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone Number</label>
+        <input type="tel" id="claim-driver-phone" class="form-input" placeholder="9876543210">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Vehicle Type</label>
+        <select id="claim-driver-vtype" class="form-select">
+          <option value="Tata Ace">🚚 Tata Ace</option>
+          <option value="Bolero Pickup">🛻 Bolero Pickup</option>
+          <option value="Bike / 2-Wheeler">🛵 Bike / Courier</option>
+          <option value="Goods Auto">🛺 Goods Auto</option>
+          <option value="Eicher 14ft">🚛 Eicher 14ft</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Vehicle Number</label>
+        <input type="text" id="claim-driver-vnum" class="form-input" placeholder="TS09 AB 1234" style="text-transform:uppercase;">
+      </div>
+    </div>
+
+    <button class="btn-action" style="background:#16a34a; font-weight:900;" id="btn-confirm-claim-pkg" onclick="confirmClaimWarehousePackage()">
+      ✅ Confirm & Accept This Job
+    </button>
+  </div>
 </div>
 
 <!-- ==================== BOOK CARGO MODAL (Sender Side) ==================== -->
@@ -899,10 +1107,14 @@
       document.getElementById('tab-sender').classList.add('active');
       document.getElementById('view-sender').classList.add('active');
       loadParkingLotTrips();
-    } else {
+    } else if (mode === 'driver') {
       document.getElementById('tab-driver').classList.add('active');
       document.getElementById('view-driver').classList.add('active');
       loadMyDriverTrips();
+    } else if (mode === 'warehouse') {
+      document.getElementById('tab-warehouse').classList.add('active');
+      document.getElementById('view-warehouse').classList.add('active');
+      loadWarehousePackages();
     }
   }
 
@@ -1136,10 +1348,11 @@
     badge.textContent = count + ' Available';
 
     if (!count) {
-      container.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:16px; border:1px solid var(--card-border);">' +
+      container.innerHTML = '<div style="text-align:center; padding:36px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:16px; border:1.5px solid var(--card-border);">' +
         '<div style="font-size:32px; margin-bottom:10px;">🅿️</div>' +
-        '<strong style="color:#fff; font-size:14px; display:block; margin-bottom:4px;">No Trucks in this Freight Bay</strong>' +
-        'No empty return trucks posted for this route yet.<br>Click "Post Trip" to post your truck in the lot!' +
+        '<strong style="color:#fff; font-size:14px; display:block; margin-bottom:4px;">No Trucks Parked on this Route Yet</strong>' +
+        'Need to send goods now? Drop your package in the open Cargo Warehouse so nearby drivers & couriers can pick it up!<br>' +
+        '<button class="btn-action" style="width:auto; display:inline-flex; margin-top:14px; font-size:12px; padding:9px 18px; background:linear-gradient(135deg,#2563eb,#3b82f6);" onclick="openPostWarehouseModal()">🏬 Drop Cargo in Virtual Warehouse</button>' +
       '</div>';
       return;
     }
@@ -2077,14 +2290,272 @@
     container.innerHTML = html;
   }
 
+  // ── WAREHOUSE CARGO LOGIC (Open Load Board) ──
+  function openPostWarehouseModal() {
+    var modal = document.getElementById('modal-post-warehouse');
+    if (!modal) return;
+    
+    // Auto-fill from localStorage if available
+    try {
+      var savedPhone = localStorage.getItem('rydealot_sender_phone') || '';
+      if (savedPhone) document.getElementById('wh-post-phone').value = savedPhone;
+    } catch(e) {}
+    
+    calculateWarehouseFare();
+    modal.style.display = 'flex';
+  }
+
+  function calculateWarehouseFare() {
+    var w = parseFloat(document.getElementById('wh-post-weight').value) || 0;
+    var priceInput = document.getElementById('wh-post-price');
+    var price = parseFloat(priceInput.value) || 0;
+
+    // Suggest realistic freight if weight entered but price blank
+    if (w > 0 && !price) {
+      price = Math.max(150, Math.round(w * 3.5));
+      priceInput.value = price;
+    }
+
+    var commission = Math.round(price * 0.15);
+    var driverEarn = price - commission;
+
+    var elEarn = document.getElementById('wh-post-driver-earn');
+    var elComm = document.getElementById('wh-post-commission');
+    if (elEarn) elEarn.textContent = '₹' + driverEarn;
+    if (elComm) elComm.textContent = '₹' + commission;
+  }
+
+  function submitWarehousePackage() {
+    var from = document.getElementById('wh-post-from').value;
+    var to = document.getElementById('wh-post-to').value;
+    var name = document.getElementById('wh-post-name').value.trim();
+    var phone = document.getElementById('wh-post-phone').value.trim();
+    var weight = parseInt(document.getElementById('wh-post-weight').value) || 0;
+    var price = parseFloat(document.getElementById('wh-post-price').value) || 0;
+    var urgency = document.getElementById('wh-post-urgency').value;
+    var desc = document.getElementById('wh-post-desc').value.trim();
+    var pickup = document.getElementById('wh-post-pickup').value.trim();
+    var drop = document.getElementById('wh-post-drop').value.trim();
+    var btn = document.getElementById('btn-confirm-warehouse-post');
+
+    if (from === to) {
+      showToast('⚠️ Origin and Destination cities must be different');
+      return;
+    }
+    if (!name || !phone || !weight || !price || !pickup || !drop) {
+      showToast('⚠️ Please fill all required fields');
+      return;
+    }
+
+    try {
+      localStorage.setItem('rydealot_sender_phone', phone.replace(/\D/g, ''));
+    } catch(e) {}
+
+    btn.textContent = '⏳ Dropping in Warehouse...';
+    btn.disabled = true;
+
+    var commission = Math.round(price * 0.15);
+    var driverEarn = price - commission;
+
+    var fullDesc = urgency + (desc ? ' • ' + desc : '');
+    fullDesc += ' [FROM:' + from + '|TO:' + to + ']';
+
+    var payload = {
+      trip_id: null,
+      sender_name: name,
+      sender_phone: phone,
+      cargo_weight_kg: weight,
+      cargo_description: fullDesc,
+      pickup_address: pickup,
+      drop_address: drop,
+      total_price: price,
+      commission: commission,
+      driver_earning: driverEarn,
+      status: 'warehouse_open'
+    };
+
+    sbRequest('POST', 'cargo_bookings', payload)
+      .then(function() {
+        showToast('🎉 Package dropped in Virtual Warehouse! Drivers can now claim it.');
+        closeModal('modal-post-warehouse');
+        loadWarehousePackages();
+        loadMySenderBookings();
+      })
+      .catch(function(err) {
+        showToast('❌ Error posting package');
+      })
+      .finally(function() {
+        btn.textContent = '🏬 Post Package to Warehouse';
+        btn.disabled = false;
+      });
+  }
+
+  function loadWarehousePackages() {
+    var from = document.getElementById('wh-filter-from') ? document.getElementById('wh-filter-from').value : '';
+    var to = document.getElementById('wh-filter-to') ? document.getElementById('wh-filter-to').value : '';
+
+    var query = 'cargo_bookings?status=eq.warehouse_open&order=created_at.desc&limit=20';
+
+    sbRequest('GET', query)
+      .then(function(packages) {
+        var pList = Array.isArray(packages) ? packages : [];
+        
+        // Client-side route filter
+        if (from) {
+          pList = pList.filter(function(p) {
+            return p.cargo_description && p.cargo_description.indexOf('FROM:' + from) !== -1;
+          });
+        }
+        if (to) {
+          pList = pList.filter(function(p) {
+            return p.cargo_description && p.cargo_description.indexOf('TO:' + to) !== -1;
+          });
+        }
+
+        renderWarehousePackages(pList);
+      })
+      .catch(function() {
+        renderWarehousePackages([]);
+      });
+  }
+
+  function renderWarehousePackages(packages) {
+    var container = document.getElementById('warehouse-packages-list');
+    var badge = document.getElementById('wh-packages-count-badge');
+    if (badge) badge.textContent = packages.length + (packages.length === 1 ? ' Open Load' : ' Open Loads');
+    if (!container) return;
+
+    if (!packages.length) {
+      container.innerHTML = '<div style="text-align:center; padding:36px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:16px; border:1px solid var(--card-border);">' +
+        '<div style="font-size:32px; margin-bottom:8px;">🏬</div>' +
+        '<strong style="color:#fff; font-size:14px; display:block; margin-bottom:4px;">Warehouse is Empty</strong>' +
+        'No open packages currently waiting for pickup on this route.<br>' +
+        '<button class="btn-action" style="width:auto; display:inline-flex; margin-top:12px; font-size:11.5px; padding:8px 16px;" onclick="openPostWarehouseModal()">➕ Drop Your Cargo Here</button>' +
+      '</div>';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < packages.length; i++) {
+      var p = packages[i];
+      var isExpress = p.cargo_description && p.cargo_description.indexOf('Express') !== -1;
+      var cleanDesc = (p.cargo_description || '').replace(/\[FROM:[^|]+\|TO:[^\]]+\]/g, '').trim();
+
+      var matchFrom = (p.cargo_description || '').match(/\[FROM:([^|]+)\|TO:([^\]]+)\]/);
+      var routeStr = matchFrom ? (matchFrom[1] + ' ➔ ' + matchFrom[2]) : 'Open Cargo Package';
+
+      var pickupNav = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(p.pickup_address);
+      var dropNav = 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(p.drop_address);
+
+      html += '<div class="bay-card" style="border: 1.5px solid ' + (isExpress ? '#f59e0b' : '#38bdf8') + '; margin-bottom:12px;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">' +
+          '<span style="font-size:14px; font-weight:900; color:#fff;">' + routeStr + '</span>' +
+          '<span style="font-size:10px; font-weight:900; padding:2px 8px; border-radius:10px; background:' + (isExpress ? 'rgba(245,158,11,0.2)' : 'rgba(56,189,248,0.2)') + '; color:' + (isExpress ? '#fbbf24' : '#38bdf8') + '; border:1px solid ' + (isExpress ? '#f59e0b' : '#38bdf8') + ';">' + (isExpress ? '⚡ EXPRESS' : '📦 FLEXIBLE') + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">' +
+          '📦 <strong>' + p.cargo_weight_kg + ' KG</strong> • Driver Earns: <strong style="color:#4ade80; font-size:14px;">₹' + p.driver_earning + '</strong>' +
+        '</div>' +
+        (cleanDesc ? '<div style="font-size:11.5px; color:var(--text-faint); margin-bottom:6px;">📋 ' + cleanDesc + '</div>' : '') +
+        '<div style="font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
+          '<span>📍 Pickup: ' + p.pickup_address + '</span>' +
+          '<a href="' + pickupNav + '" target="_blank" style="background:#0f172a; color:#38bdf8; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; border:1px solid #1e293b; white-space:nowrap; margin-left:6px;">🗺️ Maps</a>' +
+        '</div>' +
+        '<div style="font-size:11px; color:var(--text-faint); display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+          '<span>📍 Drop: ' + p.drop_address + '</span>' +
+          '<a href="' + dropNav + '" target="_blank" style="background:#0f172a; color:#a78bfa; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:700; text-decoration:none; border:1px solid #1e293b; white-space:nowrap; margin-left:6px;">🗺️ Maps</a>' +
+        '</div>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #1c2438; padding-top:8px;">' +
+          '<span style="font-size:11px; color:var(--text-muted);">Shopkeeper: <strong>' + p.sender_name + '</strong></span>' +
+          '<button class="btn-action" style="width:auto; padding:6px 16px; font-size:11.5px; background:#16a34a; font-weight:800;" onclick="openClaimWarehouseModal(\'' + p.id + '\', \'' + routeStr + '\', ' + p.cargo_weight_kg + ', ' + p.total_price + ', ' + p.driver_earning + ', \'' + encodeURIComponent(p.pickup_address) + '\', \'' + encodeURIComponent(p.drop_address) + '\', \'' + encodeURIComponent(p.sender_name) + '\', \'' + p.sender_phone + '\')">✅ Accept & Pick Up</button>' +
+        '</div>' +
+      '</div>';
+    }
+    container.innerHTML = html;
+  }
+
+  var currentClaimPkgId = null;
+
+  function openClaimWarehouseModal(pkgId, route, weight, price, earn, pickup, drop, senderName, senderPhone) {
+    currentClaimPkgId = pkgId;
+    var modal = document.getElementById('modal-claim-warehouse');
+    var summaryEl = document.getElementById('modal-claim-pkg-summary');
+    if (!modal || !summaryEl) return;
+
+    summaryEl.innerHTML = '<div style="font-weight:800; font-size:13px; color:#fff; margin-bottom:4px;">' + route + ' (' + weight + ' KG)</div>' +
+      '<div style="color:#4ade80; font-weight:900; font-size:14px; margin-bottom:4px;">You Earn: ₹' + earn + '</div>' +
+      '<div style="font-size:11px; color:#94a3b8;">Pickup: ' + decodeURIComponent(pickup) + '<br>Drop: ' + decodeURIComponent(drop) + '<br>Shopkeeper: ' + decodeURIComponent(senderName) + ' (' + senderPhone + ')</div>';
+
+    // Auto-fill driver details if saved
+    try {
+      var saved = JSON.parse(localStorage.getItem('rydealot_alongwith_driver') || '{}');
+      if (saved.name) document.getElementById('claim-driver-name').value = saved.name;
+      if (saved.phone) document.getElementById('claim-driver-phone').value = saved.phone;
+      if (saved.vNum) document.getElementById('claim-driver-vnum').value = saved.vNum;
+    } catch(e) {}
+
+    modal.style.display = 'flex';
+  }
+
+  function confirmClaimWarehousePackage() {
+    if (!currentClaimPkgId) return;
+
+    var name = document.getElementById('claim-driver-name').value.trim();
+    var phone = document.getElementById('claim-driver-phone').value.trim();
+    var vType = document.getElementById('claim-driver-vtype').value;
+    var vNum = document.getElementById('claim-driver-vnum').value.trim().toUpperCase();
+    var btn = document.getElementById('btn-confirm-claim-pkg');
+
+    if (!name || !phone || !vNum) {
+      showToast('⚠️ Please enter your name, phone, and vehicle number');
+      return;
+    }
+
+    try {
+      localStorage.setItem('rydealot_alongwith_driver', JSON.stringify({ name: name, phone: phone, vNum: vNum }));
+    } catch(e) {}
+
+    btn.textContent = '⏳ Claiming Job...';
+    btn.disabled = true;
+
+    // Fetch current package details to append driver info
+    sbRequest('GET', 'cargo_bookings?id=eq.' + currentClaimPkgId)
+      .then(function(res) {
+        var pkg = Array.isArray(res) && res[0] ? res[0] : null;
+        var existingDesc = pkg ? (pkg.cargo_description || '') : '';
+        var updatedDesc = existingDesc + ' [DRIVER:' + name + '|' + phone + '|' + vType + ' (' + vNum + ')]';
+
+        return sbRequest('PATCH', 'cargo_bookings?id=eq.' + currentClaimPkgId, {
+          status: 'accepted',
+          cargo_description: updatedDesc
+        });
+      })
+      .then(function() {
+        showToast('🎉 Job Accepted! Heading to shop for loading.');
+        closeModal('modal-claim-warehouse');
+        playAlertChime();
+        loadWarehousePackages();
+        loadMyDriverTrips();
+        loadMySenderBookings();
+      })
+      .catch(function(err) {
+        showToast('❌ Error claiming package');
+      })
+      .finally(function() {
+        btn.textContent = '✅ Confirm & Accept This Job';
+        btn.disabled = false;
+      });
+  }
+
   // Initialize after all definitions are ready
   initDates();
   loadMySenderBookings();
+  loadWarehousePackages();
   
   // Real-time live polling every 3 seconds so updates appear automatically on both sides!
   setInterval(function() {
     loadMySenderBookings();
     loadMyDriverTrips();
+    loadWarehousePackages();
   }, 3000);
 </script>
 
