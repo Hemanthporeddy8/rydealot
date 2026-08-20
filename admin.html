@@ -84,7 +84,7 @@
     
     <form onsubmit="event.preventDefault(); verifyAdminPasscode();" autocomplete="on">
       <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN USERNAME / GMAIL</label>
-      <input type="text" id="admin-email-input" name="username" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:14px;" placeholder="Admin Gmail or Username" value="hemanth@gmail.com" autocomplete="username">
+      <input type="text" id="admin-email-input" name="username" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:14px;" placeholder="Enter Admin Gmail or Username" autocomplete="username">
       
       <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN PASSWORD</label>
       <div style="position:relative; width:100%; margin-bottom:16px;">
@@ -95,7 +95,7 @@
       <button type="submit" class="auth-btn" id="admin-login-btn">Unlock Dashboard</button>
     </form>
     
-    <div class="auth-error" id="admin-auth-error">Incorrect Gmail or Password. (Hint: Default is hemanth@gmail.com / rydealot2026 or use Reset)</div>
+    <div class="auth-error" id="admin-auth-error">Incorrect Gmail or Password. Please try again.</div>
     
     <div style="margin-top:14px; pt-10; border-top:1px solid var(--border);">
       <button type="button" onclick="openForgotPassModal()" style="background:none; border:none; color:var(--amber); font-size:0.8rem; font-weight:700; cursor:pointer; text-decoration:underline;">Forgot / Reset Admin Password?</button>
