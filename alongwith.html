@@ -2551,12 +2551,30 @@
   loadMySenderBookings();
   loadWarehousePackages();
   
-  // Real-time live polling every 3 seconds so updates appear automatically on both sides!
+  // Smart Active-View Polling (Only refresh what the user is currently viewing & pause when tab is hidden)
   setInterval(function() {
-    loadMySenderBookings();
-    loadMyDriverTrips();
-    loadWarehousePackages();
-  }, 3000);
+    if (document.hidden) return; // Pause network activity when user switches tabs
+
+    var senderView = document.getElementById('view-sender');
+    var driverView = document.getElementById('view-driver');
+    var warehouseView = document.getElementById('view-warehouse');
+
+    if (senderView && senderView.classList.contains('active')) {
+      var trackInput = document.getElementById('track-phone-input');
+      var savedPhone = '';
+      try { savedPhone = localStorage.getItem('rydealot_sender_phone') || ''; } catch(e) {}
+      if ((trackInput && trackInput.value) || savedPhone) {
+        loadMySenderBookings();
+      }
+    } else if (driverView && driverView.classList.contains('active')) {
+      var drvPhone = document.getElementById('drv-phone') ? document.getElementById('drv-phone').value.trim() : '';
+      if (drvPhone) {
+        loadMyDriverTrips();
+      }
+    } else if (warehouseView && warehouseView.classList.contains('active')) {
+      loadWarehousePackages();
+    }
+  }, 5000);
 </script>
 
 </body>
