@@ -370,13 +370,6 @@
         location.reload();
       });
     }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAppAuth);
-  } else {
-    initAppAuth();
-  }
 
     // Edit Home & Work Place Listeners
     var btnEditHome = document.getElementById('btn-edit-home');
@@ -407,7 +400,13 @@
         }
       });
     }
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAppAuth);
+  } else {
+    initAppAuth();
+  }
 
 })();
 
