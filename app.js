@@ -538,13 +538,22 @@
         if (authScreen) { authScreen.classList.add('active'); authScreen.style.display = 'flex'; }
       }
     } else {
-      // Driver side: if already registered, show main dashboard
+      // Driver side: if already registered, show main dashboard; otherwise show setup form
       var setupSection = document.getElementById('rd-setup-section');
       var mainSection = document.getElementById('rd-main-section');
+      var walletSection = document.getElementById('rd-wallet-section');
+      var alongWithSection = document.getElementById('rd-along-with-section');
       var riderId = localStorage.getItem('ridelot_rider_id');
+
+      if (walletSection) walletSection.style.display = 'none';
+      if (alongWithSection) alongWithSection.style.display = 'none';
+
       if (riderId && mainSection && setupSection) {
         setupSection.style.display = 'none';
         mainSection.style.display = 'block';
+      } else if (setupSection) {
+        setupSection.style.display = 'block';
+        if (mainSection) mainSection.style.display = 'none';
       }
     }
 
