@@ -2527,21 +2527,51 @@
     try{
       var rows = await withTimeout(sbFetch('riders?status=eq.available'), 8000);
       var ninetySecondsAgo = new Date(Date.now() - 90 * 1000);
-      var nearby = (rows || []).filter(function(r){
-        if (r.lat == null || r.lng == null) return false;
+      var nearbyInZone = [];
+      var expandedZone = [];
+
+      (rows || []).forEach(function(r){
+        if (r.lat == null || r.lng == null) return;
         if (r.updated_at) {
           var updatedAt = new Date(r.updated_at);
-          if (updatedAt < ninetySecondsAgo) return false;
+          if (updatedAt < ninetySecondsAgo) return;
         }
-        return true;
-      }).map(function(r){
         r._distanceKm = (state.lat != null) ? haversineKm(state.lat, state.lng, r.lat, r.lng) : 99999.0;
-        return r;
-      }).filter(function(r){
-        // Only show riders within a 30 km radius (for pilot testing with friends up to 25 km away).
-        return r._distanceKm <= 30.0;
-      }).sort(function(a, b){ return a._distanceKm - b._distanceKm; });
-      return nearby;
+        
+        if (r._distanceKm <= 5.0) {
+          nearbyInZone.push(r);
+        } else if (r._distanceKm <= 12.0) {
+          expandedZone.push(r);
+        }
+      });
+
+      nearbyInZone.sort(function(a, b){ return a._distanceKm - b._distanceKm; });
+      expandedZone.sort(function(a, b){ return a._distanceKm - b._distanceKm; });
+
+      var countLabel = document.getElementById('count-label');
+      var bonusBanner = document.getElementById('bonus-banner');
+      var bonusText = document.getElementById('bonus-text');
+
+      if (nearbyInZone.length > 0) {
+        if (countLabel) countLabel.textContent = nearbyInZone.length + ' drivers in 5 km zone (ETA < 6 mins)';
+        if (bonusBanner) bonusBanner.style.display = 'none';
+        return nearbyInZone;
+      } else if (expandedZone.length > 0) {
+        // Remote / temple area expansion
+        if (countLabel) countLabel.textContent = expandedZone.length + ' drivers in extended zone (' + expandedZone[0]._distanceKm.toFixed(1) + ' km away)';
+        if (bonusBanner) {
+          bonusBanner.style.display = 'flex';
+          if (bonusText) bonusText.textContent = 'Remote area detected. Matched nearest driver ' + expandedZone[0]._distanceKm.toFixed(1) + ' km away with transparent upfront pickup allowance.';
+        }
+        return expandedZone;
+      } else {
+        if (countLabel) countLabel.textContent = '0 drivers active nearby';
+        if (bonusBanner) {
+          bonusBanner.style.display = 'flex';
+          if (bonusText) bonusText.textContent = 'No drivers active within 12 km. Searching nearby highway corridors...';
+        }
+        return [];
+      }
     } catch(err){
       console.error('fetch riders failed', err);
       toast('Could not load nearby riders: ' + err.message);
