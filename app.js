@@ -709,15 +709,18 @@
         b.classList.toggle('selected', b === btn);
       });
       var isTest = locationMode === 'test';
-      document.getElementById('rd-test-location-select').style.display = isTest ? 'block' : 'none';
-      document.getElementById('rd-test-loc-help').style.display = isTest ? 'block' : 'none';
+      var sel = document.getElementById('rd-test-location-select');
+      var help = document.getElementById('rd-test-loc-help');
+      if (sel) sel.style.display = isTest ? 'block' : 'none';
+      if (help) help.style.display = isTest ? 'block' : 'none';
     });
   });
 
   function startSharingLocation(){
     if(locationMode === 'test'){
-      var pointKey = document.getElementById('rd-test-location-select').value;
-      var point = TEST_LOCATIONS[pointKey];
+      var sel = document.getElementById('rd-test-location-select');
+      var pointKey = sel ? sel.value : 'A';
+      var point = TEST_LOCATIONS[pointKey] || TEST_LOCATIONS['A'];
       document.getElementById('rd-display-location').textContent = 'Test Point ' + pointKey + ' (not real GPS)';
       async function pushTestLocation(){
         try{
@@ -1394,15 +1397,21 @@
         b.classList.toggle('selected', b === btn);
       });
       var isTest = locationMode === 'test';
-      document.getElementById('test-location-select').style.display = isTest ? 'block' : 'none';
-      document.getElementById('test-loc-help').style.display = isTest ? 'block' : 'none';
-      document.getElementById('login-btn').textContent = isTest
-        ? 'Use test location and find riders'
-        : 'Share my location and find riders';
+      var sel = document.getElementById('test-location-select');
+      var help = document.getElementById('test-loc-help');
+      if (sel) sel.style.display = isTest ? 'block' : 'none';
+      if (help) help.style.display = isTest ? 'block' : 'none';
+      
+      var loginBtn = document.getElementById('login-btn');
+      if (loginBtn) {
+        loginBtn.textContent = isTest
+          ? 'Use test location and find riders'
+          : 'Share my location and find riders';
+      }
       
       if(isTest) {
-        var pointKey = document.getElementById('test-location-select').value;
-        var point = TEST_LOCATIONS[pointKey];
+        var pointKey = sel ? sel.value : 'A';
+        var point = TEST_LOCATIONS[pointKey] || TEST_LOCATIONS['A'];
         state.lat = point.lat;
         state.lng = point.lng;
         document.getElementById('pickup-input').value = 'Test Point ' + pointKey;
@@ -1413,16 +1422,19 @@
     });
   });
 
-  document.getElementById('test-location-select').addEventListener('change', function(){
-    if (locationMode === 'test') {
-      var pointKey = this.value;
-      var point = TEST_LOCATIONS[pointKey];
-      state.lat = point.lat;
-      state.lng = point.lng;
-      document.getElementById('pickup-input').value = 'Test Point ' + pointKey;
-      updateSetupMapMarkers();
-    }
-  });
+  var testLocSelect = document.getElementById('test-location-select');
+  if (testLocSelect) {
+    testLocSelect.addEventListener('change', function(){
+      if (locationMode === 'test') {
+        var pointKey = this.value;
+        var point = TEST_LOCATIONS[pointKey] || TEST_LOCATIONS['A'];
+        state.lat = point.lat;
+        state.lng = point.lng;
+        document.getElementById('pickup-input').value = 'Test Point ' + pointKey;
+        updateSetupMapMarkers();
+      }
+    });
+  }
 
   // ---- Setup Map Initialization and Update Functions ----
   var setupMapInitialized = false;
