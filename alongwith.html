@@ -616,9 +616,10 @@
       </div>
 
       <!-- Quick Phone Filter Bar -->
-      <div style="display: flex; gap: 8px; margin-bottom: 12px; background: var(--card-bg); padding: 8px; border-radius: 12px; border: 1px solid var(--card-border);">
-        <input type="tel" id="track-phone-input" class="form-input" placeholder="Enter your phone to track shipments" style="margin-bottom:0; font-size:12px; padding:8px 12px;">
-        <button type="button" class="btn-action" style="width:auto; padding:0 14px; font-size:11.5px; margin:0;" onclick="saveAndTrackPhone()">🔍 Track</button>
+      <div style="display: flex; gap: 8px; margin-bottom: 12px; background: var(--card-bg); padding: 8px; border-radius: 12px; border: 1px solid var(--card-border); align-items:center;">
+        <input type="tel" id="track-phone-input" class="form-input" placeholder="📱 Enter phone to track any shipment" style="margin-bottom:0; font-size:12px; padding:8px 12px; flex:1;">
+        <button type="button" onclick="clearTrackPhone()" style="background:#1e293b; border:1px solid var(--card-border); color:var(--text-muted); padding:8px 10px; border-radius:8px; font-size:11px; cursor:pointer;" title="Clear">✕</button>
+        <button type="button" class="btn-action" style="width:auto; padding:8px 14px; font-size:11.5px; margin:0;" onclick="saveAndTrackPhone()">🔍 Track</button>
       </div>
 
       <div id="sender-bookings-list"></div>
@@ -2274,13 +2275,23 @@
     var input = document.getElementById('track-phone-input');
     var val = input ? input.value.trim().replace(/\D/g, '') : '';
     if (!val) {
-      showToast('⚠️ Enter your 10-digit phone number');
+      showToast('⚠️ Enter a 10-digit phone number to track');
       return;
     }
     try {
       localStorage.setItem('rydealot_sender_phone', val);
     } catch(e) {}
     showToast('🔍 Tracking shipments for ' + val);
+    loadMySenderBookings();
+  }
+
+  function clearTrackPhone() {
+    var input = document.getElementById('track-phone-input');
+    if (input) input.value = '';
+    try {
+      localStorage.removeItem('rydealot_sender_phone');
+    } catch(e) {}
+    showToast('Cleared tracking filter');
     loadMySenderBookings();
   }
 
@@ -2425,20 +2436,23 @@
   var lastKnownStatuses = {};
 
   function loadMySenderBookings() {
-    var phone = '';
-    try {
-      phone = localStorage.getItem('rydealot_sender_phone') || '';
-    } catch(e) {}
-
     var trackInput = document.getElementById('track-phone-input');
-    if (trackInput && phone && !trackInput.value) {
-      trackInput.value = phone;
+    var inputVal = trackInput ? trackInput.value.trim() : '';
+
+    var phone = '';
+    if (inputVal) {
+      phone = inputVal;
+    } else {
+      try {
+        var userSess = JSON.parse(localStorage.getItem('rydealot_user_session') || '{}');
+        phone = userSess.phone || localStorage.getItem('rydealot_sender_phone') || '';
+      } catch(e) {}
     }
 
     var container = document.getElementById('sender-bookings-list');
     if (!container) return;
 
-    var cleanDigits = (trackInput && trackInput.value ? trackInput.value : phone).replace(/\D/g, '').slice(-10);
+    var cleanDigits = phone.replace(/\D/g, '').slice(-10);
 
     var query = cleanDigits 
       ? ('cargo_bookings?sender_phone=ilike.*' + encodeURIComponent(cleanDigits) + '*&order=created_at.desc&limit=6')
@@ -3300,10 +3314,8 @@
     if (cPhone) {
       var bPhone = document.getElementById('book-sender-phone');
       var whPhone = document.getElementById('wh-post-phone');
-      var trackInput = document.getElementById('track-phone-input');
       if (bPhone && !bPhone.value) bPhone.value = cPhone;
       if (whPhone && !whPhone.value) whPhone.value = cPhone;
-      if (trackInput && !trackInput.value) trackInput.value = cPhone;
     }
     if (cName) {
       var bName = document.getElementById('book-sender-name');
