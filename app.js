@@ -241,7 +241,15 @@
 
   function applySession() {
     var raw = localStorage.getItem('rydealot_user_session');
-    if (!raw) return;
+    if (!raw) {
+      // No active session: ensure Auth screen is shown with display flex
+      var sAuth = document.getElementById('screen-auth');
+      if (sAuth) {
+        sAuth.classList.add('active');
+        sAuth.style.display = 'flex';
+      }
+      return;
+    }
     try {
       var sess = JSON.parse(raw);
       authState.currentUser = sess;
@@ -292,6 +300,17 @@
         var driverPhone = document.getElementById('rd-rider-phone');
         if (driverName) driverName.value = sess.name;
         if (driverPhone) driverPhone.value = sess.phone;
+
+        var setupSection = document.getElementById('rd-setup-section');
+        var mainSection = document.getElementById('rd-main-section');
+        var riderId = localStorage.getItem('ridelot_rider_id');
+        if (riderId && mainSection && setupSection) {
+          setupSection.style.display = 'none';
+          mainSection.style.display = 'block';
+        } else if (setupSection) {
+          setupSection.style.display = 'block';
+          if (mainSection) mainSection.style.display = 'none';
+        }
       }
     } catch(e) { console.error('Session error', e); }
   }
@@ -325,8 +344,7 @@
     }
   }
 
-  // Profile Drawer Event Listeners
-  document.addEventListener('DOMContentLoaded', function() {
+  function initAppAuth() {
     initAuthUI();
     applySession();
 
@@ -352,6 +370,13 @@
         location.reload();
       });
     }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAppAuth);
+  } else {
+    initAppAuth();
+  }
 
     // Edit Home & Work Place Listeners
     var btnEditHome = document.getElementById('btn-edit-home');
