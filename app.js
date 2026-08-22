@@ -513,6 +513,41 @@
   function showApp(which){
     document.getElementById('rider-app-root').classList.toggle('active', which === 'rider');
     document.getElementById('user-app-root').classList.toggle('active', which === 'user');
+    
+    if (which === 'user') {
+      var raw = localStorage.getItem('rydealot_user_session');
+      var sess = null;
+      try { sess = JSON.parse(raw || '{}'); } catch(e){}
+      
+      var authScreen = document.getElementById('screen-auth');
+      var loginScreen = document.getElementById('screen-login');
+      
+      // If user is already logged in, show screen-login; otherwise show screen-auth
+      if (sess && (sess.phone || sess.email || sess.name)) {
+        if (authScreen) { authScreen.classList.remove('active'); authScreen.style.display = 'none'; }
+        if (loginScreen) { loginScreen.classList.add('active'); loginScreen.style.display = 'flex'; }
+        if (typeof window.initSetupMap === 'function') window.initSetupMap();
+        setTimeout(function(){
+          if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
+        }, 100);
+        setTimeout(function(){
+          if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
+        }, 350);
+      } else {
+        if (loginScreen) { loginScreen.classList.remove('active'); loginScreen.style.display = 'none'; }
+        if (authScreen) { authScreen.classList.add('active'); authScreen.style.display = 'flex'; }
+      }
+    } else {
+      // Driver side: if already registered, show main dashboard
+      var setupSection = document.getElementById('rd-setup-section');
+      var mainSection = document.getElementById('rd-main-section');
+      var riderId = localStorage.getItem('ridelot_rider_id');
+      if (riderId && mainSection && setupSection) {
+        setupSection.style.display = 'none';
+        mainSection.style.display = 'block';
+      }
+    }
+
     window.dispatchEvent(new CustomEvent('roleswitch', { detail: { role: which } }));
   }
   document.getElementById('switch-to-rider-btn').addEventListener('click', function(){ showApp('rider'); });
