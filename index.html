@@ -195,24 +195,6 @@
           <input type="text" id="drop-input" placeholder="e.g. Railway Station" autocomplete="off">
           <div id="drop-suggestions" class="autocomplete-dropdown"></div>
         </div>
-      </div>
-
-      <div class="field test-loc-block" style="margin-top: 4px;">
-        <label class="field-label">Location for testing</label>
-        <div class="loc-mode-row">
-          <button type="button" class="loc-mode-btn selected" id="loc-mode-real" data-mode="real">My real location</button>
-          <button type="button" class="loc-mode-btn" id="loc-mode-test" data-mode="test">Test location</button>
-        </div>
-        <select id="test-location-select" style="display:none; margin-top: 8px;">
-          <option value="A">Test Point A</option>
-          <option value="B">Test Point B</option>
-          <option value="C">Test Point C</option>
-        </select>
-        <p class="helptext" id="test-loc-help" style="display:none; font-size: 11px;">
-          Use the same test point on the rider's phone too, so you both show up near each other.
-        </p>
-      </div>
-
       <button class="btn" id="login-btn" style="margin-top:8px;">Share my location and find riders</button>
       <p id="loc-status" style="text-align:center; font-size:12px; color:var(--text-faint); margin-top:6px; font-weight:600;">
         Locating you...
@@ -541,22 +523,6 @@
       <div class="row"><span class="k">Vehicle</span><span class="v" id="rd-display-vehicle">-</span></div>
       <div class="row"><span class="k">Verification</span><span class="v" id="rd-display-verification" style="color:var(--amber); font-weight:700;">Pending Admin Approval</span></div>
       <div class="row"><span class="k">Location</span><span class="v" id="rd-display-location">Not sharing</span></div>
-    </div>
-
-    <div class="field">
-      <label>Location for testing</label>
-      <div class="loc-mode-row">
-        <button type="button" class="loc-mode-btn selected" id="rd-loc-mode-real" data-mode="real">My real location</button>
-        <button type="button" class="loc-mode-btn" id="rd-loc-mode-test" data-mode="test">Test location</button>
-      </div>
-      <select id="rd-test-location-select" style="display:none;">
-        <option value="A">Test Point A</option>
-        <option value="B">Test Point B</option>
-        <option value="C">Test Point C</option>
-      </select>
-      <p class="helptext" id="rd-test-loc-help" style="display:none;">
-        Use the same test point as the user testing with you.
-      </p>
     </div>
 
     <button class="btn btn-toggle-off" id="rd-toggle-online-btn">Go online</button>
