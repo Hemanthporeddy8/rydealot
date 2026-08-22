@@ -257,14 +257,20 @@
         document.getElementById('user-app-root').classList.add('active');
         document.getElementById('rider-app-root').classList.remove('active');
         var screenLogin = document.getElementById('screen-login');
-        if (screenLogin) screenLogin.classList.add('active');
+        if (screenLogin) {
+          screenLogin.classList.add('active');
+          screenLogin.style.display = 'flex';
+        }
 
         if (typeof window.initSetupMap === 'function') {
           window.initSetupMap();
         }
         setTimeout(function(){
           if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
-        }, 200);
+        }, 100);
+        setTimeout(function(){
+          if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
+        }, 400);
         
         var nameInput = document.getElementById('login-name');
         if (nameInput) nameInput.value = sess.name;
@@ -1315,11 +1321,17 @@
   function showScreen(id){
     Array.prototype.forEach.call(document.querySelectorAll('.screen'), function(s){
       s.classList.remove('active');
+      s.style.display = 'none';
     });
-    document.getElementById(id).classList.add('active');
-    if (id === 'screen-login' && state.destMap) {
+    var target = document.getElementById(id);
+    if (target) {
+      target.classList.add('active');
+      target.style.display = 'flex';
+    }
+    if (id === 'screen-login') {
+      if (typeof window.initSetupMap === 'function') window.initSetupMap();
       setTimeout(function(){
-        state.destMap.invalidateSize();
+        if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
       }, 100);
     }
   }
