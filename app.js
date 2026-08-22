@@ -562,7 +562,7 @@
         if (authScreen) { authScreen.classList.add('active'); authScreen.style.display = 'flex'; }
       }
     } else {
-      // Driver side: if already registered, show main dashboard; otherwise show setup form
+      // Driver side: if already registered with valid profile, show main dashboard; otherwise show setup form
       var setupSection = document.getElementById('rd-setup-section');
       var mainSection = document.getElementById('rd-main-section');
       var walletSection = document.getElementById('rd-wallet-section');
@@ -572,11 +572,14 @@
       if (walletSection) walletSection.style.display = 'none';
       if (alongWithSection) alongWithSection.style.display = 'none';
 
-      if (riderId && mainSection && setupSection) {
+      var displayName = document.getElementById('rd-display-name');
+      var hasValidProfile = displayName && displayName.textContent && displayName.textContent !== '-';
+
+      if (riderId && hasValidProfile && mainSection && setupSection) {
         setupSection.style.display = 'none';
         mainSection.style.display = 'block';
-      } else if (setupSection) {
-        setupSection.style.display = 'block';
+      } else {
+        if (setupSection) setupSection.style.display = 'block';
         if (mainSection) mainSection.style.display = 'none';
       }
     }
@@ -1253,6 +1256,10 @@
         if(!row){
           localStorage.removeItem('ridelot_rider_id');
           state.riderId = null;
+          var setupS = document.getElementById('rd-setup-section');
+          var mainS = document.getElementById('rd-main-section');
+          if (setupS) setupS.style.display = 'block';
+          if (mainS) mainS.style.display = 'none';
         } else {
           loadProfileIntoForm(row);
           showMain(row);
@@ -1266,7 +1273,15 @@
           }
           return;
         }
-      } catch(err){ console.error(err); }
+      } catch(err){
+        console.error('Rider init note:', err);
+        localStorage.removeItem('ridelot_rider_id');
+        state.riderId = null;
+        var setupS2 = document.getElementById('rd-setup-section');
+        var mainS2 = document.getElementById('rd-main-section');
+        if (setupS2) setupS2.style.display = 'block';
+        if (mainS2) mainS2.style.display = 'none';
+      }
     }
   }
   init();
