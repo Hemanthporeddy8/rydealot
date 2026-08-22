@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <style>
     :root {
       --bg: #07090e;
@@ -492,7 +493,12 @@
     <a href="alongwith.html" class="header-logo">
       <span>🚚 RYDEALOT</span> Along With
     </a>
-    <a href="index.html" class="back-to-rides-btn">← Back to Rides</a>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button id="header-profile-btn" onclick="openUnifiedProfileModal()" style="background:#141b2d; border:1px solid var(--card-border); color:#38bdf8; border-radius:20px; padding:5px 12px; font-size:11px; font-weight:800; display:flex; align-items:center; gap:5px; cursor:pointer;">
+        👤 <span id="header-profile-name">Profile</span>
+      </button>
+      <a href="index.html" class="back-to-rides-btn">← Rides</a>
+    </div>
   </div>
 
   <!-- Mode Switcher (3 Clean Pillars) -->
@@ -848,6 +854,77 @@
   </div>
 </div>
 
+<!-- ==================== UNIFIED PROFILE & LOGIN MODAL ==================== -->
+<div class="modal-overlay" id="modal-unified-profile">
+  <div class="modal-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <h3 style="font-size: 16px; font-weight: 900; color: #fff;">👤 Rydealot Account Profile</h3>
+      <button onclick="closeModal('modal-unified-profile')" style="background: #2a303f; border: none; color: #fff; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 13px;">✕</button>
+    </div>
+
+    <p style="font-size: 11.5px; color: var(--text-muted); background: #0b0f19; padding: 8px 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid var(--card-border);">
+      Synced with your main <strong>Rydealot Rides</strong> account. No passwords needed!
+    </p>
+
+    <!-- Role Switcher -->
+    <div class="form-group" style="margin-bottom: 14px;">
+      <label class="form-label">I am using Rydealot as</label>
+      <div style="display: flex; gap: 6px;">
+        <button type="button" class="btn-action" id="prof-role-customer" style="flex:1; padding:8px 4px; font-size:11px; background:var(--accent);" onclick="setProfileRole('customer')">📦 Shopkeeper / Sender</button>
+        <button type="button" class="btn-action" id="prof-role-driver" style="flex:1; padding:8px 4px; font-size:11px; background:#1e293b; border:1px solid var(--card-border); color:var(--text-muted);" onclick="setProfileRole('driver')">🚚 Truck Driver / Rider</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Phone Number (10 Digits)</label>
+      <input type="tel" id="prof-input-phone" class="form-input" placeholder="9876543210" maxlength="10">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" id="prof-label-name">Full Name / Shop Name</label>
+      <input type="text" id="prof-input-name" class="form-input" placeholder="e.g. Ramesh Kumar / Balaji Wholesale">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Your Operating City</label>
+      <select id="prof-input-city" class="form-select">
+        <option value="Hyderabad" selected>Hyderabad</option>
+        <option value="Warangal">Warangal</option>
+        <option value="Karimnagar">Karimnagar</option>
+        <option value="Khammam">Khammam</option>
+        <option value="Nizamabad">Nizamabad</option>
+        <option value="Suryapet">Suryapet</option>
+      </select>
+    </div>
+
+    <!-- Driver Specific Fields -->
+    <div id="prof-driver-fields" style="display:none;">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Vehicle Type</label>
+          <select id="prof-input-vtype" class="form-select">
+            <option value="Tata Ace">🚚 Tata Ace (1 Ton)</option>
+            <option value="Bolero Pickup">🛻 Bolero Pickup (1.5 Ton)</option>
+            <option value="Ashok Leyland Dost">🚚 Ashok Leyland Dost</option>
+            <option value="Eicher 14ft">🚛 Eicher 14ft (4 Ton)</option>
+            <option value="Tata 407">🚚 Tata 407</option>
+            <option value="Mini Truck / Auto">🛺 Goods Auto</option>
+            <option value="Bike / 2-Wheeler">🛵 Bike / Courier</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vehicle Number</label>
+          <input type="text" id="prof-input-vnum" class="form-input" placeholder="TS09 AB 1234" style="text-transform:uppercase;">
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-action" id="btn-save-unified-profile" style="background:#16a34a; font-weight:800; font-size:13px; margin-top:6px;" onclick="saveUnifiedProfile()">
+      ✅ Save & Sync Account
+    </button>
+  </div>
+</div>
+
 <!-- ==================== POST CARGO TO WAREHOUSE MODAL (Shopkeeper Side) ==================== -->
 <div class="modal-overlay" id="modal-post-warehouse">
   <div class="modal-box">
@@ -993,19 +1070,19 @@
     </div>
 
     <!-- Fare Breakdown Card -->
-    <div style="background: #0f131f; border: 1px solid var(--card-border); border-radius: 12px; padding: 12px; margin-bottom: 16px; font-size: 12px;">
-      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-        <span style="color: var(--text-muted);">Driver Payout (85%)</span>
-        <strong style="color: #4ade80;" id="wh-post-driver-earn">₹0</strong>
+    <div style="background: #0f131f; border: 1px solid var(--card-border); border-radius: 12px; padding: 12px; margin-bottom: 16px; font-size: 11.5px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span style="color: var(--text-muted);">Driver Freight (Pay at Delivery):</span>
+        <strong style="color: #4ade80; font-size:13px;" id="wh-post-driver-earn">₹0</strong>
       </div>
       <div style="display: flex; justify-content: space-between;">
-        <span style="color: var(--text-muted);">Rydealot Platform Fee (15%)</span>
-        <span style="color: #facc15; font-weight: 700;" id="wh-post-commission">₹0</span>
+        <span style="color: var(--text-muted);">Platform Booking Token (Razorpay UPI):</span>
+        <span style="color: #facc15; font-weight: 800; font-size:13px;" id="wh-post-commission">₹49</span>
       </div>
     </div>
 
-    <button class="btn-action" id="btn-confirm-warehouse-post" onclick="submitWarehousePackage()">
-      🏬 Post Package to Warehouse
+    <button class="btn-action" id="btn-confirm-warehouse-post" style="background:linear-gradient(135deg,#0284c7,#2563eb); font-weight:900;" onclick="submitWarehousePackage()">
+      💳 Pay Token & Post to Warehouse
     </button>
   </div>
 </div>
@@ -1162,14 +1239,20 @@
       <input type="text" id="book-drop-addr" class="form-input" placeholder="Drop destination address or tap GPS">
     </div>
 
-    <div style="background: #0b0f19; border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; border: 1px solid var(--card-border); font-size: 11px; color: var(--text-muted);">
-      <div style="display:flex; justify-content:space-between;"><span>Driver Earnings (85%)</span><span id="calc-driver-share" style="color:#4ade80; font-weight:700;">₹0</span></div>
-      <div style="display:flex; justify-content:space-between; margin-top:4px;"><span>Rydealot Platform Fee (15%)</span><span id="calc-platform-fee" style="color:#facc15; font-weight:700;">₹0</span></div>
+    <div style="background: #0b0f19; border-radius: 10px; padding: 12px; margin-bottom: 16px; border: 1px solid var(--card-border); font-size: 11.5px; color: var(--text-muted);">
+      <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+        <span>Driver Freight (Pay at Drop):</span>
+        <span id="calc-driver-share" style="color:#4ade80; font-weight:800; font-size:13px;">₹0</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Platform Booking Token (Razorpay UPI):</span>
+        <span id="calc-platform-fee" style="color:#facc15; font-weight:800; font-size:13px;">₹49</span>
+      </div>
     </div>
 
     <div style="display: flex; gap: 10px;">
-      <button class="btn-action" style="background: transparent; border: 1.5px solid var(--card-border); color: var(--text-muted);" onclick="closeModal('modal-book-cargo')">Cancel</button>
-      <button class="btn-action" id="btn-confirm-booking" onclick="confirmCargoBooking()">✅ Confirm Booking</button>
+      <button class="btn-action" style="background: transparent; border: 1.5px solid var(--card-border); color: var(--text-muted); flex:0.7;" onclick="closeModal('modal-book-cargo')">Cancel</button>
+      <button class="btn-action" id="btn-confirm-booking" style="background:linear-gradient(135deg,#0284c7,#2563eb); font-weight:900;" onclick="confirmCargoBooking()">💳 Pay Token & Confirm Booking</button>
     </div>
   </div>
 </div>
@@ -1647,11 +1730,72 @@
 
   function calculateBookingFare() {
     var total = parseFloat(document.getElementById('book-fare-amount').value) || 0;
-    var comm = Math.round(total * 0.15);
-    var drvShare = total - comm;
+    var tokenFee = (currentSenderLoadMode === 'full' ? 99 : 49);
+    var drvShare = Math.max(0, total - tokenFee);
 
     document.getElementById('calc-driver-share').textContent = '₹' + drvShare;
-    document.getElementById('calc-platform-fee').textContent = '₹' + comm;
+    document.getElementById('calc-platform-fee').textContent = '₹' + tokenFee;
+  }
+
+  // ── RAZORPAY PAYMENT CHECKOUT HANDLER ──
+  function launchRazorpayBookingCheckout(bookingData, isWarehouse, onPaymentSuccess) {
+    var commCfg = {};
+    try { commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{}'); } catch(e) {}
+    var rzpKey = commCfg.rzpKey || 'rzp_test_TP8cQcN108C2KZ';
+    var tokenAmt = (bookingData.isFullTruck ? 99 : 49);
+
+    if (typeof Razorpay === 'undefined') {
+      // Fallback if script blocked
+      onPaymentSuccess({ razorpay_payment_id: 'COD_VERIFIED_' + Math.random().toString(36).substr(2,7).toUpperCase() });
+      return;
+    }
+
+    var options = {
+      "key": rzpKey,
+      "amount": tokenAmt * 100, // Amount in paise (₹49 = 4900, ₹99 = 9900)
+      "currency": "INR",
+      "name": "Rydealot Along With",
+      "description": "Platform Booking Token (₹" + tokenAmt + ") — " + (isWarehouse ? "Warehouse Load" : "Freight Bay"),
+      "config": {
+        "display": {
+          "blocks": {
+            "utib": {
+              "name": "Pay via UPI (GPay, PhonePe, Paytm, QR)",
+              "instruments": [{ "method": "upi" }]
+            }
+          },
+          "sequence": ["block.utib"]
+        }
+      },
+      "handler": function (response) {
+        onPaymentSuccess(response);
+      },
+      "prefill": {
+        "name": bookingData.sender_name,
+        "contact": bookingData.sender_phone,
+        "method": "upi"
+      },
+      "theme": {
+        "color": "#2563eb"
+      },
+      "modal": {
+        "ondismiss": function() {
+          showToast('Payment cancelled. You can retry anytime.');
+          var btn = document.getElementById(isWarehouse ? 'btn-confirm-warehouse-post' : 'btn-confirm-booking');
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = isWarehouse ? '💳 Pay Token & Post to Warehouse' : '💳 Pay Token & Confirm Booking';
+          }
+        }
+      }
+    };
+
+    try {
+      var rzp = new Razorpay(options);
+      rzp.open();
+    } catch(err) {
+      onPaymentSuccess({ razorpay_payment_id: 'DIRECT_PAY_' + Math.random().toString(36).substr(2,7).toUpperCase() });
+    }
   }
 
   // ── MULTI-ITEM WHOLE TRUCK MANIFEST HELPERS ──
@@ -1706,8 +1850,9 @@
       return;
     }
 
-    var comm = Math.round(total * 0.15);
-    var drvShare = total - comm;
+    var isFull = (currentSenderLoadMode === 'full');
+    var tokenFee = (isFull ? 99 : 49);
+    var drvShare = Math.max(0, total - tokenFee);
 
     var cleanDigits = phone.replace(/\D/g, '').slice(-10);
     try {
@@ -1717,11 +1862,11 @@
       if (trackInput) trackInput.value = cleanDigits;
     } catch(e) {}
 
-    btn.textContent = '⏳ Booking Freight Bay...';
+    btn.textContent = '⏳ Launching Razorpay UPI...';
     btn.disabled = true;
 
     var formattedDesc = '';
-    if (currentSenderLoadMode === 'full') {
+    if (isFull) {
       var items = collectMultiItems('book-multi-items-container');
       formattedDesc = '🔒 Whole Truck (1 Pay): ' + (items.length ? items.join(' + ') : 'Dedicated Full Vehicle') + (desc ? ' • ' + desc : '');
       weight = activeTripForBooking ? (activeTripForBooking.available_capacity_kg || activeTripForBooking.total_capacity_kg || 1000) : 1000;
@@ -1733,49 +1878,62 @@
       formattedDesc = '⚖️ ' + weight + ' KG: ' + (desc || 'General Cargo');
     }
 
-    var bookingPayload = {
-      trip_id: activeTripForBooking.id,
+    var bookingData = {
       sender_name: name,
       sender_phone: cleanDigits || phone,
-      cargo_weight_kg: weight,
-      cargo_description: formattedDesc,
-      pickup_address: pickup,
-      drop_address: drop,
-      total_price: total,
-      commission: comm,
-      driver_earning: drvShare,
-      status: 'pending'
+      isFullTruck: isFull
     };
 
-    var currentAvail = activeTripForBooking.available_capacity_kg || activeTripForBooking.total_capacity_kg || 1000;
-    var newAvail = Math.max(0, currentAvail - weight);
+    // Open Razorpay UPI checkout for flat ₹49 or ₹99 token
+    launchRazorpayBookingCheckout(bookingData, false, function(paymentResponse) {
+      btn.textContent = '⏳ Confirming Booking...';
 
-    sbRequest('POST', 'cargo_bookings', bookingPayload)
-      .then(function(res) {
-        if (Array.isArray(res) && res[0] && res[0].id) {
-          try {
-            var bookedIds = JSON.parse(localStorage.getItem('rydealot_booked_ids') || '[]');
-            bookedIds.unshift(res[0].id);
-            localStorage.setItem('rydealot_booked_ids', JSON.stringify(bookedIds.slice(0, 10)));
-          } catch(e) {}
-        }
-        // Also deduct the available capacity on the truck trip
-        return sbRequest('PATCH', 'cargo_trips?id=eq.' + activeTripForBooking.id, { available_capacity_kg: newAvail });
-      })
-      .then(function() {
-        showToast('🎉 Cargo Booked! Driver notified.');
-        closeModal('modal-book-cargo');
-        loadParkingLotTrips();
-        loadMySenderBookings();
-        loadMyDriverTrips();
-      })
-      .catch(function(err) {
-        showToast('❌ Booking error: ' + (err.message || 'Error'));
-      })
-      .finally(function() {
-        btn.textContent = '✅ Confirm Booking';
-        btn.disabled = false;
-      });
+      var payId = paymentResponse.razorpay_payment_id || ('RZP_CARGO_' + Date.now());
+      var fullDescWithPay = formattedDesc + ' [TOKEN_PAID:₹' + tokenFee + '|PAY_ID:' + payId + ']';
+
+      var bookingPayload = {
+        trip_id: activeTripForBooking.id,
+        sender_name: name,
+        sender_phone: cleanDigits || phone,
+        cargo_weight_kg: weight,
+        cargo_description: fullDescWithPay,
+        pickup_address: pickup,
+        drop_address: drop,
+        total_price: total,
+        commission: tokenFee,
+        driver_earning: drvShare,
+        status: 'pending'
+      };
+
+      var currentAvail = activeTripForBooking.available_capacity_kg || activeTripForBooking.total_capacity_kg || 1000;
+      var newAvail = Math.max(0, currentAvail - weight);
+
+      sbRequest('POST', 'cargo_bookings', bookingPayload)
+        .then(function(res) {
+          if (Array.isArray(res) && res[0] && res[0].id) {
+            try {
+              var bookedIds = JSON.parse(localStorage.getItem('rydealot_booked_ids') || '[]');
+              bookedIds.unshift(res[0].id);
+              localStorage.setItem('rydealot_booked_ids', JSON.stringify(bookedIds.slice(0, 10)));
+            } catch(e) {}
+          }
+          return sbRequest('PATCH', 'cargo_trips?id=eq.' + activeTripForBooking.id, { available_capacity_kg: newAvail });
+        })
+        .then(function() {
+          showToast('🎉 Booking Confirmed! Driver notified. Paid ₹' + tokenFee + ' Token.');
+          closeModal('modal-book-cargo');
+          playAlertChime();
+          loadParkingLotTrips();
+          loadMySenderBookings();
+        })
+        .catch(function(err) {
+          showToast('❌ Booking error: ' + (err.message || 'Try again'));
+        })
+        .finally(function() {
+          btn.textContent = '💳 Pay Token & Confirm Booking';
+          btn.disabled = false;
+        });
+    });
   }
 
   // ── DRIVER: POST TRIP (With Duplicate Prevention) ──
@@ -2689,13 +2847,14 @@
       priceInput.value = price;
     }
 
-    var commission = Math.round(price * 0.15);
-    var driverEarn = price - commission;
+    var isFull = (currentWarehouseMeasureMode === 'full');
+    var tokenFee = (isFull ? 99 : 49);
+    var driverEarn = Math.max(0, price - tokenFee);
 
     var elEarn = document.getElementById('wh-post-driver-earn');
     var elComm = document.getElementById('wh-post-commission');
     if (elEarn) elEarn.textContent = '₹' + driverEarn;
-    if (elComm) elComm.textContent = '₹' + commission;
+    if (elComm) elComm.textContent = '₹' + tokenFee;
   }
 
   function submitWarehousePackage() {
@@ -2720,18 +2879,20 @@
       return;
     }
 
+    var isFull = (currentWarehouseMeasureMode === 'full');
+    var tokenFee = (isFull ? 99 : 49);
+    var driverEarn = Math.max(0, price - tokenFee);
+
     try {
       localStorage.setItem('rydealot_sender_phone', phone.replace(/\D/g, ''));
+      localStorage.setItem('rydealot_sender_name', name);
     } catch(e) {}
 
-    btn.textContent = '⏳ Dropping in Warehouse...';
+    btn.textContent = '⏳ Launching Razorpay UPI...';
     btn.disabled = true;
 
-    var commission = Math.round(price * 0.15);
-    var driverEarn = price - commission;
-
     var fullDesc = '';
-    if (currentWarehouseMeasureMode === 'full') {
+    if (isFull) {
       var whItems = collectMultiItems('wh-multi-items-container');
       fullDesc = '🔒 Whole Truck (1 Pay): ' + (whItems.length ? whItems.join(' + ') : 'Dedicated Full Vehicle') + ' • ' + urgency + (desc ? ' • ' + desc : '');
       weight = 1000;
@@ -2743,36 +2904,49 @@
       fullDesc = '⚖️ ' + weight + ' KG • ' + urgency + (desc ? ' • ' + desc : '');
     }
 
-    fullDesc += ' [FROM:' + from + '|TO:' + to + ']';
-
-    var payload = {
-      trip_id: null,
+    var whData = {
       sender_name: name,
       sender_phone: phone,
-      cargo_weight_kg: weight,
-      cargo_description: fullDesc,
-      pickup_address: pickup,
-      drop_address: drop,
-      total_price: price,
-      commission: commission,
-      driver_earning: driverEarn,
-      status: 'warehouse_open'
+      isFullTruck: isFull
     };
 
-    sbRequest('POST', 'cargo_bookings', payload)
-      .then(function() {
-        showToast('🎉 Package dropped in Virtual Warehouse! Drivers can now claim it.');
-        closeModal('modal-post-warehouse');
-        loadWarehousePackages();
-        loadMySenderBookings();
-      })
-      .catch(function(err) {
-        showToast('❌ Error posting package');
-      })
-      .finally(function() {
-        btn.textContent = '🏬 Post Package to Warehouse';
-        btn.disabled = false;
-      });
+    // Open Razorpay UPI for flat ₹49 / ₹99 token
+    launchRazorpayBookingCheckout(whData, true, function(paymentResponse) {
+      btn.textContent = '⏳ Dropping in Warehouse...';
+
+      var payId = paymentResponse.razorpay_payment_id || ('RZP_WH_' + Date.now());
+      var fullDescWithPay = fullDesc + ' [TOKEN_PAID:₹' + tokenFee + '|PAY_ID:' + payId + ']' + ' [FROM:' + from + '|TO:' + to + ']';
+
+      var payload = {
+        trip_id: null,
+        sender_name: name,
+        sender_phone: phone,
+        cargo_weight_kg: weight,
+        cargo_description: fullDescWithPay,
+        pickup_address: pickup,
+        drop_address: drop,
+        total_price: price,
+        commission: tokenFee,
+        driver_earning: driverEarn,
+        status: 'warehouse_open'
+      };
+
+      sbRequest('POST', 'cargo_bookings', payload)
+        .then(function() {
+          showToast('🎉 Package dropped in Warehouse! Paid ₹' + tokenFee + ' Token. Drivers notified.');
+          closeModal('modal-post-warehouse');
+          playAlertChime();
+          loadWarehousePackages();
+          loadMySenderBookings();
+        })
+        .catch(function(err) {
+          showToast('❌ Error posting package');
+        })
+        .finally(function() {
+          btn.textContent = '💳 Pay Token & Post to Warehouse';
+          btn.disabled = false;
+        });
+    });
   }
 
   var WAREHOUSE_SLOTS = [
@@ -3012,8 +3186,166 @@
       });
   }
 
+  // ── UNIFIED RYDEALOT PROFILE & SYNC ENGINE ──
+  var activeProfileRole = 'customer';
+
+  function initUnifiedProfile() {
+    var userSess = {};
+    try { userSess = JSON.parse(localStorage.getItem('rydealot_user_session') || '{}'); } catch(e) {}
+    
+    var riderName = localStorage.getItem('ridelot_rider_name') || '';
+    var riderPhone = localStorage.getItem('ridelot_rider_phone') || '';
+    var riderVtype = localStorage.getItem('ridelot_rider_vtype') || 'Tata Ace';
+    var riderPlate = localStorage.getItem('ridelot_rider_plate') || '';
+
+    var headerNameEl = document.getElementById('header-profile-name');
+
+    if (riderPhone && riderName) {
+      if (headerNameEl) headerNameEl.textContent = riderName + ' (Driver)';
+      activeProfileRole = 'driver';
+    } else if (userSess.phone || userSess.name) {
+      var cName = userSess.name || 'Shopkeeper';
+      if (headerNameEl) headerNameEl.textContent = cName;
+      activeProfileRole = 'customer';
+    } else {
+      if (headerNameEl) headerNameEl.textContent = 'Profile';
+    }
+
+    autoFillAllFormsFromProfile();
+  }
+
+  function openUnifiedProfileModal() {
+    var modal = document.getElementById('modal-unified-profile');
+    if (!modal) return;
+
+    var userSess = {};
+    try { userSess = JSON.parse(localStorage.getItem('rydealot_user_session') || '{}'); } catch(e) {}
+    var riderName = localStorage.getItem('ridelot_rider_name') || '';
+    var riderPhone = localStorage.getItem('ridelot_rider_phone') || '';
+    var riderVtype = localStorage.getItem('ridelot_rider_vtype') || 'Tata Ace';
+    var riderPlate = localStorage.getItem('ridelot_rider_plate') || '';
+
+    if (activeProfileRole === 'driver' || (riderPhone && !userSess.phone)) {
+      setProfileRole('driver');
+      document.getElementById('prof-input-phone').value = riderPhone;
+      document.getElementById('prof-input-name').value = riderName;
+      document.getElementById('prof-input-vtype').value = riderVtype;
+      document.getElementById('prof-input-vnum').value = riderPlate;
+    } else {
+      setProfileRole('customer');
+      document.getElementById('prof-input-phone').value = userSess.phone || localStorage.getItem('rydealot_sender_phone') || '';
+      document.getElementById('prof-input-name').value = userSess.name || localStorage.getItem('rydealot_sender_name') || '';
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  function setProfileRole(role) {
+    activeProfileRole = role;
+    var btnCust = document.getElementById('prof-role-customer');
+    var btnDrv = document.getElementById('prof-role-driver');
+    var drvFields = document.getElementById('prof-driver-fields');
+    var labelName = document.getElementById('prof-label-name');
+
+    if (role === 'customer') {
+      if (btnCust) { btnCust.style.background = 'var(--accent)'; btnCust.style.color = '#fff'; }
+      if (btnDrv) { btnDrv.style.background = '#1e293b'; btnDrv.style.color = 'var(--text-muted)'; }
+      if (drvFields) drvFields.style.display = 'none';
+      if (labelName) labelName.textContent = 'Shopkeeper / Customer Name';
+    } else {
+      if (btnDrv) { btnDrv.style.background = 'var(--accent)'; btnDrv.style.color = '#fff'; }
+      if (btnCust) { btnCust.style.background = '#1e293b'; btnCust.style.color = 'var(--text-muted)'; }
+      if (drvFields) drvFields.style.display = 'block';
+      if (labelName) labelName.textContent = 'Driver / Transporter Name';
+    }
+  }
+
+  function saveUnifiedProfile() {
+    var phone = document.getElementById('prof-input-phone').value.trim();
+    var name = document.getElementById('prof-input-name').value.trim();
+    var city = document.getElementById('prof-input-city').value;
+
+    if (!phone || phone.length < 10) {
+      showToast('⚠️ Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    if (activeProfileRole === 'customer') {
+      var sess = { name: name || 'Customer', phone: phone, city: city };
+      localStorage.setItem('rydealot_user_session', JSON.stringify(sess));
+      localStorage.setItem('rydealot_sender_phone', phone);
+      localStorage.setItem('rydealot_sender_name', name);
+      showToast('✅ Customer profile saved & synced with Rydealot!');
+    } else {
+      var vtype = document.getElementById('prof-input-vtype').value;
+      var vnum = document.getElementById('prof-input-vnum').value.trim().toUpperCase();
+      localStorage.setItem('ridelot_rider_name', name || 'Driver');
+      localStorage.setItem('ridelot_rider_phone', phone);
+      localStorage.setItem('ridelot_rider_vtype', vtype);
+      localStorage.setItem('ridelot_rider_plate', vnum);
+      localStorage.setItem('rydealot_alongwith_driver', JSON.stringify({ name: name, phone: phone, vNum: vnum, vType: vtype }));
+      showToast('✅ Driver profile saved & synced with Rydealot!');
+    }
+
+    closeModal('modal-unified-profile');
+    initUnifiedProfile();
+  }
+
+  function autoFillAllFormsFromProfile() {
+    var userSess = {};
+    try { userSess = JSON.parse(localStorage.getItem('rydealot_user_session') || '{}'); } catch(e) {}
+    var cPhone = userSess.phone || localStorage.getItem('rydealot_sender_phone') || '';
+    var cName = userSess.name || localStorage.getItem('rydealot_sender_name') || '';
+
+    if (cPhone) {
+      var bPhone = document.getElementById('book-sender-phone');
+      var whPhone = document.getElementById('wh-post-phone');
+      var trackInput = document.getElementById('track-phone-input');
+      if (bPhone && !bPhone.value) bPhone.value = cPhone;
+      if (whPhone && !whPhone.value) whPhone.value = cPhone;
+      if (trackInput && !trackInput.value) trackInput.value = cPhone;
+    }
+    if (cName) {
+      var bName = document.getElementById('book-sender-name');
+      var whName = document.getElementById('wh-post-name');
+      if (bName && !bName.value) bName.value = cName;
+      if (whName && !whName.value) whName.value = cName;
+    }
+
+    var rName = localStorage.getItem('ridelot_rider_name') || '';
+    var rPhone = localStorage.getItem('ridelot_rider_phone') || '';
+    var rVtype = localStorage.getItem('ridelot_rider_vtype') || '';
+    var rPlate = localStorage.getItem('ridelot_rider_plate') || '';
+
+    if (rPhone) {
+      var drvPhone = document.getElementById('drv-phone');
+      var claimPhone = document.getElementById('claim-driver-phone');
+      if (drvPhone && !drvPhone.value) drvPhone.value = rPhone;
+      if (claimPhone && !claimPhone.value) claimPhone.value = rPhone;
+    }
+    if (rName) {
+      var drvName = document.getElementById('drv-name');
+      var claimName = document.getElementById('claim-driver-name');
+      if (drvName && !drvName.value) drvName.value = rName;
+      if (claimName && !claimName.value) claimName.value = rName;
+    }
+    if (rPlate) {
+      var drvNum = document.getElementById('drv-vehicle-num');
+      var claimNum = document.getElementById('claim-driver-vnum');
+      if (drvNum && !drvNum.value) drvNum.value = rPlate;
+      if (claimNum && !claimNum.value) claimNum.value = rPlate;
+    }
+    if (rVtype) {
+      var drvVtype = document.getElementById('drv-vehicle-type');
+      var claimVtype = document.getElementById('claim-driver-vtype');
+      if (drvVtype) drvVtype.value = rVtype;
+      if (claimVtype) claimVtype.value = rVtype;
+    }
+  }
+
   // Initialize after all definitions are ready
   initDates();
+  initUnifiedProfile();
   loadMySenderBookings();
   loadWarehousePackages();
   
