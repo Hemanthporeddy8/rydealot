@@ -1049,29 +1049,82 @@
       });
     }
     
-    if (arrivedBtn) arrivedBtn.addEventListener('click', function() { handleBookingAction('arrived', b.id); });
-    if (startBtn) {
-      startBtn.addEventListener('click', function() {
-        var pinMatch = b.maps_link ? b.maps_link.match(/[?&]pin=(\d{4})/) : null;
-        var correctPin = pinMatch ? pinMatch[1] : null;
-        
-        if (correctPin) {
-          var entered = prompt("Enter 4-digit Ride PIN from passenger's device:");
-          if (entered === null) return;
-          if (entered.trim() !== correctPin) {
-            alert("❌ Incorrect PIN. Please check passenger screen and try again.");
-            return;
-          }
+  function openDriverPinModal(correctPin, onVerified) {
+    var modal = document.getElementById('rd-pin-modal');
+    var input = document.getElementById('rd-input-pin');
+    var errorMsg = document.getElementById('rd-pin-error-msg');
+    var cancelBtn = document.getElementById('rd-pin-cancel-btn');
+    var verifyBtn = document.getElementById('rd-pin-verify-btn');
+
+    if (!modal || !input) {
+      var entered = prompt("Enter 4-digit Ride PIN from passenger's device:");
+      if (entered && entered.trim() === correctPin) onVerified();
+      return;
+    }
+
+    input.value = '';
+    if (errorMsg) {
+      errorMsg.style.display = 'none';
+      errorMsg.textContent = '';
+    }
+    modal.style.display = 'flex';
+    setTimeout(function(){ input.focus(); }, 100);
+
+    function doVerify() {
+      var val = (input.value || '').trim();
+      if (!val || val.length < 4) {
+        if (errorMsg) {
+          errorMsg.textContent = '⚠️ Please enter the full 4-digit PIN';
+          errorMsg.style.display = 'block';
         }
-        
-        // Open Google Maps navigation directly on user gesture to avoid popup blocker
+        return;
+      }
+      if (val !== correctPin) {
+        if (errorMsg) {
+          errorMsg.textContent = '❌ Incorrect PIN. Check passenger phone.';
+          errorMsg.style.display = 'block';
+        }
+        input.value = '';
+        input.focus();
+        return;
+      }
+
+      modal.style.display = 'none';
+      onVerified();
+    }
+
+    function doCancel() {
+      modal.style.display = 'none';
+    }
+
+    if (verifyBtn) verifyBtn.onclick = doVerify;
+    if (cancelBtn) cancelBtn.onclick = doCancel;
+    input.onkeydown = function(e) {
+      if (e.key === 'Enter') doVerify();
+      if (e.key === 'Escape') doCancel();
+    };
+  }
+
+  if (arrivedBtn) arrivedBtn.addEventListener('click', function() { handleBookingAction('arrived', b.id); });
+  if (startBtn) {
+    startBtn.addEventListener('click', function() {
+      var pinMatch = b.maps_link ? b.maps_link.match(/[?&]pin=(\d{4})/) : null;
+      var correctPin = pinMatch ? pinMatch[1] : null;
+      
+      if (correctPin) {
+        openDriverPinModal(correctPin, function() {
+          var cleanLink = b.maps_link ? b.maps_link.replace(/[?&]pin=(\d{4})/, '') : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
+          window.open(cleanLink, '_blank');
+          handleBookingAction('start', b.id);
+        });
+      } else {
         var cleanLink = b.maps_link ? b.maps_link.replace(/[?&]pin=(\d{4})/, '') : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
         window.open(cleanLink, '_blank');
-        
         handleBookingAction('start', b.id);
-      });
-    }
-    if (completeBtn) completeBtn.addEventListener('click', function() { handleBookingAction('complete', b.id); });
+      }
+    });
+  }
+  if (completeBtn) completeBtn.addEventListener('click', function() { handleBookingAction('complete', b.id); });
 
     try {
       var riderRows = await sbFetch('riders?id=eq.' + state.riderId);
