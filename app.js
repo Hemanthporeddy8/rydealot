@@ -535,8 +535,17 @@
 // ===================== app switcher =====================
 (function(){
   function showApp(which){
-    document.getElementById('rider-app-root').classList.toggle('active', which === 'rider');
-    document.getElementById('user-app-root').classList.toggle('active', which === 'user');
+    var rRoot = document.getElementById('rider-app-root');
+    var uRoot = document.getElementById('user-app-root');
+
+    if (rRoot) {
+      rRoot.classList.toggle('active', which === 'rider');
+      rRoot.style.display = which === 'rider' ? 'block' : 'none';
+    }
+    if (uRoot) {
+      uRoot.classList.toggle('active', which === 'user');
+      uRoot.style.display = which === 'user' ? 'block' : 'none';
+    }
     
     if (which === 'user') {
       var raw = localStorage.getItem('rydealot_user_session');
