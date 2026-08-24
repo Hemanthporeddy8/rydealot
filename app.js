@@ -566,6 +566,14 @@
 
 // ===================== app switcher =====================
 (function(){
+  // CRITICAL FIX: The browser's HTML parser sometimes nests #rider-app-root
+  // inside #user-app-root due to unclosed tags in the customer screens.
+  // Force it to be a direct child of <body> so show/hide works correctly.
+  var rRoot = document.getElementById('rider-app-root');
+  if (rRoot && rRoot.parentElement !== document.body) {
+    document.body.insertBefore(rRoot, document.getElementById('user-app-root').nextSibling);
+  }
+
   function showApp(which){
     var rRoot = document.getElementById('rider-app-root');
     var uRoot = document.getElementById('user-app-root');
