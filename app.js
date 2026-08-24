@@ -242,7 +242,17 @@
   function applySession() {
     var raw = localStorage.getItem('rydealot_user_session');
     if (!raw) {
-      // No active session: ensure Auth screen is shown with display flex
+      // No active session: ensure Auth screen is shown
+      var uRoot = document.getElementById('user-app-root');
+      var rRoot = document.getElementById('rider-app-root');
+      if (uRoot) {
+        uRoot.classList.add('active');
+        uRoot.style.display = 'block';
+      }
+      if (rRoot) {
+        rRoot.classList.remove('active');
+        rRoot.style.display = 'none';
+      }
       var sAuth = document.getElementById('screen-auth');
       if (sAuth) {
         sAuth.classList.add('active');
@@ -254,16 +264,25 @@
       var sess = JSON.parse(raw);
       authState.currentUser = sess;
 
-      // Hide Auth Screen explicitly
-      var screenAuth = document.getElementById('screen-auth');
-      if (screenAuth) {
-        screenAuth.classList.remove('active');
-        screenAuth.style.display = 'none';
-      }
-
       if (sess.role === 'customer') {
-        document.getElementById('user-app-root').classList.add('active');
-        document.getElementById('rider-app-root').classList.remove('active');
+        var uRoot = document.getElementById('user-app-root');
+        var rRoot = document.getElementById('rider-app-root');
+        if (uRoot) {
+          uRoot.classList.add('active');
+          uRoot.style.display = 'block';
+        }
+        if (rRoot) {
+          rRoot.classList.remove('active');
+          rRoot.style.display = 'none';
+        }
+
+        // Hide Auth Screen explicitly
+        var screenAuth = document.getElementById('screen-auth');
+        if (screenAuth) {
+          screenAuth.classList.remove('active');
+          screenAuth.style.display = 'none';
+        }
+
         var screenLogin = document.getElementById('screen-login');
         if (screenLogin) {
           screenLogin.classList.add('active');
@@ -281,34 +300,47 @@
         }, 400);
         
         var nameInput = document.getElementById('login-name');
-        if (nameInput) nameInput.value = sess.name;
+        if (nameInput) nameInput.value = sess.name || '';
         
         // Update Profile drawer info
         var pName = document.getElementById('prof-name');
         var pEmail = document.getElementById('prof-email');
         var pAvatar = document.getElementById('prof-avatar');
-        if (pName) pName.textContent = sess.name;
-        if (pEmail) pEmail.textContent = sess.email;
-        if (pAvatar) pAvatar.textContent = sess.name.substring(0, 2).toUpperCase();
+        if (pName) pName.textContent = sess.name || 'User';
+        if (pEmail) pEmail.textContent = sess.email || '';
+        if (pAvatar) pAvatar.textContent = (sess.name || 'U').substring(0, 2).toUpperCase();
 
         // Update Saved Places chips
         updateSavedPlacesChips(sess);
       } else {
-        document.getElementById('rider-app-root').classList.add('active');
-        document.getElementById('user-app-root').classList.remove('active');
+        // Driver Role Active
+        var uRoot = document.getElementById('user-app-root');
+        var rRoot = document.getElementById('rider-app-root');
+        if (rRoot) {
+          rRoot.classList.add('active');
+          rRoot.style.display = 'block';
+        }
+        if (uRoot) {
+          uRoot.classList.remove('active');
+          uRoot.style.display = 'none';
+        }
+
         var driverName = document.getElementById('rd-rider-name');
         var driverPhone = document.getElementById('rd-rider-phone');
-        if (driverName) driverName.value = sess.name;
-        if (driverPhone) driverPhone.value = sess.phone;
+        if (driverName && sess.name) driverName.value = sess.name;
+        if (driverPhone && sess.phone) driverPhone.value = sess.phone;
 
         var setupSection = document.getElementById('rd-setup-section');
         var mainSection = document.getElementById('rd-main-section');
         var riderId = localStorage.getItem('ridelot_rider_id');
-        if (riderId && mainSection && setupSection) {
+        var displayName = document.getElementById('rd-display-name');
+        var hasValidProfile = displayName && displayName.textContent && displayName.textContent !== '-';
+
+        if (riderId && hasValidProfile && mainSection && setupSection) {
           setupSection.style.display = 'none';
           mainSection.style.display = 'block';
-        } else if (setupSection) {
-          setupSection.style.display = 'block';
+        } else {
+          if (setupSection) setupSection.style.display = 'block';
           if (mainSection) mainSection.style.display = 'none';
         }
       }
