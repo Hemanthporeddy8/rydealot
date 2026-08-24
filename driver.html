@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Rydealot Driver</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<link rel="manifest" href="manifest.json">
+<link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
+<style>
+  body {
+    margin: 0;
+    padding: 20px 12px 60px;
+    background: #F3F1EC;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #14171A;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  .driver-app-card {
+    max-width: 440px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+    min-height: 700px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .driver-switch-bar {
+    padding: 12px 18px 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+  }
+  .driver-switch-link {
+    color: #6B6F73;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .driver-nav {
+    padding: 14px 20px;
+    border-bottom: 2px solid #14171A;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+  }
+  .driver-nav .brandrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .driver-nav .mark {
+    width: 32px;
+    height: 32px;
+    background: #FFB020;
+    border: 2px solid #14171A;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 16px;
+  }
+  .driver-nav h1 {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 15px;
+    margin: 0;
+    letter-spacing: 0.3px;
+  }
+  .driver-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .driver-section {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+</style>
+</head>
+<body id="rider-app-root">
+
+<div class="driver-app-card wrap">
+  <!-- Top Switch Header -->
+  <div class="driver-switch-bar switch-bar">
+    <a href="index.html" class="driver-switch-link">&larr; Back to Passenger App</a>
+    <button class="switch-link-inline pwa-install-btn" style="display:none; color:var(--signal); font-weight:700;">Install App &darr;</button>
+  </div>
+
+  <!-- App Header -->
+  <div class="driver-nav nav">
+    <div class="brandrow">
+      <span class="mark">R</span>
+      <h1>RYDEALOT DRIVER</h1>
+    </div>
+    <span class="pill offline" id="rd-status-pill">Offline</span>
+  </div>
+
+  <div class="driver-content">
+
+    <!-- 1. SETUP SECTION (shown if driver profile is incomplete) -->
+    <div class="section" id="rd-setup-section">
+      <h2 style="font-size:16px; font-weight:900; margin:0 0 14px;">Driver Profile & Vehicle Setup</h2>
+      <div class="field">
+        <label>Your Full Name</label>
+        <input type="text" id="rd-rider-name" placeholder="e.g. Arjun Mehta">
+      </div>
+      <div class="field">
+        <label>Vehicle Type</label>
+        <select id="rd-rider-vtype">
+          <option value="bike">Bike Taxi</option>
+          <option value="auto">Auto (Direct)</option>
+          <option value="auto_share">Auto Share (Pool)</option>
+          <option value="car">Cab / Commercial EV</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Vehicle Model</label>
+        <input type="text" id="rd-rider-vlabel" placeholder="e.g. Hero Splendor / Bajaj Compact">
+      </div>
+      <div class="field">
+        <label>Vehicle Plate Number</label>
+        <input type="text" id="rd-rider-plate" placeholder="e.g. TS 03 AB 4521">
+      </div>
+      <div class="field">
+        <label>Phone Number (for passenger calls)</label>
+        <input type="tel" id="rd-rider-phone" placeholder="98765 43210">
+      </div>
+
+      <!-- Document Verification Section -->
+      <div style="margin-top:16px; padding-top:16px; border-top:1.5px solid var(--border);">
+        <h3 style="font-size:14px; font-weight:800; color:var(--text); margin-bottom:4px;">📄 Driver Document Verification</h3>
+        <p style="font-size:11px; color:var(--text-mute); margin-bottom:12px;">Upload photos of your official documents for admin verification</p>
+
+        <div class="field" style="margin-bottom:10px;">
+          <label style="font-size:11px;">1. Driving License (DL)</label>
+          <input type="file" id="rd-doc-dl" accept="image/*" style="font-size:12px; padding:6px;">
+          <span id="rd-doc-dl-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+        </div>
+
+        <div class="field" style="margin-bottom:10px;">
+          <label style="font-size:11px;">2. Vehicle Registration Certificate (RC)</label>
+          <input type="file" id="rd-doc-rc" accept="image/*" style="font-size:12px; padding:6px;">
+          <span id="rd-doc-rc-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+        </div>
+
+        <div class="field" style="margin-bottom:10px;">
+          <label style="font-size:11px;">3. Aadhaar Card</label>
+          <input type="file" id="rd-doc-aadhaar" accept="image/*" style="font-size:12px; padding:6px;">
+          <span id="rd-doc-aadhaar-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+        </div>
+
+        <div class="field" style="margin-bottom:14px;">
+          <label style="font-size:11px;">4. Profile Selfie Photo</label>
+          <input type="file" id="rd-doc-selfie" accept="image/*" capture="user" style="font-size:12px; padding:6px;">
+          <span id="rd-doc-selfie-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+        </div>
+      </div>
+
+      <button class="btn" id="rd-save-profile-btn" style="margin-top:10px;">Save profile & documents</button>
+    </div>
+
+    <!-- 2. MAIN DASHBOARD SECTION -->
+    <div class="section" id="rd-main-section" style="display:none;">
+      <!-- Wallet Card Summary -->
+      <div style="background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <span style="font-size:11px; font-weight:700; color:var(--text-mute); text-transform:uppercase;">Driver Wallet Balance</span>
+          <h3 id="rd-wallet-balance-display" style="font-size:24px; font-weight:900; color:var(--text); margin:2px 0 0;">₹0</h3>
+        </div>
+        <button type="button" id="rd-open-wallet-btn" style="background:var(--signal); color:var(--text); border:1.5px solid var(--accent); border-radius:10px; padding:8px 14px; font-size:12px; font-weight:800; cursor:pointer;">💰 My Wallet</button>
+      </div>
+
+      <!-- Driver Incentives & Daily Bonus Timeline Card -->
+      <div style="background:linear-gradient(135deg, rgba(29,158,117,0.12), rgba(255,176,32,0.12)); border:1.5px solid #1d9e75; border-radius:14px; padding:14px; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:12px; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">🎁 Driver Bonuses & Daily Incentives</span>
+          <span style="font-size:10px; font-weight:800; background:#1d9e75; color:#fff; padding:2px 8px; border-radius:99px;">ACTIVE TODAY</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-mute); display:flex; flex-direction:column; gap:6px;" id="rd-bonus-schemes-list">
+          <div style="display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:8px 10px; border-radius:8px; border:1px solid var(--border);">
+            <span>🌟 <strong>5 Rides Daily Sprint:</strong> Complete 5 rides today</span>
+            <span style="color:#1d9e75; font-weight:800;">+ ₹15 Bonus</span>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:8px 10px; border-radius:8px; border:1px solid var(--border);">
+            <span>🤝 <strong>Driver Buddy Referral:</strong> Invite a driver friend</span>
+            <span style="color:var(--amber); font-weight:800;">+ ₹50 Wallet</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Driver Status Card -->
+      <div class="status-card">
+        <div class="row"><span class="k">Name</span><span class="v" id="rd-display-name">-</span></div>
+        <div class="row"><span class="k">Vehicle</span><span class="v" id="rd-display-vehicle">-</span></div>
+        <div class="row"><span class="k">Verification</span><span class="v" id="rd-display-verification" style="color:var(--amber); font-weight:700;">Pending Admin Approval</span></div>
+        <div class="row"><span class="k">Location</span><span class="v" id="rd-display-location">Not sharing</span></div>
+      </div>
+
+      <button class="btn btn-toggle-off" id="rd-toggle-online-btn">Go online</button>
+      <p class="helptext" id="rd-location-help" style="text-align:center;">Going online shares your live location so nearby users can see you.</p>
+
+      <!-- Booking Requests -->
+      <div style="margin-top:20px;">
+        <h3 style="font-size:14px;color:var(--text-mute);margin:0 0 10px;">Booking requests</h3>
+        <div id="rd-bookings-list"><div class="empty-state">No requests yet. Stay online to receive them.</div></div>
+      </div>
+
+      <button class="btn" style="background:#fff;color:var(--text-mute);border:1px solid var(--border);margin-top:20px;" id="rd-edit-profile-btn">Edit profile</button>
+
+      <!-- Along With Driver Portal Banner -->
+      <a href="alongwith.html" style="display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg,#1e2229,#141721); border:1.5px solid var(--border); border-radius:14px; padding:12px 14px; margin-top:12px; text-decoration:none; color:#fff;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:22px;">🚚</span>
+          <div>
+            <div style="font-size:12.5px; font-weight:800; color:#38bdf8;">Along With — Post Return Trip</div>
+            <div style="font-size:10.5px; color:var(--text-mute);">Earn extra on empty return journeys</div>
+          </div>
+        </div>
+        <span style="font-size:14px; color:#38bdf8; font-weight:900;">&rarr;</span>
+      </a>
+    </div>
+
+    <!-- 3. DRIVER WALLET & EARNINGS SECTION -->
+    <div class="section" id="rd-wallet-section" style="display:none; gap:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid var(--border); padding-bottom:10px;">
+        <h2 style="font-size:16px; font-weight:900; margin:0;">💰 Driver Wallet & Earnings</h2>
+        <button type="button" id="rd-wallet-back-btn" style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-weight:700; font-size:11px; cursor:pointer;">&larr; Back</button>
+      </div>
+
+      <!-- Balance Hero Card -->
+      <div style="background:var(--accent); color:#fff; border-radius:16px; padding:20px; text-align:center;">
+        <span style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; opacity:0.8;">Total Balance</span>
+        <h1 id="rd-wallet-total-balance" style="font-size:36px; font-weight:900; margin:6px 0 0;">₹0</h1>
+      </div>
+
+      <!-- Today's Earnings Summary -->
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1; background:#fff; border:1.5px solid var(--border); border-radius:12px; padding:12px; text-align:center;">
+          <span style="font-size:11px; color:var(--text-mute); font-weight:700;">Today's Trips</span>
+          <div id="rd-wallet-today-trips" style="font-size:20px; font-weight:900; color:var(--text); margin-top:2px;">0</div>
+        </div>
+        <div style="flex:1; background:#fff; border:1.5px solid var(--border); border-radius:12px; padding:12px; text-align:center;">
+          <span style="font-size:11px; color:var(--text-mute); font-weight:700;">Today's Income</span>
+          <div id="rd-wallet-today-income" style="font-size:20px; font-weight:900; color:var(--green); margin-top:2px;">₹0</div>
+        </div>
+      </div>
+
+      <!-- Instant Auto-Recharge Buttons -->
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+        <button type="button" onclick="promptRazorpayRecharge()" style="width:100%; background:linear-gradient(135deg, #072654, #0c4394); color:#fff; border:none; border-radius:12px; padding:12px; font-weight:900; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(12,67,148,0.3);">
+          ⚡ Instant Auto-Recharge (Razorpay / GPay / Paytm)
+        </button>
+        <button type="button" id="btn-open-upi-recharge" onclick="openUpiRechargeModal()" style="width:100%; background:linear-gradient(135deg, var(--green), #14805e); color:#fff; border:none; border-radius:12px; padding:10px; font-weight:800; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+          💳 Direct Bank QR / UPI Transfer
+        </button>
+      </div>
+
+      <!-- Active Plan & Pass Countdown Timer Banner -->
+      <div id="rd-active-pass-timer-card" style="display:none; background:rgba(29,158,117,0.12); border:1.5px solid #1d9e75; border-radius:12px; padding:10px 14px; margin-bottom:14px; align-items:center; justify-content:space-between;">
+        <div>
+          <span style="font-size:10px; font-weight:800; color:var(--text-mute); text-transform:uppercase;">Current Active Online Plan</span>
+          <div id="rd-active-plan-title" style="font-size:13px; font-weight:900; color:var(--green);">🗓️ Daily Pass (0% Commission)</div>
+        </div>
+        <div style="text-align:right;">
+          <span style="font-size:10px; font-weight:800; color:var(--amber); text-transform:uppercase;">Time Remaining</span>
+          <div id="rd-active-pass-countdown" style="font-size:14px; font-weight:900; color:var(--text); font-family:var(--font-mono);">23h 59m 50s</div>
+        </div>
+      </div>
+
+      <!-- Subscription Passes -->
+      <div style="background:linear-gradient(135deg, rgba(29,158,117,0.1), rgba(255,176,32,0.1)); border:1.5px solid var(--signal); border-radius:14px; padding:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <span style="font-size:13px; font-weight:900; color:var(--text);">⚡ Choose Online Plan & Pass</span>
+          <span style="font-size:10px; font-weight:800; background:var(--signal); color:#fff; padding:2px 8px; border-radius:99px;">2 OPTIONS AVAILABLE</span>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <!-- Daily Pass -->
+          <div style="display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:10px 12px; border-radius:10px; border:1px solid var(--border);">
+            <div>
+              <div style="font-size:12px; font-weight:800; color:var(--text);">🗓️ Daily Pass — ₹25 / day</div>
+              <div style="font-size:10px; color:var(--text-mute);">Unlimited 0% Commission trips for 24 Hours</div>
+            </div>
+            <button type="button" class="btn-sub-pass" data-pass="daily" style="background:var(--accent); color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:11px; font-weight:800; cursor:pointer;">Activate ₹25</button>
+          </div>
+
+          <!-- Weekly Pass -->
+          <div style="display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:10px 12px; border-radius:10px; border:1.5px solid var(--amber);">
+            <div>
+              <div style="font-size:12px; font-weight:800; color:var(--text);">🌟 Weekly Pass — ₹150 / week</div>
+              <div style="font-size:10px; color:var(--amber); font-weight:700;">7 Days Access (1 Day FREE!)</div>
+            </div>
+            <button type="button" class="btn-sub-pass" data-pass="weekly" style="background:var(--amber); color:#000; border:none; border-radius:8px; padding:6px 12px; font-size:11px; font-weight:800; cursor:pointer;">Activate ₹150</button>
+          </div>
+
+          <!-- Per-Ride Commission -->
+          <div style="display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:10px 12px; border-radius:10px; border:1px solid var(--border);">
+            <div>
+              <div style="font-size:12px; font-weight:800; color:var(--text);">🚗 Per-Ride Commission — ₹25 / trip</div>
+              <div style="font-size:10px; color:var(--text-mute);">Pay fixed commission per trip from wallet</div>
+            </div>
+            <button type="button" class="btn-sub-pass" data-pass="commission" style="background:var(--accent-teal); color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:11px; font-weight:800; cursor:pointer;">Select ₹25/trip</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. ACTIVE TRIP TRACKING SECTION -->
+    <div class="section" id="rd-tracking-section" style="display:none;">
+      <div style="padding:0 0 12px; border-bottom:1.5px solid var(--accent); display:flex; align-items:center; margin-bottom:16px; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="mark" style="width:24px; height:24px; font-size:12px; border-radius:6px; background:var(--signal); border:1.5px solid var(--accent); display:flex; align-items:center; justify-content:center; font-family:'Archivo Black', sans-serif;">T</span>
+          <h2 style="font-family:'Archivo Black', sans-serif; font-size:14px; margin:0; letter-spacing:0.3px;">ACTIVE TRIP</h2>
+        </div>
+      </div>
+      
+      <div class="status-card" style="margin-bottom:16px;">
+        <div class="row"><span class="k">Customer</span><span class="v" id="rd-track-user-name">-</span></div>
+        <div class="row"><span class="k">Pickup</span><span class="v" id="rd-track-pickup">-</span></div>
+        <div class="row"><span class="k">Drop</span><span class="v" id="rd-track-drop">-</span></div>
+        <div class="row"><span class="k">Fare</span><span class="v" id="rd-track-fare">-</span></div>
+      </div>
+      
+      <!-- Live Navigation Map -->
+      <div id="rd-map" style="height: 220px; width:100%; border-radius:12px; margin-bottom:18px; z-index:1; background:var(--bg); border:1.5px solid var(--border);"></div>
+      
+      <div id="rd-track-actions" style="display:flex; flex-direction:column; gap:10px;">
+        <!-- Dynamic action buttons injected here -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- RAZORPAY AMOUNT SELECTION MODAL -->
+<div id="rd-rzp-amount-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:20px; color:#fff;">
+  <div style="background:#1e2229; border-radius:20px; padding:24px; max-width:360px; width:100%; display:flex; flex-direction:column; align-items:center; border:1.5px solid var(--accent-teal);">
+    <h3 style="font-size:16px; font-weight:900; margin:0 0 4px; color:var(--signal);">⚡ Instant Auto-Recharge</h3>
+    <p style="font-size:11.5px; color:#aaa; margin:0 0 16px; text-align:center;">Select or enter recharge amount to add funds instantly via UPI / GPay / Paytm / Cards</p>
+
+    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; width:100%; margin-bottom:14px;">
+      <button type="button" onclick="selectRzpChipAmount(50)" style="background:#2a2f3a; border:1px solid #444; color:#fff; border-radius:8px; padding:8px; font-weight:800; font-size:12px; cursor:pointer;">₹50</button>
+      <button type="button" onclick="selectRzpChipAmount(100)" style="background:var(--accent-teal); border:1px solid var(--accent); color:#fff; border-radius:8px; padding:8px; font-weight:800; font-size:12px; cursor:pointer;">₹100</button>
+      <button type="button" onclick="selectRzpChipAmount(250)" style="background:#2a2f3a; border:1px solid #444; color:#fff; border-radius:8px; padding:8px; font-weight:800; font-size:12px; cursor:pointer;">₹250</button>
+      <button type="button" onclick="selectRzpChipAmount(500)" style="background:#2a2f3a; border:1px solid #444; color:#fff; border-radius:8px; padding:8px; font-weight:800; font-size:12px; cursor:pointer;">₹500</button>
+    </div>
+
+    <div style="width:100%; margin-bottom:16px;">
+      <label style="font-size:11px; color:#aaa; display:block; margin-bottom:4px;">RECHARGE AMOUNT (₹)</label>
+      <input type="number" id="input-rzp-custom-amount" value="100" placeholder="Enter amount" style="width:100%; padding:10px; border-radius:8px; border:1px solid #444; background:#111; color:#fff; font-size:16px; font-weight:900;">
+    </div>
+
+    <div style="display:flex; gap:10px; width:100%;">
+      <button type="button" onclick="closeRzpAmountModal()" style="flex:1; background:transparent; border:1px solid #555; color:#fff; border-radius:10px; padding:10px; font-size:12px; font-weight:700; cursor:pointer;">Cancel</button>
+      <button type="button" onclick="proceedRzpPayment()" style="flex:1.5; background:var(--accent-teal); color:#fff; border:none; border-radius:10px; padding:10px; font-size:12px; font-weight:800; cursor:pointer;">Proceed to Pay</button>
+    </div>
+  </div>
+</div>
+
+<!-- INSUFFICIENT BALANCE MODAL -->
+<div id="rd-insufficient-bal-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:20px; color:#fff;">
+  <div style="background:#1e2229; border-radius:20px; padding:24px; max-width:340px; width:100%; display:flex; flex-direction:column; align-items:center; border:1.5px solid var(--red); text-align:center;">
+    <div style="font-size:36px; margin-bottom:8px;">❌</div>
+    <h3 style="font-size:16px; font-weight:900; margin:0 0 6px; color:var(--red);">Insufficient Wallet Balance</h3>
+    <p id="insufficient-bal-desc" style="font-size:12px; color:#ccc; margin:0 0 16px; line-height:1.4;">Your wallet balance is ₹0. You need ₹25 to activate Daily Pass.</p>
+
+    <div style="display:flex; gap:10px; width:100%;">
+      <button type="button" onclick="closeInsufficientBalModal()" style="flex:1; background:transparent; border:1px solid #555; color:#fff; border-radius:10px; padding:10px; font-size:12px; font-weight:700; cursor:pointer;">Close</button>
+      <button type="button" onclick="closeInsufficientBalModal(); promptRazorpayRecharge();" style="flex:1.5; background:var(--green); color:#fff; border:none; border-radius:10px; padding:10px; font-size:12px; font-weight:800; cursor:pointer;">⚡ Recharge Wallet</button>
+    </div>
+  </div>
+</div>
+
+<!-- REAL MONEY DRIVER UPI WALLET RECHARGE MODAL -->
+<div id="rd-upi-recharge-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:20px; color:#fff;">
+  <div style="background:#1e2229; border-radius:20px; padding:24px; max-width:360px; width:100%; display:flex; flex-direction:column; align-items:center; border:1px solid #333;">
+    <h3 style="font-size:16px; font-weight:900; margin:0 0 4px; color:var(--signal);">💳 Recharge Driver Wallet (Real Money)</h3>
+    <p style="font-size:11.5px; color:#aaa; margin:0 0 16px; text-align:center;">Scan UPI QR Code using PhonePe, Google Pay, or Paytm to pay real money into your Driver Wallet</p>
+
+    <div style="background:#fff; border-radius:12px; padding:12px; margin-bottom:12px; display:flex; flex-direction:column; align-items:center;">
+      <img id="rd-upi-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=rydealot@upi%26pn=Rydealot%26cu=INR" alt="UPI QR Code" style="width:160px; height:160px; border-radius:8px;">
+      <span style="font-size:12px; font-weight:800; color:#000; margin-top:6px; font-family:var(--font-mono);" id="rd-display-upi-id">UPI ID: rydealot@upi</span>
+    </div>
+
+    <div style="width:100%; margin-bottom:12px;">
+      <label style="font-size:11px; color:#aaa; display:block; margin-bottom:4px;">RECHARGE AMOUNT (₹)</label>
+      <input type="number" id="input-upi-amount" value="100" placeholder="e.g. 100 or 500" style="width:100%; padding:10px; border-radius:8px; border:1px solid #444; background:#111; color:#fff; font-size:14px; font-weight:800;">
+    </div>
+
+    <div style="width:100%; margin-bottom:16px;">
+      <label style="font-size:11px; color:#aaa; display:block; margin-bottom:4px;">UPI TRANSACTION / UTR ID (From PhonePe/GPay)</label>
+      <input type="text" id="input-upi-utr" placeholder="e.g. UTR 4892150912" style="width:100%; padding:10px; border-radius:8px; border:1px solid #444; background:#111; color:#fff; font-size:13px; font-weight:800; text-transform:uppercase;">
+    </div>
+
+    <div style="display:flex; gap:10px; width:100%;">
+      <button type="button" onclick="closeUpiRechargeModal()" style="flex:1; background:transparent; border:1px solid #555; color:#fff; border-radius:10px; padding:10px; font-size:12px; font-weight:700; cursor:pointer;">Cancel</button>
+      <button type="button" onclick="submitUpiRechargeRequest()" style="flex:1.5; background:var(--green); color:#fff; border:none; border-radius:10px; padding:10px; font-size:12px; font-weight:800; cursor:pointer;">Submit Recharge</button>
+    </div>
+    <div id="upi-submit-msg" style="font-size:11px; font-weight:700; margin-top:8px; display:none;"></div>
+  </div>
+</div>
+
+<!-- FACE CHECK MODAL OVERLAY -->
+<div id="rd-face-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:20px; color:#fff; text-align:center;">
+  <div style="background:#1e2229; border-radius:20px; padding:24px; max-width:340px; width:100%; display:flex; flex-direction:column; align-items:center; gap:16px; border:1px solid #333;">
+    <h3 style="font-size:16px; font-weight:800; margin:0;">📸 Driver Face Verification</h3>
+    <p style="font-size:12px; color:#aaa; margin:0;">Please position your face inside the circle to verify before going online.</p>
+    
+    <div style="position:relative; width:200px; height:200px; border-radius:50%; overflow:hidden; border:3px solid var(--signal);">
+      <video id="rd-face-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1);"></video>
+      <canvas id="rd-face-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%;"></canvas>
+    </div>
+
+    <div id="rd-face-status" style="font-size:13px; font-weight:700; color:var(--signal);">Detecting camera...</div>
+    
+    <button type="button" id="rd-face-cancel-btn" style="background:transparent; border:1px solid #555; color:#fff; border-radius:10px; padding:8px 20px; font-size:12px; font-weight:700; cursor:pointer;">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="rd-toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
