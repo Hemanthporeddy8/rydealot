@@ -2874,12 +2874,18 @@
     if(FARE_CONFIG.surgeMode === 'manual'){
       return FARE_CONFIG.manualSurge || 1.0;
     }
-    var count = countByType(type);
+    // During peak hours (8:30 AM - 10:30 AM & 5:30 PM - 8:30 PM) apply modest peak demand
+    var hr = new Date().getHours();
+    var min = new Date().getMinutes();
+    var timeDec = hr + (min / 60);
+    var isMorningPeak = (timeDec >= 8.5 && timeDec <= 10.5);
+    var isEveningPeak = (timeDec >= 17.5 && timeDec <= 20.5);
+
     var mult = 1.0;
-    if(count <= 0) mult = 1.4;       // Max 40% surge during low supply / high demand (MoRTH compliant)
-    else if(count === 1) mult = 1.25; // 25% surge
-    else if(count === 2) mult = 1.15; // 15% surge
-    else mult = 1.0;                  // Standard rate
+    if (isMorningPeak || isEveningPeak) {
+      mult = 1.2; // 20% Peak Demand Multiplier (MoRTH compliant)
+    }
+
     return Math.round(mult * 100) / 100;
   }
 
@@ -2888,14 +2894,56 @@
   var appliedPromoDiscountVal = 0;
   var appliedPromoMaxCap = 0;
 
+  // ===== TIERED SLAB FARE ENGINE =====
+  // 1. Short City Rides (0-8 km): Standard fair base rate
+  // 2. Medium Distance (8-15 km): Tapered per-km rate
+  // 3. Long Highway Trips (>15 km): Economy highway slab to beat Rapido/Ola while maximizing driver cash
+  function calculateTieredBaseFare(type, distKm) {
+    var d = Math.max(1.0, distKm || 1.0);
+    
+    var slabs = {
+      bike:       { base: 25, slab1: 7.0,  slab2: 5.8, slab3: 4.8 },
+      auto:       { base: 35, slab1: 11.5, slab2: 9.5, slab3: 8.0 },
+      auto_share: { base: 20, slab1: 5.5,  slab2: 4.5, slab3: 3.8 },
+      car:        { base: 60, slab1: 15.0, slab2: 13.5, slab3: 11.5 }
+    };
+
+    var s = slabs[type] || slabs.bike;
+
+    if (d <= 2.0) {
+      return s.base;
+    }
+
+    var fare = s.base;
+    var remaining = d - 2.0;
+
+    // Slab 1: 2 km to 8 km (up to 6 km)
+    var d1 = Math.min(remaining, 6.0);
+    fare += d1 * s.slab1;
+    remaining -= d1;
+
+    // Slab 2: 8 km to 15 km (up to 7 km)
+    if (remaining > 0) {
+      var d2 = Math.min(remaining, 7.0);
+      fare += d2 * s.slab2;
+      remaining -= d2;
+    }
+
+    // Slab 3: Beyond 15 km (long highway distance)
+    if (remaining > 0) {
+      fare += remaining * s.slab3;
+    }
+
+    return Math.round(fare);
+  }
+
   function currentPriceFor(type){
-    var cfg = FARE_CONFIG[type] || FARE_CONFIG.bike;
     var distKm = getEstimatedTripDistanceKm();
-    var baseAmount = cfg.base + (distKm * cfg.perKm);
+    var baseAmount = calculateTieredBaseFare(type, distKm);
 
     var mult = surgeMultiplierFor(type);
 
-    // Night surge check (10 PM to 6 AM)
+    // Night surge check (10 PM to 6 AM: 20% driver night bonus)
     var hr = new Date().getHours();
     if(hr >= 22 || hr < 6){
       mult = mult * (FARE_CONFIG.nightSurge || 1.2);
@@ -2905,8 +2953,8 @@
 
     // 1. High Supply / Off-Peak Discount (when count >= 3 vehicles waiting)
     var count = countByType(type);
-    if (count >= 3 && mult === 1) {
-      total = Math.round(total * 0.85); // 15% Off-Peak Supply Discount
+    if (count >= 3 && mult === 1.0) {
+      total = Math.round(total * 0.90); // 10% Off-Peak Supply Discount
     }
 
     // 2. Promo Code Discount Subtraction
