@@ -2875,11 +2875,11 @@
       return FARE_CONFIG.manualSurge || 1.0;
     }
     var count = countByType(type);
-    var mult = 1;
-    if(count <= 0) mult = 2.2;
-    else if(count === 1) mult = 1.6;
-    else if(count === 2) mult = 1.25;
-    else mult = 1;
+    var mult = 1.0;
+    if(count <= 0) mult = 1.4;       // Max 40% surge during low supply / high demand (MoRTH compliant)
+    else if(count === 1) mult = 1.25; // 25% surge
+    else if(count === 2) mult = 1.15; // 15% surge
+    else mult = 1.0;                  // Standard rate
     return Math.round(mult * 100) / 100;
   }
 
