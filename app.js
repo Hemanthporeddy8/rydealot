@@ -843,13 +843,19 @@
 
   // ---------- Driver In-App Suspension Appeal Handlers ----------
   window.openDriverAppealModal = function() {
+    console.log('Opening driver appeal modal');
     var modal = document.getElementById('rd-appeal-modal');
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+      modal.style.setProperty('display', 'flex', 'important');
+      modal.style.visibility = 'visible';
+    }
   };
 
   window.closeDriverAppealModal = function() {
     var modal = document.getElementById('rd-appeal-modal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+      modal.style.setProperty('display', 'none', 'important');
+    }
   };
 
   window.submitDriverAppeal = async function() {
