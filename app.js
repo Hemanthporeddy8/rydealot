@@ -814,10 +814,25 @@
     }
   });
 
-  document.getElementById('rd-edit-profile-btn').addEventListener('click', function(){
-    document.getElementById('rd-main-section').style.display = 'none';
-    document.getElementById('rd-setup-section').style.display = 'block';
-  });
+  var editProfileBtn = document.getElementById('rd-edit-profile-btn');
+  if (editProfileBtn) {
+    editProfileBtn.addEventListener('click', function(){
+      var mainS = document.getElementById('rd-main-section');
+      var setupS = document.getElementById('rd-setup-section');
+      if (mainS) mainS.style.display = 'none';
+      if (setupS) setupS.style.display = 'flex';
+    });
+  }
+
+  var setupBackBtn = document.getElementById('rd-setup-back-btn');
+  if (setupBackBtn) {
+    setupBackBtn.addEventListener('click', function(){
+      var setupS = document.getElementById('rd-setup-section');
+      var mainS = document.getElementById('rd-main-section');
+      if (setupS) setupS.style.display = 'none';
+      if (mainS) mainS.style.display = 'block';
+    });
+  }
 
   // ---------- location sharing ----------
 

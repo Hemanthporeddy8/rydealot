@@ -115,9 +115,12 @@
 
   <div class="driver-content">
 
-    <!-- 1. SETUP SECTION (shown if driver profile is incomplete) -->
-    <div class="section" id="rd-setup-section">
-      <h2 style="font-size:16px; font-weight:900; margin:0 0 14px;">Driver Profile & Vehicle Setup</h2>
+    <!-- 1. SETUP / EDIT PROFILE SECTION -->
+    <div class="section" id="rd-setup-section" style="display:none; flex-direction:column; gap:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1.5px solid var(--border); padding-bottom:10px; margin-bottom:6px;">
+        <h2 style="font-size:16px; font-weight:900; margin:0;" id="rd-profile-title">✏️ Edit Driver Profile</h2>
+        <button type="button" id="rd-setup-back-btn" style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-weight:700; font-size:11px; cursor:pointer;">&larr; Back to Dashboard</button>
+      </div>
       <div class="field">
         <label>Your Full Name</label>
         <input type="text" id="rd-rider-name" placeholder="e.g. Arjun Mehta">
