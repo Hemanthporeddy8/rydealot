@@ -1470,25 +1470,24 @@
 
   async function deleteDriver(id, name) {
     name = (name || 'Driver').replace(/'/g, "");
-    if(!confirm('Delete driver "' + name + '"? This will also delete all documents and bookings for this driver. This cannot be undone.')) return;
+    if(!confirm('Delete driver "' + name + '"? This will permanently delete this driver and their history. This cannot be undone.')) return;
     try {
-      // 1. Delete dependent driver documents
       try { await sb('driver_documents?rider_id=eq.' + id, { method: 'DELETE' }); } catch(e){}
-      // 2. Delete dependent bookings
       try { await sb('bookings?rider_id=eq.' + id, { method: 'DELETE' }); } catch(e){}
-      // 3. Delete the rider record
       await sb('riders?id=eq.' + id, { method: 'DELETE' });
       
-      // 4. Clean local storage cache
       try {
         var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
         delete localDocs[id];
         localStorage.setItem('rydealot_driver_docs', JSON.stringify(localDocs));
+        var banList = JSON.parse(localStorage.getItem('rydealot_banned_drivers') || '{}');
+        delete banList[id];
+        localStorage.setItem('rydealot_banned_drivers', JSON.stringify(banList));
       } catch(e){}
 
       toast('✅ Driver deleted successfully');
-      loadDrivers();
-      loadVerificationData();
+      await loadDrivers();
+      await loadVerificationData();
     } catch(err) {
       alert('Failed to delete driver: ' + (err.message || 'unknown error'));
     }
