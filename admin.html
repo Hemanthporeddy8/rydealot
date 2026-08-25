@@ -1327,15 +1327,28 @@
   }
 
   async function deleteDriver(id, name) {
-    if(!confirm('Delete driver "' + name + '"? This will also delete all bookings associated with this driver. This cannot be undone.')) return;
+    name = (name || 'Driver').replace(/'/g, "");
+    if(!confirm('Delete driver "' + name + '"? This will also delete all documents and bookings for this driver. This cannot be undone.')) return;
     try {
-      // Delete dependent bookings first due to database foreign keys
-      await sb('bookings?rider_id=eq.' + id, { method: 'DELETE' });
+      // 1. Delete dependent driver documents
+      try { await sb('driver_documents?rider_id=eq.' + id, { method: 'DELETE' }); } catch(e){}
+      // 2. Delete dependent bookings
+      try { await sb('bookings?rider_id=eq.' + id, { method: 'DELETE' }); } catch(e){}
+      // 3. Delete the rider record
       await sb('riders?id=eq.' + id, { method: 'DELETE' });
-      toast('Driver deleted');
+      
+      // 4. Clean local storage cache
+      try {
+        var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+        delete localDocs[id];
+        localStorage.setItem('rydealot_driver_docs', JSON.stringify(localDocs));
+      } catch(e){}
+
+      toast('✅ Driver deleted successfully');
       loadDrivers();
+      loadVerificationData();
     } catch(err) {
-      alert('Failed to delete driver: ' + err.message);
+      alert('Failed to delete driver: ' + (err.message || 'unknown error'));
     }
   }
 
@@ -1355,11 +1368,13 @@
     if(!confirm('Delete ' + stale.length + ' driver(s) with no location data? This will also delete their booking history.')) return;
     try {
       for(var i=0; i<stale.length; i++){
-        await sb('bookings?rider_id=eq.' + stale[i].id, { method: 'DELETE' });
+        try { await sb('driver_documents?rider_id=eq.' + stale[i].id, { method: 'DELETE' }); } catch(e){}
+        try { await sb('bookings?rider_id=eq.' + stale[i].id, { method: 'DELETE' }); } catch(e){}
         await sb('riders?id=eq.' + stale[i].id, { method: 'DELETE' });
       }
       toast('Deleted ' + stale.length + ' stale driver(s)');
       loadDrivers();
+      loadVerificationData();
     } catch(err) {
       alert('Failed to delete stale drivers: ' + err.message);
     }
