@@ -1123,8 +1123,14 @@
     loadUpiRecharges();
   }
 
-  function viewDocImage(encUrl, title) {
-    var url = decodeURIComponent(encUrl);
+  window.docCache = {};
+
+  window.viewDocImageByKey = function(docKey, title) {
+    var url = window.docCache[docKey];
+    if (!url) {
+      alert('Document image data not found.');
+      return;
+    }
     var modal = document.getElementById('doc-viewer-modal');
     var img = document.getElementById('doc-modal-img');
     var titleEl = document.getElementById('doc-modal-title');
@@ -1133,12 +1139,12 @@
       if (titleEl) titleEl.textContent = '📄 ' + (title || 'Driver Document');
       modal.style.display = 'flex';
     }
-  }
+  };
 
-  function closeDocModal() {
+  window.closeDocModal = function() {
     var modal = document.getElementById('doc-viewer-modal');
     if (modal) modal.style.display = 'none';
-  }
+  };
 
   async function loadVerificationData() {
     var tbody = document.getElementById('verification-tbody');
@@ -1150,6 +1156,7 @@
     riders = riders || [];
 
     var pendingCount = 0, approvedCount = 0, rejectedCount = 0;
+    window.docCache = {};
 
     tbody.innerHTML = riders.map(function(r) {
       var rDocs = Array.isArray(docs) ? docs.filter(function(d){ return d.rider_id === r.id; }) : [];
@@ -1166,10 +1173,14 @@
       if (isVerified) approvedCount++;
       else pendingCount++;
 
-      var fmtDoc = function(info, label) {
+      var fmtDoc = function(info, label, docKey) {
         var st = info.status;
         var url = info.url;
-        var clickAttr = url ? ' onclick="viewDocImage(\'' + encodeURIComponent(url) + '\',\'' + label + ' - ' + (r.name || 'Driver') + '\')" style="cursor:pointer; text-decoration:underline;" title="Click to view ' + label + '"' : '';
+        if (url) {
+          window.docCache[docKey] = url;
+        }
+        var cleanTitle = (label + ' - ' + (r.name || 'Driver')).replace(/'/g, "");
+        var clickAttr = url ? ' onclick="viewDocImageByKey(\'' + docKey + '\',\'' + cleanTitle + '\')" style="cursor:pointer; text-decoration:underline; font-weight:800;" title="Click to view ' + label + '"' : '';
         if(st === 'approved') return '<span class="badge badge-green"' + clickAttr + '>Approved 👁️</span>';
         if(st === 'rejected') return '<span class="badge badge-red"' + clickAttr + '>Rejected 👁️</span>';
         if(st === 'pending' || url) return '<span class="badge badge-amber"' + clickAttr + '>Pending 👁️</span>';
@@ -1180,10 +1191,10 @@
         '<td><strong>' + (r.name || '?') + '</strong></td>' +
         '<td>' + (r.phone || '-') + '</td>' +
         '<td>' + (r.vehicle_type || '-') + '</td>' +
-        '<td>' + fmtDoc(getDocInfo('driving_license'), 'Driving License') + '</td>' +
-        '<td>' + fmtDoc(getDocInfo('vehicle_rc'), 'Vehicle RC') + '</td>' +
-        '<td>' + fmtDoc(getDocInfo('aadhaar'), 'Aadhaar Card') + '</td>' +
-        '<td>' + fmtDoc(getDocInfo('selfie'), 'Selfie Photo') + '</td>' +
+        '<td>' + fmtDoc(getDocInfo('driving_license'), 'Driving License', r.id + '_dl') + '</td>' +
+        '<td>' + fmtDoc(getDocInfo('vehicle_rc'), 'Vehicle RC', r.id + '_rc') + '</td>' +
+        '<td>' + fmtDoc(getDocInfo('aadhaar'), 'Aadhaar Card', r.id + '_aadhaar') + '</td>' +
+        '<td>' + fmtDoc(getDocInfo('selfie'), 'Selfie Photo', r.id + '_selfie') + '</td>' +
         '<td>' + (isVerified ? '<span class="badge badge-green">VERIFIED</span>' : '<span class="badge badge-amber">UNVERIFIED</span>') + '</td>' +
         '<td><div class="action-btns">' +
           '<button style="background:var(--green);color:#fff" onclick="approveDriverDocs(\'' + r.id + '\')">Approve All</button>' +
