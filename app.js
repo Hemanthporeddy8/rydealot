@@ -1007,6 +1007,28 @@
     checkDriverBanStatus(profile);
   }
 
+  async function checkDriverBroadcast() {
+    var banner = document.getElementById('rd-broadcast-banner');
+    var textEl = document.getElementById('rd-broadcast-text');
+    if (!banner || !textEl) return;
+
+    var localMsg = localStorage.getItem('rydealot_admin_broadcast');
+    if (localMsg) {
+      textEl.textContent = localMsg;
+      banner.style.display = 'flex';
+    }
+
+    try {
+      var rows = await sbFetch('driver_documents?doc_type=eq.admin_broadcast&status=eq.active&order=created_at.desc&limit=1');
+      if (rows && rows[0] && rows[0].admin_notes) {
+        textEl.textContent = rows[0].admin_notes;
+        banner.style.display = 'flex';
+      } else if (!localMsg) {
+        banner.style.display = 'none';
+      }
+    } catch(e){}
+  }
+
   function showMain(profile){
     document.getElementById('rd-setup-section').style.display = 'none';
     document.getElementById('rd-main-section').style.display = 'block';
@@ -1015,6 +1037,7 @@
     setPill(profile.status || 'offline');
     updateDriverVerificationStatusUI(profile.id);
     checkDriverBanStatus(profile);
+    checkDriverBroadcast();
   }
 
   // Helper to read file as base64 with downscaling
