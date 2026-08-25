@@ -1128,7 +1128,7 @@
   window.viewDocImageByKey = function(docKey, title) {
     var url = window.docCache[docKey];
     if (!url) {
-      alert('Document image data not found.');
+      alert('⚠️ No image photo was found for this document.');
       return;
     }
     var modal = document.getElementById('doc-viewer-modal');
@@ -1178,12 +1178,14 @@
         var url = info.url;
         if (url) {
           window.docCache[docKey] = url;
+          var cleanTitle = (label + ' - ' + (r.name || 'Driver')).replace(/'/g, "");
+          var clickAttr = ' onclick="viewDocImageByKey(\'' + docKey + '\',\'' + cleanTitle + '\')" style="cursor:pointer; text-decoration:underline; font-weight:800;" title="Click to view ' + label + '"';
+          if(st === 'approved') return '<span class="badge badge-green"' + clickAttr + '>Approved 👁️</span>';
+          if(st === 'rejected') return '<span class="badge badge-red"' + clickAttr + '>Rejected 👁️</span>';
+          return '<span class="badge badge-amber"' + clickAttr + '>Pending 👁️</span>';
         }
-        var cleanTitle = (label + ' - ' + (r.name || 'Driver')).replace(/'/g, "");
-        var clickAttr = url ? ' onclick="viewDocImageByKey(\'' + docKey + '\',\'' + cleanTitle + '\')" style="cursor:pointer; text-decoration:underline; font-weight:800;" title="Click to view ' + label + '"' : '';
-        if(st === 'approved') return '<span class="badge badge-green"' + clickAttr + '>Approved 👁️</span>';
-        if(st === 'rejected') return '<span class="badge badge-red"' + clickAttr + '>Rejected 👁️</span>';
-        if(st === 'pending' || url) return '<span class="badge badge-amber"' + clickAttr + '>Pending 👁️</span>';
+        if(st === 'approved') return '<span class="badge badge-green">Approved</span>';
+        if(st === 'rejected') return '<span class="badge badge-red">Rejected</span>';
         return '<span class="badge badge-mute">Missing</span>';
       };
 
