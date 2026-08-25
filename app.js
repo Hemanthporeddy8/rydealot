@@ -264,68 +264,95 @@
       var sess = JSON.parse(raw);
       authState.currentUser = sess;
 
-      if (sess.role === 'customer') {
-        var uRoot = document.getElementById('user-app-root');
-        var rRoot = document.getElementById('rider-app-root');
+      var uRoot = document.getElementById('user-app-root');
+      var rRoot = document.getElementById('rider-app-root');
 
-        if (uRoot) {
-          uRoot.classList.add('active');
-          uRoot.style.display = 'block';
+      // Standalone driver.html page mode
+      if (!uRoot && rRoot) {
+        if (rRoot !== document.body) {
+          rRoot.classList.add('active');
+          rRoot.style.display = 'block';
         }
-        if (rRoot) {
-          rRoot.classList.remove('active');
-          rRoot.style.display = 'none';
-        }
+        var driverName = document.getElementById('rd-rider-name');
+        var driverPhone = document.getElementById('rd-rider-phone');
+        if (driverName && sess.name) driverName.value = sess.name;
+        if (driverPhone && sess.phone) driverPhone.value = sess.phone;
 
-        // Hide Auth Screen explicitly
+        var setupSection = document.getElementById('rd-setup-section');
+        var mainSection = document.getElementById('rd-main-section');
+        var riderId = localStorage.getItem('ridelot_rider_id');
+        var displayName = document.getElementById('rd-display-name');
+        var hasValidProfile = displayName && displayName.textContent && displayName.textContent !== '-';
+
+        if (riderId && hasValidProfile && mainSection && setupSection) {
+          setupSection.style.display = 'none';
+          mainSection.style.display = 'block';
+        } else {
+          if (setupSection) setupSection.style.display = 'block';
+          if (mainSection) mainSection.style.display = 'none';
+        }
+        return;
+      }
+
+      // Standalone index.html passenger page mode
+      if (uRoot && !rRoot) {
+        uRoot.classList.add('active');
+        uRoot.style.display = 'block';
+
         var screenAuth = document.getElementById('screen-auth');
+        var screenLogin = document.getElementById('screen-login');
         if (screenAuth) {
           screenAuth.classList.remove('active');
           screenAuth.style.display = 'none';
         }
-
-        var screenLogin = document.getElementById('screen-login');
         if (screenLogin) {
           screenLogin.classList.add('active');
           screenLogin.style.display = 'flex';
         }
 
-        if (typeof window.initSetupMap === 'function') {
-          window.initSetupMap();
-        }
-        setTimeout(function(){
-          if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
-        }, 100);
-        setTimeout(function(){
-          if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
-        }, 400);
-        
+        if (typeof window.initSetupMap === 'function') window.initSetupMap();
+        setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 100);
+        setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 400);
+
         var nameInput = document.getElementById('login-name');
         if (nameInput) nameInput.value = sess.name || '';
-        
-        // Update Profile drawer info
+
         var pName = document.getElementById('prof-name');
         var pEmail = document.getElementById('prof-email');
         var pAvatar = document.getElementById('prof-avatar');
         if (pName) pName.textContent = sess.name || 'User';
         if (pEmail) pEmail.textContent = sess.email || '';
         if (pAvatar) pAvatar.textContent = (sess.name || 'U').substring(0, 2).toUpperCase();
+        updateSavedPlacesChips(sess);
+        return;
+      }
 
-        // Update Saved Places chips
+      // Combined page mode (if both roots exist on same page)
+      if (sess.role === 'customer') {
+        if (uRoot) { uRoot.classList.add('active'); uRoot.style.display = 'block'; }
+        if (rRoot && rRoot !== document.body) { rRoot.classList.remove('active'); rRoot.style.display = 'none'; }
+
+        var screenAuth = document.getElementById('screen-auth');
+        if (screenAuth) { screenAuth.classList.remove('active'); screenAuth.style.display = 'none'; }
+        var screenLogin = document.getElementById('screen-login');
+        if (screenLogin) { screenLogin.classList.add('active'); screenLogin.style.display = 'flex'; }
+
+        if (typeof window.initSetupMap === 'function') window.initSetupMap();
+        setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 100);
+        setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 400);
+
+        var nameInput = document.getElementById('login-name');
+        if (nameInput) nameInput.value = sess.name || '';
+        var pName = document.getElementById('prof-name');
+        var pEmail = document.getElementById('prof-email');
+        var pAvatar = document.getElementById('prof-avatar');
+        if (pName) pName.textContent = sess.name || 'User';
+        if (pEmail) pEmail.textContent = sess.email || '';
+        if (pAvatar) pAvatar.textContent = (sess.name || 'U').substring(0, 2).toUpperCase();
         updateSavedPlacesChips(sess);
       } else {
-        // Driver Role Active
-        var uRoot = document.getElementById('user-app-root');
-        var rRoot = document.getElementById('rider-app-root');
-
-        if (rRoot) {
-          rRoot.classList.add('active');
-          rRoot.style.display = 'block';
-        }
-        if (uRoot) {
-          uRoot.classList.remove('active');
-          uRoot.style.display = 'none';
-        }
+        if (rRoot && rRoot !== document.body) { rRoot.classList.add('active'); rRoot.style.display = 'block'; }
+        if (uRoot) { uRoot.classList.remove('active'); uRoot.style.display = 'none'; }
 
         var driverName = document.getElementById('rd-rider-name');
         var driverPhone = document.getElementById('rd-rider-phone');
@@ -568,19 +595,17 @@
 
 // ===================== app switcher =====================
 (function(){
-  // CRITICAL FIX: The browser's HTML parser sometimes nests #rider-app-root
-  // inside #user-app-root due to unclosed tags in the customer screens.
-  // Force it to be a direct child of <body> so show/hide works correctly.
   var rRoot = document.getElementById('rider-app-root');
-  if (rRoot && rRoot.parentElement !== document.body) {
-    document.body.insertBefore(rRoot, document.getElementById('user-app-root').nextSibling);
+  var uRoot = document.getElementById('user-app-root');
+  if (rRoot && uRoot && rRoot !== document.body && rRoot.parentElement !== document.body) {
+    document.body.insertBefore(rRoot, uRoot.nextSibling);
   }
 
   function showApp(which){
     var rRoot = document.getElementById('rider-app-root');
     var uRoot = document.getElementById('user-app-root');
 
-    if (rRoot) {
+    if (rRoot && rRoot !== document.body) {
       rRoot.classList.toggle('active', which === 'rider');
       rRoot.style.display = which === 'rider' ? 'block' : 'none';
     }
