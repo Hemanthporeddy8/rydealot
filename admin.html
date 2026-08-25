@@ -1380,11 +1380,36 @@
     var untilVal = actionType === 'banned' ? 'Permanent' : (document.getElementById('ban-until-datetime').value || 'Indefinite');
 
     try {
-      await sb('riders?id=eq.' + currentBanRiderId, {
-        method: 'PATCH',
-        body: { status: actionType }
-      });
+      // 1. Try updating riders status in Supabase (if check constraint allows)
+      try {
+        await sb('riders?id=eq.' + currentBanRiderId, {
+          method: 'PATCH',
+          body: { status: actionType }
+        });
+      } catch(e) {
+        // Fallback to offline if constraint restricts to (available, busy, offline)
+        await sb('riders?id=eq.' + currentBanRiderId, {
+          method: 'PATCH',
+          body: { status: 'offline' }
+        });
+      }
 
+      // 2. Save official ban record into driver_documents table
+      try {
+        await sb('driver_documents?rider_id=eq.' + currentBanRiderId + '&doc_type=eq.ban_record', { method: 'DELETE' });
+        await sb('driver_documents', {
+          method: 'POST',
+          body: {
+            rider_id: currentBanRiderId,
+            doc_type: 'ban_record',
+            file_url: actionType,
+            status: actionType,
+            admin_notes: JSON.stringify({ reason: finalReason, until: untilVal, action: actionType, at: new Date().toISOString() })
+          }
+        });
+      } catch(e){}
+
+      // 3. Save local ban cache
       var banList = JSON.parse(localStorage.getItem('rydealot_banned_drivers') || '{}');
       banList[currentBanRiderId] = {
         id: currentBanRiderId,
@@ -1396,22 +1421,9 @@
       };
       localStorage.setItem('rydealot_banned_drivers', JSON.stringify(banList));
 
-      try {
-        await sb('driver_documents', {
-          method: 'POST',
-          body: {
-            rider_id: currentBanRiderId,
-            doc_type: 'ban_record',
-            file_url: actionType,
-            status: actionType,
-            admin_notes: finalReason + ' | Until: ' + untilVal
-          }
-        });
-      } catch(e){}
-
       toast('🚫 Driver ' + (actionType === 'banned' ? 'Banned' : 'Suspended') + ' successfully');
       closeBanModal();
-      loadDrivers();
+      await loadDrivers();
     } catch(err) {
       alert('Failed to ban driver: ' + (err.message || 'unknown error'));
     }
@@ -1421,11 +1433,12 @@
     if (!confirm('Reactivate driver "' + name + '"?')) return;
     try {
       await sb('riders?id=eq.' + id, { method: 'PATCH', body: { status: 'offline' } });
+      try { await sb('driver_documents?rider_id=eq.' + id + '&doc_type=eq.ban_record', { method: 'DELETE' }); } catch(e){}
       var banList = JSON.parse(localStorage.getItem('rydealot_banned_drivers') || '{}');
       delete banList[id];
       localStorage.setItem('rydealot_banned_drivers', JSON.stringify(banList));
       toast('✅ Driver unbanned and restored to offline status');
-      loadDrivers();
+      await loadDrivers();
     } catch(err) {
       alert('Failed to unban driver: ' + (err.message || 'unknown error'));
     }
@@ -1436,6 +1449,32 @@
     document.getElementById('drivers-tbody').innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
     var rows = await sb('riders?order=updated_at.desc');
     allDrivers = rows || [];
+
+    // Fetch ban records from driver_documents
+    var banDocs = [];
+    try { banDocs = await sb('driver_documents?doc_type=eq.ban_record') || []; } catch(e){}
+    var localBans = JSON.parse(localStorage.getItem('rydealot_banned_drivers') || '{}');
+
+    // Attach ban metadata to riders
+    allDrivers.forEach(function(r) {
+      var bDoc = Array.isArray(banDocs) ? banDocs.find(function(d){ return d.rider_id === r.id; }) : null;
+      var lBan = localBans[r.id];
+      if (bDoc || lBan || r.status === 'banned' || r.status === 'suspended') {
+        var meta = {};
+        if (bDoc && bDoc.admin_notes) {
+          try { meta = JSON.parse(bDoc.admin_notes); } catch(e){ meta = { reason: bDoc.admin_notes, until: 'Indefinite' }; }
+        } else if (lBan) {
+          meta = lBan;
+        }
+        r.is_banned = true;
+        r.ban_action = (bDoc && bDoc.status) || (lBan && lBan.status) || r.status || 'suspended';
+        r.ban_reason = meta.reason || 'Policy violation';
+        r.ban_until = meta.until || 'Indefinite';
+      } else {
+        r.is_banned = false;
+      }
+    });
+
     renderDrivers(allDrivers);
     document.getElementById('stat-total-drivers').textContent = allDrivers.length;
     document.getElementById('stat-online-drivers').textContent = allDrivers.filter(function(r){ return r.status === 'available'; }).length;
@@ -1449,16 +1488,25 @@
     tbody.innerHTML = list.map(function(r){
       var locText = (r.lat && r.lng) ? r.lat.toFixed(4) + ', ' + r.lng.toFixed(4) : '<span style="color:var(--red)">No location</span>';
       var safeName = (r.name || 'Driver').replace(/'/g, "\\'");
-      var isBanned = r.status === 'banned' || r.status === 'suspended';
+      var isBanned = r.is_banned || r.status === 'banned' || r.status === 'suspended';
+      
+      var statusDisplay = statusBadge(r.status);
+      if (isBanned) {
+        var actionLabel = (r.ban_action === 'banned') ? '🚫 BANNED' : '⏳ SUSPENDED';
+        var untilText = (r.ban_until && r.ban_until !== 'Permanent') ? '<div style="font-size:0.7rem; color:#fde68a; margin-top:2px;">Until: ' + r.ban_until.replace('T', ' ') + '</div>' : '<div style="font-size:0.7rem; color:#fca5a5; margin-top:2px;">Permanent</div>';
+        var reasonText = r.ban_reason ? '<div style="font-size:0.68rem; color:var(--mute); margin-top:2px; font-style:italic;">Why: ' + r.ban_reason + '</div>' : '';
+        statusDisplay = '<span class="badge" style="background:#7f1d1d; color:#fff; font-weight:900; padding:4px 8px;">' + actionLabel + '</span>' + untilText + reasonText;
+      }
+
       var banBtn = isBanned 
-        ? '<button style="background:var(--green);color:#fff;font-weight:700;" onclick="unbanDriver(\'' + r.id + '\', \'' + safeName + '\')">✅ Unban</button>'
-        : '<button style="background:#7f1d1d;color:#fca5a5;font-weight:700;" onclick="openBanModal(\'' + r.id + '\', \'' + safeName + '\')">🚫 Ban</button>';
+        ? '<button style="background:var(--green);color:#fff;font-weight:800;" onclick="unbanDriver(\'' + r.id + '\', \'' + safeName + '\')">✅ Unban</button>'
+        : '<button style="background:#7f1d1d;color:#fca5a5;font-weight:800;" onclick="openBanModal(\'' + r.id + '\', \'' + safeName + '\')">🚫 Ban</button>';
 
       return '<tr>' +
         '<td><strong>' + (r.name||'?') + '</strong></td>' +
         '<td>' + (r.vehicle_type||'-') + ' &mdash; ' + (r.vehicle_label||r.vehicle_name||'-') + '</td>' +
         '<td class="mono">' + (r.plate||'-') + '</td>' +
-        '<td>' + statusBadge(r.status) + '</td>' +
+        '<td>' + statusDisplay + '</td>' +
         '<td style="font-size:0.78rem">' + locText + '</td>' +
         '<td style="font-size:0.78rem;color:var(--mute)">' + timeSince(r.updated_at) + '</td>' +
         '<td><div class="action-btns">' +

@@ -755,7 +755,7 @@
     pill.textContent = status === 'available' ? 'Available' : (status === 'busy' ? 'On a trip' : 'Offline');
   }
 
-  function checkDriverBanStatus(profile) {
+  async function checkDriverBanStatus(profile) {
     var banner = document.getElementById('rd-ban-lock-banner');
     var titleEl = document.getElementById('rd-ban-title');
     var untilEl = document.getElementById('rd-ban-until');
@@ -768,12 +768,27 @@
     var banList = JSON.parse(localStorage.getItem('rydealot_banned_drivers') || '{}');
     var banInfo = banList[riderId] || {};
 
+    if (!isBanned && !banInfo.status && riderId) {
+      try {
+        var cloudBan = await sbFetch('driver_documents?rider_id=eq.' + riderId + '&doc_type=eq.ban_record');
+        if (cloudBan && cloudBan[0]) {
+          isBanned = true;
+          try {
+            var meta = JSON.parse(cloudBan[0].admin_notes);
+            banInfo = { status: cloudBan[0].status, reason: meta.reason, until: meta.until };
+          } catch(e) {
+            banInfo = { status: cloudBan[0].status, reason: cloudBan[0].admin_notes, until: 'Indefinite' };
+          }
+        }
+      } catch(e){}
+    }
+
     if (banner) {
       if (isBanned || banInfo.status) {
         banner.style.display = 'block';
         var isPerm = (profile && profile.status === 'banned') || banInfo.status === 'banned';
         if (titleEl) titleEl.textContent = isPerm ? '🚫 Account Permanently Banned' : '⏳ Account Temporarily Suspended';
-        if (untilEl) untilEl.textContent = isPerm ? 'Permanent ban applied by Admin.' : ('Suspended until: ' + (banInfo.until || 'Admin review'));
+        if (untilEl) untilEl.textContent = isPerm ? 'Permanent ban applied by Admin.' : ('Suspended until: ' + (banInfo.until ? banInfo.until.replace('T', ' ') : 'Admin review'));
         if (reasonEl) reasonEl.textContent = banInfo.reason || 'Safety / Policy violation';
         
         if (toggleBtn) {
