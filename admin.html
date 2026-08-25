@@ -668,15 +668,38 @@
     </div>
 
     <div>
-      <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px; font-weight:700;">REASON FOR BAN / SUSPENSION</label>
+      <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px; font-weight:700;">VIOLATION REASON (RAPIDO COMPLIANCE MATRIX)</label>
       <select id="ban-reason-select" class="auth-input" style="text-align:left; font-size:0.85rem; margin-bottom:8px;" onchange="onBanReasonChange(this.value)">
-        <option value="Fake or Invalid Verification Documents">📄 Fake or Invalid Verification Documents</option>
-        <option value="Customer Misbehavior / Rude Conduct">😠 Customer Misbehavior / Rude Conduct</option>
-        <option value="Rash Driving / Safety Violations">⚠️ Rash Driving / Safety Violations</option>
-        <option value="Payment Fraud / Demanding Extra Cash">💵 Demanding Extra Cash / Off-App Payment</option>
-        <option value="Repeated Trip Cancellations">🚫 Repeated Trip Cancellations</option>
-        <option value="Expired Driving License or RC">📅 Expired Driving License or RC</option>
-        <option value="custom">✏️ Custom Reason (Type below)</option>
+        <optgroup label="⚡ Tier 1: Operational Cooling-Off (2h – 6h)">
+          <option value="HIGH_CANCELLATIONS" data-tier="TIER_1" data-hours="2">High Cancellation Rate After Accepting (2h)</option>
+          <option value="IGNORING_REQUESTS" data-tier="TIER_1" data-hours="2">Ignoring Incoming Rides While Online (2h)</option>
+        </optgroup>
+        <optgroup label="⚠️ Tier 2: Minor & Cash Violations (12h – 24h)">
+          <option value="EXTRA_CASH_DEMAND" data-tier="TIER_2" data-hours="24">Demanding Extra Cash Above Fare (24h)</option>
+          <option value="OFFLINE_PAYMENT_REQUEST" data-tier="TIER_2" data-hours="24">Asking Passenger to Cancel & Pay Offline (24h)</option>
+          <option value="NO_PASSENGER_HELMET" data-tier="TIER_2" data-hours="12">Not Providing Passenger Helmet (12h)</option>
+          <option value="VEHICLE_PLATE_MISMATCH" data-tier="TIER_2" data-hours="24">Plate Mismatch / Unregistered Vehicle (24h)</option>
+        </optgroup>
+        <optgroup label="🚨 Tier 3: Moderate Safety & Conduct (3d – 7d)">
+          <option value="RASH_DRIVING" data-tier="TIER_3" data-hours="72">Rash Driving / Overspeeding Complaint (3 Days)</option>
+          <option value="CUSTOMER_MISBEHAVIOR" data-tier="TIER_3" data-hours="72">Rude Behavior / Customer Argument (3 Days)</option>
+          <option value="LOW_CUSTOMER_RATING" data-tier="TIER_3" data-hours="72">Consistent Low Rating &lt; 4.0 (3 Days)</option>
+          <option value="EXPIRED_DOCUMENTS" data-tier="TIER_3" data-hours="168">Expired DL / RC / Insurance (7 Days)</option>
+        </optgroup>
+        <optgroup label="⛔ Tier 4: High Severity (14d – 30d)">
+          <option value="INTOXICATION_SUSPICION" data-tier="TIER_4" data-hours="336">Suspected Driving Under Influence (14 Days)</option>
+          <option value="RIDE_ABANDONMENT" data-tier="TIER_4" data-hours="336">Midway Ride Abandonment (14 Days)</option>
+          <option value="REPEATED_DISPUTES" data-tier="TIER_4" data-hours="720">3rd Strike Disciplinary Escalation (30 Days)</option>
+        </optgroup>
+        <optgroup label="🚫 Tier 5: Critical Safety & Fraud (Lifetime Ban)">
+          <option value="HARASSMENT_ASSAULT" data-tier="TIER_5" data-hours="0">Harassment / Physical Altercation (Permanent)</option>
+          <option value="FAKE_DOCUMENTS" data-tier="TIER_5" data-hours="0">Fake / Forged Aadhaar, DL or RC (Permanent)</option>
+          <option value="ACCOUNT_LENDING" data-tier="TIER_5" data-hours="0">Lending Account to Unverified Driver (Permanent)</option>
+          <option value="GPS_SPOOFING_FRAUD" data-tier="TIER_5" data-hours="0">GPS Spoofing / Financial Fraud (Permanent)</option>
+        </optgroup>
+        <optgroup label="✏️ Other">
+          <option value="custom" data-tier="custom" data-hours="24">✏️ Custom Reason (Type below)</option>
+        </optgroup>
       </select>
       <input type="text" id="ban-custom-reason" placeholder="Type custom reason for driver..." class="auth-input" style="text-align:left; font-size:0.85rem; display:none;">
     </div>
@@ -684,10 +707,12 @@
     <div id="ban-until-container">
       <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:6px; font-weight:700;">SUSPEND DURATION (QUICK SELECT)</label>
       <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+        <button type="button" class="btn btn-mute" style="padding:6px 10px; font-size:0.78rem; flex:1;" onclick="setBanPreset(2)">⚡ 2 Hours</button>
         <button type="button" class="btn btn-mute" style="padding:6px 10px; font-size:0.78rem; flex:1;" onclick="setBanPreset(12)">⚡ 12 Hours</button>
         <button type="button" class="btn btn-mute" style="padding:6px 10px; font-size:0.78rem; flex:1;" onclick="setBanPreset(24)">⏳ 1 Day</button>
         <button type="button" class="btn btn-mute" style="padding:6px 10px; font-size:0.78rem; flex:1;" onclick="setBanPreset(72)">📅 3 Days</button>
         <button type="button" class="btn btn-mute" style="padding:6px 10px; font-size:0.78rem; flex:1;" onclick="setBanPreset(168)">📅 7 Days</button>
+        <button type="button" class="btn btn-mute" style="padding:6px 10px; font-size:0.78rem; flex:1;" onclick="setBanPreset(336)">⛔ 14 Days</button>
       </div>
       <label style="font-size:0.72rem; color:var(--mute); display:block; margin-bottom:4px; font-weight:700;">EXACT EXPIRY (DATE & TIME)</label>
       <input type="datetime-local" id="ban-until-datetime" class="auth-input" style="text-align:left; font-size:0.85rem; margin-bottom:4px;" onchange="updateBanPresetPreview(this.value)">
@@ -703,6 +728,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="driver-compliance.js"></script>
 <script>
   var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
@@ -1409,25 +1435,47 @@
   window.onBanReasonChange = function(val) {
     var customInput = document.getElementById('ban-custom-reason');
     if (customInput) customInput.style.display = val === 'custom' ? 'block' : 'none';
+    
+    var sel = document.getElementById('ban-reason-select');
+    var opt = sel ? sel.options[sel.selectedIndex] : null;
+    if (opt) {
+      var tier = opt.getAttribute('data-tier');
+      var hours = parseInt(opt.getAttribute('data-hours') || '0');
+      var actionSelect = document.getElementById('ban-action-type');
+      if (tier === 'TIER_5') {
+        if (actionSelect) actionSelect.value = 'banned';
+        onBanTypeChange('banned');
+      } else {
+        if (actionSelect) actionSelect.value = 'suspended';
+        onBanTypeChange('suspended');
+        if (hours > 0) setBanPreset(hours);
+      }
+    }
   };
 
   window.confirmDriverBan = async function() {
     if (!currentBanRiderId) return;
     var actionType = document.getElementById('ban-action-type').value;
-    var reasonSel = document.getElementById('ban-reason-select').value;
+    var reasonSel = document.getElementById('ban-reason-select');
+    var opt = reasonSel ? reasonSel.options[reasonSel.selectedIndex] : null;
     var customReason = (document.getElementById('ban-custom-reason').value || '').trim();
-    var finalReason = reasonSel === 'custom' ? (customReason || 'Policy violation') : reasonSel;
+    var finalReason = reasonSel.value === 'custom' ? (customReason || 'Policy violation') : (opt ? opt.text.split('(')[0].trim() : reasonSel.value);
     var untilVal = actionType === 'banned' ? 'Permanent' : (document.getElementById('ban-until-datetime').value || 'Indefinite');
 
     try {
-      // 1. Try updating riders status in Supabase (if check constraint allows)
+      // 1. Record strike if compliance engine is available
+      if (window.RydealotCompliance) {
+        var tier = opt ? opt.getAttribute('data-tier') : 'TIER_2';
+        window.RydealotCompliance.addDriverStrike(currentBanRiderId, { code: reasonSel.value, title: finalReason, tier: tier });
+      }
+
+      // 2. Try updating riders status in Supabase (if check constraint allows)
       try {
         await sb('riders?id=eq.' + currentBanRiderId, {
           method: 'PATCH',
           body: { status: actionType }
         });
       } catch(e) {
-        // Fallback to offline if constraint restricts to (available, busy, offline)
         await sb('riders?id=eq.' + currentBanRiderId, {
           method: 'PATCH',
           body: { status: 'offline' }
