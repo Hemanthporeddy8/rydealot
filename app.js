@@ -1466,6 +1466,9 @@
     return data;
   }
 
+  // Early exit: if user/passenger UI elements don't exist on this page (e.g. driver.html), skip passenger IIFE
+  if (!document.getElementById('user-app-root') && !document.getElementById('screen-login')) return;
+
   // ---------------- inline icon library (no external font dependency) ----------------
   var ICONS = {
     'arrow-left': '<path d="M19 12H5M12 19l-7-7 7-7"/>',
