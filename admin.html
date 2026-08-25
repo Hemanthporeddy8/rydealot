@@ -645,6 +645,46 @@
     <div style="width:100%; max-height:65vh; overflow:auto; display:flex; justify-content:center; align-items:center; background:#111; border-radius:10px; padding:8px;">
       <img id="doc-modal-img" src="" alt="Driver Document" style="max-width:100%; max-height:60vh; border-radius:6px; object-fit:contain;">
     </div>
+<!-- Ban / Suspend Driver Modal -->
+<div id="ban-driver-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999999; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#1e2229; border:1.5px solid #ef4444; border-radius:16px; padding:24px; max-width:440px; width:100%; display:flex; flex-direction:column; gap:14px; box-shadow:0 12px 40px rgba(239,68,68,0.25);">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:10px;">
+      <h3 style="font-size:1.1rem; font-weight:900; color:#ef4444; margin:0;">🚫 Ban / Suspend Driver</h3>
+      <button onclick="closeBanModal()" style="background:#333; border:none; color:#fff; border-radius:8px; padding:6px 12px; cursor:pointer; font-weight:700;">✕</button>
+    </div>
+    <p id="ban-modal-driver-info" style="font-size:0.85rem; color:var(--mute); margin:0;"></p>
+    
+    <div>
+      <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px; font-weight:700;">ACTION TYPE</label>
+      <select id="ban-action-type" class="auth-input" style="text-align:left; font-size:0.9rem;" onchange="onBanTypeChange(this.value)">
+        <option value="suspended">⏳ Temporary Suspension</option>
+        <option value="banned">🚫 Permanent Ban</option>
+      </select>
+    </div>
+
+    <div>
+      <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px; font-weight:700;">REASON FOR BAN / SUSPENSION</label>
+      <select id="ban-reason-select" class="auth-input" style="text-align:left; font-size:0.85rem; margin-bottom:8px;" onchange="onBanReasonChange(this.value)">
+        <option value="Fake or Invalid Verification Documents">📄 Fake or Invalid Verification Documents</option>
+        <option value="Customer Misbehavior / Rude Conduct">😠 Customer Misbehavior / Rude Conduct</option>
+        <option value="Rash Driving / Safety Violations">⚠️ Rash Driving / Safety Violations</option>
+        <option value="Payment Fraud / Demanding Extra Cash">💵 Demanding Extra Cash / Off-App Payment</option>
+        <option value="Repeated Trip Cancellations">🚫 Repeated Trip Cancellations</option>
+        <option value="Expired Driving License or RC">📅 Expired Driving License or RC</option>
+        <option value="custom">✏️ Custom Reason (Type below)</option>
+      </select>
+      <input type="text" id="ban-custom-reason" placeholder="Type custom reason for driver..." class="auth-input" style="text-align:left; font-size:0.85rem; display:none;">
+    </div>
+
+    <div id="ban-until-container">
+      <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px; font-weight:700;">SUSPEND UNTIL (DATE & TIME)</label>
+      <input type="datetime-local" id="ban-until-datetime" class="auth-input" style="text-align:left; font-size:0.85rem;">
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:8px;">
+      <button onclick="closeBanModal()" class="btn btn-mute" style="flex:1;">Cancel</button>
+      <button onclick="confirmDriverBan()" class="btn btn-red" style="flex:1.5; font-weight:900;">🚫 Confirm Ban</button>
+    </div>
   </div>
 </div>
 
@@ -1273,6 +1313,8 @@
   }
 
   function statusBadge(s) {
+    if (s === 'banned') return '<span class="badge badge-red" style="font-weight:900; background:#7f1d1d; color:#fca5a5;">🚫 BANNED</span>';
+    if (s === 'suspended') return '<span class="badge badge-amber" style="font-weight:900; background:#78350f; color:#fde68a;">⏳ SUSPENDED</span>';
     var cls = s === 'available' ? 'badge-green' : s === 'busy' ? 'badge-amber' : 'badge-mute';
     return '<span class="badge ' + cls + '">' + (s||'offline') + '</span>';
   }
@@ -1281,6 +1323,99 @@
     var map = { requested:'badge-amber', accepted:'badge-green', arrived:'badge-green', in_progress:'badge-green', completed:'badge-mute', cancelled:'badge-red' };
     return '<span class="badge ' + (map[s]||'badge-mute') + '">' + s + '</span>';
   }
+
+  var currentBanRiderId = null;
+  var currentBanRiderName = '';
+
+  window.openBanModal = function(id, name) {
+    currentBanRiderId = id;
+    currentBanRiderName = name;
+    var info = document.getElementById('ban-modal-driver-info');
+    if (info) info.textContent = 'Driver: ' + name;
+    
+    var dt = new Date();
+    dt.setDate(dt.getDate() + 3);
+    var dtInput = document.getElementById('ban-until-datetime');
+    if (dtInput) dtInput.value = dt.toISOString().slice(0, 16);
+
+    var modal = document.getElementById('ban-driver-modal');
+    if (modal) modal.style.display = 'flex';
+  };
+
+  window.closeBanModal = function() {
+    var modal = document.getElementById('ban-driver-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.onBanTypeChange = function(val) {
+    var untilContainer = document.getElementById('ban-until-container');
+    if (untilContainer) untilContainer.style.display = val === 'banned' ? 'none' : 'block';
+  };
+
+  window.onBanReasonChange = function(val) {
+    var customInput = document.getElementById('ban-custom-reason');
+    if (customInput) customInput.style.display = val === 'custom' ? 'block' : 'none';
+  };
+
+  window.confirmDriverBan = async function() {
+    if (!currentBanRiderId) return;
+    var actionType = document.getElementById('ban-action-type').value;
+    var reasonSel = document.getElementById('ban-reason-select').value;
+    var customReason = (document.getElementById('ban-custom-reason').value || '').trim();
+    var finalReason = reasonSel === 'custom' ? (customReason || 'Policy violation') : reasonSel;
+    var untilVal = actionType === 'banned' ? 'Permanent' : (document.getElementById('ban-until-datetime').value || 'Indefinite');
+
+    try {
+      await sb('riders?id=eq.' + currentBanRiderId, {
+        method: 'PATCH',
+        body: { status: actionType }
+      });
+
+      var banList = JSON.parse(localStorage.getItem('rydealot_banned_drivers') || '{}');
+      banList[currentBanRiderId] = {
+        id: currentBanRiderId,
+        name: currentBanRiderName,
+        status: actionType,
+        reason: finalReason,
+        until: untilVal,
+        banned_at: new Date().toISOString()
+      };
+      localStorage.setItem('rydealot_banned_drivers', JSON.stringify(banList));
+
+      try {
+        await sb('driver_documents', {
+          method: 'POST',
+          body: {
+            rider_id: currentBanRiderId,
+            doc_type: 'ban_record',
+            file_url: actionType,
+            status: actionType,
+            admin_notes: finalReason + ' | Until: ' + untilVal
+          }
+        });
+      } catch(e){}
+
+      toast('🚫 Driver ' + (actionType === 'banned' ? 'Banned' : 'Suspended') + ' successfully');
+      closeBanModal();
+      loadDrivers();
+    } catch(err) {
+      alert('Failed to ban driver: ' + (err.message || 'unknown error'));
+    }
+  };
+
+  window.unbanDriver = async function(id, name) {
+    if (!confirm('Reactivate driver "' + name + '"?')) return;
+    try {
+      await sb('riders?id=eq.' + id, { method: 'PATCH', body: { status: 'offline' } });
+      var banList = JSON.parse(localStorage.getItem('rydealot_banned_drivers') || '{}');
+      delete banList[id];
+      localStorage.setItem('rydealot_banned_drivers', JSON.stringify(banList));
+      toast('✅ Driver unbanned and restored to offline status');
+      loadDrivers();
+    } catch(err) {
+      alert('Failed to unban driver: ' + (err.message || 'unknown error'));
+    }
+  };
 
   // ===== DRIVERS =====
   async function loadDrivers() {
@@ -1299,17 +1434,24 @@
     if(!list.length){ tbody.innerHTML = '<tr><td colspan="7" class="loading">No drivers found.</td></tr>'; return; }
     tbody.innerHTML = list.map(function(r){
       var locText = (r.lat && r.lng) ? r.lat.toFixed(4) + ', ' + r.lng.toFixed(4) : '<span style="color:var(--red)">No location</span>';
+      var safeName = (r.name || 'Driver').replace(/'/g, "\\'");
+      var isBanned = r.status === 'banned' || r.status === 'suspended';
+      var banBtn = isBanned 
+        ? '<button style="background:var(--green);color:#fff;font-weight:700;" onclick="unbanDriver(\'' + r.id + '\', \'' + safeName + '\')">✅ Unban</button>'
+        : '<button style="background:#7f1d1d;color:#fca5a5;font-weight:700;" onclick="openBanModal(\'' + r.id + '\', \'' + safeName + '\')">🚫 Ban</button>';
+
       return '<tr>' +
         '<td><strong>' + (r.name||'?') + '</strong></td>' +
-        '<td>' + (r.vehicle_type||'-') + ' &mdash; ' + (r.vehicle_name||'-') + '</td>' +
+        '<td>' + (r.vehicle_type||'-') + ' &mdash; ' + (r.vehicle_label||r.vehicle_name||'-') + '</td>' +
         '<td class="mono">' + (r.plate||'-') + '</td>' +
         '<td>' + statusBadge(r.status) + '</td>' +
         '<td style="font-size:0.78rem">' + locText + '</td>' +
         '<td style="font-size:0.78rem;color:var(--mute)">' + timeSince(r.updated_at) + '</td>' +
         '<td><div class="action-btns">' +
-          '<button style="background:var(--green);color:#fff" onclick="setDriverStatus(\'' + r.id + '\', \'available\')">Online</button>' +
-          '<button style="background:var(--amber);color:#000" onclick="setDriverStatus(\'' + r.id + '\', \'offline\')">Offline</button>' +
-          '<button style="background:var(--red);color:#fff" onclick="deleteDriver(\'' + r.id + '\', \'' + (r.name||'?') + '\')">Delete</button>' +
+          (!isBanned ? '<button style="background:var(--green);color:#fff" onclick="setDriverStatus(\'' + r.id + '\', \'available\')">Online</button>' : '') +
+          (!isBanned ? '<button style="background:var(--amber);color:#000" onclick="setDriverStatus(\'' + r.id + '\', \'offline\')">Offline</button>' : '') +
+          banBtn +
+          '<button style="background:var(--red);color:#fff" onclick="deleteDriver(\'' + r.id + '\', \'' + safeName + '\')">Delete</button>' +
         '</div></td>' +
       '</tr>';
     }).join('');

@@ -742,8 +742,55 @@
   function setPill(status){
     var pill = document.getElementById('rd-status-pill');
     if (!pill) return;
+    if (status === 'banned' || status === 'suspended') {
+      pill.className = 'pill busy';
+      pill.style.background = '#7f1d1d';
+      pill.style.color = '#fca5a5';
+      pill.textContent = status.toUpperCase();
+      return;
+    }
+    pill.style.background = '';
+    pill.style.color = '';
     pill.className = 'pill ' + status;
     pill.textContent = status === 'available' ? 'Available' : (status === 'busy' ? 'On a trip' : 'Offline');
+  }
+
+  function checkDriverBanStatus(profile) {
+    var banner = document.getElementById('rd-ban-lock-banner');
+    var titleEl = document.getElementById('rd-ban-title');
+    var untilEl = document.getElementById('rd-ban-until');
+    var reasonEl = document.getElementById('rd-ban-reason');
+    var toggleBtn = document.getElementById('rd-toggle-status-btn');
+
+    var isBanned = profile && (profile.status === 'banned' || profile.status === 'suspended');
+    
+    var riderId = profile ? profile.id : (state.riderId || localStorage.getItem('ridelot_rider_id'));
+    var banList = JSON.parse(localStorage.getItem('rydealot_banned_drivers') || '{}');
+    var banInfo = banList[riderId] || {};
+
+    if (banner) {
+      if (isBanned || banInfo.status) {
+        banner.style.display = 'block';
+        var isPerm = (profile && profile.status === 'banned') || banInfo.status === 'banned';
+        if (titleEl) titleEl.textContent = isPerm ? '🚫 Account Permanently Banned' : '⏳ Account Temporarily Suspended';
+        if (untilEl) untilEl.textContent = isPerm ? 'Permanent ban applied by Admin.' : ('Suspended until: ' + (banInfo.until || 'Admin review'));
+        if (reasonEl) reasonEl.textContent = banInfo.reason || 'Safety / Policy violation';
+        
+        if (toggleBtn) {
+          toggleBtn.disabled = true;
+          toggleBtn.style.opacity = '0.5';
+          toggleBtn.style.cursor = 'not-allowed';
+          toggleBtn.textContent = '🚫 Account Suspended';
+        }
+      } else {
+        banner.style.display = 'none';
+        if (toggleBtn) {
+          toggleBtn.disabled = false;
+          toggleBtn.style.opacity = '1';
+          toggleBtn.style.cursor = 'pointer';
+        }
+      }
+    }
   }
 
   // ---------- profile setup ----------
@@ -833,6 +880,7 @@
     if (plate) document.getElementById('rd-rider-plate').value = plate;
     if (phone) document.getElementById('rd-rider-phone').value = phone;
     updateDriverVerificationStatusUI();
+    checkDriverBanStatus();
   }
 
   function loadProfileIntoForm(profile){
@@ -842,6 +890,7 @@
     document.getElementById('rd-rider-plate').value = profile.plate || '';
     document.getElementById('rd-rider-phone').value = profile.phone || '';
     updateDriverVerificationStatusUI(profile.id);
+    checkDriverBanStatus(profile);
   }
 
   function showMain(profile){
@@ -851,6 +900,7 @@
     document.getElementById('rd-display-vehicle').textContent = profile.vehicle_label + ' (' + profile.vehicle_type + ')';
     setPill(profile.status || 'offline');
     updateDriverVerificationStatusUI(profile.id);
+    checkDriverBanStatus(profile);
   }
 
   // Helper to read file as base64 with downscaling
