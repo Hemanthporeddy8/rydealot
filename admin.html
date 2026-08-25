@@ -726,6 +726,33 @@
   </div>
 </div>
 
+<!-- Admin Driver Appeal Review Modal -->
+<div id="admin-appeal-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.88); z-index:999999999; flex-direction:column; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+  <div style="background:#1e2229; border:2px solid #3b82f6; border-radius:16px; padding:24px; max-width:480px; width:100%; display:flex; flex-direction:column; gap:14px; box-shadow:0 12px 40px rgba(59,130,246,0.35); position:relative;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #333; padding-bottom:10px;">
+      <h3 style="font-size:1.15rem; font-weight:900; color:#3b82f6; margin:0;">💬 Driver Suspension Appeal</h3>
+      <button type="button" onclick="closeAppealModal()" style="background:#333; border:none; color:#fff; border-radius:8px; padding:6px 12px; cursor:pointer; font-weight:700;">✕</button>
+    </div>
+    
+    <div style="background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px;">
+      <div style="font-size:0.85rem; font-weight:800; color:#fff;" id="appeal-driver-name">Driver: -</div>
+      <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="appeal-driver-phone">Phone: -</div>
+      <div style="font-size:0.75rem; color:#f59e0b; margin-top:4px;" id="appeal-ban-reason">Suspended for: -</div>
+      <div style="font-size:0.7rem; color:var(--mute); margin-top:2px;" id="appeal-submitted-time">Sent at: -</div>
+    </div>
+
+    <div>
+      <label style="font-size:0.75rem; color:var(--mute); display:block; margin-bottom:4px; font-weight:700;">DRIVER'S EXPLANATION & APPEAL MESSAGE</label>
+      <div id="appeal-driver-message" style="background:#111; border:1.5px solid #444; border-radius:10px; padding:14px; font-size:0.9rem; color:#fff; line-height:1.5; white-space:pre-wrap; min-height:80px;"></div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:8px;">
+      <button type="button" onclick="rejectDriverAppeal()" class="btn btn-red" style="flex:1;">❌ Reject Appeal</button>
+      <button type="button" onclick="acceptDriverAppeal()" class="btn btn-green" style="flex:1.5; font-weight:900;">✅ Accept Appeal & Lift Ban</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="driver-compliance.js"></script>
@@ -1538,15 +1565,19 @@
     var rows = await sb('riders?order=updated_at.desc');
     allDrivers = rows || [];
 
-    // Fetch ban records from driver_documents
+    // Fetch ban records and appeals from driver_documents
     var banDocs = [];
+    var appealDocs = [];
     try { banDocs = await sb('driver_documents?doc_type=eq.ban_record') || []; } catch(e){}
+    try { appealDocs = await sb('driver_documents?doc_type=eq.ban_appeal') || []; } catch(e){}
     var localBans = JSON.parse(localStorage.getItem('rydealot_banned_drivers') || '{}');
 
-    // Attach ban metadata to riders
+    // Attach ban and appeal metadata to riders
     allDrivers.forEach(function(r) {
       var bDoc = Array.isArray(banDocs) ? banDocs.find(function(d){ return d.rider_id === r.id; }) : null;
+      var aDoc = Array.isArray(appealDocs) ? appealDocs.find(function(a){ return a.rider_id === r.id; }) : null;
       var lBan = localBans[r.id];
+
       if (bDoc || lBan || r.status === 'banned' || r.status === 'suspended') {
         var meta = {};
         if (bDoc && bDoc.admin_notes) {
@@ -1560,6 +1591,19 @@
         r.ban_until = meta.until || 'Indefinite';
       } else {
         r.is_banned = false;
+      }
+
+      if (aDoc) {
+        var aMeta = {};
+        try { aMeta = JSON.parse(aDoc.admin_notes); } catch(e){ aMeta = { message: aDoc.admin_notes, sent_at: aDoc.created_at }; }
+        r.appeal = {
+          id: aDoc.id,
+          message: aMeta.message || '',
+          sent_at: aMeta.sent_at || aDoc.created_at || '',
+          status: aDoc.status || 'pending_review'
+        };
+      } else {
+        r.appeal = null;
       }
     });
 
@@ -1581,9 +1625,11 @@
       var statusDisplay = statusBadge(r.status);
       if (isBanned) {
         var actionLabel = (r.ban_action === 'banned') ? '🚫 BANNED' : '⏳ SUSPENDED';
-        var untilText = (r.ban_until && r.ban_until !== 'Permanent') ? '<div style="font-size:0.7rem; color:#fde68a; margin-top:2px;">Until: ' + r.ban_until.replace('T', ' ') + '</div>' : '<div style="font-size:0.7rem; color:#fca5a5; margin-top:2px;">Permanent</div>';
+        var remaining = formatRemainingTime(r.ban_until);
+        var untilText = (r.ban_until && r.ban_until !== 'Permanent') ? '<div style="font-size:0.75rem; color:#fde68a; font-weight:800; margin-top:3px;">⏳ ' + remaining + '</div><div style="font-size:0.68rem; color:#fca5a5;">(Until ' + r.ban_until.replace('T', ' ') + ')</div>' : '<div style="font-size:0.75rem; color:#fca5a5; font-weight:800; margin-top:2px;">🚫 Permanent Ban</div>';
         var reasonText = r.ban_reason ? '<div style="font-size:0.68rem; color:var(--mute); margin-top:2px; font-style:italic;">Why: ' + r.ban_reason + '</div>' : '';
-        statusDisplay = '<span class="badge" style="background:#7f1d1d; color:#fff; font-weight:900; padding:4px 8px;">' + actionLabel + '</span>' + untilText + reasonText;
+        var appealBadge = r.appeal ? '<div style="margin-top:5px;"><button type="button" class="btn" style="background:#2563eb; color:#fff; font-size:0.72rem; padding:4px 10px; font-weight:800; border-radius:6px; border:none; cursor:pointer;" onclick="openAppealModal(\'' + r.id + '\')">📩 View Driver Appeal</button></div>' : '';
+        statusDisplay = '<span class="badge" style="background:#7f1d1d; color:#fff; font-weight:900; padding:4px 8px;">' + actionLabel + '</span>' + untilText + reasonText + appealBadge;
       }
 
       var banBtn = isBanned 
@@ -1606,6 +1652,68 @@
       '</tr>';
     }).join('');
   }
+
+  // ===== DRIVER APPEAL REVIEW HANDLERS =====
+  var currentAppealDriver = null;
+
+  window.openAppealModal = function(driverId) {
+    var driver = allDrivers.find(function(d){ return d.id === driverId; });
+    if (!driver || !driver.appeal) return;
+    currentAppealDriver = driver;
+
+    document.getElementById('appeal-driver-name').textContent = 'Driver: ' + (driver.name || 'Unknown');
+    document.getElementById('appeal-driver-phone').textContent = 'Phone: ' + (driver.phone || '-');
+    document.getElementById('appeal-ban-reason').textContent = 'Suspended for: ' + (driver.ban_reason || 'Policy violation') + ' (' + (driver.ban_until ? driver.ban_until.replace('T', ' ') : 'Permanent') + ')';
+    document.getElementById('appeal-submitted-time').textContent = 'Appeal Sent: ' + (driver.appeal.sent_at ? new Date(driver.appeal.sent_at).toLocaleString() : 'Recently');
+    document.getElementById('appeal-driver-message').textContent = driver.appeal.message || '(No text provided)';
+
+    var modal = document.getElementById('admin-appeal-modal');
+    if (modal) {
+      modal.style.setProperty('display', 'flex', 'important');
+      modal.style.visibility = 'visible';
+      modal.style.opacity = '1';
+    }
+  };
+
+  window.closeAppealModal = function() {
+    var modal = document.getElementById('admin-appeal-modal');
+    if (modal) modal.style.setProperty('display', 'none', 'important');
+  };
+
+  window.acceptDriverAppeal = async function() {
+    if (!currentAppealDriver) return;
+    if (!confirm('Accept appeal and immediately lift suspension for driver "' + currentAppealDriver.name + '"?')) return;
+    try {
+      // 1. Unban rider in Supabase
+      await sb('riders?id=eq.' + currentAppealDriver.id, { method: 'PATCH', body: { status: 'offline' } });
+      // 2. Remove ban record & appeal record
+      try { await sb('driver_documents?rider_id=eq.' + currentAppealDriver.id + '&doc_type=in.(ban_record,ban_appeal)', { method: 'DELETE' }); } catch(e){}
+      
+      // 3. Clear local cache
+      var banList = JSON.parse(localStorage.getItem('rydealot_banned_drivers') || '{}');
+      delete banList[currentAppealDriver.id];
+      localStorage.setItem('rydealot_banned_drivers', JSON.stringify(banList));
+
+      toast('✅ Appeal accepted! Driver suspension lifted.');
+      closeAppealModal();
+      await loadDrivers();
+    } catch(err) {
+      alert('Failed to accept appeal: ' + (err.message || 'unknown error'));
+    }
+  };
+
+  window.rejectDriverAppeal = async function() {
+    if (!currentAppealDriver) return;
+    if (!confirm('Reject appeal from driver "' + currentAppealDriver.name + '"? Suspension will remain active.')) return;
+    try {
+      try { await sb('driver_documents?rider_id=eq.' + currentAppealDriver.id + '&doc_type=eq.ban_appeal', { method: 'DELETE' }); } catch(e){}
+      toast('❌ Driver appeal rejected');
+      closeAppealModal();
+      await loadDrivers();
+    } catch(err) {
+      alert('Failed to reject appeal: ' + (err.message || 'unknown error'));
+    }
+  };
 
   function filterDrivers() {
     var q = document.getElementById('driver-search').value.toLowerCase();

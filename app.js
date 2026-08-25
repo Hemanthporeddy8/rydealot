@@ -762,7 +762,7 @@
     var titleEl = document.getElementById('rd-ban-title');
     var untilEl = document.getElementById('rd-ban-until');
     var reasonEl = document.getElementById('rd-ban-reason');
-    var toggleBtn = document.getElementById('rd-toggle-status-btn');
+    var toggleBtn = document.getElementById('rd-toggle-online-btn');
 
     var isBanned = profile && (profile.status === 'banned' || profile.status === 'suspended');
     
@@ -787,7 +787,11 @@
 
     if (banner) {
       if (isBanned || banInfo.status) {
+        state.isBanned = true;
+        state.online = false;
         banner.style.display = 'block';
+        setPill(banInfo.status || 'suspended');
+
         var isPerm = (profile && profile.status === 'banned') || banInfo.status === 'banned' || banInfo.until === 'Permanent';
         if (titleEl) titleEl.textContent = isPerm ? '🚫 Account Permanently Banned' : '⏳ Account Temporarily Suspended';
         if (reasonEl) reasonEl.textContent = banInfo.reason || 'Safety / Policy violation';
@@ -821,18 +825,81 @@
           toggleBtn.style.opacity = '0.5';
           toggleBtn.style.cursor = 'not-allowed';
           toggleBtn.textContent = '🚫 Account Suspended';
+          toggleBtn.className = 'btn btn-toggle-off';
         }
       } else {
+        state.isBanned = false;
         if (banTimerInterval) clearInterval(banTimerInterval);
         banner.style.display = 'none';
         if (toggleBtn) {
           toggleBtn.disabled = false;
           toggleBtn.style.opacity = '1';
           toggleBtn.style.cursor = 'pointer';
+          toggleBtn.textContent = state.online ? 'Go offline' : 'Go online';
         }
       }
     }
   }
+
+  // ---------- Driver In-App Suspension Appeal Handlers ----------
+  window.openDriverAppealModal = function() {
+    var modal = document.getElementById('rd-appeal-modal');
+    if (modal) modal.style.display = 'flex';
+  };
+
+  window.closeDriverAppealModal = function() {
+    var modal = document.getElementById('rd-appeal-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.submitDriverAppeal = async function() {
+    var msgInput = document.getElementById('rd-appeal-message');
+    var btn = document.getElementById('rd-submit-appeal-btn');
+    var text = (msgInput ? msgInput.value : '').trim();
+    if (!text) {
+      toast('⚠️ Please write your explanation before submitting.');
+      return;
+    }
+    var riderId = state.riderId || localStorage.getItem('ridelot_rider_id');
+    var riderName = document.getElementById('rd-rider-name') ? document.getElementById('rd-rider-name').value : 'Driver';
+    var riderPhone = document.getElementById('rd-rider-phone') ? document.getElementById('rd-rider-phone').value : '';
+
+    if (btn) { btn.textContent = '⏳ Sending...'; btn.disabled = true; }
+
+    try {
+      // 1. Delete previous appeal
+      try { await sbFetch('driver_documents?rider_id=eq.' + riderId + '&doc_type=eq.ban_appeal', { method: 'DELETE' }); } catch(e){}
+
+      // 2. Submit new appeal record
+      await sbFetch('driver_documents', {
+        method: 'POST',
+        body: {
+          rider_id: riderId,
+          doc_type: 'ban_appeal',
+          file_url: 'driver_appeal_msg',
+          status: 'pending_review',
+          admin_notes: JSON.stringify({
+            message: text,
+            sent_at: new Date().toISOString(),
+            driver_name: riderName,
+            driver_phone: riderPhone
+          })
+        }
+      });
+
+      toast('✅ Appeal submitted to Admin! Admin will review shortly.');
+      closeDriverAppealModal();
+      var openBtn = document.getElementById('rd-open-appeal-btn');
+      if (openBtn) {
+        openBtn.textContent = '📩 Appeal Under Review';
+        openBtn.style.background = '#3b82f6';
+      }
+    } catch(err) {
+      toast('❌ Failed to submit appeal: ' + (err.message || 'Try again'));
+    } finally {
+      if (btn) { btn.textContent = '📤 Send Appeal'; btn.disabled = false; }
+    }
+  };
 
   // ---------- profile setup ----------
   // Early exit: if driver UI elements don't exist on this page, skip entire rider IIFE
