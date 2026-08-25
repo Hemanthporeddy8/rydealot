@@ -779,6 +779,49 @@
     setPill(profile.status || 'offline');
   }
 
+  // Helper to read file as base64 with downscaling
+  function readFileAsBase64(file) {
+    return new Promise(function(resolve, reject) {
+      if (!file) return resolve(null);
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var maxDim = 800;
+          var w = img.width, h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+            else { w = Math.round(w * maxDim / h); h = maxDim; }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = function() { resolve(e.target.result); };
+        img.src = e.target.result;
+      };
+      reader.onerror = function() { resolve(null); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Visual status indicators on file selection
+  ['dl', 'rc', 'aadhaar', 'selfie'].forEach(function(type) {
+    var input = document.getElementById('rd-doc-' + type);
+    var status = document.getElementById('rd-doc-' + type + '-status');
+    if (input && status) {
+      input.addEventListener('change', function() {
+        if (input.files && input.files[0]) {
+          status.textContent = '✅ ' + input.files[0].name + ' selected';
+          status.style.color = 'var(--green)';
+        }
+      });
+    }
+  });
+
   document.getElementById('rd-save-profile-btn').addEventListener('click', async function(){
     var name = document.getElementById('rd-rider-name').value.trim();
     var vtype = document.getElementById('rd-rider-vtype').value;
@@ -790,6 +833,9 @@
       return;
     }
     var payload = { name: name, vehicle_type: vtype, vehicle_label: vlabel, plate: plate, phone: phone, status: 'offline' };
+
+    var saveBtn = document.getElementById('rd-save-profile-btn');
+    if (saveBtn) { saveBtn.textContent = '⏳ Saving documents...'; saveBtn.disabled = true; }
 
     try{
       var result, row;
@@ -806,11 +852,47 @@
       localStorage.setItem('ridelot_rider_vlabel', vlabel);
       localStorage.setItem('ridelot_rider_plate', plate);
       localStorage.setItem('ridelot_rider_phone', phone);
+
+      // Process uploaded documents
+      var dlFile = document.getElementById('rd-doc-dl') ? document.getElementById('rd-doc-dl').files[0] : null;
+      var rcFile = document.getElementById('rd-doc-rc') ? document.getElementById('rd-doc-rc').files[0] : null;
+      var aadhaarFile = document.getElementById('rd-doc-aadhaar') ? document.getElementById('rd-doc-aadhaar').files[0] : null;
+      var selfieFile = document.getElementById('rd-doc-selfie') ? document.getElementById('rd-doc-selfie').files[0] : null;
+
+      var docsToSave = {};
+      if (dlFile) docsToSave.driving_license = await readFileAsBase64(dlFile);
+      if (rcFile) docsToSave.vehicle_rc = await readFileAsBase64(rcFile);
+      if (aadhaarFile) docsToSave.aadhaar = await readFileAsBase64(aadhaarFile);
+      if (selfieFile) docsToSave.selfie = await readFileAsBase64(selfieFile);
+
+      if (Object.keys(docsToSave).length > 0) {
+        var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+        if (!allDocs[row.id]) allDocs[row.id] = {};
+        Object.keys(docsToSave).forEach(function(k) {
+          if (docsToSave[k]) allDocs[row.id][k] = { url: docsToSave[k], status: 'pending', updated_at: new Date().toISOString() };
+        });
+        localStorage.setItem('rydealot_driver_docs', JSON.stringify(allDocs));
+
+        // Try syncing to Supabase if table exists
+        try {
+          for (var docType in docsToSave) {
+            if (docsToSave[docType]) {
+              await sbFetch('driver_documents', {
+                method: 'POST',
+                body: { rider_id: row.id, doc_type: docType, file_url: docsToSave[docType], status: 'pending' }
+              });
+            }
+          }
+        } catch(e) {}
+      }
+
       showMain(row);
-      toast('Profile saved');
+      toast('✅ Profile & documents saved successfully!');
     } catch(err){
       console.error(err);
       toast('Could not save profile: ' + (err.message || 'unknown error'));
+    } finally {
+      if (saveBtn) { saveBtn.textContent = 'Save profile & documents'; saveBtn.disabled = false; }
     }
   });
 

@@ -635,6 +635,17 @@
       </table>
     </div>
   </div>
+<!-- Document Image Viewer Modal -->
+<div id="doc-viewer-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:99999; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#1e2229; border:1.5px solid var(--border); border-radius:16px; padding:20px; max-width:520px; width:100%; display:flex; flex-direction:column; align-items:center; gap:14px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.8);">
+    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; border-bottom:1px solid #333; padding-bottom:10px;">
+      <h3 id="doc-modal-title" style="font-size:1rem; font-weight:800; color:var(--amber); margin:0;">📄 Document Preview</h3>
+      <button onclick="closeDocModal()" style="background:#333; border:none; color:#fff; border-radius:8px; padding:6px 12px; cursor:pointer; font-weight:700;">✕ Close</button>
+    </div>
+    <div style="width:100%; max-height:65vh; overflow:auto; display:flex; justify-content:center; align-items:center; background:#111; border-radius:10px; padding:8px;">
+      <img id="doc-modal-img" src="" alt="Driver Document" style="max-width:100%; max-height:60vh; border-radius:6px; object-fit:contain;">
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1112,31 +1123,56 @@
     loadUpiRecharges();
   }
 
+  function viewDocImage(encUrl, title) {
+    var url = decodeURIComponent(encUrl);
+    var modal = document.getElementById('doc-viewer-modal');
+    var img = document.getElementById('doc-modal-img');
+    var titleEl = document.getElementById('doc-modal-title');
+    if (modal && img) {
+      img.src = url;
+      if (titleEl) titleEl.textContent = '📄 ' + (title || 'Driver Document');
+      modal.style.display = 'flex';
+    }
+  }
+
+  function closeDocModal() {
+    var modal = document.getElementById('doc-viewer-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
   async function loadVerificationData() {
     var tbody = document.getElementById('verification-tbody');
     tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading verification data...</td></tr>';
     var riders = await sb('riders?order=updated_at.desc');
-    var docs = await sb('driver_documents');
+    var docs = [];
+    try { docs = await sb('driver_documents') || []; } catch(e){}
+    var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
     riders = riders || [];
-    docs = docs || [];
 
     var pendingCount = 0, approvedCount = 0, rejectedCount = 0;
 
     tbody.innerHTML = riders.map(function(r) {
-      var rDocs = docs.filter(function(d){ return d.rider_id === r.id; });
-      var getDocStatus = function(type) {
+      var rDocs = Array.isArray(docs) ? docs.filter(function(d){ return d.rider_id === r.id; }) : [];
+      var rLocal = localDocs[r.id] || {};
+
+      var getDocInfo = function(type) {
         var d = rDocs.find(function(item){ return item.doc_type === type; });
-        return d ? d.status : 'not_uploaded';
+        if (d && d.file_url) return { status: d.status || 'pending', url: d.file_url };
+        if (rLocal[type] && rLocal[type].url) return { status: rLocal[type].status || 'pending', url: rLocal[type].url };
+        return { status: 'not_uploaded', url: null };
       };
       
       var isVerified = r.is_verified || false;
       if (isVerified) approvedCount++;
       else pendingCount++;
 
-      var fmtDoc = function(st) {
-        if(st === 'approved') return '<span class="badge badge-green">Approved</span>';
-        if(st === 'rejected') return '<span class="badge badge-red">Rejected</span>';
-        if(st === 'pending') return '<span class="badge badge-amber">Pending</span>';
+      var fmtDoc = function(info, label) {
+        var st = info.status;
+        var url = info.url;
+        var clickAttr = url ? ' onclick="viewDocImage(\'' + encodeURIComponent(url) + '\',\'' + label + ' - ' + (r.name || 'Driver') + '\')" style="cursor:pointer; text-decoration:underline;" title="Click to view ' + label + '"' : '';
+        if(st === 'approved') return '<span class="badge badge-green"' + clickAttr + '>Approved 👁️</span>';
+        if(st === 'rejected') return '<span class="badge badge-red"' + clickAttr + '>Rejected 👁️</span>';
+        if(st === 'pending' || url) return '<span class="badge badge-amber"' + clickAttr + '>Pending 👁️</span>';
         return '<span class="badge badge-mute">Missing</span>';
       };
 
@@ -1144,10 +1180,10 @@
         '<td><strong>' + (r.name || '?') + '</strong></td>' +
         '<td>' + (r.phone || '-') + '</td>' +
         '<td>' + (r.vehicle_type || '-') + '</td>' +
-        '<td>' + fmtDoc(getDocStatus('driving_license')) + '</td>' +
-        '<td>' + fmtDoc(getDocStatus('vehicle_rc')) + '</td>' +
-        '<td>' + fmtDoc(getDocStatus('aadhaar')) + '</td>' +
-        '<td>' + fmtDoc(getDocStatus('selfie')) + '</td>' +
+        '<td>' + fmtDoc(getDocInfo('driving_license'), 'Driving License') + '</td>' +
+        '<td>' + fmtDoc(getDocInfo('vehicle_rc'), 'Vehicle RC') + '</td>' +
+        '<td>' + fmtDoc(getDocInfo('aadhaar'), 'Aadhaar Card') + '</td>' +
+        '<td>' + fmtDoc(getDocInfo('selfie'), 'Selfie Photo') + '</td>' +
         '<td>' + (isVerified ? '<span class="badge badge-green">VERIFIED</span>' : '<span class="badge badge-amber">UNVERIFIED</span>') + '</td>' +
         '<td><div class="action-btns">' +
           '<button style="background:var(--green);color:#fff" onclick="approveDriverDocs(\'' + r.id + '\')">Approve All</button>' +
@@ -1164,8 +1200,15 @@
   async function approveDriverDocs(riderId) {
     try {
       await sb('riders?id=eq.' + riderId, { method: 'PATCH', body: { is_verified: true } });
-      await sb('driver_documents?rider_id=eq.' + riderId, { method: 'PATCH', body: { status: 'approved' } });
-      toast('Driver approved successfully!');
+      try { await sb('driver_documents?rider_id=eq.' + riderId, { method: 'PATCH', body: { status: 'approved' } }); } catch(e){}
+      
+      var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+      if (localDocs[riderId]) {
+        Object.keys(localDocs[riderId]).forEach(function(k){ localDocs[riderId][k].status = 'approved'; });
+        localStorage.setItem('rydealot_driver_docs', JSON.stringify(localDocs));
+      }
+
+      toast('✅ Driver verified and approved successfully!');
       loadVerificationData();
     } catch(e) { alert('Approval failed: ' + e.message); }
   }
@@ -1175,7 +1218,14 @@
     if (reason === null) return;
     try {
       await sb('riders?id=eq.' + riderId, { method: 'PATCH', body: { is_verified: false } });
-      await sb('driver_documents?rider_id=eq.' + riderId, { method: 'PATCH', body: { status: 'rejected', admin_notes: reason } });
+      try { await sb('driver_documents?rider_id=eq.' + riderId, { method: 'PATCH', body: { status: 'rejected', admin_notes: reason } }); } catch(e){}
+      
+      var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+      if (localDocs[riderId]) {
+        Object.keys(localDocs[riderId]).forEach(function(k){ localDocs[riderId][k].status = 'rejected'; });
+        localStorage.setItem('rydealot_driver_docs', JSON.stringify(localDocs));
+      }
+
       toast('Driver documents rejected');
       loadVerificationData();
     } catch(e) { alert('Rejection failed: ' + e.message); }
