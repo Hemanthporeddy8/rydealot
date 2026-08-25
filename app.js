@@ -268,12 +268,6 @@
         var uRoot = document.getElementById('user-app-root');
         var rRoot = document.getElementById('rider-app-root');
 
-        // If customer session but on driver.html (no user-app-root), redirect
-        if (!uRoot) {
-          window.location.href = 'index.html';
-          return;
-        }
-
         if (uRoot) {
           uRoot.classList.add('active');
           uRoot.style.display = 'block';
@@ -323,12 +317,6 @@
         // Driver Role Active
         var uRoot = document.getElementById('user-app-root');
         var rRoot = document.getElementById('rider-app-root');
-
-        // If driver session but on index.html (no rider-app-root), redirect
-        if (!rRoot) {
-          window.location.href = 'driver.html';
-          return;
-        }
 
         if (rRoot) {
           rRoot.classList.add('active');
