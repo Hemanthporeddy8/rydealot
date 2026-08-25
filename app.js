@@ -755,6 +755,8 @@
     pill.textContent = status === 'available' ? 'Available' : (status === 'busy' ? 'On a trip' : 'Offline');
   }
 
+  var banTimerInterval = null;
+
   async function checkDriverBanStatus(profile) {
     var banner = document.getElementById('rd-ban-lock-banner');
     var titleEl = document.getElementById('rd-ban-title');
@@ -786,11 +788,34 @@
     if (banner) {
       if (isBanned || banInfo.status) {
         banner.style.display = 'block';
-        var isPerm = (profile && profile.status === 'banned') || banInfo.status === 'banned';
+        var isPerm = (profile && profile.status === 'banned') || banInfo.status === 'banned' || banInfo.until === 'Permanent';
         if (titleEl) titleEl.textContent = isPerm ? '🚫 Account Permanently Banned' : '⏳ Account Temporarily Suspended';
-        if (untilEl) untilEl.textContent = isPerm ? 'Permanent ban applied by Admin.' : ('Suspended until: ' + (banInfo.until ? banInfo.until.replace('T', ' ') : 'Admin review'));
         if (reasonEl) reasonEl.textContent = banInfo.reason || 'Safety / Policy violation';
         
+        if (banTimerInterval) clearInterval(banTimerInterval);
+
+        if (isPerm) {
+          if (untilEl) untilEl.textContent = 'Permanent ban applied by Admin.';
+        } else if (banInfo.until) {
+          var updateCountdown = function() {
+            var diff = new Date(banInfo.until).getTime() - new Date().getTime();
+            if (diff <= 0) {
+              if (untilEl) untilEl.textContent = '✅ Suspension expired! Reconnecting...';
+              if (banTimerInterval) clearInterval(banTimerInterval);
+              setTimeout(function(){ location.reload(); }, 1500);
+              return;
+            }
+            var d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            var h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            var m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            var s = Math.floor((diff % (1000 * 60)) / 1000);
+            var timeStr = (d > 0 ? d + 'd ' : '') + h + 'h ' + m + 'm ' + s + 's remaining';
+            if (untilEl) untilEl.innerHTML = '⏱️ <strong>' + timeStr + '</strong><br><span style="font-size:10px; opacity:0.85;">(Until ' + banInfo.until.replace('T', ' ') + ')</span>';
+          };
+          updateCountdown();
+          banTimerInterval = setInterval(updateCountdown, 1000);
+        }
+
         if (toggleBtn) {
           toggleBtn.disabled = true;
           toggleBtn.style.opacity = '0.5';
@@ -798,6 +823,7 @@
           toggleBtn.textContent = '🚫 Account Suspended';
         }
       } else {
+        if (banTimerInterval) clearInterval(banTimerInterval);
         banner.style.display = 'none';
         if (toggleBtn) {
           toggleBtn.disabled = false;
