@@ -750,6 +750,77 @@
   // Early exit: if driver UI elements don't exist on this page, skip entire rider IIFE
   if (!document.getElementById('rd-setup-section')) return;
 
+  function updateDriverVerificationStatusUI(riderId) {
+    riderId = riderId || state.riderId || localStorage.getItem('ridelot_rider_id');
+    if (!riderId) return;
+    
+    var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+    var myDocs = allDocs[riderId] || {};
+    
+    var docKeys = ['dl', 'rc', 'aadhaar', 'selfie'];
+    var fullKeys = { dl: 'driving_license', rc: 'vehicle_rc', aadhaar: 'aadhaar', selfie: 'selfie' };
+    var uploadedCount = 0;
+    var approvedCount = 0;
+
+    docKeys.forEach(function(k) {
+      var fullK = fullKeys[k];
+      var doc = myDocs[fullK];
+      var statusEl = document.getElementById('rd-doc-' + k + '-status');
+      if (statusEl) {
+        if (doc && doc.url) {
+          uploadedCount++;
+          if (doc.status === 'approved') {
+            approvedCount++;
+            statusEl.textContent = '✅ Document Verified & Approved';
+            statusEl.style.color = '#16a34a';
+          } else if (doc.status === 'rejected') {
+            statusEl.textContent = '❌ Rejected by Admin (Please re-upload)';
+            statusEl.style.color = '#dc2626';
+          } else {
+            statusEl.textContent = '⏳ Uploaded & Submitted (Pending Admin Review)';
+            statusEl.style.color = '#d97706';
+          }
+        } else {
+          statusEl.textContent = '⏳ Upload pending';
+          statusEl.style.color = 'var(--amber)';
+        }
+      }
+    });
+
+    var banner = document.getElementById('rd-verification-status-banner');
+    var iconEl = document.getElementById('rd-verif-icon');
+    var titleEl = document.getElementById('rd-verif-title');
+    var subEl = document.getElementById('rd-verif-subtitle');
+
+    if (banner && iconEl && titleEl && subEl) {
+      if (approvedCount === 4) {
+        banner.style.background = 'linear-gradient(135deg, #f0fdf4, #dcfce7)';
+        banner.style.border = '1.5px solid #16a34a';
+        iconEl.textContent = '✅';
+        titleEl.textContent = 'Verified Driver Partner';
+        titleEl.style.color = '#15803d';
+        subEl.textContent = 'All documents verified by Admin. You are ready to accept rides!';
+        subEl.style.color = '#166534';
+      } else if (uploadedCount > 0) {
+        banner.style.background = 'linear-gradient(135deg, #fffbeb, #fef3c7)';
+        banner.style.border = '1.5px solid #f59e0b';
+        iconEl.textContent = '⏳';
+        titleEl.textContent = 'Verification in Progress (' + uploadedCount + '/4 Docs Submitted)';
+        titleEl.style.color = '#92400e';
+        subEl.textContent = 'Admin will verify your documents shortly. Tap below to view or update.';
+        subEl.style.color = '#b45309';
+      } else {
+        banner.style.background = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
+        banner.style.border = '1.5px solid #ef4444';
+        iconEl.textContent = '⚠️';
+        titleEl.textContent = 'Documents Not Uploaded';
+        titleEl.style.color = '#991b1b';
+        subEl.textContent = 'Please upload your DL, RC, Aadhaar & Selfie for verification.';
+        subEl.style.color = '#b91c1c';
+      }
+    }
+  }
+
   function loadProfileFromCache(){
     var name = localStorage.getItem('ridelot_rider_name');
     var vtype = localStorage.getItem('ridelot_rider_vtype');
@@ -761,6 +832,7 @@
     if (vlabel) document.getElementById('rd-rider-vlabel').value = vlabel;
     if (plate) document.getElementById('rd-rider-plate').value = plate;
     if (phone) document.getElementById('rd-rider-phone').value = phone;
+    updateDriverVerificationStatusUI();
   }
 
   function loadProfileIntoForm(profile){
@@ -769,6 +841,7 @@
     document.getElementById('rd-rider-vlabel').value = profile.vehicle_label || '';
     document.getElementById('rd-rider-plate').value = profile.plate || '';
     document.getElementById('rd-rider-phone').value = profile.phone || '';
+    updateDriverVerificationStatusUI(profile.id);
   }
 
   function showMain(profile){
@@ -777,6 +850,7 @@
     document.getElementById('rd-display-name').textContent = profile.name;
     document.getElementById('rd-display-vehicle').textContent = profile.vehicle_label + ' (' + profile.vehicle_type + ')';
     setPill(profile.status || 'offline');
+    updateDriverVerificationStatusUI(profile.id);
   }
 
   // Helper to read file as base64 with downscaling
@@ -899,6 +973,16 @@
   var editProfileBtn = document.getElementById('rd-edit-profile-btn');
   if (editProfileBtn) {
     editProfileBtn.addEventListener('click', function(){
+      var mainS = document.getElementById('rd-main-section');
+      var setupS = document.getElementById('rd-setup-section');
+      if (mainS) mainS.style.display = 'none';
+      if (setupS) setupS.style.display = 'flex';
+    });
+  }
+
+  var verifUpdateBtn = document.getElementById('rd-verif-update-btn');
+  if (verifUpdateBtn) {
+    verifUpdateBtn.addEventListener('click', function(){
       var mainS = document.getElementById('rd-main-section');
       var setupS = document.getElementById('rd-setup-section');
       if (mainS) mainS.style.display = 'none';

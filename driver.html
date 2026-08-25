@@ -152,36 +152,56 @@
         <h3 style="font-size:14px; font-weight:800; color:var(--text); margin-bottom:4px;">📄 Driver Document Verification</h3>
         <p style="font-size:11px; color:var(--text-mute); margin-bottom:12px;">Upload photos of your official documents for admin verification</p>
 
-        <div class="field" style="margin-bottom:10px;">
+        <div class="field" style="margin-bottom:12px;">
           <label style="font-size:11px;">1. Driving License (DL)</label>
           <input type="file" id="rd-doc-dl" accept="image/*" style="font-size:12px; padding:6px;">
-          <span id="rd-doc-dl-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:3px;">
+            <span id="rd-doc-dl-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+          </div>
         </div>
 
-        <div class="field" style="margin-bottom:10px;">
+        <div class="field" style="margin-bottom:12px;">
           <label style="font-size:11px;">2. Vehicle Registration Certificate (RC)</label>
           <input type="file" id="rd-doc-rc" accept="image/*" style="font-size:12px; padding:6px;">
-          <span id="rd-doc-rc-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:3px;">
+            <span id="rd-doc-rc-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+          </div>
         </div>
 
-        <div class="field" style="margin-bottom:10px;">
+        <div class="field" style="margin-bottom:12px;">
           <label style="font-size:11px;">3. Aadhaar Card</label>
           <input type="file" id="rd-doc-aadhaar" accept="image/*" style="font-size:12px; padding:6px;">
-          <span id="rd-doc-aadhaar-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:3px;">
+            <span id="rd-doc-aadhaar-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+          </div>
         </div>
 
         <div class="field" style="margin-bottom:14px;">
           <label style="font-size:11px;">4. Profile Selfie Photo</label>
           <input type="file" id="rd-doc-selfie" accept="image/*" capture="user" style="font-size:12px; padding:6px;">
-          <span id="rd-doc-selfie-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:3px;">
+            <span id="rd-doc-selfie-status" class="helptext" style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>
+          </div>
         </div>
       </div>
 
-      <button class="btn" id="rd-save-profile-btn" style="margin-top:10px;">Save profile & documents</button>
+      <button class="btn" id="rd-save-profile-btn" style="margin-top:10px; background:var(--accent);">💾 Save & Update All Documents</button>
     </div>
 
     <!-- 2. MAIN DASHBOARD SECTION -->
     <div class="section" id="rd-main-section" style="display:none;">
+      <!-- Driver Verification Status Banner -->
+      <div id="rd-verification-status-banner" style="background:linear-gradient(135deg, #fffbeb, #fef3c7); border:1.5px solid #f59e0b; border-radius:14px; padding:12px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:20px;" id="rd-verif-icon">⏳</span>
+          <div>
+            <div style="font-size:12px; font-weight:800; color:#92400e;" id="rd-verif-title">Verification Pending</div>
+            <div style="font-size:10.5px; color:#b45309;" id="rd-verif-subtitle">Admin will verify your uploaded documents soon.</div>
+          </div>
+        </div>
+        <button type="button" id="rd-verif-update-btn" style="background:#f59e0b; color:#000; border:none; border-radius:8px; padding:6px 10px; font-size:11px; font-weight:800; cursor:pointer; flex-shrink:0;">View / Update Docs</button>
+      </div>
+
       <!-- Wallet Card Summary -->
       <div style="background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
         <div>

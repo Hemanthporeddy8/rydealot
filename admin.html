@@ -1128,9 +1128,27 @@
   window.viewDocImageByKey = function(docKey, title) {
     var url = window.docCache[docKey];
     if (!url) {
-      alert('⚠️ No image photo was found for this document.');
+      try {
+        var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+        for (var rid in localDocs) {
+          if (docKey.indexOf(rid) === 0) {
+            var docType = docKey.replace(rid + '_', '');
+            var fullKeys = { dl: 'driving_license', rc: 'vehicle_rc', aadhaar: 'aadhaar', selfie: 'selfie' };
+            var fk = fullKeys[docType] || docType;
+            if (localDocs[rid][fk] && localDocs[rid][fk].url) {
+              url = localDocs[rid][fk].url;
+              break;
+            }
+          }
+        }
+      } catch(e) {}
+    }
+
+    if (!url) {
+      alert('⚠️ No image photo file is currently stored for this document. Please upload the photo from driver.html.');
       return;
     }
+
     var modal = document.getElementById('doc-viewer-modal');
     var img = document.getElementById('doc-modal-img');
     var titleEl = document.getElementById('doc-modal-title');
@@ -1138,6 +1156,7 @@
       img.src = url;
       if (titleEl) titleEl.textContent = '📄 ' + (title || 'Driver Document');
       modal.style.display = 'flex';
+      modal.style.zIndex = '99999999';
     }
   };
 
@@ -1179,7 +1198,7 @@
         if (url) {
           window.docCache[docKey] = url;
           var cleanTitle = (label + ' - ' + (r.name || 'Driver')).replace(/'/g, "");
-          var clickAttr = ' onclick="viewDocImageByKey(\'' + docKey + '\',\'' + cleanTitle + '\')" style="cursor:pointer; text-decoration:underline; font-weight:800;" title="Click to view ' + label + '"';
+          var clickAttr = ' onclick="event.stopPropagation(); viewDocImageByKey(\'' + docKey + '\',\'' + cleanTitle + '\')" style="cursor:pointer; text-decoration:underline; font-weight:800;" title="Click to view ' + label + '"';
           if(st === 'approved') return '<span class="badge badge-green"' + clickAttr + '>Approved 👁️</span>';
           if(st === 'rejected') return '<span class="badge badge-red"' + clickAttr + '>Rejected 👁️</span>';
           return '<span class="badge badge-amber"' + clickAttr + '>Pending 👁️</span>';
