@@ -267,6 +267,13 @@
       if (sess.role === 'customer') {
         var uRoot = document.getElementById('user-app-root');
         var rRoot = document.getElementById('rider-app-root');
+
+        // If customer session but on driver.html (no user-app-root), redirect
+        if (!uRoot) {
+          window.location.href = 'index.html';
+          return;
+        }
+
         if (uRoot) {
           uRoot.classList.add('active');
           uRoot.style.display = 'block';
@@ -316,6 +323,13 @@
         // Driver Role Active
         var uRoot = document.getElementById('user-app-root');
         var rRoot = document.getElementById('rider-app-root');
+
+        // If driver session but on index.html (no rider-app-root), redirect
+        if (!rRoot) {
+          window.location.href = 'driver.html';
+          return;
+        }
+
         if (rRoot) {
           rRoot.classList.add('active');
           rRoot.style.display = 'block';
@@ -635,8 +649,20 @@
 
     window.dispatchEvent(new CustomEvent('roleswitch', { detail: { role: which } }));
   }
-  document.getElementById('switch-to-rider-btn').addEventListener('click', function(){ showApp('rider'); });
-  document.getElementById('switch-to-user-btn').addEventListener('click', function(){ showApp('user'); });
+  var switchToRiderBtn = document.getElementById('switch-to-rider-btn');
+  var switchToUserBtn = document.getElementById('switch-to-user-btn');
+  if (switchToRiderBtn) switchToRiderBtn.addEventListener('click', function(e){
+    // If it's an <a> link to driver.html, let the browser navigate naturally
+    if (switchToRiderBtn.tagName === 'A' && switchToRiderBtn.href) return;
+    e.preventDefault();
+    showApp('rider');
+  });
+  if (switchToUserBtn) switchToUserBtn.addEventListener('click', function(e){
+    // If it's an <a> link to index.html, let the browser navigate naturally
+    if (switchToUserBtn.tagName === 'A' && switchToUserBtn.href) return;
+    e.preventDefault();
+    showApp('user');
+  });
 })();
 
 // ===================== RIDER APP (own IIFE, kept separate from user app) =====================
@@ -682,6 +708,7 @@
 
   function toast(msg, ms){
     var t = document.getElementById('rd-toast');
+    if (!t) return;
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(t._timer);
@@ -701,11 +728,15 @@
 
   function setPill(status){
     var pill = document.getElementById('rd-status-pill');
+    if (!pill) return;
     pill.className = 'pill ' + status;
     pill.textContent = status === 'available' ? 'Available' : (status === 'busy' ? 'On a trip' : 'Offline');
   }
 
   // ---------- profile setup ----------
+  // Early exit: if driver UI elements don't exist on this page, skip entire rider IIFE
+  if (!document.getElementById('rd-setup-section')) return;
+
   function loadProfileFromCache(){
     var name = localStorage.getItem('ridelot_rider_name');
     var vtype = localStorage.getItem('ridelot_rider_vtype');
