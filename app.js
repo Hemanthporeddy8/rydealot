@@ -285,8 +285,10 @@
         var hasValidProfile = displayName && displayName.textContent && displayName.textContent !== '-';
 
         if (riderId && hasValidProfile && mainSection && setupSection) {
-          setupSection.style.display = 'none';
-          mainSection.style.display = 'block';
+          if (setupSection.style.display !== 'block') {
+            setupSection.style.display = 'none';
+            mainSection.style.display = 'block';
+          }
         } else {
           if (setupSection) setupSection.style.display = 'block';
           if (mainSection) mainSection.style.display = 'none';
@@ -366,8 +368,10 @@
         var hasValidProfile = displayName && displayName.textContent && displayName.textContent !== '-';
 
         if (riderId && hasValidProfile && mainSection && setupSection) {
-          setupSection.style.display = 'none';
-          mainSection.style.display = 'block';
+          if (setupSection.style.display !== 'block') {
+            setupSection.style.display = 'none';
+            mainSection.style.display = 'block';
+          }
         } else {
           if (setupSection) setupSection.style.display = 'block';
           if (mainSection) mainSection.style.display = 'none';
@@ -840,8 +844,10 @@
       var hasValidProfile = displayName && displayName.textContent && displayName.textContent !== '-';
 
       if (riderId && hasValidProfile && mainSection && setupSection) {
-        setupSection.style.display = 'none';
-        mainSection.style.display = 'block';
+        if (setupSection.style.display !== 'block') {
+          setupSection.style.display = 'none';
+          mainSection.style.display = 'block';
+        }
       } else {
         if (setupSection) setupSection.style.display = 'block';
         if (mainSection) mainSection.style.display = 'none';
@@ -1571,8 +1577,17 @@
     editProfileBtn.addEventListener('click', function(){
       var mainS = document.getElementById('rd-main-section');
       var setupS = document.getElementById('rd-setup-section');
+      var walletS = document.getElementById('rd-wallet-section');
+      var alongS = document.getElementById('rd-along-with-section');
+      var trackingS = document.getElementById('rd-tracking-section');
       if (mainS) mainS.style.display = 'none';
-      if (setupS) setupS.style.display = 'flex';
+      if (walletS) walletS.style.display = 'none';
+      if (alongS) alongS.style.display = 'none';
+      if (trackingS) trackingS.style.display = 'none';
+      if (setupS) {
+        setupS.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     });
   }
 
@@ -1581,8 +1596,17 @@
     verifUpdateBtn.addEventListener('click', function(){
       var mainS = document.getElementById('rd-main-section');
       var setupS = document.getElementById('rd-setup-section');
+      var walletS = document.getElementById('rd-wallet-section');
+      var alongS = document.getElementById('rd-along-with-section');
+      var trackingS = document.getElementById('rd-tracking-section');
       if (mainS) mainS.style.display = 'none';
-      if (setupS) setupS.style.display = 'flex';
+      if (walletS) walletS.style.display = 'none';
+      if (alongS) alongS.style.display = 'none';
+      if (trackingS) trackingS.style.display = 'none';
+      if (setupS) {
+        setupS.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       var id = state.riderId || localStorage.getItem('ridelot_rider_id');
       if (id) updateDriverVerificationStatusUI(id);
     });
@@ -1594,7 +1618,10 @@
       var setupS = document.getElementById('rd-setup-section');
       var mainS = document.getElementById('rd-main-section');
       if (setupS) setupS.style.display = 'none';
-      if (mainS) mainS.style.display = 'block';
+      if (mainS) {
+        mainS.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     });
   }
 
@@ -2044,7 +2071,12 @@
   var lastTrackedBookingId = null;
 
   async function fetchBookings(){
-    if(!state.riderId) return;
+    if(!state.riderId || !state.online) return;
+
+    // Do not interrupt driver if they are in Setup / Edit Profile mode
+    var setupS = document.getElementById('rd-setup-section');
+    if (setupS && setupS.style.display !== 'none') return;
+
     try{
       var rows = await sbFetch('bookings?rider_id=eq.' + state.riderId + '&status=in.(requested,accepted,arrived,in_progress)&order=created_at.desc');
       
@@ -2068,9 +2100,17 @@
           } catch(e) { console.error('Reset status failed', e); }
         }
 
-        document.getElementById('rd-tracking-section').style.display = 'none';
-        document.getElementById('rd-main-section').style.display = 'block';
-        destroyRiderMap();
+        var trackingS = document.getElementById('rd-tracking-section');
+        if (trackingS && trackingS.style.display !== 'none') {
+          trackingS.style.display = 'none';
+          destroyRiderMap();
+          var curSetup = document.getElementById('rd-setup-section');
+          var curWallet = document.getElementById('rd-wallet-section');
+          var curAlong = document.getElementById('rd-along-with-section');
+          if ((!curSetup || curSetup.style.display === 'none') && (!curWallet || curWallet.style.display === 'none') && (!curAlong || curAlong.style.display === 'none')) {
+            document.getElementById('rd-main-section').style.display = 'block';
+          }
+        }
         
         var requests = (rows || []).filter(function(b){ return b.status === 'requested'; });
         if (requests.length > 0 && !window._lastRideReqCount) {
