@@ -2282,12 +2282,13 @@
     var newStatus = statusMap[action];
     try{
       await sbFetch('bookings?id=eq.' + bookingId, { method:'PATCH', body:{ status: newStatus } });
+      var nowIso = new Date().toISOString();
       if(action === 'accept'){
-        await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'busy' } });
+        await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'busy', updated_at: nowIso } });
         setPill('busy');
       }
       if(action === 'complete' || action === 'decline'){
-        await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available' } });
+        await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: nowIso } });
         setPill('available');
       }
       if(action === 'complete'){
@@ -3111,19 +3112,23 @@
   });
 
   function highlightVehiclesInLot(type) {
-    if (!svg) return;
-    var slots = svg.querySelectorAll('.slot-wrap');
-    Array.prototype.forEach.call(slots, function(slotEl) {
-      var sId = slotEl.getAttribute('data-slot');
-      var sType = slotType && slotType[sId];
-      if (sType === type) {
-        slotEl.classList.add('lot-highlight');
-        slotEl.style.opacity = '1';
-      } else {
-        slotEl.classList.remove('lot-highlight');
-        slotEl.style.opacity = '0.35';
-      }
-    });
+    if (typeof window.AppAnimations !== 'undefined' && window.AppAnimations.highlightLotVehicles) {
+      window.AppAnimations.highlightLotVehicles(svg, slotType, type);
+    } else {
+      if (!svg) return;
+      var slots = svg.querySelectorAll('.slot-wrap');
+      Array.prototype.forEach.call(slots, function(slotEl) {
+        var sId = slotEl.getAttribute('data-slot');
+        var sType = slotType && slotType[sId];
+        if (sType === type) {
+          slotEl.classList.add('lot-highlight');
+          slotEl.style.opacity = '1';
+        } else {
+          slotEl.classList.remove('lot-highlight');
+          slotEl.style.opacity = '0.35';
+        }
+      });
+    }
   }
 
   Array.prototype.forEach.call(document.querySelectorAll('.ride-type-card'), function(card){
@@ -3793,7 +3798,9 @@
     updateStatus();
     refreshSurgeAndFares();
     clearInterval(pollTimer);
+    var isLotAnimating = false;
     pollTimer = setInterval(async function(){
+      if (isLotAnimating) return;
       var freshRiders = await fetchRealRiders();
       state.realRiderCount = freshRiders.length;
 
@@ -3810,12 +3817,18 @@
       }
 
       if (departingSlots.length > 0) {
+        isLotAnimating = true;
+        var pendingCount = departingSlots.length;
         departingSlots.forEach(function(slotId){
           removeVehicle(slotId, function(){
-            mapRidersOntoSlots(freshRiders);
-            render();
-            updateStatus();
-            refreshSurgeAndFares();
+            pendingCount--;
+            if (pendingCount <= 0) {
+              isLotAnimating = false;
+              mapRidersOntoSlots(freshRiders);
+              render();
+              updateStatus();
+              refreshSurgeAndFares();
+            }
           });
         });
       } else {
@@ -4150,60 +4163,22 @@
   // row — fully clear of every other parked vehicle in either row — then
   // drive straight right and off the edge.
   function removeVehicle(id, onDone){
-    var wrap = svg.querySelector('.slot-wrap[data-slot="'+id+'"]');
     present[id] = false;
     delete riderAssign[id];
     delete slotType[id];
-    if(!wrap){
+    updateStatus();
+
+    if (typeof window.AppAnimations !== 'undefined' && window.AppAnimations.playLotDeparture) {
+      window.AppAnimations.playLotDeparture(svg, id, function(){
+        updateStatus();
+        if(onDone) onDone();
+      });
+    } else {
+      var wrap = svg ? svg.querySelector('.slot-wrap[data-slot="'+id+'"]') : null;
+      if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
       updateStatus();
       if(onDone) onDone();
-      return;
     }
-    var x = parseFloat(wrap.getAttribute('data-x'));
-    var y = parseFloat(wrap.getAttribute('data-y'));
-    var rot = parseFloat(wrap.getAttribute('data-rot'));
-    var facingDown = rot === 180; // top-row vehicles are rotated to face the aisle
-
-    // Reverse far enough to fully clear the bay and land exactly on the
-    // open transit line — so the pivot happens on that line, and everything
-    // after the pivot is a pure straight horizontal drive, no diagonal drift.
-    var clearY = facingDown ? 14 : 246;
-    var reverseY = clearY;
-    // The artwork's "front" points toward -y at rotation 0. Top-row vehicles
-    // start at rot=180 (front toward +y, into the aisle); bottom-row vehicles
-    // start at rot=0 (front toward -y, into the aisle). To end up facing
-    // right with the front leading: top-row needs +90 from its base,
-    // bottom-row needs -90.
-    var rightFacingRot = facingDown ? 90 : -90;
-
-    var keyframes = [
-      // 1. Parked, facing into the aisle.
-      { transform: 'translate('+x+'px,'+y+'px) rotate('+rot+'deg)', offset: 0 },
-      // 2. Reverse straight back, fully out of the bay, until clear of the
-      //    row entirely (still facing the original direction).
-      { transform: 'translate('+x+'px,'+reverseY+'px) rotate('+rot+'deg)', offset: 0.32 },
-      { transform: 'translate('+x+'px,'+reverseY+'px) rotate('+rot+'deg)', offset: 0.42 },
-      // 3. Pivot in place to face right — a dead-stop turn, no movement.
-      { transform: 'translate('+x+'px,'+reverseY+'px) rotate('+rightFacingRot+'deg)', offset: 0.52 },
-      // 4. Drive dead straight to the right, off the edge — same y the
-      //    whole way, since it's already on the clear line.
-      { transform: 'translate(430px,'+reverseY+'px) rotate('+rightFacingRot+'deg)', offset: 1 }
-    ];
-
-    wrap.removeAttribute('transform');
-    wrap.style.transformBox = 'view-box';
-
-    var anim = wrap.animate(keyframes, {
-      duration: 1800,
-      easing: 'ease-in-out',
-      fill: 'forwards'
-    });
-
-    anim.onfinish = function(){
-      render();
-      updateStatus();
-      if(onDone) onDone();
-    };
   }
 
   function nearestId(type){
@@ -4458,19 +4433,32 @@
     document.getElementById('track-avatar').textContent = rider.initials;
     document.getElementById('track-name').textContent = rider.name;
     document.getElementById('track-vehicle-info').textContent = rider.vehicleLabel + ' \u00b7 ' + rider.plate;
-    document.getElementById('confirm-vehicle-icon').innerHTML = vehicleIconSvg(type, '#1d9e75');
 
-    if (state.lastKnownStatus === 'in_progress') {
+    var currentStage = state.lastKnownStatus || 'requested';
+    var stageCol = currentStage === 'accepted' ? '#10b981' : (currentStage === 'arrived' ? '#f59e0b' : (currentStage === 'in_progress' ? '#3b82f6' : '#1d9e75'));
+    var vMarkup = vehicleIconSvg(type, stageCol);
+    if (typeof window.AppAnimations !== 'undefined' && window.AppAnimations.setTrackingStage) {
+      window.AppAnimations.setTrackingStage(currentStage, type, vMarkup);
+    } else {
+      document.getElementById('confirm-vehicle-icon').innerHTML = vMarkup;
+    }
+
+    var bannerTitle = document.querySelector('#screen-tracking .confirm-banner h3');
+    if (currentStage === 'in_progress') {
+      if (bannerTitle) bannerTitle.textContent = 'Trip In Progress 🚀';
       document.getElementById('tracking-sub').textContent = 'Trip in progress to ' + (state.drop || 'destination');
       document.getElementById('track-step-2').textContent = 'Trip in progress to ' + (state.drop || 'destination');
       document.getElementById('cancel-trip-btn').style.display = 'none';
-    } else if (state.lastKnownStatus === 'arrived') {
+    } else if (currentStage === 'arrived') {
+      if (bannerTitle) bannerTitle.textContent = 'Driver Arrived! 📍';
       document.getElementById('tracking-sub').textContent = rider.name + ' has arrived at ' + (state.pickup || 'pickup');
-      document.getElementById('track-step-2').textContent = 'Rider has arrived at pickup';
-    } else if (state.lastKnownStatus === 'accepted') {
+      document.getElementById('track-step-2').textContent = 'Driver at pickup location';
+    } else if (currentStage === 'accepted') {
+      if (bannerTitle) bannerTitle.textContent = 'Driver Accepted! 🎉';
       document.getElementById('tracking-sub').textContent = rider.name + ' accepted \u2014 heading to ' + (state.pickup || 'pickup');
       document.getElementById('track-step-2').textContent = 'Rider heading to ' + (state.pickup || 'pickup');
     } else {
+      if (bannerTitle) bannerTitle.textContent = 'Booking Requested';
       document.getElementById('tracking-sub').textContent = 'Waiting for ' + rider.name + ' to accept...';
       document.getElementById('track-step-2').textContent = 'Waiting for rider to accept';
       document.getElementById('cancel-trip-btn').style.display = 'block';
@@ -4533,7 +4521,10 @@
       var rows = await sbFetch('bookings?id=eq.' + state.activeBookingId);
       var b = rows[0];
       if(!b) return;
+
+      var prevStatus = state.lastKnownStatus;
       state.lastKnownStatus = b.status;
+
       if(b.maps_link){
         var pinMatch = b.maps_link.match(/[?&]pin=(\d{4})/);
         if(pinMatch){
@@ -4542,16 +4533,30 @@
       }
       var sub = document.getElementById('tracking-sub');
       var step2 = document.getElementById('track-step-2');
+      var bannerTitle = document.querySelector('#screen-tracking .confirm-banner h3');
+
+      // Update vehicle stage animation in confirm-banner
+      if (typeof window.AppAnimations !== 'undefined' && window.AppAnimations.setTrackingStage) {
+        var stageCol = b.status === 'accepted' ? '#10b981' : (b.status === 'arrived' ? '#f59e0b' : (b.status === 'in_progress' ? '#3b82f6' : '#1d9e75'));
+        window.AppAnimations.setTrackingStage(b.status, state.currentType || 'bike', vehicleIconSvg(state.currentType || 'bike', stageCol));
+      }
 
       if(b.status === 'requested'){
-        sub.textContent = 'Waiting for ' + state.currentRider.name + ' to accept...';
+        if (bannerTitle) bannerTitle.textContent = 'Booking Requested';
+        sub.textContent = 'Waiting for ' + (state.currentRider.name || 'driver') + ' to accept...';
       } else if(b.status === 'accepted'){
-        sub.textContent = state.currentRider.name + ' accepted \u2014 heading to ' + state.pickup;
+        if (bannerTitle) bannerTitle.textContent = 'Driver Accepted! 🎉';
+        sub.textContent = (state.currentRider.name || 'Driver') + ' accepted \u2014 heading to ' + state.pickup;
         step2.textContent = 'Rider heading to ' + state.pickup;
-        if(!state.exitAnimationPlayed){
-          state.exitAnimationPlayed = true;
-          var slotId = Object.keys(riderAssign).filter(function(k){ return riderAssign[k] && riderAssign[k].dbId === state.currentRider.dbId; })[0];
-          if(slotId) removeVehicle(slotId, function(){});
+
+        // In-app celebration notification on status transition
+        if (prevStatus && prevStatus !== 'accepted' && typeof window.AppAnimations !== 'undefined') {
+          window.AppAnimations.showInAppNotification({
+            type: 'accepted',
+            icon: '🎉',
+            title: 'Driver Accepted!',
+            message: (state.currentRider.name || 'Driver') + ' accepted your ride and is heading to pickup'
+          });
         }
         
         // Fetch and update driver live position
@@ -4566,12 +4571,40 @@
         } catch (e) { console.error('Failed to update driver marker location', e); }
 
       } else if(b.status === 'arrived'){
-        sub.textContent = state.currentRider.name + ' has arrived at ' + state.pickup;
+        if (bannerTitle) bannerTitle.textContent = 'Driver Arrived! 📍';
+        sub.textContent = (state.currentRider.name || 'Driver') + ' has arrived at ' + state.pickup;
+        step2.textContent = 'Driver at pickup location';
+
+        // In-app arrival notification on status transition
+        if (prevStatus && prevStatus !== 'arrived' && typeof window.AppAnimations !== 'undefined') {
+          window.AppAnimations.showInAppNotification({
+            type: 'arrived',
+            icon: '📍',
+            title: 'Driver Arrived!',
+            message: (state.currentRider.name || 'Driver') + ' is waiting at your pickup point'
+          });
+        }
+
         if (state.map && state.driverMarker) {
           state.driverMarker.setLatLng([state.lat, state.lng]);
         }
       } else if(b.status === 'in_progress'){
+        if (bannerTitle) bannerTitle.textContent = 'Trip In Progress 🚀';
         sub.textContent = 'Trip in progress to ' + state.drop;
+        step2.textContent = 'Trip in progress to ' + state.drop;
+        var cancelBtn = document.getElementById('cancel-trip-btn');
+        if (cancelBtn) cancelBtn.style.display = 'none';
+
+        // In-app trip started notification on status transition
+        if (prevStatus && prevStatus !== 'in_progress' && typeof window.AppAnimations !== 'undefined') {
+          window.AppAnimations.showInAppNotification({
+            type: 'in_progress',
+            icon: '🚀',
+            title: 'Trip Started!',
+            message: 'Heading to ' + (state.drop || 'destination') + '. Enjoy your ride!'
+          });
+        }
+
         // Continue displaying live driver coordinates
         try {
           var riderRows = await sbFetch('riders?id=eq.' + state.currentRider.dbId);
@@ -4604,10 +4637,18 @@
           btn.disabled = false;
           btn.textContent = 'Book nearest ' + state.selectedRideType + ' \u2014 Rs ' + currentPriceFor(state.selectedRideType);
         }
-        setTimeout(function(){
-          toast('Trip was cancelled or declined. You can request another rider.');
+        if (typeof window.AppAnimations !== 'undefined') {
+          window.AppAnimations.showInAppNotification({
+            type: 'cancelled',
+            icon: '⚠️',
+            title: 'Trip Cancelled',
+            message: 'Trip was cancelled or declined. You can request another rider.'
+          });
+        }
+        setTimeout(async function(){
           showScreen('screen-lot');
-        }, 2000);
+          await resetLot();
+        }, 1800);
       }
     } catch(err){
       console.error('poll booking failed', err);
@@ -4619,7 +4660,8 @@
     destroyMap();
     localStorage.removeItem('rydealot_active_booking');
     if(!state.activeBookingId){
-      showScreen('screen-login');
+      showScreen('screen-lot');
+      await resetLot();
       return;
     }
     try{
