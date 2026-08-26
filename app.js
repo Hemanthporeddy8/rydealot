@@ -911,12 +911,27 @@
   // Early exit: if driver UI elements don't exist on this page, skip entire rider IIFE
   if (!document.getElementById('rd-setup-section')) return;
 
-  function updateDriverVerificationStatusUI(riderId) {
+  async function updateDriverVerificationStatusUI(riderId) {
     riderId = riderId || state.riderId || localStorage.getItem('ridelot_rider_id');
     if (!riderId) return;
     
     var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
     var myDocs = allDocs[riderId] || {};
+
+    // Cloud sync check from Supabase
+    try {
+      var cloudDocs = await sbFetch('driver_documents?rider_id=eq.' + riderId);
+      if (cloudDocs && cloudDocs.length) {
+        if (!allDocs[riderId]) allDocs[riderId] = {};
+        cloudDocs.forEach(function(cd) {
+          if (cd.doc_type && cd.file_url) {
+            allDocs[riderId][cd.doc_type] = { url: cd.file_url, status: cd.status || 'pending', updated_at: cd.updated_at };
+          }
+        });
+        localStorage.setItem('rydealot_driver_docs', JSON.stringify(allDocs));
+        myDocs = allDocs[riderId];
+      }
+    } catch(e){}
     
     var docKeys = ['dl', 'rc', 'aadhaar', 'selfie'];
     var fullKeys = { dl: 'driving_license', rc: 'vehicle_rc', aadhaar: 'aadhaar', selfie: 'selfie' };
@@ -1105,9 +1120,12 @@
       } else {
         result = await sbFetch('riders', { method:'POST', body: payload, prefer:'return=representation' });
       }
-      row = Array.isArray(result) ? result[0] : result;
-      state.riderId = row.id;
-      localStorage.setItem('ridelot_rider_id', state.riderId);
+      var targetRiderId = state.riderId || (row && row.id) || localStorage.getItem('ridelot_rider_id');
+      if (row && row.id) {
+        state.riderId = row.id;
+        targetRiderId = row.id;
+      }
+      localStorage.setItem('ridelot_rider_id', targetRiderId);
       localStorage.setItem('ridelot_rider_name', name);
       localStorage.setItem('ridelot_rider_vtype', vtype);
       localStorage.setItem('ridelot_rider_vlabel', vlabel);
@@ -1126,28 +1144,33 @@
       if (aadhaarFile) docsToSave.aadhaar = await readFileAsBase64(aadhaarFile);
       if (selfieFile) docsToSave.selfie = await readFileAsBase64(selfieFile);
 
-      if (Object.keys(docsToSave).length > 0) {
+      if (Object.keys(docsToSave).length > 0 && targetRiderId) {
         var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
-        if (!allDocs[row.id]) allDocs[row.id] = {};
+        if (!allDocs[targetRiderId]) allDocs[targetRiderId] = {};
         Object.keys(docsToSave).forEach(function(k) {
-          if (docsToSave[k]) allDocs[row.id][k] = { url: docsToSave[k], status: 'pending', updated_at: new Date().toISOString() };
+          if (docsToSave[k]) allDocs[targetRiderId][k] = { url: docsToSave[k], status: 'pending', updated_at: new Date().toISOString() };
         });
         localStorage.setItem('rydealot_driver_docs', JSON.stringify(allDocs));
 
-        // Try syncing to Supabase if table exists
-        try {
-          for (var docType in docsToSave) {
-            if (docsToSave[docType]) {
+        // Sync directly to Supabase driver_documents table
+        for (var docType in docsToSave) {
+          if (docsToSave[docType]) {
+            try {
+              // 1. Delete previous doc of this type for this rider
+              await sbFetch('driver_documents?rider_id=eq.' + targetRiderId + '&doc_type=eq.' + docType, { method: 'DELETE' });
+              // 2. Insert fresh doc record
               await sbFetch('driver_documents', {
                 method: 'POST',
-                body: { rider_id: row.id, doc_type: docType, file_url: docsToSave[docType], status: 'pending' }
+                body: { rider_id: targetRiderId, doc_type: docType, file_url: docsToSave[docType], status: 'pending' }
               });
+            } catch(docErr) {
+              console.error('Supabase doc sync note for ' + docType + ':', docErr);
             }
           }
-        } catch(e) {}
+        }
       }
 
-      showMain(row);
+      showMain(row || { id: targetRiderId, name: name, vehicle_label: vlabel, vehicle_type: vtype, plate: plate, phone: phone });
       toast('✅ Profile & documents saved successfully!');
     } catch(err){
       console.error(err);

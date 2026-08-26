@@ -1689,7 +1689,11 @@
         return { status: 'not_uploaded', url: null };
       };
       
-      var isVerified = r.is_verified || false;
+      var docsApproved = ['driving_license', 'vehicle_rc', 'aadhaar', 'selfie'].every(function(t) {
+        var inf = getDocInfo(t);
+        return inf && inf.status === 'approved';
+      });
+      var isVerified = (r.is_verified === true) || docsApproved;
       if (isVerified) approvedCount++;
       else pendingCount++;
 
@@ -1732,8 +1736,8 @@
 
   async function approveDriverDocs(riderId) {
     try {
-      await sb('riders?id=eq.' + riderId, { method: 'PATCH', body: { is_verified: true } });
-      try { await sb('driver_documents?rider_id=eq.' + riderId, { method: 'PATCH', body: { status: 'approved' } }); } catch(e){}
+      try { await sb('riders?id=eq.' + riderId, { method: 'PATCH', body: { is_verified: true } }); } catch(e){}
+      await sb('driver_documents?rider_id=eq.' + riderId, { method: 'PATCH', body: { status: 'approved' } });
       
       var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
       if (localDocs[riderId]) {
@@ -1750,16 +1754,19 @@
     var reason = prompt('Enter rejection reason for driver:');
     if (reason === null) return;
     try {
-      await sb('riders?id=eq.' + riderId, { method: 'PATCH', body: { is_verified: false } });
-      try { await sb('driver_documents?rider_id=eq.' + riderId, { method: 'PATCH', body: { status: 'rejected', admin_notes: reason } }); } catch(e){}
+      try { await sb('riders?id=eq.' + riderId, { method: 'PATCH', body: { is_verified: false } }); } catch(e){}
+      await sb('driver_documents?rider_id=eq.' + riderId, { method: 'PATCH', body: { status: 'rejected', admin_notes: reason } });
       
       var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
       if (localDocs[riderId]) {
-        Object.keys(localDocs[riderId]).forEach(function(k){ localDocs[riderId][k].status = 'rejected'; });
+        Object.keys(localDocs[riderId]).forEach(function(k){ 
+          localDocs[riderId][k].status = 'rejected'; 
+          localDocs[riderId][k].notes = reason;
+        });
         localStorage.setItem('rydealot_driver_docs', JSON.stringify(localDocs));
       }
 
-      toast('Driver documents rejected');
+      toast('❌ Driver documents rejected');
       loadVerificationData();
     } catch(e) { alert('Rejection failed: ' + e.message); }
   }
