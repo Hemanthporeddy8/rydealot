@@ -1844,8 +1844,23 @@
   }
 
   async function showRiderTracking(b) {
-    document.getElementById('rd-main-section').style.display = 'none';
-    document.getElementById('rd-tracking-section').style.display = 'flex';
+    var mainS = document.getElementById('rd-main-section');
+    var setupS = document.getElementById('rd-setup-section');
+    var walletS = document.getElementById('rd-wallet-section');
+    var alongS = document.getElementById('rd-along-with-section');
+    var trackS = document.getElementById('rd-tracking-section');
+
+    if (mainS) mainS.style.display = 'none';
+    if (setupS) setupS.style.display = 'none';
+    if (walletS) walletS.style.display = 'none';
+    if (alongS) alongS.style.display = 'none';
+
+    if (trackS) {
+      trackS.style.display = 'flex';
+      trackS.style.flexDirection = 'column';
+      trackS.style.gap = '14px';
+      trackS.style.width = '100%';
+    }
 
     document.getElementById('rd-track-user-name').textContent = b.user_name || 'Passenger';
     document.getElementById('rd-track-pickup').textContent = b.pickup_label || '-';
@@ -2025,9 +2040,12 @@
       }
 
       if (state.map) {
+        setTimeout(function() {
+          if (state.map) state.map.invalidateSize();
+        }, 150);
         if (dLat != null && dLng != null && pLat != null && pLng != null) {
           var bounds = L.latLngBounds([[dLat, dLng], [pLat, pLng]]);
-          state.map.fitBounds(bounds, { padding: [20, 20] });
+          state.map.fitBounds(bounds, { padding: [25, 25] });
         } else {
           state.map.setView([dLat, dLng], 15);
         }
