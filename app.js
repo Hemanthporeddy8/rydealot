@@ -4641,8 +4641,6 @@
         }
 
         goToTracking(saved.rider, saved.type, saved.price, pin);
-        var labelStatus = b.status === 'requested' ? 'Waiting for Driver' : (b.status === 'accepted' ? 'Driver Accepted' : b.status.toUpperCase());
-        toast('🔄 Restored your active ride (' + labelStatus + ')');
         return true;
       } else {
         localStorage.removeItem('rydealot_active_booking');
@@ -4717,7 +4715,6 @@
       // Show lot screen and refresh vehicles & fares
       showScreen('screen-lot');
       await resetLot();
-      toast('🔄 Restored your ride selection');
       return true;
     } catch(e) {
       console.error('Error restoring lot state:', e);
