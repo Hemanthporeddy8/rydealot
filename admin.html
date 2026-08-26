@@ -732,6 +732,7 @@
     </div>
     <div style="width:100%; max-height:65vh; overflow:auto; display:flex; justify-content:center; align-items:center; background:#111; border-radius:10px; padding:8px;">
       <img id="doc-modal-img" src="" alt="Driver Document" style="max-width:100%; max-height:60vh; border-radius:6px; object-fit:contain;">
+      <div id="doc-modal-fallback" style="display:none; color:#aaa; font-size:12.5px; text-align:center; padding:30px 14px; line-height:1.5;"></div>
     </div>
   </div>
 </div>
@@ -1645,17 +1646,37 @@
       } catch(e) {}
     }
 
-    if (!url) {
-      alert('⚠️ No image photo file is currently stored for this document. Please upload the photo from driver.html.');
-      return;
-    }
-
     var modal = document.getElementById('doc-viewer-modal');
     var img = document.getElementById('doc-modal-img');
     var titleEl = document.getElementById('doc-modal-title');
-    if (modal && img) {
-      img.src = url;
+    var fallback = document.getElementById('doc-modal-fallback');
+
+    if (modal) {
       if (titleEl) titleEl.textContent = '📄 ' + (title || 'Driver Document');
+
+      var isRealImage = url && (url.startsWith('data:image') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:'));
+
+      if (isRealImage) {
+        if (fallback) fallback.style.display = 'none';
+        if (img) {
+          img.style.display = 'block';
+          img.src = url;
+          img.onerror = function() {
+            img.style.display = 'none';
+            if (fallback) {
+              fallback.style.display = 'block';
+              fallback.innerHTML = '⚠️ Image could not be rendered. The file may be corrupt or an unsupported format.<br><br><span style="font-size:11px; color:#888;">Please ask the driver to re-upload a clear photo (JPG or PNG) from driver.html.</span>';
+            }
+          };
+        }
+      } else {
+        if (img) img.style.display = 'none';
+        if (fallback) {
+          fallback.style.display = 'block';
+          fallback.innerHTML = '⚠️ No photo file uploaded yet for this document.<br><br><span style="font-size:11px; color:#888;">Please have the driver open <strong>driver.html</strong> &rarr; tap <strong>View / Update Docs</strong> &rarr; select their photo and click <strong>Save profile & documents</strong>.</span>';
+        }
+      }
+
       modal.style.display = 'flex';
       modal.style.zIndex = '99999999';
     }
