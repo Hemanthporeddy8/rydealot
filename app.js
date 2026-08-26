@@ -319,7 +319,14 @@
           }
         } catch(e) {}
 
-        if (!hasActiveBooking && !hasActiveLot) {
+        if (hasActiveBooking) {
+          var screenAuth = document.getElementById('screen-auth');
+          if (screenAuth) { screenAuth.classList.remove('active'); screenAuth.style.display = 'none'; }
+          var screenLogin = document.getElementById('screen-login');
+          if (screenLogin) { screenLogin.classList.remove('active'); screenLogin.style.display = 'none'; }
+          var screenTrack = document.getElementById('screen-tracking');
+          if (screenTrack) { screenTrack.classList.add('active'); screenTrack.style.display = 'flex'; }
+        } else if (!hasActiveLot) {
           var screenAuth = document.getElementById('screen-auth');
           var screenLogin = document.getElementById('screen-login');
           if (screenAuth) {
@@ -372,7 +379,14 @@
           }
         } catch(e) {}
 
-        if (!hasActiveBooking2 && !hasActiveLot2) {
+        if (hasActiveBooking2) {
+          var screenAuth = document.getElementById('screen-auth');
+          if (screenAuth) { screenAuth.classList.remove('active'); screenAuth.style.display = 'none'; }
+          var screenLogin = document.getElementById('screen-login');
+          if (screenLogin) { screenLogin.classList.remove('active'); screenLogin.style.display = 'none'; }
+          var screenTrack = document.getElementById('screen-tracking');
+          if (screenTrack) { screenTrack.classList.add('active'); screenTrack.style.display = 'flex'; }
+        } else if (!hasActiveLot2) {
           var screenAuth = document.getElementById('screen-auth');
           if (screenAuth) { screenAuth.classList.remove('active'); screenAuth.style.display = 'none'; }
           var screenLogin = document.getElementById('screen-login');
@@ -874,7 +888,12 @@
 
       // If user is already logged in, show screen-login; otherwise show screen-auth
       if (sess && (sess.phone || sess.email || sess.name)) {
-        if (!hasActiveBooking && !hasActiveLot) {
+        if (hasActiveBooking) {
+          if (authScreen) { authScreen.classList.remove('active'); authScreen.style.display = 'none'; }
+          if (loginScreen) { loginScreen.classList.remove('active'); loginScreen.style.display = 'none'; }
+          var trackScreen = document.getElementById('screen-tracking');
+          if (trackScreen) { trackScreen.classList.add('active'); trackScreen.style.display = 'flex'; }
+        } else if (!hasActiveLot) {
           if (authScreen) { authScreen.classList.remove('active'); authScreen.style.display = 'none'; }
           if (loginScreen) { loginScreen.classList.add('active'); loginScreen.style.display = 'flex'; }
           if (typeof window.initSetupMap === 'function') window.initSetupMap();
@@ -3777,10 +3796,34 @@
     pollTimer = setInterval(async function(){
       var freshRiders = await fetchRealRiders();
       state.realRiderCount = freshRiders.length;
-      mapRidersOntoSlots(freshRiders);
-      render();
-      updateStatus();
-      refreshSurgeAndFares();
+
+      // Detect vehicles booked by other passengers or gone offline
+      var freshDbIds = freshRiders.map(function(r){ return r.id; });
+      var departingSlots = [];
+      if (riderAssign) {
+        Object.keys(riderAssign).forEach(function(slotId){
+          var prevRider = riderAssign[slotId];
+          if (prevRider && prevRider.dbId && freshDbIds.indexOf(prevRider.dbId) === -1 && present && present[slotId]) {
+            departingSlots.push(slotId);
+          }
+        });
+      }
+
+      if (departingSlots.length > 0) {
+        departingSlots.forEach(function(slotId){
+          removeVehicle(slotId, function(){
+            mapRidersOntoSlots(freshRiders);
+            render();
+            updateStatus();
+            refreshSurgeAndFares();
+          });
+        });
+      } else {
+        mapRidersOntoSlots(freshRiders);
+        render();
+        updateStatus();
+        refreshSurgeAndFares();
+      }
     }, 4000);
   }
 
@@ -4151,7 +4194,7 @@
     wrap.style.transformBox = 'view-box';
 
     var anim = wrap.animate(keyframes, {
-      duration: 4200,
+      duration: 1800,
       easing: 'ease-in-out',
       fill: 'forwards'
     });
@@ -4222,8 +4265,7 @@
   });
 
   // Creates a REAL booking row in Supabase and waits for the rider's own
-  // app to accept it — this no longer instantly jumps to "on the way" like
-  // the demo did, because in real life the rider has to say yes first.
+  // app to accept it — plays realistic vehicle departure animation before switching screens
   async function confirmBooking(id, rider, type, price){
     if(state.activeBookingId || state.isBookingInProgress) return;
     state.isBookingInProgress = true;
@@ -4231,12 +4273,31 @@
     var btn = document.getElementById('book-btn');
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Requesting...';
+      btn.textContent = 'Departing lot... 🚗';
     }
     var detailBtn = document.getElementById('detail-book-btn');
     if (detailBtn) {
       detailBtn.disabled = true;
-      detailBtn.textContent = 'Requesting...';
+      detailBtn.textContent = 'Departing lot... 🚗';
+    }
+
+    // Play departure animation: vehicle reverses out of stall, turns right, and drives out
+    var animFinished = false;
+    var bookingResult = null;
+
+    var tryProceedToTracking = function(){
+      if(animFinished && bookingResult){
+        goToTracking(rider, type, price, bookingResult.pin);
+      }
+    };
+
+    if(id && present && present[id]){
+      removeVehicle(id, function(){
+        animFinished = true;
+        tryProceedToTracking();
+      });
+    } else {
+      animFinished = true;
     }
 
     try{
@@ -4301,7 +4362,8 @@
       }
       clearInterval(pollTimer);
       toast('Request sent to ' + rider.name);
-      goToTracking(rider, type, price, pin);
+      bookingResult = { pin: pin };
+      tryProceedToTracking();
     } catch(err){
       toast('Could not send request: ' + err.message);
       state.isBookingInProgress = false;
@@ -4384,6 +4446,12 @@
   }
 
   function goToTracking(rider, type, price, pin){
+    rider = rider || state.activeRider || state.currentRider || {};
+    if (!rider.name) rider.name = 'Driver';
+    if (!rider.initials) rider.initials = (rider.name || 'D').substring(0, 2).toUpperCase();
+    if (!rider.vehicleLabel) rider.vehicleLabel = vehicleLabelOf(type || 'bike');
+    if (!rider.plate) rider.plate = '';
+
     state.currentRider = rider;
     state.currentType = type;
     state.currentFare = price;
@@ -4391,10 +4459,24 @@
     document.getElementById('track-name').textContent = rider.name;
     document.getElementById('track-vehicle-info').textContent = rider.vehicleLabel + ' \u00b7 ' + rider.plate;
     document.getElementById('confirm-vehicle-icon').innerHTML = vehicleIconSvg(type, '#1d9e75');
-    document.getElementById('tracking-sub').textContent = 'Waiting for ' + rider.name + ' to accept...';
-    document.getElementById('track-step-2').textContent = 'Waiting for rider to accept';
-    document.getElementById('cancel-trip-btn').style.display = 'block';
-    document.getElementById('cancel-trip-btn').disabled = false;
+
+    if (state.lastKnownStatus === 'in_progress') {
+      document.getElementById('tracking-sub').textContent = 'Trip in progress to ' + (state.drop || 'destination');
+      document.getElementById('track-step-2').textContent = 'Trip in progress to ' + (state.drop || 'destination');
+      document.getElementById('cancel-trip-btn').style.display = 'none';
+    } else if (state.lastKnownStatus === 'arrived') {
+      document.getElementById('tracking-sub').textContent = rider.name + ' has arrived at ' + (state.pickup || 'pickup');
+      document.getElementById('track-step-2').textContent = 'Rider has arrived at pickup';
+    } else if (state.lastKnownStatus === 'accepted') {
+      document.getElementById('tracking-sub').textContent = rider.name + ' accepted \u2014 heading to ' + (state.pickup || 'pickup');
+      document.getElementById('track-step-2').textContent = 'Rider heading to ' + (state.pickup || 'pickup');
+    } else {
+      document.getElementById('tracking-sub').textContent = 'Waiting for ' + rider.name + ' to accept...';
+      document.getElementById('track-step-2').textContent = 'Waiting for rider to accept';
+      document.getElementById('cancel-trip-btn').style.display = 'block';
+      document.getElementById('cancel-trip-btn').disabled = false;
+    }
+
     // Show PIN immediately — no need to wait for DB polling
     if(pin){
       document.getElementById('track-pin-code').textContent = String(pin);
@@ -4620,34 +4702,83 @@
       var saved = JSON.parse(raw);
       if (!saved || !saved.bookingId) return false;
 
-      var rows = await sbFetch('bookings?id=eq.' + saved.bookingId);
-      var b = rows && rows[0];
-      if (b && (b.status === 'requested' || b.status === 'accepted' || b.status === 'arrived' || b.status === 'in_progress')) {
-        state.activeBookingId = b.id;
-        state.activeRider = saved.rider;
-        state.activeType = saved.type;
-        state.activePrice = saved.price;
-        state.pickup = saved.pickup;
-        state.drop = saved.drop;
-        state.lat = saved.lat;
-        state.lng = saved.lng;
-        state.destLat = saved.destLat;
-        state.destLng = saved.destLng;
+      // Ensure rider object has all needed properties safely
+      var rider = saved.rider || {};
+      if (!rider.name) rider.name = 'Driver';
+      if (!rider.initials) rider.initials = (rider.name || 'D').substring(0, 2).toUpperCase();
+      if (!rider.vehicleLabel) rider.vehicleLabel = vehicleLabelOf(saved.type || 'bike');
+      if (!rider.plate) rider.plate = '';
 
-        var pin = saved.pin;
-        if (b.maps_link) {
-          var pinMatch = b.maps_link.match(/[?&]pin=(\d{4})/);
-          if (pinMatch) pin = pinMatch[1];
+      state.activeBookingId = saved.bookingId;
+      state.activeRider = rider;
+      state.currentRider = rider;
+      state.activeType = saved.type;
+      state.activePrice = saved.price;
+      state.pickup = saved.pickup || 'Pickup';
+      state.drop = saved.drop || 'Drop';
+      state.lat = saved.lat;
+      state.lng = saved.lng;
+      state.destLat = saved.destLat;
+      state.destLng = saved.destLng;
+
+      // Immediately display tracking screen with cached data so NO BLANK OR HOME FLASH
+      goToTracking(rider, saved.type, saved.price, saved.pin);
+
+      // Background query to Supabase to verify live status and update UI
+      try {
+        var rows = await sbFetch('bookings?id=eq.' + saved.bookingId);
+        var b = rows && rows[0];
+        if (b) {
+          if (b.status === 'completed') {
+            localStorage.removeItem('rydealot_active_booking');
+            clearInterval(state.bookingPollTimer);
+            destroyMap();
+            document.getElementById('payment-amount').textContent = 'Rs ' + (b.fare || saved.price || '0');
+            document.getElementById('payment-options-container').style.display = 'flex';
+            document.getElementById('upi-loading-container').style.display = 'none';
+            document.getElementById('payment-done-btn').style.display = 'none';
+            showScreen('screen-payment');
+            return true;
+          } else if (b.status === 'cancelled') {
+            localStorage.removeItem('rydealot_active_booking');
+            clearInterval(state.bookingPollTimer);
+            state.activeBookingId = null;
+            state.isBookingInProgress = false;
+            toast('This trip was cancelled.');
+            showScreen('screen-lot');
+            return false;
+          } else {
+            // Live active trip (requested, accepted, arrived, in_progress)
+            state.lastKnownStatus = b.status;
+            if (b.maps_link) {
+              var pinMatch = b.maps_link.match(/[?&]pin=(\d{4})/);
+              if (pinMatch) document.getElementById('track-pin-code').textContent = pinMatch[1];
+            }
+
+            var sub = document.getElementById('tracking-sub');
+            var step2 = document.getElementById('track-step-2');
+            var cancelBtn = document.getElementById('cancel-trip-btn');
+
+            if (b.status === 'in_progress') {
+              if (sub) sub.textContent = 'Trip in progress to ' + state.drop;
+              if (step2) step2.textContent = 'Trip in progress to ' + state.drop;
+              if (cancelBtn) cancelBtn.style.display = 'none';
+            } else if (b.status === 'arrived') {
+              if (sub) sub.textContent = rider.name + ' has arrived at ' + state.pickup;
+              if (step2) step2.textContent = 'Rider has arrived at pickup';
+            } else if (b.status === 'accepted') {
+              if (sub) sub.textContent = rider.name + ' accepted \u2014 heading to ' + state.pickup;
+              if (step2) step2.textContent = 'Rider heading to ' + state.pickup;
+            }
+          }
         }
-
-        goToTracking(saved.rider, saved.type, saved.price, pin);
-        return true;
-      } else {
-        localStorage.removeItem('rydealot_active_booking');
-        return false;
+      } catch(netErr) {
+        console.warn('Background status sync skipped (offline or slow network):', netErr);
       }
+
+      return true;
     } catch(e) {
-      console.error('Error restoring active booking:', e);
+      console.error('Error in restoreActiveCustomerBooking:', e);
       return false;
     }
   }
