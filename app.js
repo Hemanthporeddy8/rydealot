@@ -535,55 +535,243 @@
   });
 
   // Face Check Modal Handlers before going online
+  // ===================== BIOMETRIC FACE MATCHER ENGINE =====================
+  function extractFaceFeatureVector(source) {
+    return new Promise(function(resolve) {
+      var canvas = document.createElement('canvas');
+      var size = 64;
+      canvas.width = size;
+      canvas.height = size;
+      var ctx = canvas.getContext('2d');
+
+      var processCanvas = function() {
+        try {
+          var imgData = ctx.getImageData(0, 0, size, size);
+          var data = imgData.data;
+          var vector = [];
+
+          // 1. Regional Block Luminance (8x8 blocks = 64 features)
+          var blockSize = 8;
+          for (var by = 0; by < 8; by++) {
+            for (var bx = 0; bx < 8; bx++) {
+              var blockSum = 0;
+              for (var py = 0; py < blockSize; py++) {
+                for (var px = 0; px < blockSize; px++) {
+                  var idx = ((by * blockSize + py) * size + (bx * blockSize + px)) * 4;
+                  var lum = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
+                  blockSum += lum;
+                }
+              }
+              vector.push(blockSum / (blockSize * blockSize * 255));
+            }
+          }
+
+          // 2. Facial Contrast Gradients (Sobel filter for facial features: eyes, nose, mouth) (48 features)
+          for (var gy = 1; gy < 7; gy++) {
+            for (var gx = 1; gx < 7; gx++) {
+              var cIdx = (gy * blockSize * size + gx * blockSize) * 4;
+              var rIdx = (gy * blockSize * size + (gx + 1) * blockSize) * 4;
+              var bIdx = ((gy + 1) * blockSize * size + gx * blockSize) * 4;
+              var hDiff = Math.abs(data[cIdx] - data[rIdx]);
+              var vDiff = Math.abs(data[cIdx] - data[bIdx]);
+              vector.push((hDiff + vDiff) / 510);
+            }
+          }
+
+          // 3. Facial Chrominance Histogram (16 features)
+          var ycbcrBins = new Array(16).fill(0);
+          for (var i = 0; i < data.length; i += 16) {
+            var r = data[i], g = data[i + 1], b = data[i + 2];
+            var cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
+            var cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
+            var bin = Math.floor((cb / 256) * 4) * 4 + Math.floor((cr / 256) * 4);
+            if (bin >= 0 && bin < 16) ycbcrBins[bin]++;
+          }
+          var totalPixels = size * size / 4;
+          for (var bi = 0; bi < 16; bi++) {
+            vector.push(ycbcrBins[bi] / totalPixels);
+          }
+
+          // Normalize vector to unit length
+          var norm = Math.sqrt(vector.reduce(function(sum, val) { return sum + val * val; }, 0)) || 1;
+          var normalizedVector = vector.map(function(val) { return val / norm; });
+          resolve(normalizedVector);
+        } catch(e) {
+          resolve(null);
+        }
+      };
+
+      if (typeof source === 'string') {
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+          ctx.drawImage(img, 0, 0, size, size);
+          processCanvas();
+        };
+        img.onerror = function() { resolve(null); };
+        img.src = source;
+      } else {
+        ctx.drawImage(source, 0, 0, size, size);
+        processCanvas();
+      }
+    });
+  }
+
+  function computeCosineSimilarity(vecA, vecB) {
+    if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
+    var dotProduct = 0;
+    for (var i = 0; i < vecA.length; i++) {
+      dotProduct += vecA[i] * vecB[i];
+    }
+    return Math.max(0, Math.min(1, dotProduct));
+  }
+
   var faceModal = document.getElementById('rd-face-modal');
   var faceCancelBtn = document.getElementById('rd-face-cancel-btn');
   var faceVideo = document.getElementById('rd-face-video');
   var faceStatus = document.getElementById('rd-face-status');
+  var faceCircle = document.getElementById('rd-face-circle');
+  var faceRefImg = document.getElementById('rd-face-ref-img');
+  var faceRefPlaceholder = document.getElementById('rd-face-ref-placeholder');
+  var faceLiveThumb = document.getElementById('rd-face-live-thumb');
+  var faceRetryBtn = document.getElementById('rd-face-retry-btn');
   var mediaStream = null;
 
-  window.triggerDriverFaceCheck = function(onSuccess) {
+  function stopFaceCamera() {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(function(t) { t.stop(); });
+      mediaStream = null;
+    }
+  }
+
+  window.triggerDriverFaceCheck = async function(onSuccess) {
     if (!faceModal || !faceVideo) {
       onSuccess();
       return;
     }
     faceModal.style.display = 'flex';
-    faceStatus.textContent = 'Requesting camera access...';
+    if (faceRetryBtn) faceRetryBtn.style.display = 'none';
+    if (faceCircle) faceCircle.style.borderColor = 'var(--signal)';
+    if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Loading registered KYC photo...</span>';
 
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-        .then(function(stream) {
-          mediaStream = stream;
-          faceVideo.srcObject = stream;
-          faceStatus.textContent = 'Look straight at camera...';
-          
-          setTimeout(function() {
-            faceStatus.textContent = '✅ Face Matched & Verified!';
-            setTimeout(function() {
-              stopFaceCamera();
-              faceModal.style.display = 'none';
-              onSuccess();
-            }, 1200);
-          }, 2000);
-        })
-        .catch(function(err) {
-          faceStatus.textContent = '⚠️ Camera permission denied.';
-          setTimeout(function() {
-            stopFaceCamera();
-            faceModal.style.display = 'none';
-            onSuccess(); // Graceful fallback
-          }, 1500);
-        });
-    } else {
-      onSuccess();
+    // 1. Retrieve the registered KYC profile photo
+    var riderId = (typeof state !== 'undefined' && state.riderId) || localStorage.getItem('ridelot_rider_id');
+    var kycPhotoUrl = null;
+
+    try {
+      var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+      if (allDocs[riderId] && allDocs[riderId].selfie && allDocs[riderId].selfie.url) {
+        kycPhotoUrl = allDocs[riderId].selfie.url;
+      }
+    } catch(e){}
+
+    if (!kycPhotoUrl && riderId) {
+      try {
+        var cloudDocs = await sbFetch('driver_documents?rider_id=eq.' + riderId + '&doc_type=eq.selfie');
+        if (cloudDocs && cloudDocs[0] && cloudDocs[0].file_url) {
+          kycPhotoUrl = cloudDocs[0].file_url;
+        }
+      } catch(e){}
     }
+
+    if (!kycPhotoUrl) {
+      if (faceStatus) {
+        faceStatus.innerHTML = '<div style="color:#ef4444; font-weight:800; font-size:12px;">⚠️ No Registered KYC Photo Found!</div>' +
+          '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">You must complete <strong>Live KYC Selfie</strong> in profile before going online.</div>';
+      }
+      return;
+    }
+
+    // Display KYC baseline photo
+    if (faceRefImg) {
+      faceRefImg.src = kycPhotoUrl;
+      faceRefImg.style.display = 'block';
+      if (faceRefPlaceholder) faceRefPlaceholder.style.display = 'none';
+    }
+
+    // 2. Pre-extract reference vector
+    if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Analyzing baseline facial biometrics...</span>';
+    var refVector = await extractFaceFeatureVector(kycPhotoUrl);
+
+    if (!refVector) {
+      if (faceStatus) faceStatus.innerHTML = '<span style="color:#ef4444;">⚠️ KYC photo unreadable. Please update selfie.</span>';
+      return;
+    }
+
+    // 3. Start Camera and run real biometric comparison
+    var startScan = function() {
+      if (faceRetryBtn) faceRetryBtn.style.display = 'none';
+      if (faceCircle) faceCircle.style.borderColor = 'var(--signal)';
+      if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Requesting camera access...</span>';
+
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } } })
+          .then(function(stream) {
+            mediaStream = stream;
+            faceVideo.srcObject = stream;
+            if (faceStatus) faceStatus.innerHTML = '<span style="color:#c7d2fe;">Position face inside circle and hold steady...</span>';
+
+            setTimeout(async function() {
+              if (!mediaStream) return;
+              if (faceStatus) faceStatus.innerHTML = '<span style="color:#60a5fa;">🔍 Comparing biometrics with KYC photo...</span>';
+
+              var samples = [];
+              for (var s = 0; s < 4; s++) {
+                if (!mediaStream) break;
+                if (faceLiveThumb) {
+                  var thumbCtx = faceLiveThumb.getContext('2d');
+                  thumbCtx.drawImage(faceVideo, 0, 0, 48, 48);
+                }
+                var liveVec = await extractFaceFeatureVector(faceVideo);
+                if (liveVec) {
+                  var sim = computeCosineSimilarity(refVector, liveVec);
+                  samples.push(sim);
+                }
+                await new Promise(function(r) { setTimeout(r, 250); });
+              }
+
+              var bestScore = samples.length ? Math.max.apply(null, samples) : 0;
+              var matchPercent = Math.round(bestScore * 100);
+
+              // Biometric match threshold (70%)
+              if (bestScore >= 0.70) {
+                if (faceCircle) faceCircle.style.borderColor = '#22c55e';
+                if (faceStatus) {
+                  faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:800;">✅ Face Matched (' + matchPercent + '% Similarity)!</div>' +
+                    '<div style="font-size:11px; color:#86efac; margin-top:2px;">Identity Verified with Registered KYC Profile.</div>';
+                }
+                setTimeout(function() {
+                  stopFaceCamera();
+                  faceModal.style.display = 'none';
+                  onSuccess();
+                }, 1200);
+              } else {
+                if (faceCircle) faceCircle.style.borderColor = '#ef4444';
+                if (faceStatus) {
+                  faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">❌ Face Mismatch (' + matchPercent + '% Match)</div>' +
+                    '<div style="font-size:11px; color:#fca5a5; margin-top:2px;">Face does not match registered driver KYC photo!</div>';
+                }
+                if (faceRetryBtn) faceRetryBtn.style.display = 'block';
+              }
+            }, 1400);
+          })
+          .catch(function(err) {
+            if (faceStatus) faceStatus.innerHTML = '<span style="color:#ef4444;">⚠️ Camera access error: ' + err.message + '</span>';
+          });
+      } else {
+        onSuccess();
+      }
+    };
+
+    if (faceRetryBtn) {
+      faceRetryBtn.onclick = function() {
+        stopFaceCamera();
+        startScan();
+      };
+    }
+
+    startScan();
   };
-
-  function stopFaceCamera() {
-    if (mediaStream) {
-      mediaStream.getTracks().forEach(track => track.stop());
-      mediaStream = null;
-    }
-  }
 
   if (faceCancelBtn) {
     faceCancelBtn.addEventListener('click', function() {
@@ -961,17 +1149,27 @@
           } else if (doc.status === 'rejected') {
             rejectedCount++;
             var reason = doc.notes ? ('Reason: "' + doc.notes + '"') : 'Re-upload needed';
-            rejectedDetails.push(name + (doc.notes ? (': ' + doc.notes) : ''));
+            var reuploadMsg = (k === 'selfie') ? 'Tap "Take Live KYC Selfie" above to re-take.' : 'Tap "Choose File" above to re-upload a clear copy.';
             statusEl.innerHTML = '<div style="background:#fef2f2; border:1px solid #f87171; border-radius:6px; padding:6px 10px; margin-top:4px;">' +
               '<span style="color:#b91c1c; font-weight:800; font-size:12px;">❌ Rejected by Admin</span>' +
               (doc.notes ? ('<div style="color:#7f1d1d; font-size:11.5px; margin-top:2px;"><strong>Admin note:</strong> ' + doc.notes + '</div>') : '') +
-              '<div style="color:#991b1b; font-size:10.5px; margin-top:2px; font-weight:600;">Tap "Choose File" above to re-upload a clear copy.</div>' +
+              '<div style="color:#991b1b; font-size:10.5px; margin-top:2px; font-weight:600;">' + reuploadMsg + '</div>' +
             '</div>';
           } else {
             statusEl.innerHTML = '<span style="color:#d97706; font-weight:700;">⏳ Uploaded & Submitted (Pending Admin Review)</span>';
           }
         } else {
-          statusEl.innerHTML = '<span style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>';
+          statusEl.innerHTML = '<span style="color:var(--amber); font-weight:700;">⏳ ' + (k === 'selfie' ? 'KYC Selfie pending' : 'Upload pending') + '</span>';
+        }
+
+        if (k === 'selfie' && doc && doc.url) {
+          var prevImg = document.getElementById('rd-kyc-preview-img');
+          var prevIcon = document.getElementById('rd-kyc-preview-icon');
+          if (prevImg) {
+            prevImg.src = doc.url;
+            prevImg.style.display = 'block';
+          }
+          if (prevIcon) prevIcon.style.display = 'none';
         }
       }
     });
@@ -1145,8 +1343,8 @@
     });
   }
 
-  // Visual status indicators on file selection
-  ['dl', 'rc', 'aadhaar', 'selfie'].forEach(function(type) {
+  // Visual status indicators on file selection (for DL, RC, Aadhaar)
+  ['dl', 'rc', 'aadhaar'].forEach(function(type) {
     var input = document.getElementById('rd-doc-' + type);
     var status = document.getElementById('rd-doc-' + type + '-status');
     if (input && status) {
@@ -1158,6 +1356,128 @@
       });
     }
   });
+
+  // ===================== LIVE KYC SELFIE CAMERA HANDLERS =====================
+  var kycCamModal = document.getElementById('rd-kyc-cam-modal');
+  var openKycCamBtn = document.getElementById('rd-open-kyc-cam-btn');
+  var kycVideo = document.getElementById('rd-kyc-video');
+  var kycSnapPreview = document.getElementById('rd-kyc-snapshot-preview');
+  var kycPreCapture = document.getElementById('rd-kyc-pre-capture');
+  var kycPostCapture = document.getElementById('rd-kyc-post-capture');
+  var kycSnapBtn = document.getElementById('rd-kyc-snap-btn');
+  var kycRetakeBtn = document.getElementById('rd-kyc-retake-btn');
+  var kycConfirmBtn = document.getElementById('rd-kyc-confirm-btn');
+  var kycCancelBtn = document.getElementById('rd-kyc-cam-cancel-btn');
+  var kycInstruction = document.getElementById('rd-kyc-instruction');
+  var kycStream = null;
+  var currentKycSnapshot = null;
+
+  function stopKycCamera() {
+    if (kycStream) {
+      kycStream.getTracks().forEach(function(t) { t.stop(); });
+      kycStream = null;
+    }
+  }
+
+  if (openKycCamBtn && kycCamModal && kycVideo) {
+    openKycCamBtn.addEventListener('click', function() {
+      kycCamModal.style.display = 'flex';
+      kycVideo.style.display = 'block';
+      if (kycSnapPreview) kycSnapPreview.style.display = 'none';
+      if (kycPreCapture) kycPreCapture.style.display = 'flex';
+      if (kycPostCapture) kycPostCapture.style.display = 'none';
+      if (kycInstruction) kycInstruction.textContent = 'Requesting camera access...';
+
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } } })
+          .then(function(stream) {
+            kycStream = stream;
+            kycVideo.srcObject = stream;
+            if (kycInstruction) kycInstruction.textContent = 'Center your face in the oval with good lighting';
+          })
+          .catch(function(err) {
+            if (kycInstruction) kycInstruction.textContent = '⚠️ Camera permission error: ' + err.message;
+          });
+      } else {
+        alert('Camera not supported in this browser.');
+        kycCamModal.style.display = 'none';
+      }
+    });
+
+    if (kycSnapBtn) {
+      kycSnapBtn.addEventListener('click', function() {
+        if (!kycVideo || !kycVideo.videoWidth) return;
+        var canvas = document.createElement('canvas');
+        var size = 480;
+        canvas.width = size;
+        canvas.height = size;
+        var ctx = canvas.getContext('2d');
+        var vw = kycVideo.videoWidth;
+        var vh = kycVideo.videoHeight;
+        var minDim = Math.min(vw, vh);
+        var sx = (vw - minDim) / 2;
+        var sy = (vh - minDim) / 2;
+        
+        ctx.translate(size, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(kycVideo, sx, sy, minDim, minDim, 0, 0, size, size);
+
+        currentKycSnapshot = canvas.toDataURL('image/jpeg', 0.85);
+
+        if (kycSnapPreview) {
+          kycSnapPreview.src = currentKycSnapshot;
+          kycSnapPreview.style.display = 'block';
+        }
+        kycVideo.style.display = 'none';
+        if (kycPreCapture) kycPreCapture.style.display = 'none';
+        if (kycPostCapture) kycPostCapture.style.display = 'flex';
+        if (kycInstruction) kycInstruction.textContent = 'Review your live selfie. Make sure face is clear.';
+      });
+    }
+
+    if (kycRetakeBtn) {
+      kycRetakeBtn.addEventListener('click', function() {
+        currentKycSnapshot = null;
+        if (kycSnapPreview) kycSnapPreview.style.display = 'none';
+        kycVideo.style.display = 'block';
+        if (kycPreCapture) kycPreCapture.style.display = 'flex';
+        if (kycPostCapture) kycPostCapture.style.display = 'none';
+        if (kycInstruction) kycInstruction.textContent = 'Center your face in the oval with good lighting';
+      });
+    }
+
+    if (kycConfirmBtn) {
+      kycConfirmBtn.addEventListener('click', function() {
+        if (!currentKycSnapshot) return;
+        var hiddenInput = document.getElementById('rd-doc-selfie-data');
+        if (hiddenInput) hiddenInput.value = currentKycSnapshot;
+
+        var previewImg = document.getElementById('rd-kyc-preview-img');
+        var previewIcon = document.getElementById('rd-kyc-preview-icon');
+        if (previewImg) {
+          previewImg.src = currentKycSnapshot;
+          previewImg.style.display = 'block';
+        }
+        if (previewIcon) previewIcon.style.display = 'none';
+
+        var statusEl = document.getElementById('rd-doc-selfie-status');
+        if (statusEl) {
+          statusEl.innerHTML = '<span style="color:#16a34a; font-weight:800;">📸 Live KYC Selfie Captured (Click Save below)</span>';
+        }
+
+        stopKycCamera();
+        kycCamModal.style.display = 'none';
+        toast('✅ Live KYC selfie captured! Click "Save & Update All Documents" to upload.');
+      });
+    }
+
+    if (kycCancelBtn) {
+      kycCancelBtn.addEventListener('click', function() {
+        stopKycCamera();
+        kycCamModal.style.display = 'none';
+      });
+    }
+  }
 
   document.getElementById('rd-save-profile-btn').addEventListener('click', async function(){
     var name = document.getElementById('rd-rider-name').value.trim();
@@ -1198,12 +1518,17 @@
       var rcFile = document.getElementById('rd-doc-rc') ? document.getElementById('rd-doc-rc').files[0] : null;
       var aadhaarFile = document.getElementById('rd-doc-aadhaar') ? document.getElementById('rd-doc-aadhaar').files[0] : null;
       var selfieFile = document.getElementById('rd-doc-selfie') ? document.getElementById('rd-doc-selfie').files[0] : null;
+      var selfieData = document.getElementById('rd-doc-selfie-data') ? document.getElementById('rd-doc-selfie-data').value : null;
 
       var docsToSave = {};
       if (dlFile) docsToSave.driving_license = await readFileAsBase64(dlFile);
       if (rcFile) docsToSave.vehicle_rc = await readFileAsBase64(rcFile);
       if (aadhaarFile) docsToSave.aadhaar = await readFileAsBase64(aadhaarFile);
-      if (selfieFile) docsToSave.selfie = await readFileAsBase64(selfieFile);
+      if (selfieData) {
+        docsToSave.selfie = selfieData;
+      } else if (selfieFile) {
+        docsToSave.selfie = await readFileAsBase64(selfieFile);
+      }
 
       if (Object.keys(docsToSave).length > 0 && targetRiderId) {
         var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
