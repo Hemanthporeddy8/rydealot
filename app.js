@@ -301,20 +301,31 @@
         uRoot.classList.add('active');
         uRoot.style.display = 'block';
 
-        var screenAuth = document.getElementById('screen-auth');
-        var screenLogin = document.getElementById('screen-login');
-        if (screenAuth) {
-          screenAuth.classList.remove('active');
-          screenAuth.style.display = 'none';
-        }
-        if (screenLogin) {
-          screenLogin.classList.add('active');
-          screenLogin.style.display = 'flex';
-        }
+        var hasActiveBooking = false;
+        try {
+          var rawBk = localStorage.getItem('rydealot_active_booking');
+          if (rawBk) {
+            var bk = JSON.parse(rawBk);
+            if (bk && bk.bookingId) hasActiveBooking = true;
+          }
+        } catch(e) {}
 
-        if (typeof window.initSetupMap === 'function') window.initSetupMap();
-        setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 100);
-        setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 400);
+        if (!hasActiveBooking) {
+          var screenAuth = document.getElementById('screen-auth');
+          var screenLogin = document.getElementById('screen-login');
+          if (screenAuth) {
+            screenAuth.classList.remove('active');
+            screenAuth.style.display = 'none';
+          }
+          if (screenLogin) {
+            screenLogin.classList.add('active');
+            screenLogin.style.display = 'flex';
+          }
+
+          if (typeof window.initSetupMap === 'function') window.initSetupMap();
+          setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 100);
+          setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 400);
+        }
 
         var nameInput = document.getElementById('login-name');
         if (nameInput) nameInput.value = sess.name || '';
@@ -334,14 +345,25 @@
         if (uRoot) { uRoot.classList.add('active'); uRoot.style.display = 'block'; }
         if (rRoot && rRoot !== document.body) { rRoot.classList.remove('active'); rRoot.style.display = 'none'; }
 
-        var screenAuth = document.getElementById('screen-auth');
-        if (screenAuth) { screenAuth.classList.remove('active'); screenAuth.style.display = 'none'; }
-        var screenLogin = document.getElementById('screen-login');
-        if (screenLogin) { screenLogin.classList.add('active'); screenLogin.style.display = 'flex'; }
+        var hasActiveBooking2 = false;
+        try {
+          var rawBk2 = localStorage.getItem('rydealot_active_booking');
+          if (rawBk2) {
+            var bk2 = JSON.parse(rawBk2);
+            if (bk2 && bk2.bookingId) hasActiveBooking2 = true;
+          }
+        } catch(e) {}
 
-        if (typeof window.initSetupMap === 'function') window.initSetupMap();
-        setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 100);
-        setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 400);
+        if (!hasActiveBooking2) {
+          var screenAuth = document.getElementById('screen-auth');
+          if (screenAuth) { screenAuth.classList.remove('active'); screenAuth.style.display = 'none'; }
+          var screenLogin = document.getElementById('screen-login');
+          if (screenLogin) { screenLogin.classList.add('active'); screenLogin.style.display = 'flex'; }
+
+          if (typeof window.initSetupMap === 'function') window.initSetupMap();
+          setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 100);
+          setTimeout(function(){ if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize(); }, 400);
+        }
 
         var nameInput = document.getElementById('login-name');
         if (nameInput) nameInput.value = sess.name || '';
@@ -814,17 +836,28 @@
       var authScreen = document.getElementById('screen-auth');
       var loginScreen = document.getElementById('screen-login');
       
+      var hasActiveBooking = false;
+      try {
+        var rawBk = localStorage.getItem('rydealot_active_booking');
+        if (rawBk) {
+          var bk = JSON.parse(rawBk);
+          if (bk && bk.bookingId) hasActiveBooking = true;
+        }
+      } catch(e) {}
+
       // If user is already logged in, show screen-login; otherwise show screen-auth
       if (sess && (sess.phone || sess.email || sess.name)) {
-        if (authScreen) { authScreen.classList.remove('active'); authScreen.style.display = 'none'; }
-        if (loginScreen) { loginScreen.classList.add('active'); loginScreen.style.display = 'flex'; }
-        if (typeof window.initSetupMap === 'function') window.initSetupMap();
-        setTimeout(function(){
-          if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
-        }, 100);
-        setTimeout(function(){
-          if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
-        }, 350);
+        if (!hasActiveBooking) {
+          if (authScreen) { authScreen.classList.remove('active'); authScreen.style.display = 'none'; }
+          if (loginScreen) { loginScreen.classList.add('active'); loginScreen.style.display = 'flex'; }
+          if (typeof window.initSetupMap === 'function') window.initSetupMap();
+          setTimeout(function(){
+            if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
+          }, 100);
+          setTimeout(function(){
+            if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
+          }, 350);
+        }
       } else {
         if (loginScreen) { loginScreen.classList.remove('active'); loginScreen.style.display = 'none'; }
         if (authScreen) { authScreen.classList.add('active'); authScreen.style.display = 'flex'; }
@@ -2999,13 +3032,45 @@
     resetLot();
   });
 
+  function highlightVehiclesInLot(type) {
+    if (!svg) return;
+    var slots = svg.querySelectorAll('.slot-wrap');
+    Array.prototype.forEach.call(slots, function(slotEl) {
+      var sId = slotEl.getAttribute('data-slot');
+      var sType = slotType && slotType[sId];
+      if (sType === type) {
+        slotEl.classList.add('lot-highlight');
+        slotEl.style.opacity = '1';
+      } else {
+        slotEl.classList.remove('lot-highlight');
+        slotEl.style.opacity = '0.35';
+      }
+    });
+  }
+
   Array.prototype.forEach.call(document.querySelectorAll('.ride-type-card'), function(card){
     card.addEventListener('click', function(){
       var type = card.getAttribute('data-type');
       state.selectedRideType = type;
+
       Array.prototype.forEach.call(document.querySelectorAll('.ride-type-card'), function(c){
-        c.classList.toggle('selected', c === card);
+        var isTarget = (c === card);
+        c.classList.toggle('selected', isTarget);
+        c.classList.remove('card-just-selected');
+        var icon = c.querySelector('.rt-icon');
+        if (icon) icon.classList.remove('anim-vehicle-bounce');
       });
+
+      card.classList.add('card-just-selected');
+      setTimeout(function() { card.classList.remove('card-just-selected'); }, 400);
+
+      var icon = card.querySelector('.rt-icon');
+      if (icon) {
+        void icon.offsetWidth; // trigger reflow
+        icon.classList.add('anim-vehicle-bounce');
+      }
+
+      highlightVehiclesInLot(type);
       updateBookButton();
     });
   });
@@ -3701,6 +3766,8 @@
         if(e.key === 'Enter' || e.key === ' '){ openDetail(el.getAttribute('data-id')); }
       });
     });
+
+    highlightVehiclesInLot(state.selectedRideType || 'bike');
   }
 
   function countPresent(){
@@ -3942,6 +4009,7 @@
 
   function updateBookButton(){
     var btn = document.getElementById('book-btn');
+    if (!btn) return;
     var type = state.selectedRideType || 'bike';
     var price = currentPriceFor(type);
     var count = countByType(type);
@@ -3951,6 +4019,9 @@
     } else {
       btn.textContent = 'Find ' + typeLabel + ' nearby \u2014 Rs ' + price;
     }
+    btn.classList.remove('btn-pop-anim');
+    void btn.offsetWidth;
+    btn.classList.add('btn-pop-anim');
   }
 
   function updateStatus(){
@@ -4137,6 +4208,23 @@
       state.activeRider = rider;
       state.activeType = type;
       state.activePrice = price;
+
+      // Save active booking to localStorage for instant reload/refresh persistence!
+      try {
+        localStorage.setItem('rydealot_active_booking', JSON.stringify({
+          bookingId: row.id,
+          rider: rider,
+          type: type,
+          price: price,
+          pin: pin,
+          pickup: state.pickup,
+          drop: state.drop,
+          lat: state.lat,
+          lng: state.lng,
+          destLat: state.destLat,
+          destLng: state.destLng
+        }));
+      } catch(e) { console.error('Could not save booking to cache:', e); }
 
       // Lock used coupon so customer cannot reuse it
       if (appliedPromoCode) {
@@ -4352,6 +4440,7 @@
       } else if(b.status === 'completed'){
         clearInterval(state.bookingPollTimer);
         destroyMap();
+        localStorage.removeItem('rydealot_active_booking');
         
         document.getElementById('payment-amount').textContent = 'Rs ' + (b.fare || '0');
         document.getElementById('payment-options-container').style.display = 'flex';
@@ -4364,11 +4453,16 @@
         clearInterval(state.bookingPollTimer);
         state.activeBookingId = null;
         state.isBookingInProgress = false;
+        localStorage.removeItem('rydealot_active_booking');
         var btn = document.getElementById('book-btn');
         if (btn) {
           btn.disabled = false;
           btn.textContent = 'Book nearest ' + state.selectedRideType + ' \u2014 Rs ' + currentPriceFor(state.selectedRideType);
         }
+        setTimeout(function(){
+          toast('Trip was cancelled or declined. You can request another rider.');
+          showScreen('screen-lot');
+        }, 2000);
       }
     } catch(err){
       console.error('poll booking failed', err);
@@ -4378,6 +4472,7 @@
   document.getElementById('cancel-trip-btn').addEventListener('click', async function(){
     clearInterval(state.bookingPollTimer);
     destroyMap();
+    localStorage.removeItem('rydealot_active_booking');
     if(!state.activeBookingId){
       showScreen('screen-login');
       return;
@@ -4404,6 +4499,7 @@
   document.getElementById('tracking-close').addEventListener('click', function(){
     clearInterval(state.bookingPollTimer);
     destroyMap();
+    localStorage.removeItem('rydealot_active_booking');
     showScreen('screen-login');
   });
 
@@ -4440,6 +4536,7 @@
     state.activeBookingId = null;
     state.exitAnimationPlayed = false;
     state.trackAnimPlayed = false;
+    localStorage.removeItem('rydealot_active_booking');
     showScreen('screen-login');
   });
 
@@ -4452,11 +4549,57 @@
 
   loadFareConfig();
 
-  // Automatic startup triggers for passenger side map & location
-  setTimeout(function(){
-    initSetupMap();
-    autoFindLocation();
-  }, 300);
+  // ===== AUTOMATIC ACTIVE RIDE RESTORATION ON REFRESH =====
+  async function restoreActiveCustomerBooking() {
+    try {
+      var raw = localStorage.getItem('rydealot_active_booking');
+      if (!raw) return false;
+      var saved = JSON.parse(raw);
+      if (!saved || !saved.bookingId) return false;
+
+      var rows = await sbFetch('bookings?id=eq.' + saved.bookingId);
+      var b = rows && rows[0];
+      if (b && (b.status === 'requested' || b.status === 'accepted' || b.status === 'arrived' || b.status === 'in_progress')) {
+        state.activeBookingId = b.id;
+        state.activeRider = saved.rider;
+        state.activeType = saved.type;
+        state.activePrice = saved.price;
+        state.pickup = saved.pickup;
+        state.drop = saved.drop;
+        state.lat = saved.lat;
+        state.lng = saved.lng;
+        state.destLat = saved.destLat;
+        state.destLng = saved.destLng;
+
+        var pin = saved.pin;
+        if (b.maps_link) {
+          var pinMatch = b.maps_link.match(/[?&]pin=(\d{4})/);
+          if (pinMatch) pin = pinMatch[1];
+        }
+
+        goToTracking(saved.rider, saved.type, saved.price, pin);
+        var labelStatus = b.status === 'requested' ? 'Waiting for Driver' : (b.status === 'accepted' ? 'Driver Accepted' : b.status.toUpperCase());
+        toast('🔄 Restored your active ride (' + labelStatus + ')');
+        return true;
+      } else {
+        localStorage.removeItem('rydealot_active_booking');
+        return false;
+      }
+    } catch(e) {
+      console.error('Error restoring active booking:', e);
+      return false;
+    }
+  }
+
+  // Automatic startup triggers for passenger side map & location or active ride restore
+  restoreActiveCustomerBooking().then(function(restored) {
+    if (!restored) {
+      setTimeout(function(){
+        initSetupMap();
+        autoFindLocation();
+      }, 300);
+    }
+  });
 
   // Re-initialize setup map if roles switch
   window.addEventListener('roleswitch', function(e){
