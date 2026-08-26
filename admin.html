@@ -734,6 +734,10 @@
       <img id="doc-modal-img" src="" alt="Driver Document" style="max-width:100%; max-height:60vh; border-radius:6px; object-fit:contain;">
       <div id="doc-modal-fallback" style="display:none; color:#aaa; font-size:12.5px; text-align:center; padding:30px 14px; line-height:1.5;"></div>
     </div>
+    <div style="display:flex; gap:10px; width:100%; margin-top:4px;">
+      <button type="button" onclick="rejectCurrentDocFromModal()" class="btn btn-red" style="flex:1; padding:10px; font-weight:800; font-size:0.85rem; cursor:pointer;">❌ Reject This Doc</button>
+      <button type="button" onclick="approveCurrentDocFromModal()" class="btn btn-green" style="flex:1.5; padding:10px; font-weight:900; font-size:0.85rem; cursor:pointer;">✅ Verify & Approve Doc</button>
+    </div>
   </div>
 </div>
 
@@ -1626,17 +1630,29 @@
   }
 
   window.docCache = {};
+  var currentViewingRiderId = null;
+  var currentViewingDocType = null;
+  var currentViewingDocTitle = null;
 
   window.viewDocImageByKey = function(docKey, title) {
+    // Extract riderId and full docType
+    var parts = (docKey || '').split('_');
+    var shortType = parts.pop();
+    var riderId = parts.join('_');
+    var fullKeys = { dl: 'driving_license', rc: 'vehicle_rc', aadhaar: 'aadhaar', selfie: 'selfie' };
+    var docType = fullKeys[shortType] || shortType;
+
+    currentViewingRiderId = riderId;
+    currentViewingDocType = docType;
+    currentViewingDocTitle = title;
+
     var url = window.docCache[docKey];
     if (!url) {
       try {
         var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
         for (var rid in localDocs) {
           if (docKey.indexOf(rid) === 0) {
-            var docType = docKey.replace(rid + '_', '');
-            var fullKeys = { dl: 'driving_license', rc: 'vehicle_rc', aadhaar: 'aadhaar', selfie: 'selfie' };
-            var fk = fullKeys[docType] || docType;
+            var fk = fullKeys[shortType] || shortType;
             if (localDocs[rid][fk] && localDocs[rid][fk].url) {
               url = localDocs[rid][fk].url;
               break;
@@ -1685,6 +1701,81 @@
   window.closeDocModal = function() {
     var modal = document.getElementById('doc-viewer-modal');
     if (modal) modal.style.display = 'none';
+    currentViewingRiderId = null;
+    currentViewingDocType = null;
+    currentViewingDocTitle = null;
+  };
+
+  window.approveCurrentDocFromModal = async function() {
+    if (!currentViewingRiderId || !currentViewingDocType) {
+      alert('Could not detect document context to approve.');
+      return;
+    }
+    try {
+      // 1. Update this document to approved in Supabase
+      await sb('driver_documents?rider_id=eq.' + currentViewingRiderId + '&doc_type=eq.' + currentViewingDocType, {
+        method: 'PATCH',
+        body: { status: 'approved' }
+      });
+
+      // 2. Update local storage cache
+      var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+      if (localDocs[currentViewingRiderId] && localDocs[currentViewingRiderId][currentViewingDocType]) {
+        localDocs[currentViewingRiderId][currentViewingDocType].status = 'approved';
+        localStorage.setItem('rydealot_driver_docs', JSON.stringify(localDocs));
+      }
+
+      // 3. Auto-verify driver if all 4 required docs are approved
+      var allDocs = await sb('driver_documents?rider_id=eq.' + currentViewingRiderId);
+      var reqTypes = ['driving_license', 'vehicle_rc', 'aadhaar', 'selfie'];
+      var allApproved = reqTypes.every(function(t) {
+        var d = (allDocs || []).find(function(item){ return item.doc_type === t; });
+        return d && d.status === 'approved';
+      });
+      if (allApproved) {
+        try { await sb('riders?id=eq.' + currentViewingRiderId, { method: 'PATCH', body: { is_verified: true } }); } catch(e){}
+      }
+
+      toast('✅ ' + (currentViewingDocTitle || 'Document') + ' verified & approved!');
+      closeDocModal();
+      await loadVerificationData();
+    } catch(err) {
+      alert('Failed to approve document: ' + (err.message || 'unknown error'));
+    }
+  };
+
+  window.rejectCurrentDocFromModal = async function() {
+    if (!currentViewingRiderId || !currentViewingDocType) {
+      alert('Could not detect document context to reject.');
+      return;
+    }
+    var reason = prompt('Enter rejection reason (e.g. Photo blurred, Expired DL, Wrong vehicle):');
+    if (reason === null) return;
+
+    try {
+      // 1. Update this document to rejected in Supabase
+      await sb('driver_documents?rider_id=eq.' + currentViewingRiderId + '&doc_type=eq.' + currentViewingDocType, {
+        method: 'PATCH',
+        body: { status: 'rejected', admin_notes: reason }
+      });
+
+      // 2. Update local cache
+      var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+      if (localDocs[currentViewingRiderId] && localDocs[currentViewingRiderId][currentViewingDocType]) {
+        localDocs[currentViewingRiderId][currentViewingDocType].status = 'rejected';
+        localDocs[currentViewingRiderId][currentViewingDocType].notes = reason;
+        localStorage.setItem('rydealot_driver_docs', JSON.stringify(localDocs));
+      }
+
+      // 3. Unverify driver
+      try { await sb('riders?id=eq.' + currentViewingRiderId, { method: 'PATCH', body: { is_verified: false } }); } catch(e){}
+
+      toast('❌ ' + (currentViewingDocTitle || 'Document') + ' rejected');
+      closeDocModal();
+      await loadVerificationData();
+    } catch(err) {
+      alert('Failed to reject document: ' + (err.message || 'unknown error'));
+    }
   };
 
   async function loadVerificationData() {
