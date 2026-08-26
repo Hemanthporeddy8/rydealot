@@ -925,7 +925,12 @@
         if (!allDocs[riderId]) allDocs[riderId] = {};
         cloudDocs.forEach(function(cd) {
           if (cd.doc_type && cd.file_url) {
-            allDocs[riderId][cd.doc_type] = { url: cd.file_url, status: cd.status || 'pending', updated_at: cd.updated_at };
+            allDocs[riderId][cd.doc_type] = {
+              url: cd.file_url,
+              status: cd.status || 'pending',
+              notes: cd.admin_notes || null,
+              updated_at: cd.updated_at
+            };
           }
         });
         localStorage.setItem('rydealot_driver_docs', JSON.stringify(allDocs));
@@ -935,30 +940,38 @@
     
     var docKeys = ['dl', 'rc', 'aadhaar', 'selfie'];
     var fullKeys = { dl: 'driving_license', rc: 'vehicle_rc', aadhaar: 'aadhaar', selfie: 'selfie' };
+    var docNames = { dl: 'Driving License', rc: 'Vehicle RC', aadhaar: 'Aadhaar Card', selfie: 'Selfie Photo' };
     var uploadedCount = 0;
     var approvedCount = 0;
+    var rejectedCount = 0;
+    var rejectedDetails = [];
 
     docKeys.forEach(function(k) {
       var fullK = fullKeys[k];
       var doc = myDocs[fullK];
       var statusEl = document.getElementById('rd-doc-' + k + '-status');
+      var name = docNames[k];
+
       if (statusEl) {
         if (doc && doc.url) {
           uploadedCount++;
           if (doc.status === 'approved') {
             approvedCount++;
-            statusEl.textContent = '✅ Document Verified & Approved';
-            statusEl.style.color = '#16a34a';
+            statusEl.innerHTML = '<span style="color:#16a34a; font-weight:800;">✅ Document Verified & Approved</span>';
           } else if (doc.status === 'rejected') {
-            statusEl.textContent = '❌ Rejected by Admin (Please re-upload)';
-            statusEl.style.color = '#dc2626';
+            rejectedCount++;
+            var reason = doc.notes ? ('Reason: "' + doc.notes + '"') : 'Re-upload needed';
+            rejectedDetails.push(name + (doc.notes ? (': ' + doc.notes) : ''));
+            statusEl.innerHTML = '<div style="background:#fef2f2; border:1px solid #f87171; border-radius:6px; padding:6px 10px; margin-top:4px;">' +
+              '<span style="color:#b91c1c; font-weight:800; font-size:12px;">❌ Rejected by Admin</span>' +
+              (doc.notes ? ('<div style="color:#7f1d1d; font-size:11.5px; margin-top:2px;"><strong>Admin note:</strong> ' + doc.notes + '</div>') : '') +
+              '<div style="color:#991b1b; font-size:10.5px; margin-top:2px; font-weight:600;">Tap "Choose File" above to re-upload a clear copy.</div>' +
+            '</div>';
           } else {
-            statusEl.textContent = '⏳ Uploaded & Submitted (Pending Admin Review)';
-            statusEl.style.color = '#d97706';
+            statusEl.innerHTML = '<span style="color:#d97706; font-weight:700;">⏳ Uploaded & Submitted (Pending Admin Review)</span>';
           }
         } else {
-          statusEl.textContent = '⏳ Upload pending';
-          statusEl.style.color = 'var(--amber)';
+          statusEl.innerHTML = '<span style="color:var(--amber); font-weight:700;">⏳ Upload pending</span>';
         }
       }
     });
@@ -968,6 +981,9 @@
       if (approvedCount === 4) {
         verifDisplay.textContent = '✅ Verified Partner';
         verifDisplay.style.color = '#16a34a';
+      } else if (rejectedCount > 0) {
+        verifDisplay.textContent = '❌ Action Required (' + rejectedCount + ' Rejected)';
+        verifDisplay.style.color = '#dc2626';
       } else if (approvedCount > 0) {
         verifDisplay.textContent = '⏳ ' + approvedCount + '/4 Approved (In Review)';
         verifDisplay.style.color = '#d97706';
@@ -994,6 +1010,14 @@
         titleEl.style.color = '#15803d';
         subEl.textContent = 'All documents verified by Admin. You are ready to accept rides!';
         subEl.style.color = '#166534';
+      } else if (rejectedCount > 0) {
+        banner.style.background = 'linear-gradient(135deg, #fef2f2, #fee2e2)';
+        banner.style.border = '1.5px solid #ef4444';
+        iconEl.textContent = '❌';
+        titleEl.textContent = 'Action Required (' + rejectedCount + ' Document' + (rejectedCount > 1 ? 's' : '') + ' Rejected)';
+        titleEl.style.color = '#991b1b';
+        subEl.textContent = rejectedDetails.join(' • ') + '. Tap below to re-upload clear photos.';
+        subEl.style.color = '#b91c1c';
       } else if (approvedCount > 0) {
         banner.style.background = 'linear-gradient(135deg, #fffbeb, #fef3c7)';
         banner.style.border = '1.5px solid #f59e0b';
@@ -1234,6 +1258,8 @@
       var setupS = document.getElementById('rd-setup-section');
       if (mainS) mainS.style.display = 'none';
       if (setupS) setupS.style.display = 'flex';
+      var id = state.riderId || localStorage.getItem('ridelot_rider_id');
+      if (id) updateDriverVerificationStatusUI(id);
     });
   }
 
