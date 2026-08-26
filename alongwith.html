@@ -501,11 +501,21 @@
     </div>
   </div>
 
-  <!-- Mode Switcher (3 Clean Pillars) -->
+  <!-- Mode Switcher (4 Clean Pillars) -->
   <div class="mode-switch-bar">
     <button class="mode-tab active" id="tab-sender" onclick="switchMode('sender')">📦 Send Cargo</button>
     <button class="mode-tab" id="tab-driver" onclick="switchMode('driver')">🚚 Post Trip</button>
-    <button class="mode-tab" id="tab-warehouse" onclick="switchMode('warehouse')">🏬 Cargo Warehouse</button>
+    <button class="mode-tab" id="tab-warehouse" onclick="switchMode('warehouse')">🏬 Warehouse</button>
+    <button class="mode-tab" id="tab-profile" onclick="switchMode('profile')">👤 Profile & Orders</button>
+  </div>
+
+  <!-- Live Admin Broadcast Announcement Banner -->
+  <div id="aw-broadcast-banner" style="display:none; background:linear-gradient(135deg,#1e1b4b,#312e81); border-bottom:1.5px solid #6366f1; padding:10px 16px; color:#fff; align-items:center; gap:10px; box-shadow:0 4px 15px rgba(99,102,241,0.25);">
+    <span style="font-size:16px;">📢</span>
+    <div style="flex:1; overflow:hidden;">
+      <div style="font-size:9.5px; font-weight:800; color:#a5b4fc; text-transform:uppercase; letter-spacing:0.5px;">Freight Operations Alert</div>
+      <div id="aw-broadcast-text" style="font-size:11.5px; font-weight:700; color:#e0e7ff; line-height:1.3; margin-top:2px;"></div>
+    </div>
   </div>
 
   <!-- ==================== SENDER VIEW (Shopkeepers / Cargo Booking / Truck Parking Lot) ==================== -->
@@ -852,6 +862,142 @@
       <button onclick="loadWarehousePackages()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer;">↻ Refresh</button>
     </div>
     <div id="warehouse-packages-list"></div>
+  </div>
+
+  <!-- ==================== PROFILE & ORDERS VIEW (Unified Business Profile & Shipments Ledger) ==================== -->
+  <div class="content-view" id="view-profile">
+    <!-- User Profile Header Card -->
+    <div style="background: linear-gradient(135deg, #141926, #0d121f); border: 1.5px solid var(--accent); border-radius: 18px; padding: 18px; margin-bottom: 16px; display:flex; align-items:center; gap:16px;">
+      <div id="aw-prof-avatar" style="width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg,#2563eb,#38bdf8); color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:900; box-shadow:0 4px 15px rgba(37,99,235,0.4); flex-shrink:0;">
+        👤
+      </div>
+      <div style="flex:1; overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <h3 id="aw-prof-display-name" style="font-size:16px; font-weight:900; color:#fff; margin:0;">Guest User</h3>
+          <span id="aw-prof-role-badge" style="font-size:9.5px; font-weight:800; padding:2px 8px; border-radius:6px; background:rgba(34,197,94,0.15); color:#4ade80; text-transform:uppercase;">Cargo Sender</span>
+        </div>
+        <div id="aw-prof-display-phone" style="font-size:12px; color:#94a3b8; margin-top:3px; font-weight:600;">📱 Not registered</div>
+        <div id="aw-prof-display-city" style="font-size:11px; color:#64748b; margin-top:2px;">📍 Hyderabad</div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-bottom:16px;">
+      <div style="background:var(--card-bg); border:1.5px solid var(--card-border); border-radius:12px; padding:12px 8px; text-align:center;">
+        <div id="aw-stat-my-bookings" style="font-size:20px; font-weight:900; color:var(--accent);">0</div>
+        <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-top:2px;">Shipments</div>
+      </div>
+      <div style="background:var(--card-bg); border:1.5px solid var(--card-border); border-radius:12px; padding:12px 8px; text-align:center;">
+        <div id="aw-stat-my-trips" style="font-size:20px; font-weight:900; color:#4ade80;">0</div>
+        <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-top:2px;">My Trips</div>
+      </div>
+      <div style="background:var(--card-bg); border:1.5px solid var(--card-border); border-radius:12px; padding:12px 8px; text-align:center;">
+        <div id="aw-stat-my-weight" style="font-size:20px; font-weight:900; color:#facc15;">0 KG</div>
+        <div style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-top:2px;">Total Freight</div>
+      </div>
+    </div>
+
+    <!-- Profile Edit Form -->
+    <div style="background:var(--card-bg); border:1.5px solid var(--card-border); border-radius:16px; padding:16px; margin-bottom:18px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h4 style="font-size:13px; font-weight:800; color:#fff; text-transform:uppercase; letter-spacing:0.5px; margin:0;">⚙️ Account Settings</h4>
+        <span style="font-size:10.5px; color:#38bdf8; font-weight:700;">Synced with Rydealot</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Full Name / Shop Name</label>
+        <input type="text" id="aw-input-name" class="form-input" placeholder="e.g. Ramesh Kumar / Balaji Wholesale">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Mobile Number (10 Digits)</label>
+        <input type="tel" id="aw-input-phone" class="form-input" placeholder="9876543210" maxlength="10">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Primary Role</label>
+          <select id="aw-select-role" class="form-select" onchange="toggleProfileRoleFields()">
+            <option value="customer">📦 Cargo Sender / Shopkeeper</option>
+            <option value="driver">🚚 Transporter / Truck Driver</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Base City</label>
+          <select id="aw-select-city" class="form-select">
+            <option value="Hyderabad">Hyderabad</option>
+            <option value="Warangal">Warangal</option>
+            <option value="Karimnagar">Karimnagar</option>
+            <option value="Khammam">Khammam</option>
+            <option value="Nizamabad">Nizamabad</option>
+            <option value="Suryapet">Suryapet</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Trucker Specific Details -->
+      <div id="aw-profile-driver-fields" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Vehicle Type</label>
+            <select id="aw-input-vtype" class="form-select">
+              <option value="Tata Ace">🚚 Tata Ace (1 Ton)</option>
+              <option value="Bolero Pickup">🛻 Bolero Pickup (1.5 Ton)</option>
+              <option value="Ashok Leyland Dost">🚚 Ashok Leyland Dost</option>
+              <option value="Eicher 14ft">🚛 Eicher 14ft (4 Ton)</option>
+              <option value="Tata 407">🚚 Tata 407</option>
+              <option value="Mini Truck / Auto">🛺 Goods Auto</option>
+              <option value="Bike / 2-Wheeler">🛵 Bike / Courier</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vehicle Number</label>
+            <input type="text" id="aw-input-vnum" class="form-input" placeholder="TS09 AB 1234" style="text-transform:uppercase;">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Default Pickup Address / Shop Location</label>
+        <input type="text" id="aw-input-pickup" class="form-input" placeholder="e.g. Shop #12, Wholesale Market, Ranigunj, Secunderabad">
+      </div>
+
+      <button type="button" class="btn-action" style="background:#16a34a; font-weight:800; font-size:13px; margin-top:6px;" onclick="saveAlongWithProfile()">
+        💾 Save & Update Profile
+      </button>
+      <div id="aw-profile-save-status" style="font-size:11.5px; font-weight:700; color:#4ade80; margin-top:8px; text-align:center; display:none;"></div>
+    </div>
+
+    <!-- My Shipments Ledger (Sender Side) -->
+    <div style="margin-bottom:18px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h4 style="font-size:13px; font-weight:800; color:#fff; text-transform:uppercase; letter-spacing:0.5px; margin:0;">📦 My Cargo Shipments</h4>
+        <button type="button" onclick="loadMyProfileShipments()" style="background:none; border:none; color:#38bdf8; font-size:11px; font-weight:700; cursor:pointer;">↻ Refresh</button>
+      </div>
+      <div id="aw-my-shipments-list">
+        <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;">No shipments booked yet.</div>
+      </div>
+    </div>
+
+    <!-- My Posted Return Trips (Driver Side) -->
+    <div style="margin-bottom:18px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h4 style="font-size:13px; font-weight:800; color:#fff; text-transform:uppercase; letter-spacing:0.5px; margin:0;">🚛 My Posted Return Trips</h4>
+        <button type="button" onclick="loadMyProfileTrips()" style="background:none; border:none; color:#38bdf8; font-size:11px; font-weight:700; cursor:pointer;">↻ Refresh</button>
+      </div>
+      <div id="aw-my-trips-ledger">
+        <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;">No return trips posted yet.</div>
+      </div>
+    </div>
+
+    <!-- Support & Helpline Card -->
+    <div style="background:linear-gradient(135deg,#1e1b4b,#0f172a); border:1.5px solid #4338ca; border-radius:16px; padding:16px; text-align:center;">
+      <h4 style="font-size:13px; font-weight:800; color:#fff; margin:0 0 6px;">📞 24/7 Rydealot Freight Operations Help</h4>
+      <p style="font-size:11.5px; color:#cbd5e1; margin:0 0 10px;">Need urgent support with an intercity truck or cargo delivery? Call our central dispatch desk.</p>
+      <a href="tel:919876543210" style="display:inline-flex; align-items:center; gap:6px; background:#4f46e5; color:#fff; text-decoration:none; padding:8px 18px; border-radius:10px; font-size:12px; font-weight:800;">
+        📞 Call Freight Helpline
+      </a>
+    </div>
   </div>
 </div>
 
@@ -1340,6 +1486,10 @@
       document.getElementById('tab-warehouse').classList.add('active');
       document.getElementById('view-warehouse').classList.add('active');
       loadWarehousePackages();
+    } else if (mode === 'profile') {
+      document.getElementById('tab-profile').classList.add('active');
+      document.getElementById('view-profile').classList.add('active');
+      loadAlongWithProfileView();
     }
   }
 
@@ -3355,19 +3505,250 @@
     }
   }
 
+  // ===================== DEDICATED ALONG WITH PROFILE & ORDERS LEDGER =====================
+  function toggleProfileRoleFields() {
+    var role = document.getElementById('aw-select-role').value;
+    var drvFields = document.getElementById('aw-profile-driver-fields');
+    if (drvFields) drvFields.style.display = (role === 'driver') ? 'block' : 'none';
+  }
+
+  function loadAlongWithProfileView() {
+    var name = localStorage.getItem('rydealot_aw_name') || localStorage.getItem('rydealot_sender_name') || localStorage.getItem('ridelot_rider_name') || '';
+    var phone = localStorage.getItem('rydealot_aw_phone') || localStorage.getItem('rydealot_sender_phone') || localStorage.getItem('ridelot_rider_phone') || '';
+    var city = localStorage.getItem('rydealot_aw_city') || 'Hyderabad';
+    var role = localStorage.getItem('rydealot_aw_role') || (localStorage.getItem('ridelot_rider_phone') ? 'driver' : 'customer');
+    var pickup = localStorage.getItem('rydealot_aw_pickup') || '';
+    var vtype = localStorage.getItem('ridelot_rider_vtype') || 'Tata Ace';
+    var vnum = localStorage.getItem('ridelot_rider_plate') || '';
+
+    // Populate header display
+    var displayName = document.getElementById('aw-prof-display-name');
+    var displayPhone = document.getElementById('aw-prof-display-phone');
+    var displayCity = document.getElementById('aw-prof-display-city');
+    var roleBadge = document.getElementById('aw-prof-role-badge');
+    var avatar = document.getElementById('aw-prof-avatar');
+
+    if (displayName) displayName.textContent = name || 'Shopkeeper / Driver';
+    if (displayPhone) displayPhone.textContent = phone ? ('📱 +91 ' + phone) : '📱 Mobile not saved';
+    if (displayCity) displayCity.textContent = '📍 ' + city;
+    if (roleBadge) {
+      roleBadge.textContent = (role === 'driver') ? 'Transporter' : 'Cargo Sender';
+      roleBadge.style.background = (role === 'driver') ? 'rgba(59,130,246,0.15)' : 'rgba(34,197,94,0.15)';
+      roleBadge.style.color = (role === 'driver') ? '#60a5fa' : '#4ade80';
+    }
+    if (avatar) {
+      if (name) {
+        var initials = name.split(' ').map(function(w) { return w[0]; }).join('').slice(0,2).toUpperCase();
+        avatar.textContent = initials;
+      } else {
+        avatar.textContent = (role === 'driver') ? '🚚' : '📦';
+      }
+    }
+
+    // Populate edit form
+    var inName = document.getElementById('aw-input-name');
+    var inPhone = document.getElementById('aw-input-phone');
+    var selRole = document.getElementById('aw-select-role');
+    var selCity = document.getElementById('aw-select-city');
+    var inPickup = document.getElementById('aw-input-pickup');
+    var inVtype = document.getElementById('aw-input-vtype');
+    var inVnum = document.getElementById('aw-input-vnum');
+
+    if (inName) inName.value = name;
+    if (inPhone) inPhone.value = phone;
+    if (selRole) selRole.value = role;
+    if (selCity) selCity.value = city;
+    if (inPickup) inPickup.value = pickup;
+    if (inVtype) inVtype.value = vtype;
+    if (inVnum) inVnum.value = vnum;
+
+    toggleProfileRoleFields();
+
+    // Load ledger data
+    loadMyProfileShipments();
+    loadMyProfileTrips();
+  }
+
+  function saveAlongWithProfile() {
+    var name = (document.getElementById('aw-input-name').value || '').trim();
+    var phone = (document.getElementById('aw-input-phone').value || '').trim();
+    var role = document.getElementById('aw-select-role').value;
+    var city = document.getElementById('aw-select-city').value;
+    var pickup = (document.getElementById('aw-input-pickup').value || '').trim();
+
+    if (!name || !phone) {
+      showAwToast('⚠️ Please enter your Name and Mobile Number');
+      return;
+    }
+    if (phone.length < 10) {
+      showAwToast('⚠️ Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    localStorage.setItem('rydealot_aw_name', name);
+    localStorage.setItem('rydealot_aw_phone', phone);
+    localStorage.setItem('rydealot_aw_role', role);
+    localStorage.setItem('rydealot_aw_city', city);
+    localStorage.setItem('rydealot_aw_pickup', pickup);
+
+    if (role === 'driver') {
+      var vtype = document.getElementById('aw-input-vtype').value;
+      var vnum = (document.getElementById('aw-input-vnum').value || '').trim().toUpperCase();
+      localStorage.setItem('ridelot_rider_name', name);
+      localStorage.setItem('ridelot_rider_phone', phone);
+      localStorage.setItem('ridelot_rider_vtype', vtype);
+      localStorage.setItem('ridelot_rider_plate', vnum);
+    } else {
+      localStorage.setItem('rydealot_sender_name', name);
+      localStorage.setItem('rydealot_sender_phone', phone);
+    }
+
+    // Auto-update header name badge
+    var hdrName = document.getElementById('header-profile-name');
+    if (hdrName) hdrName.textContent = name.split(' ')[0] || 'Profile';
+
+    var statusEl = document.getElementById('aw-profile-save-status');
+    if (statusEl) {
+      statusEl.textContent = '✅ Profile updated & synced with Rydealot!';
+      statusEl.style.display = 'block';
+      setTimeout(function() { statusEl.style.display = 'none'; }, 3000);
+    }
+
+    showAwToast('✅ Profile saved successfully');
+    loadAlongWithProfileView();
+    autoFillAllFormsFromProfile();
+  }
+
+  function loadMyProfileShipments() {
+    var phone = localStorage.getItem('rydealot_aw_phone') || localStorage.getItem('rydealot_sender_phone') || '';
+    var listEl = document.getElementById('aw-my-shipments-list');
+    if (!listEl) return;
+
+    if (!phone) {
+      listEl.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;">Save your phone number in Settings above to view your shipments.</div>';
+      return;
+    }
+
+    listEl.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;">Loading shipments...</div>';
+
+    fetch(SUPABASE_URL + '/rest/v1/cargo_bookings?sender_phone=eq.' + encodeURIComponent(phone) + '&order=created_at.desc&limit=20', { headers: headers })
+      .then(function(r) { return r.json(); })
+      .then(function(bookings) {
+        bookings = bookings || [];
+        var statB = document.getElementById('aw-stat-my-bookings');
+        var statW = document.getElementById('aw-stat-my-weight');
+        if (statB) statB.textContent = bookings.length;
+        var totalW = 0;
+        bookings.forEach(function(b) { totalW += (b.cargo_weight_kg || 0); });
+        if (statW) statW.textContent = totalW + ' KG';
+
+        if (!bookings.length) {
+          listEl.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;">No shipments placed with phone ' + phone + ' yet. Book a truck in "Send Cargo" tab!</div>';
+          return;
+        }
+
+        listEl.innerHTML = bookings.map(function(b) {
+          var statusColor = b.status === 'pending' ? '#facc15' : b.status === 'accepted' ? '#60a5fa' : b.status === 'in_transit' ? '#38bdf8' : b.status === 'delivered' ? '#4ade80' : '#ef4444';
+          return '<div style="background:var(--card-bg); border:1.5px solid var(--card-border); border-radius:14px; padding:14px; margin-bottom:10px;">' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
+              '<span style="font-weight:800; font-size:13px; color:#fff;">📦 ' + (b.cargo_description || 'Cargo Shipment') + '</span>' +
+              '<span style="font-size:10px; font-weight:800; padding:3px 8px; border-radius:6px; background:rgba(255,255,255,0.06); color:' + statusColor + '; text-transform:uppercase;">' + b.status + '</span>' +
+            '</div>' +
+            '<div style="font-size:11.5px; color:#94a3b8; margin-bottom:6px;">' +
+              '📍 <strong>Route:</strong> ' + (b.pickup_address || '') + ' ➔ ' + (b.drop_address || '') +
+            '</div>' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; border-top:1px solid rgba(255,255,255,0.06); padding-top:8px; margin-top:8px;">' +
+              '<span style="color:#cbd5e1; font-weight:700;">⚖️ ' + b.cargo_weight_kg + ' KG</span>' +
+              '<span style="font-weight:900; color:#4ade80; font-size:14px;">₹' + b.total_price + '</span>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }).catch(function() {
+        listEl.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12px;">Failed to load shipments. Tap refresh.</div>';
+      });
+  }
+
+  function loadMyProfileTrips() {
+    var phone = localStorage.getItem('rydealot_aw_phone') || localStorage.getItem('ridelot_rider_phone') || '';
+    var listEl = document.getElementById('aw-my-trips-ledger');
+    if (!listEl) return;
+
+    if (!phone) {
+      listEl.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;">Save driver phone in Settings above to view your posted trips.</div>';
+      return;
+    }
+
+    listEl.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;">Loading return trips...</div>';
+
+    fetch(SUPABASE_URL + '/rest/v1/cargo_trips?driver_phone=eq.' + encodeURIComponent(phone) + '&order=created_at.desc&limit=20', { headers: headers })
+      .then(function(r) { return r.json(); })
+      .then(function(trips) {
+        trips = trips || [];
+        var statT = document.getElementById('aw-stat-my-trips');
+        if (statT) statT.textContent = trips.length;
+
+        if (!trips.length) {
+          listEl.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;">No return trips posted yet. Post your truck return trip in "Post Trip" tab!</div>';
+          return;
+        }
+
+        listEl.innerHTML = trips.map(function(t) {
+          var dep = new Date(t.departure_time);
+          var depStr = dep.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + dep.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+          var statusColor = t.status === 'open' ? '#4ade80' : t.status === 'in_transit' ? '#38bdf8' : '#64748b';
+          return '<div style="background:var(--card-bg); border:1.5px solid var(--card-border); border-radius:14px; padding:14px; margin-bottom:10px;">' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
+              '<span style="font-weight:800; font-size:13px; color:#fff;">🚛 ' + t.from_city + ' ➔ ' + t.to_city + '</span>' +
+              '<span style="font-size:10px; font-weight:800; padding:3px 8px; border-radius:6px; background:rgba(255,255,255,0.06); color:' + statusColor + '; text-transform:uppercase;">' + t.status + '</span>' +
+            '</div>' +
+            '<div style="font-size:11.5px; color:#94a3b8; margin-bottom:6px;">' +
+              '🚚 ' + t.vehicle_type + ' (' + (t.vehicle_number || '') + ') • 🕐 ' + depStr +
+            '</div>' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; border-top:1px solid rgba(255,255,200,0.06); padding-top:8px; margin-top:8px;">' +
+              '<span style="color:#cbd5e1; font-weight:700;">📦 ' + (t.available_capacity_kg || t.total_capacity_kg) + '/' + t.total_capacity_kg + ' KG Space Available</span>' +
+              '<span style="font-weight:900; color:#4ade80; font-size:14px;">₹' + t.price_per_kg + '/KG</span>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }).catch(function() {
+        listEl.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12px;">Failed to load trips. Tap refresh.</div>';
+      });
+  }
+
+  function checkAlongWithBroadcast() {
+    try {
+      var raw = localStorage.getItem('rydealot_aw_broadcast');
+      var banner = document.getElementById('aw-broadcast-banner');
+      var textEl = document.getElementById('aw-broadcast-text');
+      if (raw && banner && textEl) {
+        var data = JSON.parse(raw);
+        if (data && data.message) {
+          textEl.textContent = data.message;
+          banner.style.display = 'flex';
+          return;
+        }
+      }
+      if (banner) banner.style.display = 'none';
+    } catch(e) {}
+  }
+
   // Initialize after all definitions are ready
   initDates();
   initUnifiedProfile();
   loadMySenderBookings();
   loadWarehousePackages();
+  checkAlongWithBroadcast();
   
   // Smart Active-View Polling (Only refresh what the user is currently viewing & pause when tab is hidden)
   setInterval(function() {
     if (document.hidden) return; // Pause network activity when user switches tabs
 
+    checkAlongWithBroadcast();
+
     var senderView = document.getElementById('view-sender');
     var driverView = document.getElementById('view-driver');
     var warehouseView = document.getElementById('view-warehouse');
+    var profileView = document.getElementById('view-profile');
 
     if (senderView && senderView.classList.contains('active')) {
       var trackInput = document.getElementById('track-phone-input');
@@ -3383,6 +3764,8 @@
       }
     } else if (warehouseView && warehouseView.classList.contains('active')) {
       loadWarehousePackages();
+    } else if (profileView && profileView.classList.contains('active')) {
+      loadMyProfileShipments();
     }
   }, 5000);
 </script>

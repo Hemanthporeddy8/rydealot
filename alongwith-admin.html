@@ -167,11 +167,30 @@
       <p style="font-size: 12px; color: var(--text-mute); margin-top: 4px;">Cargo Return-Trip Matching, Freight Volume & 15% Platform Commission</p>
     </div>
     <div class="nav-links">
-      <button class="refresh-btn" onclick="loadDashboard()">↻ Refresh Data</button>
+      <button class="refresh-btn" onclick="exportFreightCSV()" style="background:#16a34a;">📊 Export CSV</button>
+      <button class="refresh-btn" onclick="toggleBroadcastBox()" style="background:#4f46e5;">📢 Broadcast Alert</button>
+      <button class="refresh-btn" onclick="loadDashboard()">↻ Refresh</button>
       <a href="admin.html" class="nav-btn">← Back to Rides Admin</a>
       <a href="alongwith.html" class="nav-btn" target="_blank">Open Along With App ↗</a>
       <button class="nav-btn" style="background:#261818; border-color:#5c2424; color:#f87171; cursor:pointer;" onclick="lockAdmin()">🔒 Lock</button>
     </div>
+  </div>
+
+  <!-- Broadcast Announcement Console (Collapsible) -->
+  <div id="broadcast-box" style="display:none; background:linear-gradient(135deg,#1e1b4b,#0f172a); border:1.5px solid #6366f1; border-radius:16px; padding:18px; margin-bottom:24px; box-shadow:0 10px 30px rgba(99,102,241,0.2);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="font-size:15px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+        <span>📢 Broadcast to Along With Truckers & Shopkeepers</span>
+      </h3>
+      <button type="button" onclick="toggleBroadcastBox()" style="background:#312e81; border:none; color:#c7d2fe; border-radius:8px; padding:4px 10px; font-size:11px; cursor:pointer; font-weight:700;">✕ Close</button>
+    </div>
+    <p style="font-size:11.5px; color:#c7d2fe; margin-bottom:10px;">Post live highway road alerts, rate updates, or freight demand surges to all active Along With users.</p>
+    <div style="display:flex; gap:10px;">
+      <input type="text" id="input-aw-broadcast" placeholder="e.g. ⚡ High demand for steel/cement freight from Hyderabad to Warangal today! Extra loads available." style="flex:1; background:#0b0f19; border:1px solid #4338ca; border-radius:10px; padding:10px 14px; color:#fff; font-size:13px; outline:none;">
+      <button type="button" onclick="sendAlongWithBroadcast()" style="background:#6366f1; color:#fff; border:none; border-radius:10px; padding:10px 18px; font-weight:800; font-size:12.5px; cursor:pointer; white-space:nowrap;">Publish Alert</button>
+      <button type="button" onclick="clearAlongWithBroadcast()" style="background:#334155; color:#cbd5e1; border:none; border-radius:10px; padding:10px 14px; font-weight:700; font-size:12px; cursor:pointer;">Clear</button>
+    </div>
+    <div id="broadcast-msg" style="font-size:11px; font-weight:700; color:#4ade80; margin-top:8px; display:none;"></div>
   </div>
 
   <!-- KPI Cards -->
@@ -194,10 +213,41 @@
     </div>
   </div>
 
+  <!-- Real-time Search & Highway Route Filter Bar -->
+  <div style="background:var(--card-bg); border:1.5px solid var(--border); border-radius:16px; padding:14px 18px; margin-bottom:24px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+    <div style="flex:2; min-width:220px;">
+      <input type="text" id="filter-search" oninput="applyFilters()" placeholder="🔍 Search Driver, Sender, Phone, Route..." style="width:100%; background:#0f1422; border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:#fff; font-size:13px; outline:none; box-sizing:border-box;">
+    </div>
+    <div style="flex:1; min-width:160px;">
+      <select id="filter-route" onchange="applyFilters()" style="width:100%; background:#0f1422; border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:#fff; font-size:13px; outline:none; box-sizing:border-box;">
+        <option value="">🛣️ All Highway Routes</option>
+        <option value="Hyderabad">Hyderabad Routes</option>
+        <option value="Warangal">Warangal Routes</option>
+        <option value="Karimnagar">Karimnagar Routes</option>
+        <option value="Khammam">Khammam Routes</option>
+        <option value="Nizamabad">Nizamabad Routes</option>
+        <option value="Suryapet">Suryapet Routes</option>
+      </select>
+    </div>
+    <div style="flex:1; min-width:140px;">
+      <select id="filter-status" onchange="applyFilters()" style="width:100%; background:#0f1422; border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:#fff; font-size:13px; outline:none; box-sizing:border-box;">
+        <option value="">Status: All</option>
+        <option value="open">Open</option>
+        <option value="pending">Pending</option>
+        <option value="accepted">Accepted</option>
+        <option value="in_transit">In Transit</option>
+        <option value="delivered">Delivered</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+  </div>
+
   <!-- Trips Table -->
   <div class="section-card">
     <div class="section-header">
       <h2 class="section-title">🚛 Posted Return Trips</h2>
+      <span id="trips-count-badge" style="font-size:11px; font-weight:800; color:#38bdf8; background:#0e2a47; padding:4px 10px; border-radius:8px;">0 Trips</span>
     </div>
     <div style="overflow-x: auto;">
       <table>
@@ -211,10 +261,11 @@
             <th>Freight Price</th>
             <th>Status</th>
             <th>Departure</th>
+            <th style="text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody id="trips-tbody">
-          <tr><td colspan="8" style="text-align: center; color: var(--text-mute); padding: 30px;">Loading trips...</td></tr>
+          <tr><td colspan="9" style="text-align: center; color: var(--text-mute); padding: 30px;">Loading trips...</td></tr>
         </tbody>
       </table>
     </div>
@@ -224,6 +275,7 @@
   <div class="section-card">
     <div class="section-header">
       <h2 class="section-title">📦 Cargo Bookings & Shipments</h2>
+      <span id="bookings-count-badge" style="font-size:11px; font-weight:800; color:#4ade80; background:#0e3321; padding:4px 10px; border-radius:8px;">0 Bookings</span>
     </div>
     <div style="overflow-x: auto;">
       <table>
@@ -238,10 +290,11 @@
             <th>Rydealot Cut (15%)</th>
             <th>Status</th>
             <th>Date</th>
+            <th style="text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody id="bookings-tbody">
-          <tr><td colspan="9" style="text-align: center; color: var(--text-mute); padding: 30px;">Loading bookings...</td></tr>
+          <tr><td colspan="10" style="text-align: center; color: var(--text-mute); padding: 30px;">Loading bookings...</td></tr>
         </tbody>
       </table>
     </div>
@@ -289,67 +342,259 @@
     checkAuth();
   }
 
+  var allTrips = [];
+  var allBookings = [];
+
   function loadDashboard() {
+    var refreshBtns = document.querySelectorAll('.refresh-btn');
+    refreshBtns.forEach(function(b) { if(b.textContent.includes('Refresh')) b.textContent = '⏳ Loading...'; });
+
     // 1. Fetch Trips
-    fetch(SUPABASE_URL + '/rest/v1/cargo_trips?order=created_at.desc&limit=50', { headers: headers })
+    var p1 = fetch(SUPABASE_URL + '/rest/v1/cargo_trips?order=created_at.desc&limit=100', { headers: headers })
       .then(function(r) { return r.json(); })
       .then(function(trips) {
-        document.getElementById('stat-trips').textContent = (trips || []).length;
-        var tbody = document.getElementById('trips-tbody');
-        if (!trips || !trips.length) {
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-mute); padding: 30px;">No return trips posted yet.</td></tr>';
-          return;
-        }
-        tbody.innerHTML = trips.map(function(t) {
-          var dep = new Date(t.departure_time);
-          var depStr = dep.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + dep.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-          return '<tr>' +
-            '<td><strong>' + t.driver_name + '</strong></td>' +
-            '<td>' + t.driver_phone + '</td>' +
-            '<td><strong>' + t.from_city + ' ➔ ' + t.to_city + '</strong></td>' +
-            '<td>' + t.vehicle_type + ' (' + t.vehicle_number + ')</td>' +
-            '<td>' + (t.available_capacity_kg || t.total_capacity_kg) + ' / ' + t.total_capacity_kg + ' KG</td>' +
-            '<td><strong style="color:#4ade80;">₹' + (t.price_per_kg || 2500) + '</strong></td>' +
-            '<td><span class="badge badge-' + t.status + '">' + t.status + '</span></td>' +
-            '<td>' + depStr + '</td>' +
-          '</tr>';
-        }).join('');
-      });
+        allTrips = trips || [];
+      }).catch(function(e) { console.error('Trips error:', e); });
 
     // 2. Fetch Bookings
-    fetch(SUPABASE_URL + '/rest/v1/cargo_bookings?order=created_at.desc&limit=50', { headers: headers })
+    var p2 = fetch(SUPABASE_URL + '/rest/v1/cargo_bookings?order=created_at.desc&limit=100', { headers: headers })
       .then(function(r) { return r.json(); })
       .then(function(bookings) {
-        document.getElementById('stat-bookings').textContent = (bookings || []).length;
-        var totalRev = 0, totalComm = 0;
-        (bookings || []).forEach(function(b) {
-          totalRev += parseFloat(b.total_price || 0);
-          totalComm += parseFloat(b.commission || 0);
-        });
+        allBookings = bookings || [];
+      }).catch(function(e) { console.error('Bookings error:', e); });
 
-        document.getElementById('stat-revenue').textContent = '₹' + totalRev.toLocaleString('en-IN');
-        document.getElementById('stat-commission').textContent = '₹' + totalComm.toLocaleString('en-IN');
+    Promise.all([p1, p2]).then(function() {
+      refreshBtns.forEach(function(b) { if(b.textContent.includes('Loading')) b.textContent = '↻ Refresh'; });
+      applyFilters();
+    });
+  }
 
-        var tbody = document.getElementById('bookings-tbody');
-        if (!bookings || !bookings.length) {
-          tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-mute); padding: 30px;">No cargo bookings placed yet.</td></tr>';
-          return;
-        }
-        tbody.innerHTML = bookings.map(function(b) {
-          var dt = new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-          return '<tr>' +
-            '<td><strong>' + b.sender_name + '</strong></td>' +
-            '<td>' + b.sender_phone + '</td>' +
-            '<td><strong>' + b.cargo_weight_kg + ' KG</strong></td>' +
-            '<td>' + (b.cargo_description || '—') + '</td>' +
-            '<td style="font-size:11px; color:var(--text-mute); max-width:200px;">' + b.pickup_address + ' ➔ ' + b.drop_address + '</td>' +
-            '<td><strong style="color:#4ade80;">₹' + b.total_price + '</strong></td>' +
-            '<td><strong style="color:#facc15;">₹' + b.commission + '</strong></td>' +
-            '<td><span class="badge badge-' + b.status + '">' + b.status + '</span></td>' +
-            '<td>' + dt + '</td>' +
-          '</tr>';
-        }).join('');
-      });
+  function applyFilters() {
+    var search = (document.getElementById('filter-search').value || '').toLowerCase().trim();
+    var route = document.getElementById('filter-route').value;
+    var status = document.getElementById('filter-status').value;
+
+    // Filter Trips
+    var filteredTrips = allTrips.filter(function(t) {
+      var matchSearch = !search ||
+        (t.driver_name || '').toLowerCase().includes(search) ||
+        (t.driver_phone || '').toLowerCase().includes(search) ||
+        (t.from_city || '').toLowerCase().includes(search) ||
+        (t.to_city || '').toLowerCase().includes(search) ||
+        (t.vehicle_number || '').toLowerCase().includes(search);
+      var matchRoute = !route || (t.from_city || '').includes(route) || (t.to_city || '').includes(route);
+      var matchStatus = !status || (t.status || '') === status;
+      return matchSearch && matchRoute && matchStatus;
+    });
+
+    // Filter Bookings
+    var filteredBookings = allBookings.filter(function(b) {
+      var matchSearch = !search ||
+        (b.sender_name || '').toLowerCase().includes(search) ||
+        (b.sender_phone || '').toLowerCase().includes(search) ||
+        (b.pickup_address || '').toLowerCase().includes(search) ||
+        (b.drop_address || '').toLowerCase().includes(search) ||
+        (b.cargo_description || '').toLowerCase().includes(search);
+      var matchRoute = !route || (b.pickup_address || '').includes(route) || (b.drop_address || '').includes(route);
+      var matchStatus = !status || (b.status || '') === status;
+      return matchSearch && matchRoute && matchStatus;
+    });
+
+    renderTrips(filteredTrips);
+    renderBookings(filteredBookings);
+
+    // Update KPI stats based on total
+    document.getElementById('stat-trips').textContent = allTrips.length;
+    document.getElementById('stat-bookings').textContent = allBookings.length;
+
+    var totalRev = 0, totalComm = 0;
+    allBookings.forEach(function(b) {
+      totalRev += parseFloat(b.total_price || 0);
+      totalComm += parseFloat(b.commission || 0);
+    });
+    document.getElementById('stat-revenue').textContent = '₹' + totalRev.toLocaleString('en-IN');
+    document.getElementById('stat-commission').textContent = '₹' + totalComm.toLocaleString('en-IN');
+  }
+
+  function renderTrips(trips) {
+    document.getElementById('trips-count-badge').textContent = trips.length + ' Trips';
+    var tbody = document.getElementById('trips-tbody');
+    if (!trips.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-mute); padding: 30px;">No matching return trips found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = trips.map(function(t) {
+      var dep = new Date(t.departure_time);
+      var depStr = dep.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + dep.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      var phoneLink = t.driver_phone ? '<a href="tel:' + t.driver_phone + '" style="color:#38bdf8; text-decoration:none; font-weight:700;">📞 ' + t.driver_phone + '</a>' : '—';
+
+      var actionBtns = '<div style="display:flex; gap:4px; justify-content:flex-end;">';
+      if (t.status === 'open') {
+        actionBtns += '<button onclick="updateTripStatus(\'' + t.id + '\', \'in_transit\')" style="background:#16a34a; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;" title="Mark In Transit">🚛 Start</button>';
+        actionBtns += '<button onclick="updateTripStatus(\'' + t.id + '\', \'cancelled\')" style="background:#ef4444; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;" title="Cancel Trip">✕</button>';
+      } else if (t.status === 'in_transit') {
+        actionBtns += '<button onclick="updateTripStatus(\'' + t.id + '\', \'completed\')" style="background:#7c3aed; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✅ Complete</button>';
+      } else {
+        actionBtns += '<span style="color:#64748b; font-size:11px; font-weight:700;">—</span>';
+      }
+      actionBtns += '</div>';
+
+      return '<tr>' +
+        '<td><strong>' + (t.driver_name || 'Driver') + '</strong></td>' +
+        '<td>' + phoneLink + '</td>' +
+        '<td><strong style="color:#fff;">' + t.from_city + ' ➔ ' + t.to_city + '</strong></td>' +
+        '<td>' + t.vehicle_type + ' (' + (t.vehicle_number || '—') + ')</td>' +
+        '<td>' + (t.available_capacity_kg || t.total_capacity_kg) + ' / ' + t.total_capacity_kg + ' KG</td>' +
+        '<td><strong style="color:#4ade80;">₹' + (t.price_per_kg || 0) + '/KG</strong></td>' +
+        '<td><span class="badge badge-' + t.status + '">' + t.status + '</span></td>' +
+        '<td>' + depStr + '</td>' +
+        '<td style="text-align:right;">' + actionBtns + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function renderBookings(bookings) {
+    document.getElementById('bookings-count-badge').textContent = bookings.length + ' Bookings';
+    var tbody = document.getElementById('bookings-tbody');
+    if (!bookings.length) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-mute); padding: 30px;">No matching cargo bookings found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = bookings.map(function(b) {
+      var dt = new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      var phoneLink = b.sender_phone ? '<a href="tel:' + b.sender_phone + '" style="color:#38bdf8; text-decoration:none; font-weight:700;">📞 ' + b.sender_phone + '</a>' : '—';
+
+      var actionBtns = '<div style="display:flex; gap:4px; justify-content:flex-end;">';
+      if (b.status === 'pending') {
+        actionBtns += '<button onclick="updateBookingStatus(\'' + b.id + '\', \'accepted\')" style="background:#16a34a; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✅ Accept</button>';
+        actionBtns += '<button onclick="updateBookingStatus(\'' + b.id + '\', \'cancelled\', ' + (b.cargo_weight_kg || 0) + ', \'' + (b.trip_id || '') + '\')" style="background:#ef4444; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✕</button>';
+      } else if (b.status === 'accepted') {
+        actionBtns += '<button onclick="updateBookingStatus(\'' + b.id + '\', \'in_transit\')" style="background:#2563eb; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">🚛 Transit</button>';
+        actionBtns += '<button onclick="updateBookingStatus(\'' + b.id + '\', \'delivered\')" style="background:#7c3aed; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">📦 Deliver</button>';
+      } else if (b.status === 'in_transit') {
+        actionBtns += '<button onclick="updateBookingStatus(\'' + b.id + '\', \'delivered\')" style="background:#7c3aed; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">📦 Deliver</button>';
+      } else {
+        actionBtns += '<span style="color:#64748b; font-size:11px; font-weight:700;">—</span>';
+      }
+      actionBtns += '</div>';
+
+      return '<tr>' +
+        '<td><strong>' + (b.sender_name || 'Sender') + '</strong></td>' +
+        '<td>' + phoneLink + '</td>' +
+        '<td><strong>' + b.cargo_weight_kg + ' KG</strong></td>' +
+        '<td>' + (b.cargo_description || '—') + '</td>' +
+        '<td style="font-size:11px; color:var(--text-mute); max-width:180px;">' + (b.pickup_address || '') + ' ➔ ' + (b.drop_address || '') + '</td>' +
+        '<td><strong style="color:#4ade80;">₹' + b.total_price + '</strong></td>' +
+        '<td><strong style="color:#facc15;">₹' + b.commission + '</strong></td>' +
+        '<td><span class="badge badge-' + b.status + '">' + b.status + '</span></td>' +
+        '<td>' + dt + '</td>' +
+        '<td style="text-align:right;">' + actionBtns + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  // ── UPDATE TRIP STATUS ──
+  function updateTripStatus(tripId, newStatus) {
+    if (!confirm('Update trip status to ' + newStatus.toUpperCase() + '?')) return;
+    fetch(SUPABASE_URL + '/rest/v1/cargo_trips?id=eq.' + tripId, {
+      method: 'PATCH',
+      headers: headers,
+      body: JSON.stringify({ status: newStatus })
+    }).then(function() {
+      loadDashboard();
+    }).catch(function(err) {
+      alert('Failed to update trip: ' + err.message);
+    });
+  }
+
+  // ── UPDATE BOOKING STATUS & AUTO-RESTORE CAPACITY ──
+  function updateBookingStatus(bookingId, newStatus, weightKg, tripId) {
+    if (!confirm('Update shipment status to ' + newStatus.toUpperCase() + '?')) return;
+    fetch(SUPABASE_URL + '/rest/v1/cargo_bookings?id=eq.' + bookingId, {
+      method: 'PATCH',
+      headers: headers,
+      body: JSON.stringify({ status: newStatus })
+    }).then(function() {
+      // If cancelled and weight/tripId provided, restore truck available capacity
+      if (newStatus === 'cancelled' && weightKg && tripId) {
+        fetch(SUPABASE_URL + '/rest/v1/cargo_trips?id=eq.' + tripId, { headers: headers })
+          .then(function(r) { return r.json(); })
+          .then(function(trips) {
+            if (trips && trips[0]) {
+              var newCap = (trips[0].available_capacity_kg || 0) + weightKg;
+              fetch(SUPABASE_URL + '/rest/v1/cargo_trips?id=eq.' + tripId, {
+                method: 'PATCH',
+                headers: headers,
+                body: JSON.stringify({ available_capacity_kg: newCap, status: 'open' })
+              });
+            }
+          });
+      }
+      loadDashboard();
+    }).catch(function(err) {
+      alert('Failed to update booking: ' + err.message);
+    });
+  }
+
+  // ── EXPORT CSV ──
+  function exportFreightCSV() {
+    if (!allBookings.length) {
+      alert('No cargo bookings data available to export.');
+      return;
+    }
+    var headers = ['Booking ID', 'Sender Name', 'Sender Phone', 'Weight (KG)', 'Cargo Description', 'Pickup Address', 'Drop Address', 'Total Fare (INR)', 'Rydealot Commission 15% (INR)', 'Status', 'Date'];
+    var rows = allBookings.map(function(b) {
+      return [
+        b.id || '',
+        '"' + (b.sender_name || '').replace(/"/g, '""') + '"',
+        b.sender_phone || '',
+        b.cargo_weight_kg || 0,
+        '"' + (b.cargo_description || '').replace(/"/g, '""') + '"',
+        '"' + (b.pickup_address || '').replace(/"/g, '""') + '"',
+        '"' + (b.drop_address || '').replace(/"/g, '""') + '"',
+        b.total_price || 0,
+        b.commission || 0,
+        b.status || '',
+        b.created_at ? new Date(b.created_at).toISOString().split('T')[0] : ''
+      ];
+    });
+
+    var csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(',')].concat(rows.map(r => r.join(','))).join('\n');
+    var encodedUri = encodeURI(csvContent);
+    var link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'rydealot_freight_report_' + new Date().toISOString().slice(0,10) + '.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // ── BROADCAST CONSOLE ──
+  function toggleBroadcastBox() {
+    var box = document.getElementById('broadcast-box');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function sendAlongWithBroadcast() {
+    var text = (document.getElementById('input-aw-broadcast').value || '').trim();
+    if (!text) { alert('Please enter an announcement text.'); return; }
+    
+    // Save to localStorage broadcast key & Supabase
+    localStorage.setItem('rydealot_aw_broadcast', JSON.stringify({ message: text, sent_at: new Date().toISOString() }));
+    
+    var msgEl = document.getElementById('broadcast-msg');
+    msgEl.textContent = '✅ Broadcast alert published live to all Along With users!';
+    msgEl.style.display = 'block';
+    setTimeout(function() { msgEl.style.display = 'none'; }, 4000);
+  }
+
+  function clearAlongWithBroadcast() {
+    localStorage.removeItem('rydealot_aw_broadcast');
+    document.getElementById('input-aw-broadcast').value = '';
+    var msgEl = document.getElementById('broadcast-msg');
+    msgEl.textContent = 'Broadcast cleared.';
+    msgEl.style.display = 'block';
+    setTimeout(function() { msgEl.style.display = 'none'; }, 3000);
   }
 
   checkAuth();
