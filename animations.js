@@ -294,14 +294,13 @@ window.AppAnimations = (function() {
     if (!svg) return;
     var slots = svg.querySelectorAll('.slot-wrap');
     Array.prototype.forEach.call(slots, function(slotEl) {
+      slotEl.style.opacity = '1';
       var sId = slotEl.getAttribute('data-slot');
       var sType = slotType && slotType[sId];
-      if (sType === selectedType) {
+      if (selectedType && sType === selectedType) {
         slotEl.classList.add('lot-highlight');
-        slotEl.style.opacity = '1';
       } else {
         slotEl.classList.remove('lot-highlight');
-        slotEl.style.opacity = '0.35';
       }
     });
   }

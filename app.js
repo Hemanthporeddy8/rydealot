@@ -3243,14 +3243,13 @@
       if (!svg) return;
       var slots = svg.querySelectorAll('.slot-wrap');
       Array.prototype.forEach.call(slots, function(slotEl) {
+        slotEl.style.opacity = '1';
         var sId = slotEl.getAttribute('data-slot');
         var sType = slotType && slotType[sId];
-        if (sType === type) {
+        if (type && sType === type) {
           slotEl.classList.add('lot-highlight');
-          slotEl.style.opacity = '1';
         } else {
           slotEl.classList.remove('lot-highlight');
-          slotEl.style.opacity = '0.35';
         }
       });
     }
@@ -3329,12 +3328,7 @@
     ['bike', 'auto', 'auto_share', 'car'].forEach(function(t){
       var tKey = t.replace('_', '-');
       var priceEl = document.getElementById('simple-price-' + tKey);
-      var countEl = document.getElementById('simple-count-' + tKey);
-      var count = countByType(t);
       if (priceEl) priceEl.textContent = 'Rs ' + currentPriceFor(t);
-      if (countEl) {
-        countEl.textContent = count > 0 ? (count + ' available nearby') : (t === 'auto_share' ? 'Fixed share' : 'Searching area');
-      }
       var card = document.querySelector('.simple-ride-card[data-type="' + t + '"]');
       if (card) {
         if (state.selectedRideType === t) {
