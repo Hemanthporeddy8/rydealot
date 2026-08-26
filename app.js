@@ -310,7 +310,16 @@
           }
         } catch(e) {}
 
-        if (!hasActiveBooking) {
+        var hasActiveLot = false;
+        try {
+          var rawLot = localStorage.getItem('rydealot_lot_state');
+          if (rawLot) {
+            var ls = JSON.parse(rawLot);
+            if (ls && ls.active && (Date.now() - (ls.timestamp || 0) < 2 * 60 * 60 * 1000)) hasActiveLot = true;
+          }
+        } catch(e) {}
+
+        if (!hasActiveBooking && !hasActiveLot) {
           var screenAuth = document.getElementById('screen-auth');
           var screenLogin = document.getElementById('screen-login');
           if (screenAuth) {
@@ -354,7 +363,16 @@
           }
         } catch(e) {}
 
-        if (!hasActiveBooking2) {
+        var hasActiveLot2 = false;
+        try {
+          var rawLot2 = localStorage.getItem('rydealot_lot_state');
+          if (rawLot2) {
+            var ls2 = JSON.parse(rawLot2);
+            if (ls2 && ls2.active && (Date.now() - (ls2.timestamp || 0) < 2 * 60 * 60 * 1000)) hasActiveLot2 = true;
+          }
+        } catch(e) {}
+
+        if (!hasActiveBooking2 && !hasActiveLot2) {
           var screenAuth = document.getElementById('screen-auth');
           if (screenAuth) { screenAuth.classList.remove('active'); screenAuth.style.display = 'none'; }
           var screenLogin = document.getElementById('screen-login');
@@ -845,9 +863,18 @@
         }
       } catch(e) {}
 
+      var hasActiveLot = false;
+      try {
+        var rawLot = localStorage.getItem('rydealot_lot_state');
+        if (rawLot) {
+          var ls = JSON.parse(rawLot);
+          if (ls && ls.active && (Date.now() - (ls.timestamp || 0) < 2 * 60 * 60 * 1000)) hasActiveLot = true;
+        }
+      } catch(e) {}
+
       // If user is already logged in, show screen-login; otherwise show screen-auth
       if (sess && (sess.phone || sess.email || sess.name)) {
-        if (!hasActiveBooking) {
+        if (!hasActiveBooking && !hasActiveLot) {
           if (authScreen) { authScreen.classList.remove('active'); authScreen.style.display = 'none'; }
           if (loginScreen) { loginScreen.classList.add('active'); loginScreen.style.display = 'flex'; }
           if (typeof window.initSetupMap === 'function') window.initSetupMap();
@@ -2414,6 +2441,31 @@
     isBookingInProgress: false
   };
 
+  function saveLotState() {
+    try {
+      localStorage.setItem('rydealot_lot_state', JSON.stringify({
+        active: true,
+        userName: state.userName,
+        pickup: state.pickup,
+        drop: state.drop,
+        lat: state.lat,
+        lng: state.lng,
+        destLat: state.destLat,
+        destLng: state.destLng,
+        tripDistanceKm: state.tripDistanceKm,
+        tripDurationMin: state.tripDurationMin,
+        selectedRideType: state.selectedRideType || 'bike',
+        timestamp: Date.now()
+      }));
+    } catch(e) {}
+  }
+
+  function clearLotState() {
+    try {
+      localStorage.removeItem('rydealot_lot_state');
+    } catch(e) {}
+  }
+
   function toast(msg, ms){
     var t = document.getElementById('toast');
     t.textContent = msg;
@@ -3028,6 +3080,13 @@
     } else {
       document.getElementById('lot-coords-display-container').style.display = 'none';
     }
+    try {
+      localStorage.setItem('rydealot_last_search', JSON.stringify({
+        pickup: state.pickup,
+        drop: state.drop
+      }));
+    } catch(e) {}
+    saveLotState();
     showScreen('screen-lot');
     resetLot();
   });
@@ -3072,11 +3131,13 @@
 
       highlightVehiclesInLot(type);
       updateBookButton();
+      saveLotState();
     });
   });
 
   document.getElementById('lot-back').addEventListener('click', function(){
     clearInterval(pollTimer);
+    clearLotState();
     showScreen('screen-login');
   });
 
@@ -4226,6 +4287,8 @@
         }));
       } catch(e) { console.error('Could not save booking to cache:', e); }
 
+      clearLotState();
+
       // Lock used coupon so customer cannot reuse it
       if (appliedPromoCode) {
         markCouponUsedForUser(appliedPromoCode);
@@ -4591,13 +4654,95 @@
     }
   }
 
-  // Automatic startup triggers for passenger side map & location or active ride restore
-  restoreActiveCustomerBooking().then(function(restored) {
+  // ===== AUTOMATIC PARKING LOT RESTORATION ON ACCIDENTAL REFRESH =====
+  async function restoreLotState() {
+    try {
+      var raw = localStorage.getItem('rydealot_lot_state');
+      if (!raw) return false;
+      var saved = JSON.parse(raw);
+      if (!saved || !saved.active) return false;
+
+      // Expire if older than 2 hours
+      if (Date.now() - (saved.timestamp || 0) > 2 * 60 * 60 * 1000) {
+        localStorage.removeItem('rydealot_lot_state');
+        return false;
+      }
+
+      if (saved.userName) state.userName = saved.userName;
+      state.pickup = saved.pickup || 'Current Location';
+      state.drop = saved.drop || 'Destination';
+      if (saved.lat && saved.lng) {
+        state.lat = saved.lat;
+        state.lng = saved.lng;
+      }
+      if (saved.destLat && saved.destLng) {
+        state.destLat = saved.destLat;
+        state.destLng = saved.destLng;
+      }
+      state.tripDistanceKm = saved.tripDistanceKm || 3.0;
+      state.tripDurationMin = saved.tripDurationMin || 10;
+      state.selectedRideType = saved.selectedRideType || 'bike';
+
+      // Prefill input fields on screen-login so if they go back, inputs are preserved!
+      var nameInput = document.getElementById('login-name');
+      var pickupInput = document.getElementById('pickup-input');
+      var dropInput = document.getElementById('drop-input');
+      if (nameInput && saved.userName) nameInput.value = saved.userName;
+      if (pickupInput && saved.pickup) pickupInput.value = saved.pickup;
+      if (dropInput && saved.drop) dropInput.value = saved.drop;
+
+      // Update lot screen header & info
+      var lotTitle = document.getElementById('lot-title');
+      if (lotTitle) lotTitle.textContent = state.pickup + ' \u2192 ' + state.drop;
+      var lotPlace = document.getElementById('lot-place-name');
+      if (lotPlace) lotPlace.textContent = state.pickup;
+
+      if (state.lat && state.lng) {
+        var coordsEl = document.getElementById('lot-coords-display');
+        if (coordsEl) coordsEl.textContent = 'GPS Active: ' + state.lat.toFixed(5) + ', ' + state.lng.toFixed(5);
+        var coordsCont = document.getElementById('lot-coords-display-container');
+        if (coordsCont) coordsCont.style.display = 'flex';
+      }
+
+      var distDisplay = document.getElementById('lot-trip-distance-display');
+      if (distDisplay) {
+        distDisplay.textContent = '📏 ' + state.tripDistanceKm + ' km (' + state.tripDurationMin + ' mins)';
+      }
+
+      // Set active ride type card
+      Array.prototype.forEach.call(document.querySelectorAll('.ride-type-card'), function(c){
+        c.classList.toggle('selected', c.getAttribute('data-type') === state.selectedRideType);
+      });
+
+      // Show lot screen and refresh vehicles & fares
+      showScreen('screen-lot');
+      await resetLot();
+      toast('🔄 Restored your ride selection');
+      return true;
+    } catch(e) {
+      console.error('Error restoring lot state:', e);
+      return false;
+    }
+  }
+
+  // Automatic startup triggers for passenger side map & location or active ride/lot restore
+  restoreActiveCustomerBooking().then(async function(restored) {
     if (!restored) {
-      setTimeout(function(){
-        initSetupMap();
-        autoFindLocation();
-      }, 300);
+      var lotRestored = await restoreLotState();
+      if (!lotRestored) {
+        try {
+          var lastSearch = JSON.parse(localStorage.getItem('rydealot_last_search') || '{}');
+          var pInp = document.getElementById('pickup-input');
+          var dInp = document.getElementById('drop-input');
+          if (pInp && !pInp.value && lastSearch.pickup) pInp.value = lastSearch.pickup;
+          if (dInp && !dInp.value && lastSearch.drop) dInp.value = lastSearch.drop;
+        } catch(e) {}
+
+        setTimeout(function(){
+          initSetupMap();
+          autoFindLocation();
+        }, 300);
+      }
     }
   });
 
