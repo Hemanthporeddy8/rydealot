@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rydealot Admin Panel</title>
+  <link rel="shortcut icon" href="logo.png" type="image/png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -80,7 +81,7 @@
 <!-- PASSCODE & GMAIL AUTH MODAL -->
 <div id="admin-auth-overlay">
   <div class="auth-card">
-    <div style="font-size: 40px; margin-bottom: 12px;">🔒</div>
+    <img src="logo.png" alt="Rydealot" style="width:76px; height:auto; margin-bottom:12px; border-radius:14px;">
     <h2>RYDEALOT <span>ADMIN</span></h2>
     <p style="margin-bottom: 16px;">Sign in with Admin Gmail & Password</p>
     
@@ -193,7 +194,10 @@
 
 <div id="admin-main-wrap">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px; flex-wrap:wrap; gap:10px;">
-    <h1>RYDEALOT <span>ADMIN</span></h1>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <img src="logo.png" alt="Rydealot" style="width:36px; height:36px; object-fit:contain; border-radius:8px;">
+      <h1 style="margin:0;">RYDEALOT <span>ADMIN</span></h1>
+    </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <button class="btn btn-green" style="font-size:0.78rem;" onclick="exportDataAsCSV()">📊 Export CSV (Excel)</button>
       <button class="btn btn-mute" style="font-size:0.78rem;" onclick="openDownloadModal()">📥 Download Raw JSON</button>
