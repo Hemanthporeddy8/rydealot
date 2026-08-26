@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2.8">
+<link rel="stylesheet" href="style.css?v=2.9">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -140,8 +140,21 @@
         </div>
       </div>
 
+      <button type="button" id="btn-profile-view-rides" class="btn" style="background:var(--accent); color:#fff; font-size:13px; margin-top:6px;">📜 View My Ride History</button>
+
       <!-- Logout Button -->
       <button class="btn btn-outline" id="prof-logout-btn" style="color:var(--red); border-color:#f3d4d4; margin-top:auto;">Logout Account</button>
+    </div>
+  </div>
+
+  <!-- SCREEN: CUSTOMER RIDE HISTORY -->
+  <div class="screen" id="screen-customer-rides" style="background:#fff;">
+    <div class="nav" style="border-bottom:1.5px solid var(--border);">
+      <button class="icon-btn" id="rides-back" aria-label="Back"><i class="ti ti-arrow-left"></i></button>
+      <h1>My Rides</h1>
+    </div>
+    <div class="content" style="padding:16px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px;" id="customer-rides-list">
+      <div style="text-align:center; padding:40px 20px; color:var(--text-mute);">Loading your rides...</div>
     </div>
   </div>
 
@@ -149,8 +162,8 @@
   <div class="screen" id="screen-login" style="background:#fff;">
     <!-- Large, prominent map at the top of the screen -->
     <div id="setup-map" style="height: 380px; width: 100%; border-bottom: 1.5px solid var(--border); position: relative; z-index: 1;">
-      <div style="position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:999; background:rgba(18,20,26,0.85); color:#fff; padding:6px 14px; border-radius:999px; font-size:11px; font-weight:700; backdrop-filter:blur(8px); border:1.5px solid rgba(255,255,255,0.18); display:flex; align-items:center; gap:6px; box-shadow:0 6px 16px rgba(0,0,0,0.3); pointer-events:none;">
-        📍 Tap map to set exact house/gate pin
+      <div id="map-mode-helper" style="position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:999; background:rgba(18,20,26,0.88); color:#fff; padding:6px 14px; border-radius:999px; font-size:11px; font-weight:700; backdrop-filter:blur(8px); border:1.5px solid rgba(255,255,255,0.18); display:flex; align-items:center; gap:6px; box-shadow:0 6px 16px rgba(0,0,0,0.3); pointer-events:none; transition:all 0.3s ease;">
+        <span id="map-mode-helper-text">📍 Tap map to set pickup or drop pin</span>
       </div>
       <button type="button" id="btn-toggle-map-theme" style="position:absolute; top:12px; right:12px; z-index:999; background:rgba(18,20,26,0.85); color:#fff; padding:6px 12px; border-radius:12px; font-size:11px; font-weight:700; backdrop-filter:blur(8px); border:1.5px solid rgba(255,255,255,0.18); cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 6px 16px rgba(0,0,0,0.3);" title="Toggle Dark/Light Map Theme">🌙 Dark</button>
       
@@ -164,7 +177,10 @@
     <div class="login-body" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 2px;">
         <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--text); margin:0;">Get a ride</h2>
-        <button type="button" id="btn-open-user-profile" style="background:var(--bg); border:1.5px solid var(--border); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;" title="My Profile">👤</button>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" id="btn-open-my-rides" style="background:#f8fafc; border:1.5px solid var(--border); border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:4px; color:var(--text);" title="My Rides">📜 Rides</button>
+          <button type="button" id="btn-open-user-profile" style="background:var(--bg); border:1.5px solid var(--border); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;" title="My Profile">👤</button>
+        </div>
       </div>
       <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 8px;">Find nearby drivers and book in seconds</p>
 
@@ -190,9 +206,14 @@
         </div>
       </div>
       <div class="field">
-        <label class="field-label">Drop label (where you want to go)</label>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+          <label class="field-label" style="margin-bottom:0;">Drop label (where you want to go)</label>
+          <button type="button" id="btn-pick-drop-on-map" style="background:#eff6ff; color:#2563eb; border:1.5px solid #bfdbfe; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s ease;">
+            🗺️ Set on Map
+          </button>
+        </div>
         <div style="position:relative">
-          <input type="text" id="drop-input" placeholder="e.g. Railway Station" autocomplete="off">
+          <input type="text" id="drop-input" placeholder="e.g. Railway Station or tap 'Set on Map'" autocomplete="off">
           <div id="drop-suggestions" class="autocomplete-dropdown"></div>
         </div>
       </div>
@@ -234,9 +255,77 @@
         </div>
         <span id="lot-coords-display" style="font-size:10px; color:var(--text-mute); font-family:var(--font-mono);">GPS Active</span>
       </div>
-      <div class="lot-wrap">
+
+      <!-- View Mode Switcher: Lot View vs Simple Rapido View -->
+      <div style="display:flex; justify-content:center; margin:0 16px 10px;">
+        <div style="display:flex; background:#e2e8f0; padding:3px; border-radius:99px; width:100%; max-width:320px;" id="lot-view-switcher">
+          <button type="button" id="btn-view-lot" style="flex:1; border:none; border-radius:99px; padding:6px 12px; font-size:11.5px; font-weight:800; background:#fff; color:var(--text); box-shadow:0 2px 6px rgba(0,0,0,0.1); cursor:pointer; transition:all 0.2s ease;">🅿️ Parking Lot</button>
+          <button type="button" id="btn-view-simple" style="flex:1; border:none; border-radius:99px; padding:6px 12px; font-size:11.5px; font-weight:800; background:transparent; color:var(--text-mute); cursor:pointer; transition:all 0.2s ease;">📋 Simple View</button>
+        </div>
+      </div>
+
+      <div class="lot-wrap" id="lot-wrap-element">
         <div class="lot">
           <svg id="lot-svg" viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </div>
+
+      <!-- Simple View: Rapido / Ola Classic Vertical Cards -->
+      <div id="simple-view-container" style="display:none; flex-direction:column; gap:10px; padding:0 16px 12px;">
+        <div class="simple-ride-card active" data-type="bike" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:2px solid var(--accent); border-radius:14px; background:#ecfdf5; cursor:pointer; transition:all 0.2s ease;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:26px;">🏍️</span>
+            <div>
+              <div style="font-size:14px; font-weight:800; color:var(--text);">Bike Taxi <span style="font-size:10px; background:#dcfce7; color:#166534; padding:2px 6px; border-radius:4px; margin-left:4px; font-weight:800;">FASTEST</span></div>
+              <div style="font-size:11px; color:var(--text-mute);"><span id="simple-eta-bike">2 mins</span> away • Quick single ride</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:16px; font-weight:900; color:var(--text);" id="simple-price-bike">Rs 35</div>
+            <div style="font-size:10px; color:#16a34a; font-weight:700;" id="simple-count-bike">Available</div>
+          </div>
+        </div>
+
+        <div class="simple-ride-card" data-type="auto" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1.5px solid var(--border); border-radius:14px; background:var(--card); cursor:pointer; transition:all 0.2s ease;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:26px;">🛺</span>
+            <div>
+              <div style="font-size:14px; font-weight:800; color:var(--text);">Auto Direct</div>
+              <div style="font-size:11px; color:var(--text-mute);"><span id="simple-eta-auto">3 mins</span> away • Private 3-wheeler</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:16px; font-weight:900; color:var(--text);" id="simple-price-auto">Rs 55</div>
+            <div style="font-size:10px; color:var(--text-mute);" id="simple-count-auto">Available</div>
+          </div>
+        </div>
+
+        <div class="simple-ride-card" data-type="auto_share" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1.5px solid var(--border); border-radius:14px; background:var(--card); cursor:pointer; transition:all 0.2s ease;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:26px;">👥</span>
+            <div>
+              <div style="font-size:14px; font-weight:800; color:var(--text);">Auto Share <span style="font-size:10px; background:#fef3c7; color:#92400e; padding:2px 6px; border-radius:4px; margin-left:4px; font-weight:800;">BUDGET</span></div>
+              <div style="font-size:11px; color:var(--text-mute);"><span id="simple-eta-auto-share">4 mins</span> away • Flat shared route</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:16px; font-weight:900; color:var(--text);" id="simple-price-auto_share">Rs 25</div>
+            <div style="font-size:10px; color:#f59e0b; font-weight:700;">Fixed share</div>
+          </div>
+        </div>
+
+        <div class="simple-ride-card" data-type="car" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1.5px solid var(--border); border-radius:14px; background:var(--card); cursor:pointer; transition:all 0.2s ease;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:26px;">🚗</span>
+            <div>
+              <div style="font-size:14px; font-weight:800; color:var(--text);">Car / Cab</div>
+              <div style="font-size:11px; color:var(--text-mute);"><span id="simple-eta-car">5 mins</span> away • AC comfort ride</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:16px; font-weight:900; color:var(--text);" id="simple-price-car">Rs 89</div>
+            <div style="font-size:10px; color:var(--text-mute);" id="simple-count-car">Available</div>
+          </div>
         </div>
       </div>
       <div class="bonus-banner" id="bonus-banner">
@@ -419,7 +508,7 @@
 <!-- ===================== RIDER (DRIVER) ROOT ===================== -->
 <!-- Driver UI has been moved to driver.html for clean separation -->
 
-<script src="animations.js?v=2.8"></script>
-<script src="app.js?v=2.8"></script>
+<script src="animations.js?v=2.9"></script>
+<script src="app.js?v=2.9"></script>
 </body>
 </html>

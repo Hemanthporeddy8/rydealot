@@ -549,6 +549,26 @@
     });
   }
 
+  var btnOpenHist = document.getElementById('rd-open-history-btn');
+  var btnBackHist = document.getElementById('rd-history-back-btn');
+  var histSection = document.getElementById('rd-history-section');
+
+  if (btnOpenHist && histSection && mainSection) {
+    btnOpenHist.addEventListener('click', function() {
+      mainSection.style.display = 'none';
+      histSection.style.display = 'flex';
+      if (typeof window.loadDriverTripHistory === 'function') {
+        window.loadDriverTripHistory();
+      }
+    });
+  }
+  if (btnBackHist && histSection && mainSection) {
+    btnBackHist.addEventListener('click', function() {
+      histSection.style.display = 'none';
+      mainSection.style.display = 'block';
+    });
+  }
+
   Array.prototype.forEach.call(document.querySelectorAll('.btn-sub-pass'), function(btn){
     btn.addEventListener('click', function(){
       var passType = btn.getAttribute('data-pass');
@@ -2292,6 +2312,9 @@
         setPill('available');
       }
       if(action === 'complete'){
+        if (typeof window.incrementDailySprintCount === 'function') {
+          window.incrementDailySprintCount();
+        }
         var activePlan = localStorage.getItem('rydealot_driver_active_plan');
         if (activePlan === 'commission') {
           var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"perTrip":25}');
@@ -2308,6 +2331,63 @@
       toast('Could not update: ' + err.message);
     }
   }
+
+  async function loadDriverTripHistory() {
+    var listEl = document.getElementById('rd-trips-history-list');
+    var totalTripsEl = document.getElementById('rd-hist-total-trips');
+    var totalEarningsEl = document.getElementById('rd-hist-total-earnings');
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-mute); font-size:12px;">⏳ Loading your trip history...</div>';
+
+    var rId = state.riderId || localStorage.getItem('ridelot_rider_id');
+    if (!rId) {
+      listEl.innerHTML = '<div class="empty-state">No active driver profile found.</div>';
+      return;
+    }
+
+    try {
+      var rows = await sbFetch('bookings?rider_id=eq.' + rId + '&order=created_at.desc&limit=40');
+      if (!rows || rows.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">No trips recorded yet. Complete rides to view them here!</div>';
+        if (totalTripsEl) totalTripsEl.textContent = '0';
+        if (totalEarningsEl) totalEarningsEl.textContent = '₹0';
+        return;
+      }
+
+      var completedTrips = rows.filter(function(r){ return r.status === 'completed'; });
+      var totalEarnings = completedTrips.reduce(function(sum, r){ return sum + parseFloat(r.fare || 0); }, 0);
+
+      if (totalTripsEl) totalTripsEl.textContent = completedTrips.length;
+      if (totalEarningsEl) totalEarningsEl.textContent = '₹' + totalEarnings.toFixed(0);
+
+      var html = '';
+      rows.forEach(function(b) {
+        var dateStr = new Date(b.created_at).toLocaleDateString('en-IN', {
+          day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+        var statusColor = b.status === 'completed' ? '#10b981' : (b.status === 'cancelled' ? '#ef4444' : '#3b82f6');
+        var statusBg = b.status === 'completed' ? '#ecfdf5' : (b.status === 'cancelled' ? '#fef2f2' : '#eff6ff');
+        var vLabel = b.vehicle_type === 'bike' ? '🏍️ Bike' : (b.vehicle_type === 'auto' ? '🛺 Auto' : (b.vehicle_type === 'auto_share' ? '👥 Auto Share' : '🚗 Cab'));
+
+        html += '<div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:6px;">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+            '<span style="font-size:12.5px; font-weight:800; color:var(--text);">' + vLabel + ' • ' + (b.user_name || 'Passenger') + '</span>' +
+            '<span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:99px; background:' + statusBg + '; color:' + statusColor + '; text-transform:uppercase;">' + b.status + '</span>' +
+          '</div>' +
+          '<div style="font-size:12px; font-weight:700; color:var(--text);">' + (b.pickup_label || 'Pickup') + ' &rarr; ' + (b.drop_label || 'Destination') + '</div>' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-mute); border-top:1px solid var(--border); padding-top:6px; margin-top:2px;">' +
+            '<span>🕐 ' + dateStr + '</span>' +
+            '<span style="font-size:14px; font-weight:900; color:#10b981;">₹' + (b.fare || '0') + '</span>' +
+          '</div>' +
+        '</div>';
+      });
+
+      listEl.innerHTML = html;
+    } catch(e) {
+      listEl.innerHTML = '<div class="empty-state" style="color:var(--red);">Could not load trips.</div>';
+    }
+  }
+  window.loadDriverTripHistory = loadDriverTripHistory;
 
   // ---------- init ----------
   async function init(){
@@ -2511,6 +2591,11 @@
         if (typeof state !== 'undefined' && state && state.destMap) state.destMap.invalidateSize();
       }, 100);
     }
+    if (id === 'screen-lot') {
+      if (typeof window.setLotViewMode === 'function') {
+        window.setLotViewMode(localStorage.getItem('rydealot_lot_view_mode') || 'lot');
+      }
+    }
   }
 
   function setActiveTab(name){
@@ -2659,6 +2744,27 @@
       });
     }
 
+    var btnPickDrop = document.getElementById('btn-pick-drop-on-map');
+    if (btnPickDrop) {
+      btnPickDrop.addEventListener('click', function(){
+        var mapEl = document.getElementById('setup-map');
+        if (mapEl) {
+          mapEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        var helper = document.getElementById('map-mode-helper');
+        var helperTxt = document.getElementById('map-mode-helper-text');
+        if (helper && helperTxt) {
+          helperTxt.textContent = '🚩 Tap anywhere on map to set Drop destination';
+          helper.style.background = '#2563eb';
+          setTimeout(function(){
+            helper.style.background = 'rgba(18,20,26,0.88)';
+            helperTxt.textContent = '📍 Tap map to set pickup or drop pin';
+          }, 6000);
+        }
+        toast('🗺️ Tap anywhere on the map above to set your Drop location');
+      });
+    }
+
     // Clicking anywhere on the map pins the Destination (Drop point)
     state.destMap.on('click', function(e) {
       var lat = e.latlng.lat;
@@ -2668,7 +2774,7 @@
       updateSetupMapMarkers();
       
       var dropInput = document.getElementById('drop-input');
-      dropInput.value = 'Pinned Destination (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
+      dropInput.value = 'Locating place...';
       updateMapAddressPill(lat, lng);
     });
 
@@ -2698,13 +2804,32 @@
           var addr = data.address || {};
           var mainStr = addr.road || addr.suburb || addr.neighbourhood || addr.village || data.display_name.split(',')[0];
           var subStr = [addr.city||addr.town||addr.county, addr.state, addr.postcode].filter(Boolean).join(', ');
+          var fullFriendly = mainStr + (addr.city || addr.town ? ', ' + (addr.city || addr.town) : '');
           txt.textContent = mainStr + (subStr ? ', ' + subStr : '');
+          var dropInput = document.getElementById('drop-input');
+          if (dropInput) {
+            dropInput.value = fullFriendly;
+            state.drop = fullFriendly;
+          }
+          updateTripDistanceAndFares();
         } else {
           txt.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+          var dropInput = document.getElementById('drop-input');
+          if (dropInput) {
+            dropInput.value = 'Pinned Destination (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
+            state.drop = dropInput.value;
+          }
+          updateTripDistanceAndFares();
         }
       })
       .catch(function(){
         txt.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+        var dropInput = document.getElementById('drop-input');
+        if (dropInput) {
+          dropInput.value = 'Pinned Destination (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
+          state.drop = dropInput.value;
+        }
+        updateTripDistanceAndFares();
       });
     }, 350);
   }
@@ -3165,6 +3290,160 @@
     showScreen('screen-login');
   });
 
+  // ===================== LOT VIEW VS SIMPLE VIEW TOGGLE =====================
+  var currentLotViewMode = localStorage.getItem('rydealot_lot_view_mode') || 'lot';
+
+  function setLotViewMode(mode) {
+    currentLotViewMode = mode;
+    localStorage.setItem('rydealot_lot_view_mode', mode);
+    var btnLot = document.getElementById('btn-view-lot');
+    var btnSimple = document.getElementById('btn-view-simple');
+    var lotWrap = document.getElementById('lot-wrap-element');
+    var simpleContainer = document.getElementById('simple-view-container');
+    var recentTitle = document.querySelector('#screen-lot .recent-title');
+    var rideTypeRow = document.getElementById('ride-type-row');
+    var lotHint = document.querySelector('#screen-lot .hint');
+
+    if (mode === 'simple') {
+      if (btnLot) { btnLot.style.background = 'transparent'; btnLot.style.color = 'var(--text-mute)'; btnLot.style.boxShadow = 'none'; }
+      if (btnSimple) { btnSimple.style.background = '#fff'; btnSimple.style.color = 'var(--text)'; btnSimple.style.boxShadow = '0 2px 6px rgba(0,0,0,0.1)'; }
+      if (lotWrap) lotWrap.style.display = 'none';
+      if (simpleContainer) simpleContainer.style.display = 'flex';
+      if (recentTitle) recentTitle.style.display = 'none';
+      if (rideTypeRow) rideTypeRow.style.display = 'none';
+      if (lotHint) lotHint.style.display = 'none';
+      updateSimpleViewPrices();
+    } else {
+      if (btnSimple) { btnSimple.style.background = 'transparent'; btnSimple.style.color = 'var(--text-mute)'; btnSimple.style.boxShadow = 'none'; }
+      if (btnLot) { btnLot.style.background = '#fff'; btnLot.style.color = 'var(--text)'; btnLot.style.boxShadow = '0 2px 6px rgba(0,0,0,0.1)'; }
+      if (lotWrap) lotWrap.style.display = 'block';
+      if (simpleContainer) simpleContainer.style.display = 'none';
+      if (recentTitle) recentTitle.style.display = 'block';
+      if (rideTypeRow) rideTypeRow.style.display = 'flex';
+      if (lotHint) lotHint.style.display = 'block';
+    }
+  }
+  window.setLotViewMode = setLotViewMode;
+
+  function updateSimpleViewPrices() {
+    ['bike', 'auto', 'auto_share', 'car'].forEach(function(t){
+      var tKey = t.replace('_', '-');
+      var priceEl = document.getElementById('simple-price-' + tKey);
+      var countEl = document.getElementById('simple-count-' + tKey);
+      var count = countByType(t);
+      if (priceEl) priceEl.textContent = 'Rs ' + currentPriceFor(t);
+      if (countEl) {
+        countEl.textContent = count > 0 ? (count + ' available nearby') : (t === 'auto_share' ? 'Fixed share' : 'Searching area');
+      }
+      var card = document.querySelector('.simple-ride-card[data-type="' + t + '"]');
+      if (card) {
+        if (state.selectedRideType === t) {
+          card.classList.add('active');
+          card.style.border = '2px solid var(--accent)';
+          card.style.background = '#ecfdf5';
+        } else {
+          card.classList.remove('active');
+          card.style.border = '1.5px solid var(--border)';
+          card.style.background = 'var(--card)';
+        }
+      }
+    });
+  }
+
+  var btnViewLot = document.getElementById('btn-view-lot');
+  var btnViewSimple = document.getElementById('btn-view-simple');
+  if (btnViewLot) {
+    btnViewLot.addEventListener('click', function() { setLotViewMode('lot'); });
+  }
+  if (btnViewSimple) {
+    btnViewSimple.addEventListener('click', function() { setLotViewMode('simple'); });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.simple-ride-card'), function(card){
+    card.addEventListener('click', function(){
+      var type = card.getAttribute('data-type');
+      state.selectedRideType = type;
+      updateSimpleViewPrices();
+      updateBookButton();
+      highlightVehiclesInLot(type);
+      saveLotState();
+    });
+  });
+
+  // ===================== CUSTOMER RIDE HISTORY =====================
+  async function loadCustomerRides() {
+    var listEl = document.getElementById('customer-rides-list');
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="text-align:center; padding:40px 20px; color:var(--text-mute); font-size:13px;">⏳ Loading your past rides...</div>';
+
+    var userName = state.userName || (JSON.parse(localStorage.getItem('rydealot_user') || '{}')).name || '';
+    if (!userName) {
+      listEl.innerHTML = '<div class="empty-state" style="text-align:center; padding:40px 20px; color:var(--text-mute);">Please enter your name on the home screen to view your past rides.</div>';
+      return;
+    }
+
+    try {
+      var rows = await sbFetch('bookings?user_name=eq.' + encodeURIComponent(userName) + '&order=created_at.desc&limit=30');
+      if (!rows || rows.length === 0) {
+        listEl.innerHTML = '<div class="empty-state" style="text-align:center; padding:40px 20px; color:var(--text-mute); font-size:13px;">No past rides found for <strong>' + userName + '</strong>.<br>Book your first ride!</div>';
+        return;
+      }
+
+      var countEl = document.getElementById('prof-rides-count');
+      if (countEl) countEl.textContent = rows.filter(function(r){ return r.status === 'completed'; }).length;
+
+      var html = '';
+      rows.forEach(function(b) {
+        var dateStr = new Date(b.created_at).toLocaleDateString('en-IN', {
+          day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+        var vIcon = b.vehicle_type === 'bike' ? '🏍️ Bike Taxi' : (b.vehicle_type === 'auto' ? '🛺 Auto Direct' : (b.vehicle_type === 'auto_share' ? '👥 Auto Share' : '🚗 Cab'));
+        var statusColor = b.status === 'completed' ? '#10b981' : (b.status === 'cancelled' ? '#ef4444' : '#3b82f6');
+        var statusBg = b.status === 'completed' ? '#ecfdf5' : (b.status === 'cancelled' ? '#fef2f2' : '#eff6ff');
+
+        html += '<div style="background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:8px;">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+            '<span style="font-size:12.5px; font-weight:800; color:var(--text);">' + vIcon + '</span>' +
+            '<span style="font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:99px; background:' + statusBg + '; color:' + statusColor + '; text-transform:uppercase;">' + b.status + '</span>' +
+          '</div>' +
+          '<div style="font-size:13px; font-weight:700; color:var(--text);">' + (b.pickup_label || 'Pickup') + ' &rarr; ' + (b.drop_label || 'Destination') + '</div>' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-mute); border-top:1px solid var(--border); padding-top:8px; margin-top:2px;">' +
+            '<span>🕐 ' + dateStr + '</span>' +
+            '<span style="font-size:14px; font-weight:900; color:var(--accent);">Rs ' + (b.fare || '0') + '</span>' +
+          '</div>' +
+        '</div>';
+      });
+
+      listEl.innerHTML = html;
+    } catch(e) {
+      listEl.innerHTML = '<div style="text-align:center; padding:30px; color:var(--red);">Could not load rides. Please try again.</div>';
+    }
+  }
+  window.loadCustomerRides = loadCustomerRides;
+
+  var btnOpenMyRides = document.getElementById('btn-open-my-rides');
+  if (btnOpenMyRides) {
+    btnOpenMyRides.addEventListener('click', function(){
+      showScreen('screen-customer-rides');
+      loadCustomerRides();
+    });
+  }
+
+  var btnProfViewRides = document.getElementById('btn-profile-view-rides');
+  if (btnProfViewRides) {
+    btnProfViewRides.addEventListener('click', function(){
+      showScreen('screen-customer-rides');
+      loadCustomerRides();
+    });
+  }
+
+  var btnRidesBack = document.getElementById('rides-back');
+  if (btnRidesBack) {
+    btnRidesBack.addEventListener('click', function(){
+      showScreen('screen-login');
+    });
+  }
+
   function getUserIdentifier() {
     if (typeof authState !== 'undefined' && authState.currentUser) {
       return (authState.currentUser.phone || authState.currentUser.email || 'user_guest').replace(/[^a-zA-Z0-9]/g, '_');
@@ -3515,22 +3794,66 @@
 
   setInterval(updateDriverPassTimerUI, 1000);
 
+  function getTodayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  function getDailySprintCount() {
+    var riderId = localStorage.getItem('ridelot_rider_id') || 'driver';
+    var key = 'rydealot_sprint_' + riderId + '_' + getTodayKey();
+    return parseInt(localStorage.getItem(key) || '0', 10);
+  }
+
+  function incrementDailySprintCount() {
+    var riderId = localStorage.getItem('ridelot_rider_id') || 'driver';
+    var key = 'rydealot_sprint_' + riderId + '_' + getTodayKey();
+    var cur = getDailySprintCount() + 1;
+    localStorage.setItem(key, cur);
+
+    // Check if 5 rides achieved
+    var bonusClaimedKey = 'rydealot_sprint_claimed_' + riderId + '_' + getTodayKey();
+    var alreadyClaimed = localStorage.getItem(bonusClaimedKey);
+    if (cur >= 5 && !alreadyClaimed) {
+      localStorage.setItem(bonusClaimedKey, 'true');
+      var curBal = parseFloat(localStorage.getItem('rydealot_driver_wallet_balance') || '0');
+      var newBal = curBal + 15;
+      localStorage.setItem('rydealot_driver_wallet_balance', newBal);
+      var balEl = document.getElementById('rd-wallet-balance-display');
+      if (balEl) balEl.textContent = '₹' + newBal;
+      toast('🎉 5 Rides Sprint Complete! ₹15 bonus credited to your wallet! 💰');
+    }
+    updateDriverIncentivesUI();
+    return cur;
+  }
+  window.incrementDailySprintCount = incrementDailySprintCount;
+
   function updateDriverIncentivesUI() {
     var container = document.getElementById('rd-bonus-schemes-list');
     if (!container) return;
-    var list = JSON.parse(localStorage.getItem('rydealot_admin_bonuses') || '[]');
-    if (!list.length) {
-      list = [
-        { title: '5 Rides Daily Sprint', rides: 5, reward: 15 },
-        { title: 'Driver Buddy Referral', rides: 1, reward: 50 }
-      ];
-    }
-    container.innerHTML = list.map(function(b) {
-      return '<div style="display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:8px 10px; border-radius:8px; border:1px solid var(--border);">' +
-        '<span>🌟 <strong>' + b.title + ':</strong> ' + (b.rides > 1 ? ('Complete ' + b.rides + ' rides') : 'Per referral') + '</span>' +
-        '<span style="color:#1d9e75; font-weight:800;">+ ₹' + b.reward + ' Bonus</span>' +
+    var sprintCount = getDailySprintCount();
+    var targetRides = 5;
+    var pct = Math.min(100, Math.round((sprintCount / targetRides) * 100));
+    var isDone = sprintCount >= targetRides;
+
+    container.innerHTML = 
+      '<div style="background:var(--card); padding:10px 12px; border-radius:10px; border:1.5px solid ' + (isDone ? '#10b981' : 'var(--border)') + '; display:flex; flex-direction:column; gap:6px;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+          '<span>🌟 <strong>5 Rides Daily Sprint:</strong></span>' +
+          '<span style="color:#1d9e75; font-weight:800;">+ ₹15 Bonus</span>' +
+        '</div>' +
+        '<div style="background:#e2e8f0; height:8px; border-radius:99px; overflow:hidden;">' +
+          '<div style="background:linear-gradient(90deg, #10b981, #f59e0b); height:100%; width:' + pct + '%; transition:width 0.4s ease;"></div>' +
+        '</div>' +
+        '<div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-mute);">' +
+          '<span>' + (isDone ? '🎉 Target reached! ₹15 credited' : sprintCount + ' / 5 rides completed today') + '</span>' +
+          '<span style="font-weight:800; color:' + (isDone ? '#10b981' : 'var(--text)') + ';">' + pct + '%</span>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex; align-items:center; justify-content:space-between; background:var(--card); padding:8px 10px; border-radius:8px; border:1px solid var(--border);">' +
+        '<span>🤝 <strong>Driver Buddy Referral:</strong> Invite a driver friend</span>' +
+        '<span style="color:var(--amber); font-weight:800;">+ ₹50 Wallet</span>' +
       '</div>';
-    }).join('');
   }
 
   var btnApplyPromo = document.getElementById('btn-apply-promo');
@@ -4122,6 +4445,9 @@
     }
 
     updateBookButton();
+    if (typeof updateSimpleViewPrices === 'function') {
+      updateSimpleViewPrices();
+    }
   }
 
   function updateBookButton(){
