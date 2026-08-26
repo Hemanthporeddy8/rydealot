@@ -963,6 +963,23 @@
       }
     });
 
+    var verifDisplay = document.getElementById('rd-display-verification');
+    if (verifDisplay) {
+      if (approvedCount === 4) {
+        verifDisplay.textContent = '✅ Verified Partner';
+        verifDisplay.style.color = '#16a34a';
+      } else if (approvedCount > 0) {
+        verifDisplay.textContent = '⏳ ' + approvedCount + '/4 Approved (In Review)';
+        verifDisplay.style.color = '#d97706';
+      } else if (uploadedCount > 0) {
+        verifDisplay.textContent = '⏳ Submitted (Pending Review)';
+        verifDisplay.style.color = '#d97706';
+      } else {
+        verifDisplay.textContent = '⚠️ Not Uploaded';
+        verifDisplay.style.color = '#dc2626';
+      }
+    }
+
     var banner = document.getElementById('rd-verification-status-banner');
     var iconEl = document.getElementById('rd-verif-icon');
     var titleEl = document.getElementById('rd-verif-title');
@@ -977,6 +994,14 @@
         titleEl.style.color = '#15803d';
         subEl.textContent = 'All documents verified by Admin. You are ready to accept rides!';
         subEl.style.color = '#166534';
+      } else if (approvedCount > 0) {
+        banner.style.background = 'linear-gradient(135deg, #fffbeb, #fef3c7)';
+        banner.style.border = '1.5px solid #f59e0b';
+        iconEl.textContent = '⏳';
+        titleEl.textContent = 'Verification in Progress (' + approvedCount + '/4 Approved)';
+        titleEl.style.color = '#92400e';
+        subEl.textContent = approvedCount + ' of 4 documents approved! Admin is reviewing the remaining documents.';
+        subEl.style.color = '#b45309';
       } else if (uploadedCount > 0) {
         banner.style.background = 'linear-gradient(135deg, #fffbeb, #fef3c7)';
         banner.style.border = '1.5px solid #f59e0b';
@@ -1044,6 +1069,17 @@
     } catch(e){}
   }
 
+  var verifPollTimer = null;
+  function startVerifPolling(riderId) {
+    if (verifPollTimer) clearInterval(verifPollTimer);
+    verifPollTimer = setInterval(function() {
+      var id = state.riderId || riderId || localStorage.getItem('ridelot_rider_id');
+      if (id) {
+        updateDriverVerificationStatusUI(id);
+      }
+    }, 10000);
+  }
+
   function showMain(profile){
     document.getElementById('rd-setup-section').style.display = 'none';
     document.getElementById('rd-main-section').style.display = 'block';
@@ -1053,6 +1089,7 @@
     updateDriverVerificationStatusUI(profile.id);
     checkDriverBanStatus(profile);
     checkDriverBroadcast();
+    startVerifPolling(profile.id);
   }
 
   // Helper to read file as base64 with downscaling
