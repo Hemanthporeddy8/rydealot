@@ -7,11 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=3.2">
+<link rel="stylesheet" href="style.css?v=3.3">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <link rel="manifest" href="manifest.json">
 <link rel="shortcut icon" href="logo.png" type="image/png">
 <link rel="apple-touch-icon" href="logo.png">
@@ -430,8 +432,11 @@
           <p class="b" id="track-vehicle-info">Hero Splendor &middot; KA 03 AB 4521</p>
         </div>
         <div class="driver-actions">
-          <button class="round-btn" aria-label="Call rider"><i class="ti ti-phone"></i></button>
-          <button class="round-btn" aria-label="Message rider"><i class="ti ti-message-circle"></i></button>
+          <button class="round-btn" id="btn-customer-call" aria-label="Call rider"><i class="ti ti-phone"></i></button>
+          <button class="round-btn" id="btn-customer-chat" aria-label="Message rider" style="position:relative;" title="Chat with Driver">
+            <i class="ti ti-message-circle"></i>
+            <span id="cust-chat-badge" style="display:none; position:absolute; top:-4px; right:-4px; background:#ef4444; color:#fff; border-radius:50%; width:18px; height:18px; font-size:10px; font-weight:900; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3);">0</span>
+          </button>
         </div>
       </div>
       <div class="trip-progress">
@@ -451,6 +456,44 @@
     </div>
     <div class="section-pad" style="padding-top:0;">
       <button class="btn btn-outline" id="cancel-trip-btn" style="color:var(--red); border-color:#f3d4d4;">Cancel trip</button>
+    </div>
+  </div>
+
+  <!-- CUSTOMER IN-APP CHAT BOTTOM SHEET (FIREBASE RTDB) -->
+  <div id="customer-chat-modal" class="chat-sheet-overlay" style="display:none;">
+    <div class="chat-sheet">
+      <div class="chat-sheet-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:22px;">💬</span>
+          <div>
+            <h4 style="font-size:14px; font-weight:900; margin:0;" id="cust-chat-title">Chat with Driver</h4>
+            <span style="font-size:11px; color:#10b981; font-weight:700;">● Active on trip</span>
+          </div>
+        </div>
+        <button type="button" id="btn-close-cust-chat" class="chat-close-btn">&times;</button>
+      </div>
+
+      <!-- Quick Canned Message Chips (Rapido-Style) -->
+      <div class="chat-chips-scroll" id="cust-chat-chips">
+        <button type="button" class="chat-chip" data-text="I'm at the pickup location">📍 At pickup</button>
+        <button type="button" class="chat-chip" data-text="Coming down in 2 mins">⏳ 2 mins</button>
+        <button type="button" class="chat-chip" data-text="I'm wearing a black shirt">👕 Black shirt</button>
+        <button type="button" class="chat-chip" data-text="Please call when you reach">📞 Call when here</button>
+        <button type="button" class="chat-chip" data-text="Near the main gate">🚪 Near gate</button>
+      </div>
+
+      <!-- Message History Stream -->
+      <div id="cust-chat-stream" class="chat-bubble-stream">
+        <div class="chat-empty-hint">Send a quick message to coordinate pickup with your driver.</div>
+      </div>
+
+      <!-- Input Bar -->
+      <form id="cust-chat-form" class="chat-input-bar" onsubmit="event.preventDefault();">
+        <input type="text" id="cust-chat-input" placeholder="Type a message..." autocomplete="off">
+        <button type="submit" id="cust-chat-send" class="chat-send-btn" title="Send message">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </form>
     </div>
   </div>
 
@@ -510,7 +553,7 @@
 <!-- ===================== RIDER (DRIVER) ROOT ===================== -->
 <!-- Driver UI has been moved to driver.html for clean separation -->
 
-<script src="animations.js?v=3.2"></script>
-<script src="app.js?v=3.2"></script>
+<script src="animations.js?v=3.3"></script>
+<script src="app.js?v=3.3"></script>
 </body>
 </html>

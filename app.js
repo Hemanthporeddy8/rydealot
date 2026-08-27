@@ -2028,6 +2028,10 @@
     document.getElementById('rd-track-drop').textContent = b.drop_label || '-';
     document.getElementById('rd-track-fare').textContent = 'Rs ' + (b.fare || '-');
 
+    if (window.RydealotChat && b && b.id) {
+      window.RydealotChat.startChat(b.id, 'driver', state.name || 'Driver', b.user_name || 'Passenger');
+    }
+
     var actionsEl = document.getElementById('rd-track-actions');
     var buttonHtml = '';
     if (b.status === 'accepted') {
@@ -2061,6 +2065,7 @@
       cancelTripBtn.addEventListener('click', async function(){
         if(!confirm('Are you sure you want to cancel this trip?')) return;
         try {
+          if (window.RydealotChat) window.RydealotChat.stopChat();
           await sbFetch('bookings?id=eq.' + b.id, { method: 'PATCH', body: { status: 'cancelled' } });
           await sbFetch('riders?id=eq.' + state.riderId, { method: 'PATCH', body: { status: 'available' } });
           setPill('available');
@@ -2272,6 +2277,7 @@
         if (lastTrackedBookingId) {
           toast('⚠️ Passenger cancelled this trip');
           lastTrackedBookingId = null;
+          if (window.RydealotChat) window.RydealotChat.stopChat();
           // Set driver status back to available in DB
           try {
             await sbFetch('riders?id=eq.' + state.riderId, { method: 'PATCH', body: { status: 'available', updated_at: new Date().toISOString() } });
@@ -2371,6 +2377,7 @@
         setPill('busy');
       }
       if(action === 'complete' || action === 'decline'){
+        if (window.RydealotChat) window.RydealotChat.stopChat();
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: nowIso } });
         setPill('available');
       }
@@ -4865,6 +4872,9 @@
       document.getElementById('track-pin-code').textContent = String(pin);
     }
     showScreen('screen-tracking');
+    if (window.RydealotChat && state.activeBookingId) {
+      window.RydealotChat.startChat(state.activeBookingId, 'customer', state.userName || 'Passenger', (rider && rider.name) || 'Driver');
+    }
 
     // Initialize Leaflet Map
     try {
@@ -5012,6 +5022,7 @@
         } catch (e) { console.error(e); }
 
       } else if(b.status === 'completed'){
+        if (window.RydealotChat) window.RydealotChat.stopChat();
         clearInterval(state.bookingPollTimer);
         destroyMap();
         localStorage.removeItem('rydealot_active_booking');
@@ -5023,6 +5034,7 @@
         
         showScreen('screen-payment');
       } else if(b.status === 'cancelled'){
+        if (window.RydealotChat) window.RydealotChat.stopChat();
         sub.textContent = 'This request was cancelled or declined.';
         clearInterval(state.bookingPollTimer);
         state.activeBookingId = null;
@@ -5055,6 +5067,7 @@
     clearInterval(state.bookingPollTimer);
     destroyMap();
     localStorage.removeItem('rydealot_active_booking');
+    if (window.RydealotChat) window.RydealotChat.stopChat();
     if(!state.activeBookingId){
       showScreen('screen-lot');
       await resetLot();
@@ -5168,6 +5181,7 @@
         var b = rows && rows[0];
         if (b) {
           if (b.status === 'completed') {
+            if (window.RydealotChat) window.RydealotChat.stopChat();
             localStorage.removeItem('rydealot_active_booking');
             clearInterval(state.bookingPollTimer);
             destroyMap();
@@ -5178,6 +5192,7 @@
             showScreen('screen-payment');
             return true;
           } else if (b.status === 'cancelled') {
+            if (window.RydealotChat) window.RydealotChat.stopChat();
             localStorage.removeItem('rydealot_active_booking');
             clearInterval(state.bookingPollTimer);
             state.activeBookingId = null;
@@ -5187,6 +5202,9 @@
             return false;
           } else {
             // Live active trip (requested, accepted, arrived, in_progress)
+            if (window.RydealotChat && b.id) {
+              window.RydealotChat.startChat(b.id, 'customer', state.userName || 'Passenger', (rider && rider.name) || 'Driver');
+            }
             state.lastKnownStatus = b.status;
             if (b.maps_link) {
               var pinMatch = b.maps_link.match(/[?&]pin=(\d{4})/);
@@ -5371,3 +5389,319 @@
     });
   });
 })();
+
+// ===================== RYDEALOT IN-APP CHAT (GOOGLE FIREBASE REALTIME DB) =====================
+var RydealotChat = (function() {
+  var firebaseConfig = {
+    apiKey: "AIzaSyAW1x9fA-rVe6mA6ONqEuomjU9n5cRk72s",
+    authDomain: "rydealot-cff06.firebaseapp.com",
+    databaseURL: "https://rydealot-cff06-default-rtdb.firebaseio.com",
+    projectId: "rydealot-cff06",
+    storageBucket: "rydealot-cff06.firebasestorage.app",
+    messagingSenderId: "637714918840",
+    appId: "1:637714918840:web:1a9d7a1c0258ccf4a8f34d"
+  };
+
+  var rtdb = null;
+  var currentBookingId = null;
+  var currentRole = null; // 'customer' or 'driver'
+  var myName = '';
+  var activeListenerRef = null;
+  var unreadCount = 0;
+  var isModalOpen = false;
+
+  function initFirebase() {
+    if (typeof firebase === 'undefined') {
+      console.warn('Firebase SDK not loaded');
+      return false;
+    }
+    try {
+      if (!firebase.apps || !firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      rtdb = firebase.database();
+      return true;
+    } catch(e) {
+      console.error('Firebase init error:', e);
+      return false;
+    }
+  }
+
+  // Pleasant Web Audio synthesizer notification chime (no external audio files needed)
+  function playChatChime() {
+    try {
+      var AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      var ctx = new AudioContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      var now = ctx.currentTime;
+      
+      // Tone 1: 587Hz (D5)
+      var osc1 = ctx.createOscillator();
+      var gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, now);
+      gain1.gain.setValueAtTime(0.18, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.18);
+
+      // Tone 2: 880Hz (A5)
+      var osc2 = ctx.createOscillator();
+      var gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880.0, now + 0.09);
+      gain2.gain.setValueAtTime(0.22, now + 0.09);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.09);
+      osc2.stop(now + 0.32);
+    } catch(e) {
+      // Audio autoplay policy might silently block before first user gesture
+    }
+  }
+
+  function startChat(bookingId, role, senderName, partnerTitle) {
+    if (!bookingId) return;
+    if (!initFirebase()) return;
+
+    if (currentBookingId === String(bookingId) && activeListenerRef) {
+      return;
+    }
+
+    stopChat();
+
+    currentBookingId = String(bookingId);
+    currentRole = role; // 'customer' or 'driver'
+    myName = senderName || (role === 'customer' ? 'Passenger' : 'Driver');
+    unreadCount = 0;
+    isModalOpen = false;
+
+    updateUnreadBadge();
+
+    var titleEl = document.getElementById(role === 'customer' ? 'cust-chat-title' : 'rd-chat-title');
+    if (titleEl && partnerTitle) {
+      titleEl.textContent = 'Chat with ' + partnerTitle;
+    }
+
+    var streamEl = document.getElementById(role === 'customer' ? 'cust-chat-stream' : 'rd-chat-stream');
+    if (streamEl) {
+      streamEl.innerHTML = '<div class="chat-empty-hint">Messages are delivered instantly via Google Firebase. Say hi! 👋</div>';
+    }
+
+    // Attach Firebase Realtime Listener
+    var chatPath = 'chats/' + currentBookingId + '/messages';
+    activeListenerRef = rtdb.ref(chatPath);
+
+    activeListenerRef.on('child_added', function(snapshot) {
+      var msg = snapshot.val();
+      if (!msg) return;
+      renderBubble(msg);
+
+      if (msg.sender !== currentRole) {
+        playChatChime();
+        if (!isModalOpen) {
+          unreadCount++;
+          updateUnreadBadge();
+        }
+      }
+    });
+  }
+
+  function renderBubble(msg) {
+    var streamEl = document.getElementById(currentRole === 'customer' ? 'cust-chat-stream' : 'rd-chat-stream');
+    if (!streamEl) return;
+
+    var hint = streamEl.querySelector('.chat-empty-hint');
+    if (hint) hint.remove();
+
+    var isMine = msg.sender === currentRole;
+    var bubble = document.createElement('div');
+    bubble.className = 'chat-bubble ' + (isMine ? 'mine' : 'theirs');
+
+    var timeStr = '';
+    try {
+      var d = msg.timestamp ? new Date(msg.timestamp) : new Date();
+      timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch(e) { timeStr = ''; }
+
+    bubble.innerHTML = '<div style="font-weight:700; font-size:11px; margin-bottom:2px; opacity:0.85;">' + 
+      escapeHtml(isMine ? 'You' : msg.senderName || (msg.sender === 'driver' ? 'Driver' : 'Passenger')) + 
+      '</div>' +
+      '<div>' + escapeHtml(msg.text) + '</div>' +
+      '<span class="chat-time">' + timeStr + '</span>';
+
+    streamEl.appendChild(bubble);
+    streamEl.scrollTop = streamEl.scrollHeight;
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function sendMessage(text) {
+    if (!text || !text.trim()) return;
+    text = text.trim();
+    if (!currentBookingId || !rtdb) return;
+
+    var msgObj = {
+      sender: currentRole,
+      senderName: myName,
+      text: text,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    rtdb.ref('chats/' + currentBookingId + '/messages').push(msgObj).catch(function(err) {
+      console.error('Firebase send chat error:', err);
+    });
+  }
+
+  function updateUnreadBadge() {
+    var badgeEl = document.getElementById(currentRole === 'customer' ? 'cust-chat-badge' : 'rd-chat-badge');
+    if (!badgeEl) return;
+    if (unreadCount > 0) {
+      badgeEl.textContent = unreadCount > 9 ? '9+' : unreadCount;
+      badgeEl.style.display = 'flex';
+    } else {
+      badgeEl.style.display = 'none';
+    }
+  }
+
+  function openModal() {
+    isModalOpen = true;
+    unreadCount = 0;
+    updateUnreadBadge();
+    var modalEl = document.getElementById(currentRole === 'customer' ? 'customer-chat-modal' : 'driver-chat-modal');
+    if (modalEl) modalEl.style.display = 'flex';
+
+    var streamEl = document.getElementById(currentRole === 'customer' ? 'cust-chat-stream' : 'rd-chat-stream');
+    if (streamEl) streamEl.scrollTop = streamEl.scrollHeight;
+
+    var inputEl = document.getElementById(currentRole === 'customer' ? 'cust-chat-input' : 'rd-chat-input');
+    if (inputEl) setTimeout(function() { inputEl.focus(); }, 150);
+  }
+
+  function closeModal() {
+    isModalOpen = false;
+    var modalEl = document.getElementById(currentRole === 'customer' ? 'customer-chat-modal' : 'driver-chat-modal');
+    if (modalEl) modalEl.style.display = 'none';
+  }
+
+  function stopChat() {
+    if (activeListenerRef) {
+      try { activeListenerRef.off(); } catch(e) {}
+      activeListenerRef = null;
+    }
+    currentBookingId = null;
+    unreadCount = 0;
+    updateUnreadBadge();
+    closeModal();
+  }
+
+  function setupUIBindings() {
+    // Customer Open / Close
+    var btnCustChat = document.getElementById('btn-customer-chat');
+    if (btnCustChat) {
+      btnCustChat.addEventListener('click', function(e) {
+        e.preventDefault();
+        openModal();
+      });
+    }
+    var btnCloseCust = document.getElementById('btn-close-cust-chat');
+    if (btnCloseCust) {
+      btnCloseCust.addEventListener('click', closeModal);
+    }
+    var custOverlay = document.getElementById('customer-chat-modal');
+    if (custOverlay) {
+      custOverlay.addEventListener('click', function(e) {
+        if (e.target === custOverlay) closeModal();
+      });
+    }
+
+    // Driver Open / Close
+    var btnRdChat = document.getElementById('rd-btn-open-chat');
+    if (btnRdChat) {
+      btnRdChat.addEventListener('click', function(e) {
+        e.preventDefault();
+        openModal();
+      });
+    }
+    var btnCloseRd = document.getElementById('btn-close-rd-chat');
+    if (btnCloseRd) {
+      btnCloseRd.addEventListener('click', closeModal);
+    }
+    var rdOverlay = document.getElementById('driver-chat-modal');
+    if (rdOverlay) {
+      rdOverlay.addEventListener('click', function(e) {
+        if (e.target === rdOverlay) closeModal();
+      });
+    }
+
+    // Customer Form Submit
+    var custForm = document.getElementById('cust-chat-form');
+    var custInput = document.getElementById('cust-chat-input');
+    if (custForm && custInput) {
+      custForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var txt = custInput.value;
+        if (txt) {
+          sendMessage(txt);
+          custInput.value = '';
+        }
+      });
+    }
+
+    // Driver Form Submit
+    var rdForm = document.getElementById('rd-chat-form');
+    var rdInput = document.getElementById('rd-chat-input');
+    if (rdForm && rdInput) {
+      rdForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var txt = rdInput.value;
+        if (txt) {
+          sendMessage(txt);
+          rdInput.value = '';
+        }
+      });
+    }
+
+    // Quick Chips (Customer)
+    var custChips = document.querySelectorAll('#cust-chat-chips .chat-chip');
+    custChips.forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        var msg = this.getAttribute('data-text');
+        if (msg) sendMessage(msg);
+      });
+    });
+
+    // Quick Chips (Driver)
+    var rdChips = document.querySelectorAll('#rd-chat-chips .chat-chip');
+    rdChips.forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        var msg = this.getAttribute('data-text');
+        if (msg) sendMessage(msg);
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupUIBindings);
+  } else {
+    setupUIBindings();
+  }
+
+  return {
+    startChat: startChat,
+    stopChat: stopChat,
+    sendMessage: sendMessage,
+    openModal: openModal,
+    closeModal: closeModal
+  };
+})();
+window.RydealotChat = RydealotChat;
