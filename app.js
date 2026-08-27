@@ -2004,6 +2004,67 @@
     }
   }
 
+  function isDriverPassActive() {
+    var activePlan = localStorage.getItem('rydealot_driver_active_plan');
+    if (activePlan === 'daily' || activePlan === 'weekly' || activePlan === 'monthly') {
+      var expiry = localStorage.getItem('rydealot_driver_pass_expiry');
+      if (!expiry || new Date(expiry).getTime() > Date.now()) {
+        return { active: true, plan: activePlan };
+      }
+    }
+    return { active: false, plan: 'commission' };
+  }
+
+  function showDriverCollectFareModal(b) {
+    var modal = document.getElementById('rd-collect-fare-modal');
+    if (!modal) {
+      handleBookingAction('complete', b.id);
+      return;
+    }
+
+    var fareEl = document.getElementById('rd-collect-fare-amt');
+    var modeEl = document.getElementById('rd-collect-payment-mode');
+    var nameEl = document.getElementById('rd-collect-passenger-name');
+    var dropEl = document.getElementById('rd-collect-drop-loc');
+    var commBadge = document.getElementById('rd-collect-commission-badge');
+    var doneBtn = document.getElementById('rd-btn-fare-collected');
+
+    var fareAmt = b.fare || '0';
+    if (fareEl) fareEl.textContent = '₹' + fareAmt;
+    if (nameEl) nameEl.textContent = b.user_name || 'Passenger';
+    if (dropEl) dropEl.textContent = b.drop_label || 'Destination';
+
+    var isOnlinePaid = b.payment_method === 'upi' || b.payment_method === 'online' || b.payment_status === 'completed';
+    if (modeEl) {
+      modeEl.innerHTML = isOnlinePaid ? '📱 Paid Online via UPI' : '💵 Cash Payment';
+      modeEl.style.color = isOnlinePaid ? '#4ade80' : '#facc15';
+    }
+
+    // Check Driver Subscription Pass
+    var passInfo = isDriverPassActive();
+    if (commBadge) {
+      if (passInfo.active) {
+        commBadge.textContent = '₹0 (' + passInfo.plan.toUpperCase() + ' Pass Active 🎉)';
+        commBadge.style.color = '#4ade80';
+      } else {
+        var commCfg = {};
+        try { commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{}'); } catch(e) {}
+        var commFee = commCfg.perTrip || 25;
+        commBadge.textContent = '₹' + commFee + ' (Per-Trip Wallet)';
+        commBadge.style.color = '#f87171';
+      }
+    }
+
+    modal.style.display = 'flex';
+
+    if (doneBtn) {
+      doneBtn.onclick = function() {
+        modal.style.display = 'none';
+        handleBookingAction('complete', b.id);
+      };
+    }
+  }
+
   async function showRiderTracking(b) {
     var mainS = document.getElementById('rd-main-section');
     var setupS = document.getElementById('rd-setup-section');
@@ -2155,7 +2216,7 @@
       }
     });
   }
-  if (completeBtn) completeBtn.addEventListener('click', function() { handleBookingAction('complete', b.id); });
+  if (completeBtn) completeBtn.addEventListener('click', function() { showDriverCollectFareModal(b); });
 
     try {
       var riderRows = await sbFetch('riders?id=eq.' + state.riderId);
@@ -2385,13 +2446,17 @@
         if (typeof window.incrementDailySprintCount === 'function') {
           window.incrementDailySprintCount();
         }
-        var activePlan = localStorage.getItem('rydealot_driver_active_plan');
-        if (activePlan === 'commission') {
+        var passInfo = isDriverPassActive();
+        if (passInfo.active) {
+          toast('🎉 ' + passInfo.plan.toUpperCase() + ' Pass Active: ₹0 commission deducted!');
+        } else {
           var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"perTrip":25}');
           var commFee = commCfg.perTrip || 25;
           var curBal = parseFloat(localStorage.getItem('rydealot_driver_wallet_balance') || '0');
-          var newBal = curBal - commFee;
+          var newBal = Math.max(0, curBal - commFee);
           localStorage.setItem('rydealot_driver_wallet_balance', newBal);
+          var balEl = document.getElementById('rd-wallet-balance-amt');
+          if (balEl) balEl.textContent = '₹' + newBal;
           toast('💸 Per-Trip Commission ₹' + commFee + ' deducted from wallet.');
         }
       }
