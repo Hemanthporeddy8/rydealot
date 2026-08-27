@@ -2167,8 +2167,9 @@
           attributionControl: false
         }).setView([dLat, dLng], 15);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-          maxZoom: 19
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          subdomains: ['a', 'b', 'c']
         }).addTo(state.map);
 
         var vType = (r && r.vehicle_type) ? r.vehicle_type : 'auto';
@@ -2734,15 +2735,21 @@
   var setupMapTileLayer = null;
 
   var SETUP_MAP_THEMES = {
-    light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    light: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    dark: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
   };
 
   function setSetupMapTheme(theme) {
     if (!state.destMap) return;
     currentSetupMapTheme = theme;
-    if (setupMapTileLayer) state.destMap.removeLayer(setupMapTileLayer);
-    setupMapTileLayer = L.tileLayer(SETUP_MAP_THEMES[theme], { maxZoom: 19 }).addTo(state.destMap);
+    var mapContainer = document.getElementById('setup-map');
+    if (mapContainer) {
+      if (theme === 'dark') {
+        mapContainer.classList.add('map-dark-theme');
+      } else {
+        mapContainer.classList.remove('map-dark-theme');
+      }
+    }
     var btn = document.getElementById('btn-toggle-map-theme');
     if (btn) btn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
   }
@@ -4868,8 +4875,9 @@
           attributionControl: false
         }).setView([state.lat, state.lng], 15);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-          maxZoom: 19
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          subdomains: ['a', 'b', 'c']
         }).addTo(state.map);
 
         var passengerIcon = L.divIcon({

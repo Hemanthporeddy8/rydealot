@@ -968,3 +968,10 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,san
 .simple-ride-card:active {
   transform: scale(0.98);
 }
+
+/* Dark theme CSS filter for OpenStreetMap tiles (100% free, no API key) */
+#setup-map.map-dark-theme .leaflet-tile-pane,
+#map.map-dark-theme .leaflet-tile-pane,
+#rd-map.map-dark-theme .leaflet-tile-pane {
+  filter: brightness(0.6) invert(1) contrast(2.5) hue-rotate(195deg) saturate(0.35);
+}
