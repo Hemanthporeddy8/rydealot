@@ -1869,6 +1869,7 @@
         try{
           await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: new Date().toISOString() } });
           state.online = true;
+          recordDriverActivity();
           toggleBtn.textContent = 'Go offline';
           toggleBtn.className = 'btn btn-toggle-on';
           setPill('available');
@@ -1919,6 +1920,67 @@
       }
     }
   });
+
+  // ---------- Auto-Offline on Tab Close / Page Unload ----------
+  function setDriverOfflineSync() {
+    if (state.riderId && state.online) {
+      state.online = false;
+      stopSharingLocation();
+      stopHeartbeat();
+      stopPollingBookings();
+      
+      var url = SUPABASE_URL + '/rest/v1/riders?id=eq.' + state.riderId;
+      var payload = JSON.stringify({ status: 'offline', updated_at: new Date().toISOString() });
+      
+      if (typeof fetch === 'function') {
+        try {
+          fetch(url, {
+            method: 'PATCH',
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+              'Content-Type': 'application/json'
+            },
+            body: payload,
+            keepalive: true
+          });
+        } catch(e) {}
+      }
+    }
+  }
+
+  window.addEventListener('pagehide', setDriverOfflineSync);
+  window.addEventListener('beforeunload', setDriverOfflineSync);
+
+  // ---------- 10-Minute Inactivity Auto-Offline Engine ----------
+  var lastDriverActivity = Date.now();
+  var IDLE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+
+  function recordDriverActivity() {
+    lastDriverActivity = Date.now();
+  }
+
+  ['touchstart', 'mousedown', 'mousemove', 'keydown', 'scroll'].forEach(function(evt) {
+    window.addEventListener(evt, recordDriverActivity, { passive: true });
+  });
+
+  setInterval(async function() {
+    if (state.online && (Date.now() - lastDriverActivity > IDLE_TIMEOUT_MS)) {
+      stopSharingLocation();
+      stopHeartbeat();
+      destroyRiderMap();
+      try {
+        await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline', updated_at: new Date().toISOString() } });
+      } catch(err){ console.error(err); }
+      state.online = false;
+      toggleBtn.textContent = 'Go online';
+      toggleBtn.className = 'btn btn-toggle-off';
+      setPill('offline');
+      stopPollingBookings();
+      toast('⚠️ You have been set Offline due to 10 minutes of inactivity.', 5000);
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+  }, 30000); // check every 30 seconds
 
   // ---------- booking requests ----------
   function startPollingBookings(){
@@ -2406,13 +2468,19 @@
         } else {
           loadProfileIntoForm(row);
           showMain(row);
+          // Always start in OFFLINE state on launch or refresh!
+          state.online = false;
+          toggleBtn.textContent = 'Go online';
+          toggleBtn.className = 'btn btn-toggle-off';
+          setPill('offline');
+          stopSharingLocation();
+          stopPollingBookings();
+          stopHeartbeat();
+          // Clean up stale available status from database
           if(row.status === 'available'){
-            state.online = true;
-            toggleBtn.textContent = 'Go offline';
-            toggleBtn.className = 'btn btn-toggle-on';
-            startSharingLocation();
-            startPollingBookings();
-            startHeartbeat();
+            try {
+              sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline', updated_at: new Date().toISOString() } });
+            } catch(e){}
           }
           return;
         }
