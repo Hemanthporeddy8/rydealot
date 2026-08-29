@@ -859,6 +859,341 @@
   }
 })();
 
+// ============================================================================
+// 24/7 DRIVER SOBRIETY & FITNESS REFLEX ENGINE
+// ============================================================================
+(function() {
+  'use strict';
+
+  var sobModal = document.getElementById('rd-sobriety-modal');
+  var sobTimerBar = document.getElementById('rd-sobriety-timer-bar');
+  var sobTimerText = document.getElementById('rd-sobriety-timer-text');
+  var sobArena = document.getElementById('rd-sobriety-arena');
+  var sobStatus = document.getElementById('rd-sobriety-status');
+  var sobActions = document.getElementById('rd-sobriety-actions');
+  var sobCancelBtn = document.getElementById('rd-sobriety-cancel-btn');
+  var sobRetryBtn = document.getElementById('rd-sobriety-retry-btn');
+  var practiceBtn = document.getElementById('rd-practice-sobriety-btn');
+
+  var timerInterval = null;
+  var TOTAL_TIME_MS = 3500; // 3.5 seconds
+  var timeRemainingMs = TOTAL_TIME_MS;
+  var startTime = 0;
+  var expectedStep = 1;
+  var isGameActive = false;
+  var currentOnSuccess = null;
+  var currentOnFail = null;
+  var isPracticeMode = false;
+
+  // Smart Trigger Evaluator
+  function shouldTriggerSobrietyCheck() {
+    var now = Date.now();
+    var curHour = new Date().getHours();
+    
+    // 1. Check if driver is currently suspended for cooling-off
+    var lockUntil = parseInt(localStorage.getItem('rydealot_sobriety_lock_until') || '0', 10);
+    if (lockUntil > now) {
+      return { trigger: true, locked: true, remainingMs: lockUntil - now };
+    }
+
+    // 2. Late Night Hours (10:00 PM to 5:00 AM) => 100% Mandatory
+    if (curHour >= 22 || curHour < 5) {
+      return { trigger: true, reason: 'night_shift' };
+    }
+
+    // 3. First time going online today
+    var lastPass = parseInt(localStorage.getItem('rydealot_last_sobriety_pass') || '0', 10);
+    if (!lastPass) {
+      return { trigger: true, reason: 'first_shift_today' };
+    }
+
+    // 4. Offline Break Duration (> 45 minutes)
+    var lastOffline = parseInt(localStorage.getItem('rydealot_driver_last_offline') || '0', 10);
+    if (lastOffline && (now - lastOffline > 45 * 60 * 1000)) {
+      return { trigger: true, reason: 'extended_break' };
+    }
+
+    // 5. Expiry of Pass (> 3 hours)
+    if (now - lastPass > 3 * 60 * 60 * 1000) {
+      return { trigger: true, reason: 'session_expired' };
+    }
+
+    // Otherwise, fast skip (no redundant test required)
+    return { trigger: false };
+  }
+
+  // Generate 4 Non-Overlapping Coordinates in Arena
+  function generateScatterCoordinates(arenaWidth, arenaHeight, nodeSize, count) {
+    var coords = [];
+    var padding = 14;
+    var maxAttempts = 150;
+    var minDistance = nodeSize + 16;
+
+    for (var i = 0; i < count; i++) {
+      var placed = false;
+      var attempts = 0;
+      while (!placed && attempts < maxAttempts) {
+        attempts++;
+        var x = padding + Math.random() * (arenaWidth - nodeSize - padding * 2);
+        var y = padding + Math.random() * (arenaHeight - nodeSize - padding * 2);
+
+        var overlap = false;
+        for (var j = 0; j < coords.length; j++) {
+          var dx = (x + nodeSize / 2) - (coords[j].x + nodeSize / 2);
+          var dy = (y + nodeSize / 2) - (coords[j].y + nodeSize / 2);
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < minDistance) {
+            overlap = true;
+            break;
+          }
+        }
+
+        if (!overlap) {
+          coords.push({ x: Math.round(x), y: Math.round(y) });
+          placed = true;
+        }
+      }
+
+      // Fallback grid if scatter cannot find free space
+      if (!placed) {
+        var col = i % 2;
+        var row = Math.floor(i / 2);
+        var cellW = (arenaWidth - padding * 2) / 2;
+        var cellH = (arenaHeight - padding * 2) / 2;
+        coords.push({
+          x: Math.round(padding + col * cellW + (cellW - nodeSize) / 2),
+          y: Math.round(padding + row * cellH + (cellH - nodeSize) / 2)
+        });
+      }
+    }
+    return coords;
+  }
+
+  function stopTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  // Launch the Sobriety Reflex Game
+  window.triggerDriverSobrietyCheck = function(onSuccess, onFail, isPractice) {
+    if (!sobModal || !sobArena) {
+      if (typeof onSuccess === 'function') onSuccess();
+      return;
+    }
+
+    currentOnSuccess = onSuccess;
+    currentOnFail = onFail;
+    isPracticeMode = !!isPractice;
+
+    // Check lock state
+    var check = shouldTriggerSobrietyCheck();
+    if (check.locked && !isPracticeMode) {
+      sobModal.style.display = 'flex';
+      if (sobActions) sobActions.style.display = 'flex';
+      if (sobRetryBtn) sobRetryBtn.style.display = 'none';
+      if (sobArena) sobArena.innerHTML = '';
+      if (sobTimerBar) sobTimerBar.style.width = '0%';
+      var mins = Math.ceil(check.remainingMs / 60000);
+      if (sobStatus) {
+        sobStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">🛑 Safety Hold Active (' + mins + 'm remaining)</div>' +
+          '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">Consecutive reflex failures detected. Please rest and re-try once cooling period ends.</div>';
+      }
+      return;
+    }
+
+    // Open Modal
+    sobModal.style.display = 'flex';
+    if (sobActions) sobActions.style.display = 'none';
+    if (sobRetryBtn) sobRetryBtn.style.display = 'none';
+
+    startChallenge();
+  };
+
+  function startChallenge() {
+    stopTimer();
+    expectedStep = 1;
+    isGameActive = true;
+    timeRemainingMs = TOTAL_TIME_MS;
+    startTime = Date.now();
+
+    if (sobTimerBar) {
+      sobTimerBar.style.width = '100%';
+      sobTimerBar.style.background = 'linear-gradient(90deg, #10b981, #f59e0b, #ef4444)';
+    }
+    if (sobTimerText) sobTimerText.textContent = '⏱️ 3.5s remaining';
+    if (sobStatus) {
+      sobStatus.innerHTML = '<span style="color:#38bdf8;">⚡ Tap <strong>1</strong> ➔ <strong>2</strong> ➔ <strong>3</strong> ➔ <strong>4</strong> as fast as you can!</span>';
+    }
+
+    // Build Arena Touch Nodes
+    sobArena.innerHTML = '';
+    var arenaW = sobArena.clientWidth || 320;
+    var arenaH = sobArena.clientHeight || 230;
+    var nodeSize = 54;
+    var coords = generateScatterCoordinates(arenaW, arenaH, nodeSize, 4);
+
+    for (var i = 1; i <= 4; i++) {
+      var node = document.createElement('div');
+      node.className = 'sobriety-node' + (i === 1 ? ' next-target' : '');
+      node.id = 'sob-node-' + i;
+      node.dataset.step = i;
+      node.textContent = i;
+      node.style.left = coords[i - 1].x + 'px';
+      node.style.top = coords[i - 1].y + 'px';
+
+      node.addEventListener('pointerdown', handleNodeTap);
+      sobArena.appendChild(node);
+    }
+
+    // Start Timer
+    timerInterval = setInterval(function() {
+      var elapsed = Date.now() - startTime;
+      timeRemainingMs = Math.max(0, TOTAL_TIME_MS - elapsed);
+      var pct = (timeRemainingMs / TOTAL_TIME_MS) * 100;
+
+      if (sobTimerBar) sobTimerBar.style.width = pct + '%';
+      if (sobTimerText) sobTimerText.textContent = '⏱️ ' + (timeRemainingMs / 1000).toFixed(1) + 's remaining';
+
+      if (timeRemainingMs <= 0) {
+        stopTimer();
+        handleFail('timeout');
+      }
+    }, 50);
+  }
+
+  function handleNodeTap(e) {
+    if (!isGameActive) return;
+    e.preventDefault();
+    var step = parseInt(this.dataset.step, 10);
+
+    if (step === expectedStep) {
+      try { if (navigator.vibrate) navigator.vibrate(40); } catch(ex){}
+
+      this.classList.remove('next-target');
+      this.classList.add('tapped');
+      this.innerHTML = '✓';
+
+      expectedStep++;
+
+      if (expectedStep <= 4) {
+        var nextNode = document.getElementById('sob-node-' + expectedStep);
+        if (nextNode) nextNode.classList.add('next-target');
+      } else {
+        stopTimer();
+        var elapsedSec = ((Date.now() - startTime) / 1000).toFixed(2);
+        handleSuccess(elapsedSec);
+      }
+    } else {
+      try { if (navigator.vibrate) navigator.vibrate([80, 50, 80]); } catch(ex){}
+      this.classList.add('error-shake');
+      stopTimer();
+      handleFail('wrong_sequence', step);
+    }
+  }
+
+  function handleSuccess(elapsedSec) {
+    isGameActive = false;
+
+    if (!isPracticeMode) {
+      localStorage.setItem('rydealot_last_sobriety_pass', Date.now().toString());
+      localStorage.removeItem('rydealot_sobriety_lock_until');
+      localStorage.removeItem('rydealot_sobriety_fails');
+    }
+
+    if (sobTimerBar) {
+      sobTimerBar.style.width = '100%';
+      sobTimerBar.style.background = '#10b981';
+    }
+    if (sobTimerText) sobTimerText.textContent = '⚡ Finished in ' + elapsedSec + 's';
+
+    if (sobStatus) {
+      sobStatus.innerHTML = '<div style="color:#22c55e; font-size:13.5px; font-weight:800;">✅ Reflex Check Passed (' + elapsedSec + 's)!</div>' +
+        '<div style="font-size:11px; color:#86efac; margin-top:2px;">Cognitive Alertness & Sobriety Verified.</div>';
+    }
+
+    setTimeout(function() {
+      if (sobModal) sobModal.style.display = 'none';
+      if (typeof currentOnSuccess === 'function') {
+        currentOnSuccess();
+      }
+    }, 1300);
+  }
+
+  function handleFail(reason, wrongStep) {
+    isGameActive = false;
+
+    var currentFails = 1;
+    if (!isPracticeMode) {
+      currentFails = parseInt(localStorage.getItem('rydealot_sobriety_fails') || '0', 10) + 1;
+      localStorage.setItem('rydealot_sobriety_fails', currentFails.toString());
+    }
+
+    var reasonText = reason === 'timeout'
+      ? '⏱️ Reaction time expired (> 3.5s)'
+      : '❌ Incorrect numerical sequence (tapped ' + wrongStep + ' instead of ' + expectedStep + ')';
+
+    if (sobTimerBar) {
+      sobTimerBar.style.width = '100%';
+      sobTimerBar.style.background = '#ef4444';
+    }
+
+    if (!isPracticeMode && currentFails >= 2) {
+      // 2nd Consecutive Fail: Lock for 2 Hours
+      var lockUntil = Date.now() + (2 * 60 * 60 * 1000);
+      localStorage.setItem('rydealot_sobriety_lock_until', lockUntil.toString());
+
+      if (sobStatus) {
+        sobStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">🛑 Safety Cooling-Off Activated (2 Hours)</div>' +
+          '<div style="font-size:11px; color:#fca5a5; margin-top:2px;">Multiple reflex checks failed. Platform policy requires a 2-hour rest before retrying.</div>';
+      }
+
+      if (sobActions) sobActions.style.display = 'flex';
+      if (sobRetryBtn) sobRetryBtn.style.display = 'none';
+    } else {
+      if (sobStatus) {
+        sobStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">' + reasonText + '</div>' +
+          '<div style="font-size:11px; color:#cbd5e1; margin-top:2px;">' + (isPracticeMode ? 'Practice run ended. Try again!' : 'Reflex check missed. Take a deep breath and retry.') + '</div>';
+      }
+
+      if (sobActions) sobActions.style.display = 'flex';
+      if (sobRetryBtn) sobRetryBtn.style.display = 'block';
+    }
+
+    if (typeof currentOnFail === 'function') {
+      currentOnFail(reason);
+    }
+  }
+
+  // Buttons Event Listeners
+  if (sobCancelBtn) {
+    sobCancelBtn.addEventListener('click', function() {
+      stopTimer();
+      isGameActive = false;
+      if (sobModal) sobModal.style.display = 'none';
+    });
+  }
+
+  if (sobRetryBtn) {
+    sobRetryBtn.addEventListener('click', function() {
+      if (sobActions) sobActions.style.display = 'none';
+      startChallenge();
+    });
+  }
+
+  if (practiceBtn) {
+    practiceBtn.addEventListener('click', function() {
+      window.triggerDriverSobrietyCheck(function() {
+        if (typeof toast === 'function') toast('🎉 Practice Challenge Passed! Reflexes are sharp.');
+      }, null, true);
+    });
+  }
+
+  // Export helper
+  window.shouldTriggerDriverSobrietyCheck = shouldTriggerSobrietyCheck;
+})();
+
 // ===================== app switcher =====================
 (function(){
   var rRoot = document.getElementById('rider-app-root');
@@ -1881,11 +2216,26 @@
         }
       };
 
-      if (typeof window.triggerDriverFaceCheck === 'function') {
-        window.triggerDriverFaceCheck(doGoOnline);
-      } else {
-        await doGoOnline();
-      }
+      var triggerVerificationPipeline = function() {
+        var runSobrietyIfRequired = function() {
+          if (typeof window.triggerDriverSobrietyCheck === 'function' && typeof window.shouldTriggerDriverSobrietyCheck === 'function') {
+            var check = window.shouldTriggerDriverSobrietyCheck();
+            if (check.trigger) {
+              window.triggerDriverSobrietyCheck(doGoOnline);
+              return;
+            }
+          }
+          doGoOnline();
+        };
+
+        if (typeof window.triggerDriverFaceCheck === 'function') {
+          window.triggerDriverFaceCheck(runSobrietyIfRequired);
+        } else {
+          runSobrietyIfRequired();
+        }
+      };
+
+      await triggerVerificationPipeline();
     } else {
       stopSharingLocation();
       stopHeartbeat();
@@ -1894,6 +2244,7 @@
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline' } });
       } catch(err){ console.error(err); }
       state.online = false;
+      localStorage.setItem('rydealot_driver_last_offline', Date.now().toString());
       toggleBtn.textContent = 'Go online';
       toggleBtn.className = 'btn btn-toggle-off';
       setPill('offline');
@@ -1912,6 +2263,7 @@
           await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline' } });
         } catch(err){ console.error(err); }
         state.online = false;
+        localStorage.setItem('rydealot_driver_last_offline', Date.now().toString());
         toggleBtn.textContent = 'Go online';
         toggleBtn.className = 'btn btn-toggle-off';
         setPill('offline');
@@ -1925,6 +2277,7 @@
   function setDriverOfflineSync() {
     if (state.riderId && state.online) {
       state.online = false;
+      localStorage.setItem('rydealot_driver_last_offline', Date.now().toString());
       stopSharingLocation();
       stopHeartbeat();
       stopPollingBookings();
@@ -1973,6 +2326,7 @@
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline', updated_at: new Date().toISOString() } });
       } catch(err){ console.error(err); }
       state.online = false;
+      localStorage.setItem('rydealot_driver_last_offline', Date.now().toString());
       toggleBtn.textContent = 'Go online';
       toggleBtn.className = 'btn btn-toggle-off';
       setPill('offline');
