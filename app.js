@@ -3253,19 +3253,38 @@
         } else {
           loadProfileIntoForm(row);
           showMain(row);
-          // Always start in OFFLINE state on launch or refresh!
-          state.online = false;
-          toggleBtn.textContent = 'Go online';
-          toggleBtn.className = 'btn btn-toggle-off';
-          setPill('offline');
-          stopSharingLocation();
-          stopPollingBookings();
-          stopHeartbeat();
-          // Clean up stale available status from database
-          if(row.status === 'available'){
+
+          // Restore Driver Online State on accidental refresh
+          var wasOnline = localStorage.getItem('rydealot_driver_online_state') === 'true';
+          var lastOnlineTime = parseInt(localStorage.getItem('rydealot_driver_last_online_time') || '0', 10);
+          var isRecent = (Date.now() - lastOnlineTime) < (10 * 60 * 1000); // 10 minutes
+
+          if (wasOnline && isRecent && !state.isBanned) {
+            state.online = true;
+            toggleBtn.textContent = 'Go offline';
+            toggleBtn.className = 'btn btn-toggle-on';
+            setPill('available');
+            startSharingLocation();
+            startPollingBookings();
+            startHeartbeat();
+            recordDriverActivity();
             try {
-              sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline', updated_at: new Date().toISOString() } });
+              sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: new Date().toISOString() } });
             } catch(e){}
+          } else {
+            state.online = false;
+            toggleBtn.textContent = 'Go online';
+            toggleBtn.className = 'btn btn-toggle-off';
+            setPill('offline');
+            stopSharingLocation();
+            stopPollingBookings();
+            stopHeartbeat();
+            localStorage.removeItem('rydealot_driver_online_state');
+            if(row.status === 'available'){
+              try {
+                sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline', updated_at: new Date().toISOString() } });
+              } catch(e){}
+            }
           }
           return;
         }
