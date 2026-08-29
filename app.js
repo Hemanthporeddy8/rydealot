@@ -860,7 +860,7 @@
 })();
 
 // ============================================================================
-// 24/7 DRIVER SOBRIETY & FITNESS REFLEX ENGINE
+// 24/7 DRIVER SOBRIETY & FITNESS REFLEX ENGINE (2-STAGE ROAD TRACER + TIE-BREAKER)
 // ============================================================================
 (function() {
   'use strict';
@@ -869,28 +869,41 @@
   var sobTimerBar = document.getElementById('rd-sobriety-timer-bar');
   var sobTimerText = document.getElementById('rd-sobriety-timer-text');
   var sobArena = document.getElementById('rd-sobriety-arena');
+  var sobCanvas = document.getElementById('rd-road-canvas');
+  var sobNodesLayer = document.getElementById('rd-road-nodes-layer');
   var sobStatus = document.getElementById('rd-sobriety-status');
   var sobActions = document.getElementById('rd-sobriety-actions');
   var sobCancelBtn = document.getElementById('rd-sobriety-cancel-btn');
   var sobRetryBtn = document.getElementById('rd-sobriety-retry-btn');
   var practiceBtn = document.getElementById('rd-practice-sobriety-btn');
+  var sobBadge = document.getElementById('rd-sobriety-badge');
+  var sobTitle = document.getElementById('rd-sobriety-title');
+  var sobDesc = document.getElementById('rd-sobriety-desc');
 
   var timerInterval = null;
-  var TOTAL_TIME_MS = 3500; // 3.5 seconds
+  var TOTAL_TIME_MS = 4000; // 4.0 seconds for Road Tracer
   var timeRemainingMs = TOTAL_TIME_MS;
   var startTime = 0;
-  var expectedStep = 1;
+  var currentStage = 1; // 1 = Road Tracer, 2 = Tie-Breaker Reflex Tap
   var isGameActive = false;
   var currentOnSuccess = null;
   var currentOnFail = null;
   var isPracticeMode = false;
+
+  // Road Tracer state
+  var roadPoints = [];
+  var isTracing = false;
+  var currentProgressIdx = 0;
+  var touchDropTimeout = null;
+  var LANE_WIDTH = 48; // generous 48px lane width
+  var HIT_TOLERANCE = 34; // max distance from centerline to count inside lane
 
   // Smart Trigger Evaluator
   function shouldTriggerSobrietyCheck() {
     var now = Date.now();
     var curHour = new Date().getHours();
     
-    // 1. Check if driver is currently suspended for cooling-off
+    // 1. Cooling-off lock
     var lockUntil = parseInt(localStorage.getItem('rydealot_sobriety_lock_until') || '0', 10);
     if (lockUntil > now) {
       return { trigger: true, locked: true, remainingMs: lockUntil - now };
@@ -918,55 +931,7 @@
       return { trigger: true, reason: 'session_expired' };
     }
 
-    // Otherwise, fast skip (no redundant test required)
     return { trigger: false };
-  }
-
-  // Generate 4 Non-Overlapping Coordinates in Arena
-  function generateScatterCoordinates(arenaWidth, arenaHeight, nodeSize, count) {
-    var coords = [];
-    var padding = 14;
-    var maxAttempts = 150;
-    var minDistance = nodeSize + 16;
-
-    for (var i = 0; i < count; i++) {
-      var placed = false;
-      var attempts = 0;
-      while (!placed && attempts < maxAttempts) {
-        attempts++;
-        var x = padding + Math.random() * (arenaWidth - nodeSize - padding * 2);
-        var y = padding + Math.random() * (arenaHeight - nodeSize - padding * 2);
-
-        var overlap = false;
-        for (var j = 0; j < coords.length; j++) {
-          var dx = (x + nodeSize / 2) - (coords[j].x + nodeSize / 2);
-          var dy = (y + nodeSize / 2) - (coords[j].y + nodeSize / 2);
-          var dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < minDistance) {
-            overlap = true;
-            break;
-          }
-        }
-
-        if (!overlap) {
-          coords.push({ x: Math.round(x), y: Math.round(y) });
-          placed = true;
-        }
-      }
-
-      // Fallback grid if scatter cannot find free space
-      if (!placed) {
-        var col = i % 2;
-        var row = Math.floor(i / 2);
-        var cellW = (arenaWidth - padding * 2) / 2;
-        var cellH = (arenaHeight - padding * 2) / 2;
-        coords.push({
-          x: Math.round(padding + col * cellW + (cellW - nodeSize) / 2),
-          y: Math.round(padding + row * cellH + (cellH - nodeSize) / 2)
-        });
-      }
-    }
-    return coords;
   }
 
   function stopTimer() {
@@ -976,78 +941,366 @@
     }
   }
 
-  // Launch the Sobriety Reflex Game
-  window.triggerDriverSobrietyCheck = function(onSuccess, onFail, isPractice) {
-    if (!sobModal || !sobArena) {
-      if (typeof onSuccess === 'function') onSuccess();
-      return;
+  // Generate smooth cubic Bezier Road Curve across arena safe-zone
+  function generateRoadPoints(w, h) {
+    var paddingX = 40;
+    var paddingY = 35;
+    
+    // S-curve variants
+    var startLeft = Math.random() > 0.5;
+    var p0 = startLeft ? { x: paddingX, y: h - paddingY } : { x: paddingX, y: paddingY };
+    var p3 = startLeft ? { x: w - paddingX, y: paddingY } : { x: w - paddingX, y: h - paddingY };
+    
+    var p1 = startLeft 
+      ? { x: Math.round(w * 0.35), y: paddingY + 10 } 
+      : { x: Math.round(w * 0.35), y: h - paddingY - 10 };
+    var p2 = startLeft 
+      ? { x: Math.round(w * 0.65), y: h - paddingY - 10 } 
+      : { x: Math.round(w * 0.65), y: paddingY + 10 };
+
+    var pts = [];
+    var SAMPLES = 80;
+    for (var i = 0; i <= SAMPLES; i++) {
+      var t = i / SAMPLES;
+      var cx = (1-t)*(1-t)*(1-t)*p0.x + 3*(1-t)*(1-t)*t*p1.x + 3*(1-t)*t*t*p2.x + t*t*t*p3.x;
+      var cy = (1-t)*(1-t)*(1-t)*p0.y + 3*(1-t)*(1-t)*t*p1.y + 3*(1-t)*t*t*p2.y + t*t*t*p3.y;
+      pts.push({ x: Math.round(cx), y: Math.round(cy) });
     }
+    return pts;
+  }
 
-    currentOnSuccess = onSuccess;
-    currentOnFail = onFail;
-    isPracticeMode = !!isPractice;
+  // Draw Road on Canvas
+  function drawRoad(progressIdx) {
+    if (!sobCanvas) return;
+    var ctx = sobCanvas.getContext('2d');
+    var w = sobCanvas.width;
+    var h = sobCanvas.height;
+    ctx.clearRect(0, 0, w, h);
 
-    // Check lock state
-    var check = shouldTriggerSobrietyCheck();
-    if (check.locked && !isPracticeMode) {
-      sobModal.style.display = 'flex';
-      if (sobActions) sobActions.style.display = 'flex';
-      if (sobRetryBtn) sobRetryBtn.style.display = 'none';
-      if (sobArena) sobArena.innerHTML = '';
-      if (sobTimerBar) sobTimerBar.style.width = '0%';
-      var mins = Math.ceil(check.remainingMs / 60000);
-      if (sobStatus) {
-        sobStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">🛑 Safety Hold Active (' + mins + 'm remaining)</div>' +
-          '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">Consecutive reflex failures detected. Please rest and re-try once cooling period ends.</div>';
+    if (!roadPoints || roadPoints.length < 2) return;
+
+    // 1. Asphalt Road Body
+    ctx.beginPath();
+    ctx.moveTo(roadPoints[0].x, roadPoints[0].y);
+    for (var i = 1; i < roadPoints.length; i++) {
+      ctx.lineTo(roadPoints[i].x, roadPoints[i].y);
+    }
+    ctx.lineWidth = LANE_WIDTH;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#1e293b';
+    ctx.stroke();
+
+    // 2. Glowing Road Borders (Cyan/Green)
+    ctx.lineWidth = LANE_WIDTH + 6;
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+    ctx.stroke();
+
+    // 3. Completed Road Section Highlight
+    if (progressIdx > 0) {
+      ctx.beginPath();
+      ctx.moveTo(roadPoints[0].x, roadPoints[0].y);
+      var endIdx = Math.min(progressIdx, roadPoints.length - 1);
+      for (var j = 1; j <= endIdx; j++) {
+        ctx.lineTo(roadPoints[j].x, roadPoints[j].y);
       }
-      return;
+      ctx.lineWidth = LANE_WIDTH - 6;
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
+      ctx.stroke();
     }
 
-    // Open Modal
-    sobModal.style.display = 'flex';
-    if (sobActions) sobActions.style.display = 'none';
-    if (sobRetryBtn) sobRetryBtn.style.display = 'none';
+    // 4. Dashed Centerline
+    ctx.beginPath();
+    ctx.moveTo(roadPoints[0].x, roadPoints[0].y);
+    for (var k = 1; k < roadPoints.length; k++) {
+      ctx.lineTo(roadPoints[k].x, roadPoints[k].y);
+    }
+    ctx.setLineDash([8, 8]);
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = 'rgba(250, 204, 21, 0.6)';
+    ctx.stroke();
+    ctx.setLineDash([]); // reset dash
+  }
 
-    startChallenge();
-  };
-
-  function startChallenge() {
+  // ===================== STAGE 1: ROAD TRACER =====================
+  function startStage1RoadTracer() {
+    currentStage = 1;
     stopTimer();
-    expectedStep = 1;
+    if (touchDropTimeout) clearTimeout(touchDropTimeout);
+
+    if (sobBadge) sobBadge.innerHTML = '🛡️ STAGE 1: STEADY ROAD TRACER';
+    if (sobTitle) sobTitle.textContent = 'Guide Thumb from START to FINISH';
+    if (sobDesc) sobDesc.textContent = 'Keep thumb inside the glowing lane. (Cracked screen tolerant).';
+
+    if (sobCanvas) {
+      sobCanvas.style.display = 'block';
+      sobCanvas.width = sobArena.clientWidth || 320;
+      sobCanvas.height = sobArena.clientHeight || 230;
+    }
+    if (sobNodesLayer) {
+      sobNodesLayer.innerHTML = '';
+      sobNodesLayer.style.display = 'block';
+    }
+
+    roadPoints = generateRoadPoints(sobCanvas.width, sobCanvas.height);
+    currentProgressIdx = 0;
+    isTracing = false;
     isGameActive = true;
+    TOTAL_TIME_MS = 4000; // 4 seconds
     timeRemainingMs = TOTAL_TIME_MS;
-    startTime = Date.now();
+
+    drawRoad(0);
+
+    // Place Start & Finish Markers
+    var startPt = roadPoints[0];
+    var finishPt = roadPoints[roadPoints.length - 1];
+
+    var startEl = document.createElement('div');
+    startEl.className = 'road-marker start';
+    startEl.style.left = startPt.x + 'px';
+    startEl.style.top = startPt.y + 'px';
+    startEl.innerHTML = '<span>🟢</span><span>START</span>';
+    sobNodesLayer.appendChild(startEl);
+
+    var finishEl = document.createElement('div');
+    finishEl.className = 'road-marker finish';
+    finishEl.style.left = finishPt.x + 'px';
+    finishEl.style.top = finishPt.y + 'px';
+    finishEl.innerHTML = '<span>🏁</span><span>FINISH</span>';
+    sobNodesLayer.appendChild(finishEl);
+
+    var cursorEl = document.createElement('div');
+    cursorEl.className = 'road-touch-cursor';
+    cursorEl.id = 'rd-road-cursor';
+    cursorEl.style.display = 'none';
+    sobNodesLayer.appendChild(cursorEl);
 
     if (sobTimerBar) {
       sobTimerBar.style.width = '100%';
       sobTimerBar.style.background = 'linear-gradient(90deg, #10b981, #f59e0b, #ef4444)';
     }
-    if (sobTimerText) sobTimerText.textContent = '⏱️ 3.5s remaining';
-    if (sobStatus) {
-      sobStatus.innerHTML = '<span style="color:#38bdf8;">⚡ Tap <strong>1</strong> ➔ <strong>2</strong> ➔ <strong>3</strong> ➔ <strong>4</strong> as fast as you can!</span>';
+    if (sobTimerText) sobTimerText.textContent = '⏱️ 4.0s remaining';
+    if (sobStatus) sobStatus.innerHTML = '<span style="color:#38bdf8;">Place thumb on <strong>🟢 START</strong> to begin tracing!</span>';
+
+    // Touch & Pointer Event Bindings
+    sobArena.onpointerdown = handleRoadPointerDown;
+    sobArena.onpointermove = handleRoadPointerMove;
+    sobArena.onpointerup = handleRoadPointerUp;
+    sobArena.onpointercancel = handleRoadPointerUp;
+  }
+
+  function getArenaCoords(e) {
+    var rect = sobArena.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+  }
+
+  function handleRoadPointerDown(e) {
+    if (!isGameActive || currentStage !== 1) return;
+    var pos = getArenaCoords(e);
+    var startPt = roadPoints[0];
+    var d = Math.hypot(pos.x - startPt.x, pos.y - startPt.y);
+
+    // If starting near START or resuming within 150ms near last point
+    if (d <= 40 || (currentProgressIdx > 0 && Math.hypot(pos.x - roadPoints[currentProgressIdx].x, pos.y - roadPoints[currentProgressIdx].y) <= 45)) {
+      if (touchDropTimeout) {
+        clearTimeout(touchDropTimeout);
+        touchDropTimeout = null;
+      }
+      isTracing = true;
+
+      var cursor = document.getElementById('rd-road-cursor');
+      if (cursor) {
+        cursor.style.display = 'block';
+        cursor.style.left = pos.x + 'px';
+        cursor.style.top = pos.y + 'px';
+      }
+
+      // Start countdown timer on first touch
+      if (!timerInterval) {
+        startTime = Date.now();
+        timerInterval = setInterval(function() {
+          var elapsed = Date.now() - startTime;
+          timeRemainingMs = Math.max(0, TOTAL_TIME_MS - elapsed);
+          var pct = (timeRemainingMs / TOTAL_TIME_MS) * 100;
+
+          if (sobTimerBar) sobTimerBar.style.width = pct + '%';
+          if (sobTimerText) sobTimerText.textContent = '⏱️ ' + (timeRemainingMs / 1000).toFixed(1) + 's remaining';
+
+          if (timeRemainingMs <= 0) {
+            stopTimer();
+            handleStage1Failure('timeout');
+          }
+        }, 50);
+      }
+    }
+  }
+
+  function handleRoadPointerMove(e) {
+    if (!isGameActive || currentStage !== 1 || !isTracing) return;
+    var pos = getArenaCoords(e);
+
+    var cursor = document.getElementById('rd-road-cursor');
+    if (cursor) {
+      cursor.style.left = pos.x + 'px';
+      cursor.style.top = pos.y + 'px';
     }
 
-    // Build Arena Touch Nodes
-    sobArena.innerHTML = '';
+    // Check distance against upcoming road segment
+    var lookAhead = Math.min(roadPoints.length - 1, currentProgressIdx + 12);
+    var bestDist = Infinity;
+    var bestIdx = currentProgressIdx;
+
+    for (var i = Math.max(0, currentProgressIdx - 3); i <= lookAhead; i++) {
+      var d = Math.hypot(pos.x - roadPoints[i].x, pos.y - roadPoints[i].y);
+      if (d < bestDist) {
+        bestDist = d;
+        bestIdx = i;
+      }
+    }
+
+    // Inside road boundary
+    if (bestDist <= HIT_TOLERANCE) {
+      if (bestIdx > currentProgressIdx) {
+        currentProgressIdx = bestIdx;
+        drawRoad(currentProgressIdx);
+      }
+
+      // REACHED FINISH LINE!
+      if (currentProgressIdx >= roadPoints.length - 3) {
+        stopTimer();
+        isTracing = false;
+        var elapsedSec = ((Date.now() - startTime) / 1000).toFixed(2);
+        handleStage1Success(elapsedSec);
+      }
+    } else if (bestDist > (LANE_WIDTH / 2 + 16)) {
+      // Swerved far off the road
+      isTracing = false;
+      stopTimer();
+      handleStage1Failure('off_road');
+    }
+  }
+
+  function handleRoadPointerUp(e) {
+    if (!isGameActive || currentStage !== 1 || !isTracing) return;
+
+    // 150ms Screen-Crack Grace Window
+    touchDropTimeout = setTimeout(function() {
+      if (isTracing && currentProgressIdx < roadPoints.length - 4) {
+        isTracing = false;
+        stopTimer();
+        handleStage1Failure('finger_lifted');
+      }
+    }, 150);
+  }
+
+  function handleStage1Success(elapsedSec) {
+    isGameActive = false;
+    try { if (navigator.vibrate) navigator.vibrate(40); } catch(ex){}
+
+    if (!isPracticeMode) {
+      localStorage.setItem('rydealot_last_sobriety_pass', Date.now().toString());
+      localStorage.removeItem('rydealot_sobriety_lock_until');
+      localStorage.removeItem('rydealot_sobriety_fails');
+    }
+
+    if (sobTimerBar) {
+      sobTimerBar.style.width = '100%';
+      sobTimerBar.style.background = '#10b981';
+    }
+    if (sobTimerText) sobTimerText.textContent = '⚡ Finished in ' + elapsedSec + 's';
+
+    if (sobStatus) {
+      sobStatus.innerHTML = '<div style="color:#22c55e; font-size:13.5px; font-weight:800;">✅ Road Tracer Passed (' + elapsedSec + 's)!</div>' +
+        '<div style="font-size:11px; color:#86efac; margin-top:2px;">Fine-Motor Steering & Alertness Verified.</div>';
+    }
+
+    setTimeout(function() {
+      if (sobModal) sobModal.style.display = 'none';
+      if (typeof currentOnSuccess === 'function') {
+        currentOnSuccess();
+      }
+    }, 1200);
+  }
+
+  function handleStage1Failure(reason) {
+    isGameActive = false;
+    try { if (navigator.vibrate) navigator.vibrate([60, 40, 60]); } catch(ex){}
+
+    var reasonText = reason === 'timeout' 
+      ? '⏱️ Tracing time expired (> 4.0s)' 
+      : '⚠️ Road boundary slip detected';
+
+    if (sobStatus) {
+      sobStatus.innerHTML = '<div style="color:#f59e0b; font-size:13px; font-weight:800;">' + reasonText + '</div>' +
+        '<div style="font-size:11px; color:#cbd5e1; margin-top:2px;">Launching Stage 2: Quick Reflex Tie-Breaker in 1s...</div>';
+    }
+
+    // Launch Stage 2 Tie-Breaker after 1s smooth transition
+    setTimeout(function() {
+      startStage2TieBreaker();
+    }, 1100);
+  }
+
+  // ===================== STAGE 2: TIE-BREAKER REFLEX TAP =====================
+  var expectedStep = 1;
+
+  function startStage2TieBreaker() {
+    currentStage = 2;
+    stopTimer();
+    expectedStep = 1;
+    isGameActive = true;
+    TOTAL_TIME_MS = 3000; // 3 seconds for 3-tap tie-breaker
+    timeRemainingMs = TOTAL_TIME_MS;
+    startTime = Date.now();
+
+    if (sobBadge) sobBadge.innerHTML = '🛡️ STAGE 2: SECOND CHANCE TIE-BREAKER';
+    if (sobTitle) sobTitle.textContent = 'Tap 1 ➔ 2 ➔ 3 in Numerical Order';
+    if (sobDesc) sobDesc.textContent = 'Rapid reaction check to ensure safe dispatch.';
+
+    if (sobCanvas) sobCanvas.style.display = 'none';
+    if (sobNodesLayer) {
+      sobNodesLayer.innerHTML = '';
+      sobNodesLayer.style.display = 'block';
+    }
+
+    sobArena.onpointerdown = null;
+    sobArena.onpointermove = null;
+    sobArena.onpointerup = null;
+
+    if (sobTimerBar) {
+      sobTimerBar.style.width = '100%';
+      sobTimerBar.style.background = 'linear-gradient(90deg, #10b981, #f59e0b, #ef4444)';
+    }
+    if (sobTimerText) sobTimerText.textContent = '⏱️ 3.0s remaining';
+    if (sobStatus) sobStatus.innerHTML = '<span style="color:#38bdf8;">Tap <strong>1</strong> ➔ <strong>2</strong> ➔ <strong>3</strong> as fast as you can!</span>';
+
+    // 3 Centered Non-Overlapping Coordinates
     var arenaW = sobArena.clientWidth || 320;
     var arenaH = sobArena.clientHeight || 230;
-    var nodeSize = 54;
-    var coords = generateScatterCoordinates(arenaW, arenaH, nodeSize, 4);
+    var coords = [
+      { x: Math.round(arenaW * 0.22), y: Math.round(arenaH * 0.5) },
+      { x: Math.round(arenaW * 0.5),  y: Math.round(arenaH * 0.28) },
+      { x: Math.round(arenaW * 0.78), y: Math.round(arenaH * 0.5) }
+    ];
 
-    for (var i = 1; i <= 4; i++) {
+    coords.sort(function() { return Math.random() - 0.5; });
+
+    for (var i = 1; i <= 3; i++) {
       var node = document.createElement('div');
       node.className = 'sobriety-node' + (i === 1 ? ' next-target' : '');
       node.id = 'sob-node-' + i;
       node.dataset.step = i;
       node.textContent = i;
-      node.style.left = coords[i - 1].x + 'px';
-      node.style.top = coords[i - 1].y + 'px';
+      node.style.left = (coords[i - 1].x - 27) + 'px';
+      node.style.top = (coords[i - 1].y - 27) + 'px';
 
-      node.addEventListener('pointerdown', handleNodeTap);
-      sobArena.appendChild(node);
+      node.addEventListener('pointerdown', handleStage2NodeTap);
+      sobNodesLayer.appendChild(node);
     }
 
-    // Start Timer
     timerInterval = setInterval(function() {
       var elapsed = Date.now() - startTime;
       timeRemainingMs = Math.max(0, TOTAL_TIME_MS - elapsed);
@@ -1058,13 +1311,13 @@
 
       if (timeRemainingMs <= 0) {
         stopTimer();
-        handleFail('timeout');
+        handleStage2FinalFail('timeout');
       }
     }, 50);
   }
 
-  function handleNodeTap(e) {
-    if (!isGameActive) return;
+  function handleStage2NodeTap(e) {
+    if (!isGameActive || currentStage !== 2) return;
     e.preventDefault();
     var step = parseInt(this.dataset.step, 10);
 
@@ -1077,23 +1330,24 @@
 
       expectedStep++;
 
-      if (expectedStep <= 4) {
+      if (expectedStep <= 3) {
         var nextNode = document.getElementById('sob-node-' + expectedStep);
         if (nextNode) nextNode.classList.add('next-target');
       } else {
+        // SUCCESS: Passed Tie-Breaker!
         stopTimer();
         var elapsedSec = ((Date.now() - startTime) / 1000).toFixed(2);
-        handleSuccess(elapsedSec);
+        handleStage2Success(elapsedSec);
       }
     } else {
       try { if (navigator.vibrate) navigator.vibrate([80, 50, 80]); } catch(ex){}
       this.classList.add('error-shake');
       stopTimer();
-      handleFail('wrong_sequence', step);
+      handleStage2FinalFail('wrong_sequence', step);
     }
   }
 
-  function handleSuccess(elapsedSec) {
+  function handleStage2Success(elapsedSec) {
     isGameActive = false;
 
     if (!isPracticeMode) {
@@ -1109,8 +1363,8 @@
     if (sobTimerText) sobTimerText.textContent = '⚡ Finished in ' + elapsedSec + 's';
 
     if (sobStatus) {
-      sobStatus.innerHTML = '<div style="color:#22c55e; font-size:13.5px; font-weight:800;">✅ Reflex Check Passed (' + elapsedSec + 's)!</div>' +
-        '<div style="font-size:11px; color:#86efac; margin-top:2px;">Cognitive Alertness & Sobriety Verified.</div>';
+      sobStatus.innerHTML = '<div style="color:#22c55e; font-size:13.5px; font-weight:800;">✅ Tie-Breaker Passed (' + elapsedSec + 's)!</div>' +
+        '<div style="font-size:11px; color:#86efac; margin-top:2px;">Cognitive Reflexes & Fitness Confirmed.</div>';
     }
 
     setTimeout(function() {
@@ -1118,10 +1372,10 @@
       if (typeof currentOnSuccess === 'function') {
         currentOnSuccess();
       }
-    }, 1300);
+    }, 1200);
   }
 
-  function handleFail(reason, wrongStep) {
+  function handleStage2FinalFail(reason, wrongStep) {
     isGameActive = false;
 
     var currentFails = 1;
@@ -1131,8 +1385,8 @@
     }
 
     var reasonText = reason === 'timeout'
-      ? '⏱️ Reaction time expired (> 3.5s)'
-      : '❌ Incorrect numerical sequence (tapped ' + wrongStep + ' instead of ' + expectedStep + ')';
+      ? '⏱️ Reaction time expired (> 3.0s)'
+      : '❌ Incorrect order (tapped ' + wrongStep + ' instead of ' + expectedStep + ')';
 
     if (sobTimerBar) {
       sobTimerBar.style.width = '100%';
@@ -1140,13 +1394,13 @@
     }
 
     if (!isPracticeMode && currentFails >= 2) {
-      // 2nd Consecutive Fail: Lock for 2 Hours
+      // 2nd Consecutive Fail: 2 Hours Cooling
       var lockUntil = Date.now() + (2 * 60 * 60 * 1000);
       localStorage.setItem('rydealot_sobriety_lock_until', lockUntil.toString());
 
       if (sobStatus) {
         sobStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">🛑 Safety Cooling-Off Activated (2 Hours)</div>' +
-          '<div style="font-size:11px; color:#fca5a5; margin-top:2px;">Multiple reflex checks failed. Platform policy requires a 2-hour rest before retrying.</div>';
+          '<div style="font-size:11px; color:#fca5a5; margin-top:2px;">Both reflex checks missed. Platform policy requires rest before retrying.</div>';
       }
 
       if (sobActions) sobActions.style.display = 'flex';
@@ -1154,7 +1408,7 @@
     } else {
       if (sobStatus) {
         sobStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">' + reasonText + '</div>' +
-          '<div style="font-size:11px; color:#cbd5e1; margin-top:2px;">' + (isPracticeMode ? 'Practice run ended. Try again!' : 'Reflex check missed. Take a deep breath and retry.') + '</div>';
+          '<div style="font-size:11px; color:#cbd5e1; margin-top:2px;">' + (isPracticeMode ? 'Practice run ended. Try again!' : 'Check missed. Take a deep breath and retry.') + '</div>';
       }
 
       if (sobActions) sobActions.style.display = 'flex';
@@ -1166,7 +1420,41 @@
     }
   }
 
-  // Buttons Event Listeners
+  // Trigger from Go Online
+  window.triggerDriverSobrietyCheck = function(onSuccess, onFail, isPractice) {
+    if (!sobModal || !sobArena) {
+      if (typeof onSuccess === 'function') onSuccess();
+      return;
+    }
+
+    currentOnSuccess = onSuccess;
+    currentOnFail = onFail;
+    isPracticeMode = !!isPractice;
+
+    var check = shouldTriggerSobrietyCheck();
+    if (check.locked && !isPracticeMode) {
+      sobModal.style.display = 'flex';
+      if (sobActions) sobActions.style.display = 'flex';
+      if (sobRetryBtn) sobRetryBtn.style.display = 'none';
+      if (sobCanvas) sobCanvas.style.display = 'none';
+      if (sobNodesLayer) sobNodesLayer.innerHTML = '';
+      if (sobTimerBar) sobTimerBar.style.width = '0%';
+      var mins = Math.ceil(check.remainingMs / 60000);
+      if (sobStatus) {
+        sobStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">🛑 Safety Hold Active (' + mins + 'm remaining)</div>' +
+          '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">Consecutive reflex failures detected. Please rest and re-try once cooling period ends.</div>';
+      }
+      return;
+    }
+
+    sobModal.style.display = 'flex';
+    if (sobActions) sobActions.style.display = 'none';
+    if (sobRetryBtn) sobRetryBtn.style.display = 'none';
+
+    startStage1RoadTracer();
+  };
+
+  // Button Listeners
   if (sobCancelBtn) {
     sobCancelBtn.addEventListener('click', function() {
       stopTimer();
@@ -1178,19 +1466,18 @@
   if (sobRetryBtn) {
     sobRetryBtn.addEventListener('click', function() {
       if (sobActions) sobActions.style.display = 'none';
-      startChallenge();
+      startStage1RoadTracer();
     });
   }
 
   if (practiceBtn) {
     practiceBtn.addEventListener('click', function() {
       window.triggerDriverSobrietyCheck(function() {
-        if (typeof toast === 'function') toast('🎉 Practice Challenge Passed! Reflexes are sharp.');
+        if (typeof toast === 'function') toast('🎉 Practice Challenge Passed! Ready for live dispatch.');
       }, null, true);
     });
   }
 
-  // Export helper
   window.shouldTriggerDriverSobrietyCheck = shouldTriggerSobrietyCheck;
 })();
 

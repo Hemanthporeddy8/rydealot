@@ -666,35 +666,41 @@
   </div>
 </div>
 
-<!-- SOBRIETY & FITNESS REFLEX CHECK MODAL -->
+<!-- SOBRIETY & FITNESS REFLEX CHECK MODAL (2-STAGE ROAD TRACER + TIE-BREAKER) -->
 <div id="rd-sobriety-modal" class="rd-sobriety-overlay" style="display:none;">
   <div class="rd-sobriety-card">
     <div class="rd-sobriety-header">
-      <div class="rd-sobriety-badge">🛡️ SOBRIETY & FITNESS REFLEX CHECK</div>
-      <h3 class="rd-sobriety-title">Tap Numbers 1 ➔ 2 ➔ 3 ➔ 4 in Order</h3>
-      <p class="rd-sobriety-desc">Testing fine-motor reaction & cognitive alertness before dispatch.</p>
+      <div id="rd-sobriety-badge" class="rd-sobriety-badge">🛡️ STAGE 1: STEADY ROAD TRACER</div>
+      <h3 id="rd-sobriety-title" class="rd-sobriety-title">Guide Thumb from START to FINISH</h3>
+      <p id="rd-sobriety-desc" class="rd-sobriety-desc">Keep thumb inside the glowing lane. (Cracked screen tolerant).</p>
     </div>
 
     <!-- Countdown Progress Bar -->
     <div class="rd-sobriety-timer-wrap">
       <div class="rd-sobriety-timer-bar" id="rd-sobriety-timer-bar"></div>
     </div>
-    <div class="rd-sobriety-timer-text" id="rd-sobriety-timer-text">⏱️ 3.5s remaining</div>
+    <div class="rd-sobriety-timer-text" id="rd-sobriety-timer-text">⏱️ 4.0s remaining</div>
 
-    <!-- Interactive Scatter Arena -->
+    <!-- Interactive Scatter & Canvas Arena -->
     <div class="rd-sobriety-arena" id="rd-sobriety-arena">
-      <!-- 4 dynamically scattered nodes injected via JS -->
+      <canvas id="rd-road-canvas" width="320" height="230" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1;"></canvas>
+      <div id="rd-road-nodes-layer" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; pointer-events:auto;"></div>
     </div>
 
     <!-- Status & Results Container -->
     <div id="rd-sobriety-status" class="rd-sobriety-status">
-      <span style="color:#94a3b8;">Ready? Tap 1 to start!</span>
+      <span style="color:#94a3b8;">Place thumb on 🟢 START to trace!</span>
     </div>
 
     <!-- Action Buttons (Shown on Fail / Cooling / Practice) -->
     <div id="rd-sobriety-actions" class="rd-sobriety-actions" style="display:none;">
       <button type="button" id="rd-sobriety-cancel-btn" class="rd-sobriety-btn rd-sobriety-btn-secondary">Cancel</button>
       <button type="button" id="rd-sobriety-retry-btn" class="rd-sobriety-btn rd-sobriety-btn-primary">🔄 Retry Challenge</button>
+    </div>
+
+    <!-- Non-Medical Legal Disclaimer Footnote -->
+    <div style="font-size:9.5px; color:#64748b; margin-top:12px; line-height:1.3; text-align:center;">
+      ℹ️ Platform screening tool. Not a medical or forensic breathalyzer test. Drivers bear full legal responsibility under MV Act 1988.
     </div>
   </div>
 </div>
