@@ -941,31 +941,87 @@
     }
   }
 
-  // Generate smooth cubic Bezier Road Curve across arena safe-zone
+  // Procedural Dynamic Road Generator (4 Topologies + Randomized Directions + Jitter)
   function generateRoadPoints(w, h) {
-    var paddingX = 40;
-    var paddingY = 35;
-    
-    // S-curve variants
-    var startLeft = Math.random() > 0.5;
-    var p0 = startLeft ? { x: paddingX, y: h - paddingY } : { x: paddingX, y: paddingY };
-    var p3 = startLeft ? { x: w - paddingX, y: paddingY } : { x: w - paddingX, y: h - paddingY };
-    
-    var p1 = startLeft 
-      ? { x: Math.round(w * 0.35), y: paddingY + 10 } 
-      : { x: Math.round(w * 0.35), y: h - paddingY - 10 };
-    var p2 = startLeft 
-      ? { x: Math.round(w * 0.65), y: h - paddingY - 10 } 
-      : { x: Math.round(w * 0.65), y: paddingY + 10 };
-
+    var padX = 42;
+    var padY = 38;
     var pts = [];
-    var SAMPLES = 80;
-    for (var i = 0; i <= SAMPLES; i++) {
-      var t = i / SAMPLES;
-      var cx = (1-t)*(1-t)*(1-t)*p0.x + 3*(1-t)*(1-t)*t*p1.x + 3*(1-t)*t*t*p2.x + t*t*t*p3.x;
-      var cy = (1-t)*(1-t)*(1-t)*p0.y + 3*(1-t)*(1-t)*t*p1.y + 3*(1-t)*t*t*p2.y + t*t*t*p3.y;
-      pts.push({ x: Math.round(cx), y: Math.round(cy) });
+    var SAMPLES = 85;
+
+    // Pick 1 of 4 topology types at random
+    var pathType = Math.floor(Math.random() * 4); // 0: S-Curve, 1: Double-Wave, 2: Chicane Slalom, 3: Parabolic Arc
+    var flipX = Math.random() > 0.5;
+    var flipY = Math.random() > 0.5;
+
+    function applyTransforms(pt) {
+      var x = flipX ? (w - pt.x) : pt.x;
+      var y = flipY ? (h - pt.y) : pt.y;
+      return { x: Math.round(x), y: Math.round(y) };
     }
+
+    if (pathType === 0) {
+      // 1. Classic Smooth S-Curve with random curvature amplitude
+      var jitterY = (Math.random() - 0.5) * 20;
+      var p0 = { x: padX, y: h - padY };
+      var p1 = { x: w * 0.38, y: padY + 5 + jitterY };
+      var p2 = { x: w * 0.62, y: h - padY - 5 - jitterY };
+      var p3 = { x: w - padX, y: padY };
+
+      for (var i = 0; i <= SAMPLES; i++) {
+        var t = i / SAMPLES;
+        var cx = (1-t)*(1-t)*(1-t)*p0.x + 3*(1-t)*(1-t)*t*p1.x + 3*(1-t)*t*t*p2.x + t*t*t*p3.x;
+        var cy = (1-t)*(1-t)*(1-t)*p0.y + 3*(1-t)*(1-t)*t*p1.y + 3*(1-t)*t*t*p2.y + t*t*t*p3.y;
+        pts.push(applyTransforms({ x: cx, y: cy }));
+      }
+    } else if (pathType === 1) {
+      // 2. Double Wave (W-Curve / 2 Alternating Peaks)
+      var midY = h / 2;
+      var waveAmp = (h * 0.32) + (Math.random() * 8);
+      for (var i = 0; i <= SAMPLES; i++) {
+        var t = i / SAMPLES;
+        var cx = padX + t * (w - padX * 2);
+        var cy = midY + Math.sin(t * Math.PI * 2) * waveAmp;
+        pts.push(applyTransforms({ x: cx, y: cy }));
+      }
+    } else if (pathType === 2) {
+      // 3. Racer Chicane (Zig-Zag Sharp Slalom)
+      var waypoints = [
+        { x: padX, y: h * 0.75 },
+        { x: w * 0.30, y: padY + 10 },
+        { x: w * 0.50, y: h - padY - 10 },
+        { x: w * 0.70, y: padY + 10 },
+        { x: w - padX, y: h * 0.25 }
+      ];
+      for (var i = 0; i <= SAMPLES; i++) {
+        var t = i / SAMPLES;
+        var seg = t * (waypoints.length - 1);
+        var segIdx = Math.floor(seg);
+        var segT = seg - segIdx;
+        if (segIdx >= waypoints.length - 1) {
+          pts.push(applyTransforms(waypoints[waypoints.length - 1]));
+        } else {
+          var a = waypoints[segIdx];
+          var b = waypoints[segIdx + 1];
+          var smoothT = segT * segT * (3 - 2 * segT);
+          var cx = a.x + (b.x - a.x) * smoothT;
+          var cy = a.y + (b.y - a.y) * smoothT;
+          pts.push(applyTransforms({ x: cx, y: cy }));
+        }
+      }
+    } else {
+      // 4. Parabolic Sweeping Arc
+      var apexY = padY + 10 + (Math.random() * 15);
+      var p0 = { x: padX, y: h - padY };
+      var p1 = { x: w * 0.5, y: apexY };
+      var p2 = { x: w - padX, y: h - padY };
+      for (var i = 0; i <= SAMPLES; i++) {
+        var t = i / SAMPLES;
+        var cx = (1-t)*(1-t)*p0.x + 2*(1-t)*t*p1.x + t*t*p2.x;
+        var cy = (1-t)*(1-t)*p0.y + 2*(1-t)*t*p1.y + t*t*p2.y;
+        pts.push(applyTransforms({ x: cx, y: cy }));
+      }
+    }
+
     return pts;
   }
 
@@ -2039,6 +2095,38 @@
     checkDriverBanStatus(profile);
     checkDriverBroadcast();
     startVerifPolling(profile.id);
+
+    // Accidental reload recovery (keep driver online without re-testing)
+    var wasOnline = localStorage.getItem('rydealot_driver_online_state') === 'true';
+    var lastOnlineTime = parseInt(localStorage.getItem('rydealot_driver_last_online_time') || '0', 10);
+    var isWithinWindow = (Date.now() - lastOnlineTime) < (10 * 60 * 1000); // 10 mins
+
+    if (wasOnline && isWithinWindow && !state.isBanned) {
+      restoreDriverOnlineSilent();
+    }
+  }
+
+  async function restoreDriverOnlineSilent() {
+    var toggleBtn = document.getElementById('rd-toggle-online-btn');
+    var ok = startSharingLocation();
+    if (!ok) return;
+
+    try {
+      state.online = true;
+      localStorage.setItem('rydealot_driver_online_state', 'true');
+      localStorage.setItem('rydealot_driver_last_online_time', Date.now().toString());
+      recordDriverActivity();
+      if (toggleBtn) {
+        toggleBtn.textContent = 'Go offline';
+        toggleBtn.className = 'btn btn-toggle-on';
+      }
+      setPill('available');
+      startPollingBookings();
+      startHeartbeat();
+      await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: new Date().toISOString() } });
+    } catch(e) {
+      console.warn('Silent driver online restore error:', e);
+    }
   }
 
   // Helper to read file as base64 with downscaling
@@ -2491,6 +2579,8 @@
         try{
           await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: new Date().toISOString() } });
           state.online = true;
+          localStorage.setItem('rydealot_driver_online_state', 'true');
+          localStorage.setItem('rydealot_driver_last_online_time', Date.now().toString());
           recordDriverActivity();
           toggleBtn.textContent = 'Go offline';
           toggleBtn.className = 'btn btn-toggle-on';
@@ -2504,21 +2594,18 @@
       };
 
       var triggerVerificationPipeline = function() {
-        var runSobrietyIfRequired = function() {
-          if (typeof window.triggerDriverSobrietyCheck === 'function' && typeof window.shouldTriggerDriverSobrietyCheck === 'function') {
-            var check = window.shouldTriggerDriverSobrietyCheck();
-            if (check.trigger) {
-              window.triggerDriverSobrietyCheck(doGoOnline);
-              return;
-            }
+        var runSobriety = function() {
+          if (typeof window.triggerDriverSobrietyCheck === 'function') {
+            window.triggerDriverSobrietyCheck(doGoOnline);
+          } else {
+            doGoOnline();
           }
-          doGoOnline();
         };
 
         if (typeof window.triggerDriverFaceCheck === 'function') {
-          window.triggerDriverFaceCheck(runSobrietyIfRequired);
+          window.triggerDriverFaceCheck(runSobriety);
         } else {
-          runSobrietyIfRequired();
+          runSobriety();
         }
       };
 
@@ -2531,6 +2618,8 @@
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline' } });
       } catch(err){ console.error(err); }
       state.online = false;
+      localStorage.removeItem('rydealot_driver_online_state');
+      localStorage.removeItem('rydealot_driver_last_online_time');
       localStorage.setItem('rydealot_driver_last_offline', Date.now().toString());
       toggleBtn.textContent = 'Go online';
       toggleBtn.className = 'btn btn-toggle-off';
@@ -2550,6 +2639,8 @@
           await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline' } });
         } catch(err){ console.error(err); }
         state.online = false;
+        localStorage.removeItem('rydealot_driver_online_state');
+        localStorage.removeItem('rydealot_driver_last_online_time');
         localStorage.setItem('rydealot_driver_last_offline', Date.now().toString());
         toggleBtn.textContent = 'Go online';
         toggleBtn.className = 'btn btn-toggle-off';
@@ -2560,32 +2651,10 @@
     }
   });
 
-  // ---------- Auto-Offline on Tab Close / Page Unload ----------
+  // ---------- Preserve online state on accidental page reload ----------
   function setDriverOfflineSync() {
     if (state.riderId && state.online) {
-      state.online = false;
-      localStorage.setItem('rydealot_driver_last_offline', Date.now().toString());
-      stopSharingLocation();
-      stopHeartbeat();
-      stopPollingBookings();
-      
-      var url = SUPABASE_URL + '/rest/v1/riders?id=eq.' + state.riderId;
-      var payload = JSON.stringify({ status: 'offline', updated_at: new Date().toISOString() });
-      
-      if (typeof fetch === 'function') {
-        try {
-          fetch(url, {
-            method: 'PATCH',
-            headers: {
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-              'Content-Type': 'application/json'
-            },
-            body: payload,
-            keepalive: true
-          });
-        } catch(e) {}
-      }
+      localStorage.setItem('rydealot_driver_last_online_time', Date.now().toString());
     }
   }
 
@@ -2613,6 +2682,8 @@
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline', updated_at: new Date().toISOString() } });
       } catch(err){ console.error(err); }
       state.online = false;
+      localStorage.removeItem('rydealot_driver_online_state');
+      localStorage.removeItem('rydealot_driver_last_online_time');
       localStorage.setItem('rydealot_driver_last_offline', Date.now().toString());
       toggleBtn.textContent = 'Go online';
       toggleBtn.className = 'btn btn-toggle-off';
