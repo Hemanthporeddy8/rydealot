@@ -1,4 +1,4 @@
-var CACHE_NAME = 'rydealot-v9';
+var CACHE_NAME = 'rydealot-v10';
 var urlsToCache = [
   './',
   './index.html',
