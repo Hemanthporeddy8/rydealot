@@ -2805,6 +2805,12 @@
     if (doneBtn) {
       doneBtn.onclick = function() {
         modal.style.display = 'none';
+        var trackS = document.getElementById('rd-tracking-section');
+        if (trackS) trackS.style.display = 'none';
+        var mainS = document.getElementById('rd-main-section');
+        if (mainS) mainS.style.display = 'block';
+        destroyRiderMap();
+        lastTrackedBookingId = null;
         handleBookingAction('complete', b.id);
       };
     }
@@ -3204,6 +3210,20 @@
   async function handleBookingAction(action, bookingId){
     var statusMap = { accept:'accepted', decline:'cancelled', arrived:'arrived', start:'in_progress', complete:'completed' };
     var newStatus = statusMap[action];
+    
+    // Immediate UI transition on complete/decline so driver never gets stuck on tracking screen
+    if(action === 'complete' || action === 'decline'){
+      lastTrackedBookingId = null;
+      if (window.RydealotChat) window.RydealotChat.stopChat();
+      destroyRiderMap();
+      var trackingS = document.getElementById('rd-tracking-section');
+      if (trackingS) trackingS.style.display = 'none';
+      var mainS = document.getElementById('rd-main-section');
+      if (mainS) mainS.style.display = 'block';
+      state.online = true;
+      setPill('available');
+    }
+
     try{
       await sbFetch('bookings?id=eq.' + bookingId, { method:'PATCH', body:{ status: newStatus } });
       var nowIso = new Date().toISOString();
@@ -3212,16 +3232,7 @@
         setPill('busy');
       }
       if(action === 'complete' || action === 'decline'){
-        lastTrackedBookingId = null;
-        if (window.RydealotChat) window.RydealotChat.stopChat();
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: nowIso } });
-        state.online = true;
-        setPill('available');
-        destroyRiderMap();
-        var trackingS = document.getElementById('rd-tracking-section');
-        if (trackingS) trackingS.style.display = 'none';
-        var mainS = document.getElementById('rd-main-section');
-        if (mainS) mainS.style.display = 'block';
       }
       if(action === 'complete'){
         if (typeof window.incrementDailySprintCount === 'function') {
@@ -3245,6 +3256,7 @@
       fetchBookings();
     } catch(err){
       toast('Could not update: ' + err.message);
+      fetchBookings();
     }
   }
 
