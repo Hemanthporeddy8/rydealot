@@ -4,15 +4,21 @@
   "description": "Rydealot Bike Taxi and Ride Sharing Platform",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#eef0f2",
+  "background_color": "#16181c",
   "theme_color": "#16181c",
   "orientation": "portrait-primary",
   "icons": [
     {
       "src": "./logo.png",
-      "sizes": "512x512",
+      "sizes": "192x192 512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "./icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }

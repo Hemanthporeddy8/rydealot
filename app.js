@@ -2088,8 +2088,41 @@
   function showMain(profile){
     document.getElementById('rd-setup-section').style.display = 'none';
     document.getElementById('rd-main-section').style.display = 'block';
-    document.getElementById('rd-display-name').textContent = profile.name;
-    document.getElementById('rd-display-vehicle').textContent = profile.vehicle_label + ' (' + profile.vehicle_type + ')';
+    
+    var nameEl = document.getElementById('rd-display-name');
+    if (nameEl) nameEl.textContent = profile.name || 'Driver';
+
+    var vEl = document.getElementById('rd-display-vehicle');
+    if (vEl) vEl.textContent = (profile.vehicle_label || 'Vehicle') + ' (' + (profile.vehicle_type || 'bike') + ')';
+
+    var plateEl = document.getElementById('rd-display-plate');
+    if (plateEl) plateEl.textContent = profile.plate || localStorage.getItem('ridelot_rider_plate') || 'TS -- -- ----';
+
+    var vIconEl = document.getElementById('rd-display-vtype-icon');
+    if (vIconEl) {
+      var vt = profile.vehicle_type || 'bike';
+      vIconEl.textContent = vt === 'bike' ? '🏍️' : (vt === 'auto' ? '🛺' : (vt === 'auto_share' ? '👥' : '🚗'));
+    }
+
+    // Driver Avatar Selfie rendering
+    var avatarImg = document.getElementById('rd-profile-avatar-img');
+    var avatarInitials = document.getElementById('rd-profile-avatar-initials');
+    var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+    var myDocs = (profile && profile.id) ? (allDocs[profile.id] || {}) : {};
+    var selfieUrl = myDocs.selfie ? myDocs.selfie.url : localStorage.getItem('rydealot_driver_live_face');
+
+    if (avatarImg && avatarInitials) {
+      if (selfieUrl && selfieUrl.length > 50) {
+        avatarImg.src = selfieUrl;
+        avatarImg.style.display = 'block';
+        avatarInitials.style.display = 'none';
+      } else {
+        avatarImg.style.display = 'none';
+        avatarInitials.style.display = 'block';
+        avatarInitials.textContent = (profile.name || 'D').substring(0, 2).toUpperCase();
+      }
+    }
+
     setPill(profile.status || 'offline');
     updateDriverVerificationStatusUI(profile.id);
     checkDriverBanStatus(profile);
@@ -2801,6 +2834,28 @@
     document.getElementById('rd-track-drop').textContent = b.drop_label || '-';
     document.getElementById('rd-track-fare').textContent = 'Rs ' + (b.fare || '-');
 
+    var copyDropBtn = document.getElementById('rd-btn-copy-drop-addr');
+    if (copyDropBtn) {
+      copyDropBtn.onclick = function() {
+        var txt = b.drop_label || '';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt);
+          toast('📋 Drop address copied! You can paste in Google Maps.');
+        } else {
+          prompt('Copy drop address:', txt);
+        }
+      };
+    }
+
+    var gmapsLink = document.getElementById('rd-link-gmaps-direct');
+    if (gmapsLink) {
+      if (b.maps_link) {
+        gmapsLink.href = b.maps_link.replace(/[?&]pin=\d{4}/, '');
+      } else {
+        gmapsLink.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
+      }
+    }
+
     if (window.RydealotChat && b && b.id) {
       window.RydealotChat.startChat(b.id, 'driver', state.name || 'Driver', b.user_name || 'Passenger');
     }
@@ -3048,8 +3103,15 @@
       } else {
         // If driver was previously tracking an active booking and it got cancelled by user
         if (lastTrackedBookingId) {
-          toast('⚠️ Passenger cancelled this trip');
+          var idToCheck = lastTrackedBookingId;
           lastTrackedBookingId = null;
+          try {
+            var checkRows = await sbFetch('bookings?id=eq.' + idToCheck);
+            var chk = checkRows && checkRows[0];
+            if (chk && chk.status === 'cancelled') {
+              toast('⚠️ Passenger cancelled this trip');
+            }
+          } catch(e){}
           if (window.RydealotChat) window.RydealotChat.stopChat();
           // Set driver status back to available in DB
           try {
@@ -3150,9 +3212,16 @@
         setPill('busy');
       }
       if(action === 'complete' || action === 'decline'){
+        lastTrackedBookingId = null;
         if (window.RydealotChat) window.RydealotChat.stopChat();
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: nowIso } });
+        state.online = true;
         setPill('available');
+        destroyRiderMap();
+        var trackingS = document.getElementById('rd-tracking-section');
+        if (trackingS) trackingS.style.display = 'none';
+        var mainS = document.getElementById('rd-main-section');
+        if (mainS) mainS.style.display = 'block';
       }
       if(action === 'complete'){
         if (typeof window.incrementDailySprintCount === 'function') {
@@ -3172,7 +3241,7 @@
           toast('💸 Per-Trip Commission ₹' + commFee + ' deducted from wallet.');
         }
       }
-      toast('Updated');
+      toast(action === 'complete' ? '✅ Trip marked Completed!' : 'Updated');
       fetchBookings();
     } catch(err){
       toast('Could not update: ' + err.message);
@@ -3558,39 +3627,146 @@
   }
 
   function autoSaveCustomerLandmark(name, lat, lng) {
-    if (!name || !lat || !lng) return;
-    name = name.trim();
-    var lower = name.toLowerCase();
-    if (lower.startsWith('current location') || lower.startsWith('pinned destination') || lower.startsWith('test point') || name.length < 3) return;
+    // Disabled Supabase auto-save to keep database completely clean and free
+    return;
+  }
 
-    var exists = TELANGANA_LANDMARKS.some(function(lm){
-      return lm.name.toLowerCase() === lower || lm.aliases.some(function(a){ return a === lower; });
-    });
+  // ===== FULLSCREEN DRAG-TO-PIN DROP PICKER ENGINE =====
+  var dropPickerMap = null;
+  var tempDropCoord = { lat: 17.9961, lng: 79.5509, address: 'Selected Destination' };
+  var dropPickerMoveTimer = null;
 
-    if (!exists) {
-      var newLm = {
-        name: name,
-        aliases: [lower],
-        lat: parseFloat(lat),
-        lng: parseFloat(lng),
-        type: 'place',
-        detail: 'Customer Ride Input'
-      };
-      TELANGANA_LANDMARKS.unshift(newLm);
+  function openDropMapPicker() {
+    var modal = document.getElementById('drop-picker-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
 
-      try {
-        sbAuthFetch('map_places', {
-          method: 'POST',
-          body: {
-            name: name,
-            category: 'customer_ride',
-            lat: parseFloat(lat),
-            lng: parseFloat(lng),
-            address: 'Customer Ride Input'
-          }
-        });
-      } catch(e){}
+    var startLat = state.destLat || state.lat || 17.9961;
+    var startLng = state.destLng || state.lng || 79.5509;
+
+    if (!dropPickerMap && typeof L !== 'undefined') {
+      dropPickerMap = L.map('drop-picker-map', {
+        zoomControl: false,
+        attributionControl: false
+      }).setView([startLat, startLng], 16);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+      }).addTo(dropPickerMap);
+
+      dropPickerMap.on('movestart dragstart', function() {
+        var addrEl = document.getElementById('drop-picker-address-display');
+        if (addrEl) addrEl.textContent = '📍 Dragging map...';
+      });
+
+      dropPickerMap.on('moveend', function() {
+        var center = dropPickerMap.getCenter();
+        tempDropCoord.lat = center.lat;
+        tempDropCoord.lng = center.lng;
+        reverseGeocodeDropPicker(center.lat, center.lng);
+      });
+    } else if (dropPickerMap) {
+      dropPickerMap.setView([startLat, startLng], 16);
+      setTimeout(function(){ dropPickerMap.invalidateSize(); }, 200);
     }
+
+    reverseGeocodeDropPicker(startLat, startLng);
+
+    // Search input inside drop picker
+    var searchInput = document.getElementById('drop-picker-search-input');
+    var suggBox = document.getElementById('drop-picker-suggestions');
+    if (searchInput && suggBox) {
+      searchInput.value = '';
+      searchInput.oninput = function() {
+        var q = searchInput.value.trim().toLowerCase();
+        if (q.length < 2) {
+          suggBox.style.display = 'none';
+          return;
+        }
+        var matches = TELANGANA_LANDMARKS.filter(function(lm) {
+          return lm.name.toLowerCase().indexOf(q) !== -1 || (lm.aliases && lm.aliases.some(function(a){ return a.indexOf(q) !== -1; }));
+        }).slice(0, 6);
+
+        if (matches.length > 0) {
+          suggBox.innerHTML = matches.map(function(m) {
+            return '<div class="autocomplete-item" data-lat="' + m.lat + '" data-lng="' + m.lng + '" data-name="' + m.name + '">' +
+              '<strong>' + m.name + '</strong> <span style="font-size:11px;color:#888;">' + (m.detail || 'Landmark') + '</span>' +
+            '</div>';
+          }).join('');
+          suggBox.style.display = 'block';
+
+          suggBox.querySelectorAll('.autocomplete-item').forEach(function(item) {
+            item.onclick = function() {
+              var lat = parseFloat(item.getAttribute('data-lat'));
+              var lng = parseFloat(item.getAttribute('data-lng'));
+              var name = item.getAttribute('data-name');
+              tempDropCoord.lat = lat;
+              tempDropCoord.lng = lng;
+              tempDropCoord.address = name;
+              if (dropPickerMap) dropPickerMap.flyTo([lat, lng], 17);
+              var addrEl = document.getElementById('drop-picker-address-display');
+              if (addrEl) addrEl.textContent = name;
+              suggBox.style.display = 'none';
+              searchInput.value = name;
+            };
+          });
+        } else {
+          suggBox.style.display = 'none';
+        }
+      };
+    }
+  }
+
+  function reverseGeocodeDropPicker(lat, lng) {
+    clearTimeout(dropPickerMoveTimer);
+    var addrEl = document.getElementById('drop-picker-address-display');
+    dropPickerMoveTimer = setTimeout(function() {
+      fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=18&addressdetails=1', {
+        headers: { 'Accept-Language': 'en', 'User-Agent': 'RydealotApp/1.0' }
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data && data.display_name) {
+          var addr = data.address || {};
+          var mainStr = addr.road || addr.suburb || addr.neighbourhood || addr.village || data.display_name.split(',')[0];
+          var subStr = [addr.city||addr.town||addr.county, addr.state].filter(Boolean).join(', ');
+          var fullFriendly = mainStr + (subStr ? ', ' + subStr : '');
+          tempDropCoord.address = fullFriendly;
+          if (addrEl) addrEl.textContent = fullFriendly;
+        } else {
+          tempDropCoord.address = 'Pin (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
+          if (addrEl) addrEl.textContent = tempDropCoord.address;
+        }
+      })
+      .catch(function(){
+        tempDropCoord.address = 'Selected Point (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
+        if (addrEl) addrEl.textContent = tempDropCoord.address;
+      });
+    }, 250);
+  }
+
+  var confirmDropBtn = document.getElementById('btn-confirm-drop-pin');
+  if (confirmDropBtn) {
+    confirmDropBtn.addEventListener('click', function() {
+      var modal = document.getElementById('drop-picker-modal');
+      if (modal) modal.style.display = 'none';
+      state.destLat = tempDropCoord.lat;
+      state.destLng = tempDropCoord.lng;
+      state.drop = tempDropCoord.address;
+      var dropInput = document.getElementById('drop-input');
+      if (dropInput) dropInput.value = tempDropCoord.address;
+      if (typeof updateSetupMapMarkers === 'function') updateSetupMapMarkers();
+      if (typeof updateTripDistanceAndFares === 'function') updateTripDistanceAndFares();
+      toast('✅ Drop destination set: ' + tempDropCoord.address);
+    });
+  }
+
+  var closeDropBtn = document.getElementById('btn-close-drop-picker');
+  if (closeDropBtn) {
+    closeDropBtn.addEventListener('click', function() {
+      var modal = document.getElementById('drop-picker-modal');
+      if (modal) modal.style.display = 'none';
+    });
   }
 
   function initSetupMap() {
@@ -3625,21 +3801,7 @@
     var btnPickDrop = document.getElementById('btn-pick-drop-on-map');
     if (btnPickDrop) {
       btnPickDrop.addEventListener('click', function(){
-        var mapEl = document.getElementById('setup-map');
-        if (mapEl) {
-          mapEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        var helper = document.getElementById('map-mode-helper');
-        var helperTxt = document.getElementById('map-mode-helper-text');
-        if (helper && helperTxt) {
-          helperTxt.textContent = '🚩 Tap anywhere on map to set Drop destination';
-          helper.style.background = '#2563eb';
-          setTimeout(function(){
-            helper.style.background = 'rgba(18,20,26,0.88)';
-            helperTxt.textContent = '📍 Tap map to set pickup or drop pin';
-          }, 6000);
-        }
-        toast('🗺️ Tap anywhere on the map above to set your Drop location');
+        openDropMapPicker();
       });
     }
 
@@ -5931,6 +6093,64 @@
     localStorage.removeItem('rydealot_active_booking');
     showScreen('screen-login');
   });
+
+  // 1-Tap WhatsApp Ride Sharing
+  var shareWaBtn = document.getElementById('btn-share-whatsapp-ride');
+  if (shareWaBtn) {
+    shareWaBtn.addEventListener('click', function(){
+      var driverName = (state.currentRider && state.currentRider.name) ? state.currentRider.name : 'Rydealot Captain';
+      var vehicleInfo = (state.currentRider && state.currentRider.vehicleLabel) ? state.currentRider.vehicleLabel : 'Bike';
+      var plate = (state.currentRider && state.currentRider.plate) ? ' (' + state.currentRider.plate + ')' : '';
+      var dropLoc = state.drop || 'Destination';
+      var pin = (document.getElementById('track-pin-code') ? document.getElementById('track-pin-code').textContent : '') || '';
+
+      var msg = "🚕 *I'm riding with Rydealot!*\n" +
+                "👤 Driver: " + driverName + "\n" +
+                "🛵 Vehicle: " + vehicleInfo + plate + "\n" +
+                "📍 Destination: " + dropLoc + "\n" +
+                (pin ? "🔐 Ride PIN: " + pin + "\n" : "") +
+                "\nTrack live on Rydealot: https://rydealot.com";
+      var waUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
+      window.open(waUrl, '_blank');
+    });
+  }
+
+  // 5-Star Rating & Compliments in Customer App
+  var starRatingRow = document.getElementById('cust-star-rating');
+  if (starRatingRow) {
+    var stars = starRatingRow.querySelectorAll('.cust-star');
+    var labelEl = document.getElementById('cust-rating-label');
+    var ratingLabels = {
+      1: 'Poor Experience 😞',
+      2: 'Below Average 😐',
+      3: 'Good Ride 👍',
+      4: 'Great Driver! ⭐',
+      5: 'Excellent Experience! 🌟'
+    };
+    stars.forEach(function(star) {
+      star.addEventListener('click', function() {
+        var val = parseInt(star.getAttribute('data-star') || '5', 10);
+        stars.forEach(function(s, idx) {
+          if (idx < val) {
+            s.style.color = '#f59e0b';
+          } else {
+            s.style.color = '#cbd5e1';
+          }
+        });
+        if (labelEl) labelEl.textContent = ratingLabels[val] || 'Thank you! 😊';
+        toast('⭐ Thank you for rating ' + val + ' stars!');
+      });
+    });
+  }
+
+  var compChips = document.getElementById('cust-compliment-chips');
+  if (compChips) {
+    compChips.querySelectorAll('.compliment-chip').forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        chip.classList.toggle('selected');
+      });
+    });
+  }
 
   // init: fill in the static ride-type icons right away; the lot itself
   // only loads real data once the user submits their name and location.
