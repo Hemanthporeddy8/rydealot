@@ -645,6 +645,57 @@
 
         </div>
 
+        <!-- REAL GOOGLE ACCOUNT CHOOSER POPUP DIALOG -->
+        <div id="google-account-chooser-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); z-index:99999; align-items:center; justify-content:center; padding:16px;">
+          <div style="background:#ffffff; color:#1f1f1f; width:100%; max-width:400px; border-radius:24px; box-shadow:0 20px 60px rgba(0,0,0,0.5); overflow:hidden; font-family:'Roboto', 'Plus Jakarta Sans', sans-serif; animation:fadeIn 0.2s ease;">
+            <!-- Google Header -->
+            <div style="padding:24px 24px 16px; border-bottom:1px solid #e0e0e0; display:flex; flex-direction:column; align-items:center; text-align:center;">
+              <svg width="28" height="28" viewBox="0 0 24 24" style="margin-bottom:8px;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+              <h3 style="font-size:18px; font-weight:700; color:#1f1f1f; margin:0 0 4px;">Choose an account</h3>
+              <p style="font-size:12.5px; color:#5f6368; margin:0;">to continue to <strong>Rydealot</strong></p>
+            </div>
+
+            <!-- Account List -->
+            <div style="padding:12px 16px; display:flex; flex-direction:column; gap:4px;">
+              <!-- Account 1 -->
+              <button type="button" onclick="selectGoogleAccount('Hemanth Poreddy', 'hemanthporeddy8@gmail.com', 'HP')" style="width:100%; display:flex; align-items:center; gap:14px; padding:12px 14px; border:none; background:transparent; border-radius:12px; cursor:pointer; text-align:left; transition:background 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='transparent'">
+                <div style="width:40px; height:40px; border-radius:50%; background:#1a73e8; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px;">
+                  HP
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:14px; font-weight:700; color:#202124;">Hemanth Poreddy</div>
+                  <div style="font-size:12px; color:#5f6368;">hemanthporeddy8@gmail.com</div>
+                </div>
+              </button>
+
+              <!-- Account 2 -->
+              <button type="button" onclick="selectGoogleAccount('Rydealot Official', 'rydealotofficial@gmail.com', 'R')" style="width:100%; display:flex; align-items:center; gap:14px; padding:12px 14px; border:none; background:transparent; border-radius:12px; cursor:pointer; text-align:left; transition:background 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='transparent'">
+                <div style="width:40px; height:40px; border-radius:50%; background:#0f9d58; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px;">
+                  R
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:14px; font-weight:700; color:#202124;">Rydealot Official</div>
+                  <div style="font-size:12px; color:#5f6368;">rydealotofficial@gmail.com</div>
+                </div>
+              </button>
+
+              <!-- Account 3 (Add custom) -->
+              <button type="button" onclick="selectGoogleAccount('New Passenger', 'passenger.test@gmail.com', 'N')" style="width:100%; display:flex; align-items:center; gap:14px; padding:12px 14px; border:none; background:transparent; border-radius:12px; cursor:pointer; text-align:left; transition:background 0.2s;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='transparent'">
+                <div style="width:40px; height:40px; border-radius:50%; background:#e8eaed; color:#5f6368; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px;">
+                  +
+                </div>
+                <div style="font-size:13.5px; font-weight:600; color:#1a73e8;">Use another account</div>
+              </button>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding:14px 24px; border-top:1px solid #e0e0e0; font-size:11px; color:#5f6368; display:flex; justify-content:space-between; align-items:center;">
+              <span>Google authentication simulation</span>
+              <button type="button" onclick="closeGoogleAccountChooser()" style="background:transparent; border:none; color:#1a73e8; font-weight:700; font-size:12px; cursor:pointer;">Cancel</button>
+            </div>
+          </div>
+        </div>
+
         <!-- RIGHT COLUMN: LIVE DATA & PORTABILITY INSPECTOR -->
         <div class="inspector-card">
           <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:10px;">
@@ -904,43 +955,78 @@
       updateInspectorPayload();
     }
 
-    // Step 1: 1-Tap Google Flow
+    // ==========================================================================
+    // REAL GOOGLE AUTH CHOOSER & 1-TIME PERMANENT PIN ENGINE
+    // ==========================================================================
+
     function startGoogleAuthFlow() {
-      currentInputTarget = { type: 'google', val: 'hemanth.poreddy@gmail.com' };
-      var cleanKey = 'hemanth.poreddy@gmail.com';
-      var existing = PURE_USERS_DB[cleanKey] || PURE_USERS_DB['9876543210'];
-      
-      document.getElementById('auth-target-display').textContent = '🇬 hemanth.poreddy@gmail.com';
-      document.getElementById('auth-cred-name').value = 'Hemanth Poreddy';
-      
+      var modal = document.getElementById('google-account-chooser-modal');
+      if (modal) modal.style.display = 'flex';
+      logMsg('🇬 [Google Auth] Opened Google Account Chooser dialog.');
+    }
+
+    function closeGoogleAccountChooser() {
+      var modal = document.getElementById('google-account-chooser-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function selectGoogleAccount(name, email, avatarCode) {
+      closeGoogleAccountChooser();
+      showToast('⏳ Connecting to Google as ' + name + '...');
+      logMsg('🇬 [Google Auth] User selected Google account: ' + email);
+
+      var cleanKey = email.toLowerCase();
+      var existing = PURE_USERS_DB[cleanKey];
+
       if (existing) {
-        isNewUser = false;
-        document.getElementById('auth-flow-mode-badge').textContent = 'RETURNING RIDER LOG IN';
-        document.getElementById('auth-cred-heading').textContent = 'Enter your 4-Digit Ride PIN';
-        document.getElementById('auth-name-field-group').style.display = 'none';
-        document.getElementById('btn-submit-cred').textContent = '🚀 Log In to Rydealot';
+        // RETURNING USER: Load their 1-time permanent PIN
+        activeAuthUser = existing;
+        showToast('🚀 Welcome back, ' + name + '! Loaded your Permanent Ride PIN: ' + activeAuthUser.permanent_ride_pin);
+        logMsg('✅ [Google Auth] Existing user authenticated. Permanent PIN: ' + activeAuthUser.permanent_ride_pin);
       } else {
-        isNewUser = true;
-        document.getElementById('auth-flow-mode-badge').textContent = 'NEW RIDER SIGNUP';
-        document.getElementById('auth-cred-heading').textContent = 'Set your 4-Digit Ride PIN';
-        document.getElementById('auth-name-field-group').style.display = 'block';
-        document.getElementById('btn-submit-cred').textContent = '✨ Confirm & Create Account';
+        // NEW USER: Automatically allocate 1-Time Permanent PIN ONCE
+        var autoPin = String(Math.floor(1000 + Math.random() * 9000));
+        var hash = await sha256Hex(autoPin);
+        var newUser = {
+          user_id: 'usr_' + Math.floor(Math.random() * 900000 + 100000),
+          name: name,
+          email: email,
+          phone: '+91 98765 43210',
+          permanent_ride_pin: autoPin,
+          pin_hash: hash,
+          auth_provider: 'google',
+          created_at: new Date().toISOString()
+        };
+        PURE_USERS_DB[cleanKey] = newUser;
+        localStorage.setItem('rydealot_pure_users_db', JSON.stringify(PURE_USERS_DB));
+        activeAuthUser = newUser;
+
+        showToast('🎉 Account Created with Google! Your 1-Time Permanent Ride PIN is ' + autoPin);
+        logMsg('✅ [Google Auth] New user registered. 1-Time PIN allocated: ' + autoPin);
       }
-      clearPinBoxes();
-      goToAuthScreen('credentials');
-      showToast('🇬 Google Account Connected! Complete 4-Digit PIN.');
+
+      // Populate Dashboard Screen
+      document.getElementById('logged-name').textContent = activeAuthUser.name;
+      document.getElementById('logged-phone').textContent = activeAuthUser.email || activeAuthUser.phone;
+      document.getElementById('logged-pin-display').textContent = activeAuthUser.permanent_ride_pin;
+      document.getElementById('logged-avatar').textContent = avatarCode || (activeAuthUser.name || 'U').substring(0, 2).toUpperCase();
+      document.getElementById('sim-driver-pin-input').value = '';
+      document.getElementById('sim-driver-pin-result').innerHTML = '';
+
+      await updateInspectorPayload();
+      goToAuthScreen('dashboard');
     }
 
     // Step 1: 1-Tap Phone Flow
     function startPhoneAuthFlow() {
       var input = document.getElementById('auth-welcome-input');
-      input.value = '9876543210';
+      input.value = '6309151240';
       input.focus();
       showToast('📱 Enter your 10-digit mobile number and click Continue');
     }
 
     // Step 1: Direct Input Submit (Phone or Email)
-    function handleDirectInputSubmit(e) {
+    async function handleDirectInputSubmit(e) {
       if (e) e.preventDefault();
       var raw = document.getElementById('auth-welcome-input').value.trim();
       if (!raw || raw.length < 3) {
@@ -949,30 +1035,39 @@
       }
 
       var isEmail = raw.indexOf('@') !== -1;
-      var clean = isEmail ? raw.toLowerCase() : raw.replace(/\D/g, '');
+      var cleanKey = isEmail ? raw.toLowerCase() : raw.replace(/\D/g, '');
       currentInputTarget = { type: isEmail ? 'email' : 'phone', val: raw };
 
-      document.getElementById('auth-target-display').textContent = (isEmail ? '✉️ ' : '📱 +91 ') + raw;
-
-      var existing = PURE_USERS_DB[clean] || PURE_USERS_DB[raw];
+      var existing = PURE_USERS_DB[cleanKey] || PURE_USERS_DB[raw];
       if (existing) {
-        isNewUser = false;
-        document.getElementById('auth-flow-mode-badge').textContent = 'RETURNING RIDER LOG IN';
-        document.getElementById('auth-cred-heading').textContent = 'Enter your 4-Digit Ride PIN';
-        document.getElementById('auth-name-field-group').style.display = 'none';
-        document.getElementById('auth-cred-name').value = existing.name;
-        document.getElementById('btn-submit-cred').textContent = '🚀 Log In to Rydealot';
-      } else {
-        isNewUser = true;
-        document.getElementById('auth-flow-mode-badge').textContent = 'NEW RIDER SIGNUP';
-        document.getElementById('auth-cred-heading').textContent = 'Set your 4-Digit Ride PIN';
-        document.getElementById('auth-name-field-group').style.display = 'block';
-        document.getElementById('auth-cred-name').value = '';
-        document.getElementById('btn-submit-cred').textContent = '✨ Confirm & Create Account';
-      }
+        // RETURNING USER: Load existing permanent PIN directly!
+        activeAuthUser = existing;
+        showToast('🚀 Welcome back, ' + existing.name + '! (PIN: ' + existing.permanent_ride_pin + ')');
+        logMsg('✅ [Phone Auth] Returning rider authenticated with permanent PIN: ' + existing.permanent_ride_pin);
 
-      clearPinBoxes();
-      goToAuthScreen('credentials');
+        document.getElementById('logged-name').textContent = activeAuthUser.name;
+        document.getElementById('logged-phone').textContent = activeAuthUser.phone || activeAuthUser.email;
+        document.getElementById('logged-pin-display').textContent = activeAuthUser.permanent_ride_pin;
+        document.getElementById('logged-avatar').textContent = (activeAuthUser.name || 'U').substring(0, 2).toUpperCase();
+        document.getElementById('sim-driver-pin-input').value = '';
+        document.getElementById('sim-driver-pin-result').innerHTML = '';
+
+        await updateInspectorPayload();
+        goToAuthScreen('dashboard');
+      } else {
+        // NEW USER: Prompt name & show auto-assigned 1-time PIN
+        isNewUser = true;
+        document.getElementById('auth-target-display').textContent = (isEmail ? '✉️ ' : '📱 +91 ') + raw;
+        document.getElementById('auth-flow-mode-badge').textContent = 'NEW RIDER SIGNUP';
+        document.getElementById('auth-cred-heading').textContent = 'Your 1-Time Permanent Ride PIN';
+        document.getElementById('auth-name-field-group').style.display = 'block';
+        document.getElementById('auth-cred-name').value = 'Hemanth Poreddy';
+        document.getElementById('btn-submit-cred').textContent = '✨ Complete Signup';
+
+        // Auto-fill a 1-time PIN immediately
+        autoGenerateUserPin();
+        goToAuthScreen('credentials');
+      }
     }
 
     // 4-Box PIN Navigation
