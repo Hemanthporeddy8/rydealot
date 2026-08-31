@@ -201,219 +201,261 @@
     .toast.show { transform: translateX(-50%) translateY(0); }
 
     /* ==========================================================================
-       AUTH ARCHITECTURE LAB & CHATGPT-STYLE MODAL STYLING
+       PRODUCTION AUTH LAB & MULTI-STEP CHATGPT-STYLE MODAL
        ========================================================================== */
     .auth-lab-banner {
       grid-column: 1 / -1;
-      background: linear-gradient(135deg, #0d1527 0%, #111a33 100%);
+      background: #090d16;
       border: 1.5px solid #2563eb;
-      border-radius: 20px;
-      padding: 24px;
+      border-radius: 24px;
+      padding: 28px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      gap: 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
     }
 
     .arch-tabs {
       display: flex;
       gap: 12px;
-      background: #090d16;
+      background: #0d121f;
       padding: 6px;
-      border-radius: 14px;
+      border-radius: 16px;
       border: 1px solid #1e293b;
     }
 
     .arch-tab {
       flex: 1;
-      padding: 12px 18px;
-      border-radius: 10px;
-      border: none;
+      padding: 14px 20px;
+      border-radius: 12px;
+      border: 1.5px solid transparent;
       background: transparent;
-      color: var(--text-muted);
-      font-size: 13.5px;
+      color: #94a3b8;
+      font-size: 14px;
       font-weight: 800;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 10px;
       transition: all 0.2s ease;
     }
 
     .arch-tab.active {
       background: #1e293b;
       color: #ffffff;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      border: 1px solid #3b82f6;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      border-color: #3b82f6;
     }
 
     .arch-grid {
       display: grid;
-      grid-template-columns: 1.1fr 1fr;
+      grid-template-columns: 1.15fr 1fr;
       gap: 24px;
+      align-items: start;
     }
-    @media (max-width: 900px) {
+    @media (max-width: 950px) {
       .arch-grid { grid-template-columns: 1fr; }
     }
 
-    /* ChatGPT-Style Modern Modal Box */
-    .chatgpt-modal-card {
+    /* ChatGPT / Airbnb Style Floating Modal Box */
+    .auth-modal-window {
       background: #171717;
-      border: 1px solid #2d2d2d;
-      border-radius: 24px;
-      padding: 28px 24px;
+      border: 1.5px solid #2e2e2e;
+      border-radius: 28px;
+      padding: 32px 28px;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+      box-shadow: 0 25px 60px rgba(0,0,0,0.8);
       position: relative;
+      min-height: 480px;
+      justify-content: center;
     }
 
-    .chatgpt-title {
-      font-size: 20px;
+    .auth-title {
+      font-size: 22px;
       font-weight: 900;
       color: #ffffff;
       margin-bottom: 6px;
       letter-spacing: -0.3px;
     }
-    .chatgpt-sub {
-      font-size: 12.5px;
+    .auth-sub {
+      font-size: 13px;
       color: #9e9e9e;
-      margin-bottom: 22px;
+      margin-bottom: 24px;
       line-height: 1.4;
-      max-width: 280px;
+      max-width: 320px;
     }
 
-    .auth-btn-pill {
+    .auth-pill-btn {
       width: 100%;
-      padding: 12px 16px;
+      padding: 14px 20px;
       border-radius: 99px;
-      border: 1px solid #383838;
+      border: 1.5px solid #383838;
       background: #212121;
       color: #ffffff;
-      font-size: 13px;
+      font-size: 13.5px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 12px;
       cursor: pointer;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       transition: all 0.2s ease;
+      box-sizing: border-box;
     }
-    .auth-btn-pill:hover {
-      background: #2a2a2a;
+    .auth-pill-btn:hover {
+      background: #2c2c2c;
       border-color: #555555;
+      transform: translateY(-1px);
+    }
+    .auth-pill-btn:active {
+      transform: translateY(0);
     }
 
     .auth-divider {
       display: flex;
       align-items: center;
       width: 100%;
-      margin: 12px 0 16px;
+      margin: 14px 0 18px;
       color: #737373;
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 900;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 1px;
     }
     .auth-divider::before, .auth-divider::after {
       content: '';
       flex: 1;
       height: 1px;
-      background: #2e2e2e;
+      background: #333333;
     }
-    .auth-divider span { padding: 0 10px; }
+    .auth-divider span { padding: 0 14px; }
 
-    .auth-input-pill {
+    .auth-input-field {
       width: 100%;
-      padding: 13px 16px;
+      padding: 14px 18px;
       background: #0d0d0d;
-      border: 1.5px solid #333333;
+      border: 1.5px solid #383838;
       border-radius: 14px;
       color: #ffffff;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       outline: none;
       box-sizing: border-box;
-      margin-bottom: 12px;
-      transition: border-color 0.2s;
+      margin-bottom: 14px;
+      transition: all 0.2s;
     }
-    .auth-input-pill:focus {
+    .auth-input-field:focus {
       border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
 
-    .auth-submit-btn {
+    .auth-submit-action {
       width: 100%;
-      padding: 13px;
+      padding: 14px;
       border-radius: 99px;
       border: none;
       background: #ffffff;
-      color: #0d0d0d;
-      font-size: 13.5px;
-      font-weight: 800;
+      color: #000000;
+      font-size: 14px;
+      font-weight: 900;
       cursor: pointer;
       transition: all 0.2s ease;
-      margin-top: 4px;
+      box-shadow: 0 4px 15px rgba(255,255,255,0.2);
     }
-    .auth-submit-btn:hover {
-      background: #e5e5e5;
+    .auth-submit-action:hover {
+      background: #f0f0f0;
+      transform: translateY(-1px);
     }
 
-    .pin-input-group {
+    /* 4-Box PIN Input */
+    .pin-boxes-row {
       display: flex;
       justify-content: center;
-      gap: 10px;
-      margin: 8px 0 14px;
+      gap: 12px;
+      margin: 10px 0 18px;
       width: 100%;
     }
-    .pin-digit-box {
-      width: 46px;
-      height: 52px;
-      background: #0d0d0d;
-      border: 1.5px solid #333;
-      border-radius: 12px;
-      font-size: 20px;
+    .pin-box {
+      width: 52px;
+      height: 58px;
+      background: #0a0a0a;
+      border: 2px solid #3a3a3a;
+      border-radius: 14px;
+      font-size: 24px;
       font-weight: 900;
       color: #4ade80;
       text-align: center;
       outline: none;
+      transition: all 0.2s;
     }
-    .pin-digit-box:focus {
+    .pin-box:focus {
       border-color: #4ade80;
-      box-shadow: 0 0 10px rgba(74, 222, 128, 0.25);
+      box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
+      transform: scale(1.05);
     }
 
-    /* Inspector Card Styles */
-    .inspector-card {
-      background: #0a0e17;
-      border: 1px solid #1e293b;
-      border-radius: 18px;
-      padding: 20px;
+    /* Active User Profile Card */
+    .logged-user-card {
+      width: 100%;
+      background: #11141c;
+      border: 1.5px solid #22c55e;
+      border-radius: 20px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: left;
+      box-sizing: border-box;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pin-display-badge {
+      background: #0a0d14;
+      border: 1.5px solid #3b82f6;
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Inspector Styling */
+    .inspector-panel {
+      background: #0d121f;
+      border: 1.5px solid #1e293b;
+      border-radius: 24px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
 
-    .portability-badge {
+    .portability-pill {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 8px;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 99px;
       font-size: 12px;
       font-weight: 800;
     }
-    .badge-pure {
+    .pill-pure {
       background: rgba(34, 197, 94, 0.15);
-      border: 1px solid #22c55e;
+      border: 1.5px solid #22c55e;
       color: #4ade80;
     }
-    .badge-vendor {
+    .pill-vendor {
       background: rgba(239, 68, 68, 0.15);
-      border: 1px solid #ef4444;
+      border: 1.5px solid #ef4444;
       color: #f87171;
     }
   </style>
@@ -465,57 +507,128 @@
       <div class="arch-grid">
 
         <!-- LEFT COLUMN: LIVE CHATGPT-STYLE MODAL PREVIEW -->
-        <div class="chatgpt-modal-card">
-          <!-- Flow Switcher: Signup vs Login -->
-          <div style="display:flex; background:#222; border-radius:99px; padding:3px; margin-bottom:18px; width:100%; max-width:240px;">
-            <button type="button" id="btn-flow-signup" onclick="setAuthFlow('signup')" style="flex:1; border:none; background:#383838; color:#fff; font-size:11.5px; font-weight:800; padding:6px 12px; border-radius:99px; cursor:pointer;">
-              Sign Up
+        <div class="auth-modal-window" id="auth-modal-box">
+
+          <!-- SCREEN 1: WELCOME SCREEN (ChatGPT Layout) -->
+          <div id="auth-screen-welcome" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+            <div style="width:48px; height:48px; border-radius:50%; background:rgba(59,130,246,0.15); border:1.5px solid #3b82f6; display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:14px;">
+              🚕
+            </div>
+            <h3 class="auth-title">Log in or sign up</h3>
+            <p class="auth-sub">Book bike rides, send parcels & track captains in real time.</p>
+
+            <!-- 1-Tap Google Button -->
+            <button type="button" class="auth-pill-btn" onclick="startGoogleAuthFlow()">
+              <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+              Continue with Google
             </button>
-            <button type="button" id="btn-flow-login" onclick="setAuthFlow('login')" style="flex:1; border:none; background:transparent; color:#888; font-size:11.5px; font-weight:800; padding:6px 12px; border-radius:99px; cursor:pointer;">
-              Log In
+
+            <!-- 1-Tap Phone Button -->
+            <button type="button" class="auth-pill-btn" onclick="startPhoneAuthFlow()">
+              📞 Continue with phone
             </button>
+
+            <div class="auth-divider"><span>OR</span></div>
+
+            <!-- Direct Input -->
+            <form onsubmit="handleDirectInputSubmit(event)" style="width:100%;">
+              <input type="text" id="auth-welcome-input" class="auth-input-field" placeholder="Email address or Mobile Number" required>
+              <button type="submit" class="auth-submit-action">Continue</button>
+            </form>
           </div>
 
-          <h3 class="chatgpt-title" id="auth-modal-heading">Log in or sign up</h3>
-          <p class="chatgpt-sub" id="auth-modal-sub">Book bike rides, send parcels & track captains with zero hassle.</p>
-
-          <!-- 1-Tap Options -->
-          <button type="button" class="auth-btn-pill" onclick="simulateGoogleAuth()">
-            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
-            Continue with Google
-          </button>
-
-          <button type="button" class="auth-btn-pill" onclick="setAuthMethod('phone')">
-            📞 Continue with Phone
-          </button>
-
-          <div class="auth-divider"><span>OR</span></div>
-
-          <!-- Phone / Email Input Form -->
-          <div style="width:100%;">
-            <input type="text" id="auth-input-name" class="auth-input-pill" placeholder="Full Name (e.g. Hemanth Poreddy)" value="Hemanth Poreddy">
-            <input type="tel" id="auth-input-phone" class="auth-input-pill" placeholder="Mobile Number (e.g. 9876543210)" value="9876543210">
-
-            <div style="text-align:left; margin:6px 0 2px;">
-              <label style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase; letter-spacing:0.5px;">
-                🔐 4-Digit Permanent Account PIN (Method B)
-              </label>
-            </div>
-            <div class="pin-input-group">
-              <input type="password" maxlength="1" class="pin-digit-box" id="pin-d1" value="8" oninput="focusNextPin(1)">
-              <input type="password" maxlength="1" class="pin-digit-box" id="pin-d2" value="5" oninput="focusNextPin(2)">
-              <input type="password" maxlength="1" class="pin-digit-box" id="pin-d3" value="9" oninput="focusNextPin(3)">
-              <input type="password" maxlength="1" class="pin-digit-box" id="pin-d4" value="8" oninput="focusNextPin(4)">
+          <!-- SCREEN 2: 4-DIGIT PIN & PROFILE SETUP -->
+          <div id="auth-screen-credentials" style="width:100%; display:none; flex-direction:column; align-items:center;">
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:14px;">
+              <button type="button" onclick="goToAuthScreen('welcome')" style="background:transparent; border:none; color:#38bdf8; font-size:12.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                ← Back
+              </button>
+              <span id="auth-flow-mode-badge" style="font-size:11px; font-weight:800; background:#1e293b; color:#94a3b8; padding:3px 10px; border-radius:99px;">
+                NEW RIDER SIGNUP
+              </span>
             </div>
 
-            <button type="button" class="auth-submit-btn" id="btn-auth-submit" onclick="submitAuthSimulator()">
-              ✨ Complete & Create Account
-            </button>
+            <h3 class="auth-title" id="auth-cred-heading">Set your 4-Digit Ride PIN</h3>
+            <p class="auth-sub" id="auth-cred-sub" style="margin-bottom:16px;">
+              This permanent PIN (Method B) secures all your rides and parcels.
+            </p>
+
+            <!-- User identifier display pill -->
+            <div style="background:#0a0d14; border:1px solid #2a2a2a; border-radius:12px; padding:8px 14px; font-size:12px; color:#4ade80; font-weight:700; margin-bottom:14px; display:inline-flex; align-items:center; gap:6px;">
+              <span id="auth-target-display">📱 +91 9876543210</span>
+            </div>
+
+            <form onsubmit="handleCredentialsSubmit(event)" style="width:100%;">
+              <div id="auth-name-field-group" style="width:100%;">
+                <input type="text" id="auth-cred-name" class="auth-input-field" placeholder="Enter your Full Name" required>
+              </div>
+
+              <div style="text-align:left; margin:6px 0 2px;">
+                <label style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase; letter-spacing:0.5px;">
+                  Enter 4-Digit Permanent PIN
+                </label>
+              </div>
+              <div class="pin-boxes-row">
+                <input type="password" maxlength="1" class="pin-box" id="pbox-1" oninput="handlePinKeyInput(1, event)" onkeydown="handlePinBackspace(1, event)" autocomplete="off">
+                <input type="password" maxlength="1" class="pin-box" id="pbox-2" oninput="handlePinKeyInput(2, event)" onkeydown="handlePinBackspace(2, event)" autocomplete="off">
+                <input type="password" maxlength="1" class="pin-box" id="pbox-3" oninput="handlePinKeyInput(3, event)" onkeydown="handlePinBackspace(3, event)" autocomplete="off">
+                <input type="password" maxlength="1" class="pin-box" id="pbox-4" oninput="handlePinKeyInput(4, event)" onkeydown="handlePinBackspace(4, event)" autocomplete="off">
+              </div>
+
+              <button type="submit" class="auth-submit-action" id="btn-submit-cred">
+                ✨ Confirm & Sign In
+              </button>
+            </form>
           </div>
 
-          <p style="font-size:11px; color:#666; margin-top:14px;">
-            By continuing, you agree to Rydealot's Terms of Service and Privacy Policy.
-          </p>
+          <!-- SCREEN 3: REAL LOGGED-IN CUSTOMER DASHBOARD -->
+          <div id="auth-screen-dashboard" style="width:100%; display:none; flex-direction:column; align-items:center;">
+            <div class="logged-user-card">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div id="logged-avatar" style="width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#8b5cf6); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:900; color:#fff;">
+                    HP
+                  </div>
+                  <div>
+                    <div id="logged-name" style="font-size:15px; font-weight:900; color:#fff;">Hemanth Poreddy</div>
+                    <div id="logged-phone" style="font-size:12px; color:#94a3b8;">+91 98765 43210</div>
+                  </div>
+                </div>
+                <span style="background:rgba(34,197,94,0.15); border:1px solid #22c55e; color:#4ade80; font-size:11px; font-weight:800; padding:4px 10px; border-radius:99px;">
+                  ACTIVE SESSION
+                </span>
+              </div>
+
+              <!-- Permanent Ride PIN Showcase -->
+              <div class="pin-display-badge">
+                <div>
+                  <span style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Your Permanent Ride PIN:</span>
+                  <div id="logged-pin-display" style="font-size:22px; font-weight:900; color:#4ade80; font-family:'IBM Plex Mono'; letter-spacing:4px;">
+                    8598
+                  </div>
+                </div>
+                <div style="font-size:11.5px; color:#38bdf8; text-align:right;">
+                  🔒 Tell this PIN to your<br>Captain on boarding
+                </div>
+              </div>
+
+              <!-- Live Interactive Booking Simulation -->
+              <div style="background:#07090e; border:1px solid #1e293b; border-radius:12px; padding:12px; font-size:12px;">
+                <div style="font-weight:800; color:#fff; margin-bottom:4px;">🛵 Active Booking Test:</div>
+                <div style="color:#94a3b8; font-size:11.5px; margin-bottom:8px;">
+                  Trip: <strong>Kazipet Station ➔ Hanamkonda Chowrasta</strong> (₹45)
+                </div>
+                <button type="button" class="btn-action btn-success" style="width:100%; font-size:12px; padding:8px;" onclick="simulateCaptainArrived()">
+                  🔔 Captain Arrived (Simulate Boarding)
+                </button>
+              </div>
+
+              <button type="button" onclick="logoutSimulatedUser()" style="width:100%; padding:10px; border:1px solid #334155; border-radius:99px; background:transparent; color:#ef4444; font-weight:800; font-size:12px; cursor:pointer; margin-top:4px;">
+                🚪 Log Out / Test Again
+              </button>
+            </div>
+          </div>
+
         </div>
 
         <!-- RIGHT COLUMN: LIVE DATA & PORTABILITY INSPECTOR -->
@@ -685,21 +798,27 @@
     }
 
     // ==========================================================================
-    // AUTH ARCHITECTURE & PORTABILITY LAB ENGINE
+    // COMPLETE MULTI-STEP AUTH ENGINE (OPTION A ZERO LOCK-IN vs OPTION B MANAGED)
     // ==========================================================================
-    var currentArchMode = 'zero'; // 'zero' (pure code) or 'managed' (supabase auth)
-    var currentAuthFlow = 'signup'; // 'signup' or 'login'
-    var simulatedUser = {
-      id: 'usr_89214',
-      name: 'Hemanth Poreddy',
-      phone: '+91 98765 43210',
-      email: 'hemanth@rydealot.com',
-      account_ride_pin: '8598',
-      pin_sha256_hash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
-      role: 'passenger',
-      created_at: new Date().toISOString(),
-      portable_storage_schema: 'Universal JSON (AWS DynamoDB / Cloudflare R2 Ready)'
-    };
+    var currentArchMode = 'zero'; // 'zero' or 'managed'
+    var activeAuthUser = null;
+    var currentInputTarget = { type: 'phone', val: '+91 9876543210' };
+    var isNewUser = true;
+
+    // Persistent Local Database for Pure Code (Zero Lock-In)
+    var PURE_USERS_DB = JSON.parse(localStorage.getItem('rydealot_pure_users_db') || '{}');
+    if (!PURE_USERS_DB['9876543210']) {
+      PURE_USERS_DB['9876543210'] = {
+        user_id: 'usr_859812',
+        name: 'Hemanth Poreddy',
+        phone: '9876543210',
+        email: 'hemanth@rydealot.com',
+        permanent_ride_pin: '8598',
+        pin_hash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+        created_at: new Date().toISOString()
+      };
+      localStorage.setItem('rydealot_pure_users_db', JSON.stringify(PURE_USERS_DB));
+    }
 
     // Native WebCrypto SHA-256 (0 External Libraries)
     async function sha256Hex(message) {
@@ -707,6 +826,24 @@
       var hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
       var hashArray = Array.from(new Uint8Array(hashBuffer));
       return hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }
+
+    function goToAuthScreen(screen) {
+      document.getElementById('auth-screen-welcome').style.display = (screen === 'welcome') ? 'flex' : 'none';
+      document.getElementById('auth-screen-credentials').style.display = (screen === 'credentials') ? 'flex' : 'none';
+      document.getElementById('auth-screen-dashboard').style.display = (screen === 'dashboard') ? 'flex' : 'none';
+
+      if (screen === 'credentials') {
+        setTimeout(function() {
+          var nameField = document.getElementById('auth-cred-name');
+          if (isNewUser && nameField && !nameField.value) {
+            nameField.focus();
+          } else {
+            var p1 = document.getElementById('pbox-1');
+            if (p1) p1.focus();
+          }
+        }, 100);
+      }
     }
 
     function switchAuthArchitecture(mode) {
@@ -733,7 +870,7 @@
         specCrypto.style.color = '#38bdf8';
         specCost.textContent = '₹0.00 / Month (Permanent MPIN)';
 
-        showToast('🛡️ Switched to Zero Lock-In (Rapido Pure Code Model)');
+        showToast('🛡️ Switched to Option A: Zero Lock-In (Rapido Pure Code Model)');
       } else {
         tabZero.classList.remove('active');
         tabManaged.classList.add('active');
@@ -748,82 +885,254 @@
         specCrypto.style.color = '#f87171';
         specCost.textContent = 'Free Tier (Up to 50k MAU) -> Paid Tier';
 
-        showToast('🔒 Switched to Managed Lock-In Mode');
+        showToast('🔒 Switched to Option B: Managed Lock-In Mode');
       }
       updateInspectorPayload();
     }
 
-    function setAuthFlow(flow) {
-      currentAuthFlow = flow;
-      var btnSignup = document.getElementById('btn-flow-signup');
-      var btnLogin = document.getElementById('btn-flow-login');
-      var heading = document.getElementById('auth-modal-heading');
-      var submitBtn = document.getElementById('btn-auth-submit');
-      var nameInput = document.getElementById('auth-input-name');
-
-      if (flow === 'signup') {
-        btnSignup.style.background = '#383838';
-        btnSignup.style.color = '#fff';
-        btnLogin.style.background = 'transparent';
-        btnLogin.style.color = '#888';
-        heading.textContent = 'Create your account';
-        submitBtn.textContent = '✨ Complete & Create Account';
-        nameInput.style.display = 'block';
+    // Step 1: 1-Tap Google Flow
+    function startGoogleAuthFlow() {
+      currentInputTarget = { type: 'google', val: 'hemanth.poreddy@gmail.com' };
+      var cleanKey = 'hemanth.poreddy@gmail.com';
+      var existing = PURE_USERS_DB[cleanKey] || PURE_USERS_DB['9876543210'];
+      
+      document.getElementById('auth-target-display').textContent = '🇬 hemanth.poreddy@gmail.com';
+      document.getElementById('auth-cred-name').value = 'Hemanth Poreddy';
+      
+      if (existing) {
+        isNewUser = false;
+        document.getElementById('auth-flow-mode-badge').textContent = 'RETURNING RIDER LOG IN';
+        document.getElementById('auth-cred-heading').textContent = 'Enter your 4-Digit Ride PIN';
+        document.getElementById('auth-name-field-group').style.display = 'none';
+        document.getElementById('btn-submit-cred').textContent = '🚀 Log In to Rydealot';
       } else {
-        btnLogin.style.background = '#383838';
-        btnLogin.style.color = '#fff';
-        btnSignup.style.background = 'transparent';
-        btnSignup.style.color = '#888';
-        heading.textContent = 'Welcome back';
-        submitBtn.textContent = '🚀 Log In to Rydealot';
-        nameInput.style.display = 'none';
+        isNewUser = true;
+        document.getElementById('auth-flow-mode-badge').textContent = 'NEW RIDER SIGNUP';
+        document.getElementById('auth-cred-heading').textContent = 'Set your 4-Digit Ride PIN';
+        document.getElementById('auth-name-field-group').style.display = 'block';
+        document.getElementById('btn-submit-cred').textContent = '✨ Confirm & Create Account';
       }
+      clearPinBoxes();
+      goToAuthScreen('credentials');
+      showToast('🇬 Google Account Connected! Complete 4-Digit PIN.');
     }
 
-    function focusNextPin(idx) {
-      if (idx < 4) {
-        var next = document.getElementById('pin-d' + (idx + 1));
-        if (next && document.getElementById('pin-d' + idx).value) next.focus();
+    // Step 1: 1-Tap Phone Flow
+    function startPhoneAuthFlow() {
+      var input = document.getElementById('auth-welcome-input');
+      input.value = '9876543210';
+      input.focus();
+      showToast('📱 Enter your 10-digit mobile number and click Continue');
+    }
+
+    // Step 1: Direct Input Submit (Phone or Email)
+    function handleDirectInputSubmit(e) {
+      if (e) e.preventDefault();
+      var raw = document.getElementById('auth-welcome-input').value.trim();
+      if (!raw || raw.length < 3) {
+        alert('Please enter a valid Mobile Number or Email address');
+        return;
+      }
+
+      var isEmail = raw.indexOf('@') !== -1;
+      var clean = isEmail ? raw.toLowerCase() : raw.replace(/\D/g, '');
+      currentInputTarget = { type: isEmail ? 'email' : 'phone', val: raw };
+
+      document.getElementById('auth-target-display').textContent = (isEmail ? '✉️ ' : '📱 +91 ') + raw;
+
+      var existing = PURE_USERS_DB[clean] || PURE_USERS_DB[raw];
+      if (existing) {
+        isNewUser = false;
+        document.getElementById('auth-flow-mode-badge').textContent = 'RETURNING RIDER LOG IN';
+        document.getElementById('auth-cred-heading').textContent = 'Enter your 4-Digit Ride PIN';
+        document.getElementById('auth-name-field-group').style.display = 'none';
+        document.getElementById('auth-cred-name').value = existing.name;
+        document.getElementById('btn-submit-cred').textContent = '🚀 Log In to Rydealot';
+      } else {
+        isNewUser = true;
+        document.getElementById('auth-flow-mode-badge').textContent = 'NEW RIDER SIGNUP';
+        document.getElementById('auth-cred-heading').textContent = 'Set your 4-Digit Ride PIN';
+        document.getElementById('auth-name-field-group').style.display = 'block';
+        document.getElementById('auth-cred-name').value = '';
+        document.getElementById('btn-submit-cred').textContent = '✨ Confirm & Create Account';
+      }
+
+      clearPinBoxes();
+      goToAuthScreen('credentials');
+    }
+
+    // 4-Box PIN Navigation
+    function handlePinKeyInput(boxNum, e) {
+      var box = document.getElementById('pbox-' + boxNum);
+      if (box.value && boxNum < 4) {
+        var next = document.getElementById('pbox-' + (boxNum + 1));
+        if (next) next.focus();
       }
       updateInspectorPayload();
     }
 
-    function getEnteredPin() {
-      var d1 = document.getElementById('pin-d1').value || '0';
-      var d2 = document.getElementById('pin-d2').value || '0';
-      var d3 = document.getElementById('pin-d3').value || '0';
-      var d4 = document.getElementById('pin-d4').value || '0';
-      return d1 + d2 + d3 + d4;
+    function handlePinBackspace(boxNum, e) {
+      if (e.key === 'Backspace') {
+        var box = document.getElementById('pbox-' + boxNum);
+        if (!box.value && boxNum > 1) {
+          var prev = document.getElementById('pbox-' + (boxNum - 1));
+          if (prev) {
+            prev.focus();
+            prev.value = '';
+          }
+        }
+      }
+    }
+
+    function getBoxesPin() {
+      var p1 = document.getElementById('pbox-1').value || '';
+      var p2 = document.getElementById('pbox-2').value || '';
+      var p3 = document.getElementById('pbox-3').value || '';
+      var p4 = document.getElementById('pbox-4').value || '';
+      return p1 + p2 + p3 + p4;
+    }
+
+    function clearPinBoxes() {
+      for (var i = 1; i <= 4; i++) {
+        var b = document.getElementById('pbox-' + i);
+        if (b) b.value = '';
+      }
+    }
+
+    // Step 2: Credentials Submit (Create User or Log In)
+    async function handleCredentialsSubmit(e) {
+      if (e) e.preventDefault();
+      var pin = getBoxesPin();
+      if (pin.length !== 4) {
+        alert('Please enter all 4 digits of your permanent Ride PIN');
+        return;
+      }
+
+      var name = document.getElementById('auth-cred-name').value.trim() || 'Rider';
+      var targetKey = currentInputTarget.val;
+      var cleanKey = currentInputTarget.type === 'phone' ? targetKey.replace(/\D/g, '') : targetKey.toLowerCase();
+      var hash = await sha256Hex(pin);
+
+      var btn = document.getElementById('btn-submit-cred');
+      btn.textContent = '⏳ Verifying...';
+
+      setTimeout(async function() {
+        btn.textContent = isNewUser ? '✨ Confirm & Sign In' : '🚀 Log In to Rydealot';
+
+        if (isNewUser) {
+          var newUser = {
+            user_id: 'usr_' + (cleanKey.slice(-6) || Math.floor(Math.random()*900000+100000)),
+            name: name,
+            phone: currentInputTarget.val,
+            email: currentInputTarget.type === 'email' ? currentInputTarget.val : (name.toLowerCase().replace(/\s/g,'') + '@gmail.com'),
+            permanent_ride_pin: pin,
+            pin_hash: hash,
+            created_at: new Date().toISOString()
+          };
+          PURE_USERS_DB[cleanKey] = newUser;
+          localStorage.setItem('rydealot_pure_users_db', JSON.stringify(PURE_USERS_DB));
+          activeAuthUser = newUser;
+          showToast('🎉 Account Created! Your Permanent Ride PIN is ' + pin);
+          logMsg('✅ [Auth Lab] Registered ' + name + ' with Permanent PIN: ' + pin + ' (Mode: ' + currentArchMode.toUpperCase() + ')');
+        } else {
+          var existing = PURE_USERS_DB[cleanKey] || PURE_USERS_DB['9876543210'];
+          if (existing && existing.permanent_ride_pin !== pin) {
+            alert('❌ Incorrect PIN entered. Please try again.');
+            clearPinBoxes();
+            document.getElementById('pbox-1').focus();
+            return;
+          }
+          activeAuthUser = existing || {
+            user_id: 'usr_859812',
+            name: name,
+            phone: currentInputTarget.val,
+            permanent_ride_pin: pin,
+            pin_hash: hash,
+            created_at: new Date().toISOString()
+          };
+          showToast('🚀 Logged in! Welcome back, ' + activeAuthUser.name);
+          logMsg('✅ [Auth Lab] User authenticated successfully with PIN: ' + pin);
+        }
+
+        // Populate Dashboard Screen
+        document.getElementById('logged-name').textContent = activeAuthUser.name;
+        document.getElementById('logged-phone').textContent = activeAuthUser.phone || activeAuthUser.email;
+        document.getElementById('logged-pin-display').textContent = activeAuthUser.permanent_ride_pin;
+        document.getElementById('logged-avatar').textContent = (activeAuthUser.name || 'U').substring(0, 2).toUpperCase();
+        document.getElementById('sim-driver-pin-input').value = '';
+        document.getElementById('sim-driver-pin-result').innerHTML = '';
+
+        await updateInspectorPayload();
+        goToAuthScreen('dashboard');
+      }, 350);
+    }
+
+    function logoutSimulatedUser() {
+      activeAuthUser = null;
+      clearPinBoxes();
+      document.getElementById('auth-welcome-input').value = '';
+      goToAuthScreen('welcome');
+      showToast('👋 Logged out successfully.');
+      logMsg('🚪 [Auth Lab] User logged out.');
+      updateInspectorPayload();
+    }
+
+    function simulateCaptainArrived() {
+      if (!activeAuthUser) return;
+      showToast('🔔 Captain Suresh has arrived on TS03 AB 1234! Give your PIN: ' + activeAuthUser.permanent_ride_pin);
+      logMsg('🛵 [Ride Sim] Captain arrived. Passenger tells PIN: ' + activeAuthUser.permanent_ride_pin);
+      
+      var pinInput = document.getElementById('sim-driver-pin-input');
+      if (pinInput) {
+        pinInput.value = activeAuthUser.permanent_ride_pin;
+        pinInput.focus();
+      }
+    }
+
+    function simulateDriverPinVerification() {
+      var entered = document.getElementById('sim-driver-pin-input').value.trim();
+      var actual = activeAuthUser ? activeAuthUser.permanent_ride_pin : getBoxesPin() || '8598';
+      var resEl = document.getElementById('sim-driver-pin-result');
+
+      if (!entered || entered.length !== 4) {
+        resEl.innerHTML = '<span style="color:#f87171;">❌ Please type a 4-digit PIN</span>';
+        return;
+      }
+
+      if (entered === actual) {
+        resEl.innerHTML = '<span style="color:#4ade80;">✅ PIN MATCH (' + entered + ')! Trip Started 🚀 (Booking #BK-9812 Verified)</span>';
+        showToast('🎉 PIN Verified! Trip started successfully.');
+        logMsg('🛵 [Driver Sim] Captain entered ' + entered + ' -> PIN MATCH! Trip in progress.');
+      } else {
+        resEl.innerHTML = '<span style="color:#f87171;">❌ INCORRECT PIN! (Entered: ' + entered + ' | Expected: ' + actual + ')</span>';
+        showToast('❌ Incorrect PIN. Driver cannot start trip.');
+        logMsg('⚠️ [Driver Sim] Captain entered incorrect PIN: ' + entered);
+      }
     }
 
     async function updateInspectorPayload() {
-      var pin = getEnteredPin();
+      var pin = activeAuthUser ? activeAuthUser.permanent_ride_pin : getBoxesPin() || '8598';
       var hash = await sha256Hex(pin);
-      var name = document.getElementById('auth-input-name').value || 'Customer';
-      var phone = document.getElementById('auth-input-phone').value || '9876543210';
-
-      simulatedUser.name = name;
-      simulatedUser.phone = phone;
-      simulatedUser.account_ride_pin = pin;
-      simulatedUser.pin_sha256_hash = hash;
+      var name = activeAuthUser ? activeAuthUser.name : document.getElementById('auth-cred-name').value || 'Hemanth Poreddy';
+      var phone = activeAuthUser ? activeAuthUser.phone : currentInputTarget.val || '9876543210';
 
       var displayObj;
       if (currentArchMode === 'zero') {
         displayObj = {
-          architecture: 'Zero Lock-In (Pure Code / Portable)',
+          architecture: 'Zero Lock-In (Pure Code / Portable Rapido Model)',
           portable_cloud_compatibility: ['AWS DynamoDB', 'Cloudflare R2', 'Node.js Express', 'PostgreSQL', 'Bare-Metal VPS'],
-          user_profile: {
-            user_id: 'usr_' + phone.replace(/\D/g,'').slice(-6),
+          active_user_session: {
+            user_id: activeAuthUser ? activeAuthUser.user_id : 'usr_987654',
             phone: phone,
             name: name,
             permanent_ride_pin: pin,
             crypto_pin_hash_sha256: hash,
             account_status: 'verified_active',
-            created_at: new Date().toISOString()
+            created_at: activeAuthUser ? activeAuthUser.created_at : new Date().toISOString()
           },
-          session: {
-            type: 'Universal Bearer / Local Session',
-            storage: 'Standard W3C localStorage (0 SDKs)'
+          session_storage: {
+            type: 'Universal Bearer / Local Storage',
+            dependency: 'Zero SDKs (100% Portable Standard JavaScript)'
           }
         };
       } else {
@@ -847,74 +1156,12 @@
       if (pre) pre.textContent = JSON.stringify(displayObj, null, 2);
     }
 
-    async function submitAuthSimulator() {
-      var pin = getEnteredPin();
-      var phone = document.getElementById('auth-input-phone').value;
-      var name = document.getElementById('auth-input-name').value;
-
-      if (!phone || phone.length < 10) {
-        alert('Please enter a valid 10-digit mobile number');
-        return;
-      }
-      if (pin.length !== 4) {
-        alert('Please enter all 4 digits of your permanent Ride PIN');
-        return;
-      }
-
-      await updateInspectorPayload();
-
-      if (currentAuthFlow === 'signup') {
-        showToast('🎉 Account Created! Permanent Ride PIN set to: ' + pin);
-        logMsg('✅ [Auth Lab] Registered ' + name + ' with Permanent PIN: ' + pin + ' (Mode: ' + currentArchMode.toUpperCase() + ')');
-      } else {
-        showToast('🚀 Logged in successfully! Welcome back, ' + name);
-        logMsg('✅ [Auth Lab] User authenticated successfully with PIN: ' + pin);
-      }
-    }
-
-    function simulateGoogleAuth() {
-      showToast('🇬 1-Tap Google Sign-In Simulated! User profile loaded.');
-      document.getElementById('auth-input-name').value = 'Hemanth Poreddy (Google)';
-      updateInspectorPayload();
-      logMsg('🇬 [Auth Lab] Google 1-Tap OAuth flow simulated successfully.');
-    }
-
-    function simulateDriverPinVerification() {
-      var entered = document.getElementById('sim-driver-pin-input').value;
-      var actual = getEnteredPin();
-      var resEl = document.getElementById('sim-driver-pin-result');
-
-      if (!entered || entered.length !== 4) {
-        resEl.innerHTML = '<span style="color:#f87171;">❌ Please type a 4-digit PIN</span>';
-        return;
-      }
-
-      if (entered === actual) {
-        resEl.innerHTML = '<span style="color:#4ade80;">✅ PIN MATCH! Trip Started 🚀 (Booking Verified)</span>';
-        showToast('🎉 PIN Verified! Trip started successfully.');
-        logMsg('🛵 [Driver Sim] Captain entered ' + entered + ' -> PIN MATCH! Trip in progress.');
-      } else {
-        resEl.innerHTML = '<span style="color:#f87171;">❌ INCORRECT PIN! (Entered: ' + entered + ' | Expected: ' + actual + ')</span>';
-        showToast('❌ Incorrect PIN. Driver cannot start trip.');
-        logMsg('⚠️ [Driver Sim] Captain entered incorrect PIN: ' + entered);
-      }
-    }
-
     function exportAwsR2Json() {
-      var pin = getEnteredPin();
+      var pin = activeAuthUser ? activeAuthUser.permanent_ride_pin : getBoxesPin() || '8598';
       var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
         database_engine: "Universal AWS / Cloudflare R2 JSON Schema",
         export_date: new Date().toISOString(),
-        users: [
-          {
-            user_id: "usr_987654",
-            name: document.getElementById('auth-input-name').value || "Hemanth Poreddy",
-            phone: document.getElementById('auth-input-phone').value || "9876543210",
-            ride_pin: pin,
-            verified: true,
-            created_at: new Date().toISOString()
-          }
-        ]
+        users: Object.values(PURE_USERS_DB)
       }, null, 2));
 
       var dlAnchor = document.createElement('a');
@@ -924,7 +1171,7 @@
       dlAnchor.click();
       dlAnchor.remove();
 
-      showToast('📥 Downloaded AWS / R2 JSON Schema File!');
+      showToast('📥 Downloaded AWS / R2 JSON Schema File (' + Object.keys(PURE_USERS_DB).length + ' Users)!');
       logMsg('📥 [Export] Exported user schema file ready for AWS DynamoDB / Cloudflare R2.');
     }
 
