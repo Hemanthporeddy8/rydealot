@@ -565,17 +565,28 @@
 
               <div style="display:flex; justify-content:space-between; align-items:center; margin:6px 0 2px;">
                 <label style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase; letter-spacing:0.5px;">
-                  Choose your 4-Digit PIN:
+                  Your 4-Digit Secret PIN:
                 </label>
-                <button type="button" onclick="autoGenerateUserPin()" style="background:#1e293b; border:1px solid #3b82f6; color:#38bdf8; border-radius:6px; padding:3px 8px; font-size:10.5px; font-weight:800; cursor:pointer;">
-                  🎲 Auto-Generate PIN
-                </button>
+                <div style="display:flex; gap:6px;">
+                  <button type="button" id="btn-toggle-pin-visibility" onclick="togglePinVisibility()" style="background:#1e293b; border:1px solid #475569; color:#94a3b8; border-radius:6px; padding:3px 8px; font-size:10.5px; font-weight:800; cursor:pointer;">
+                    👁️ Show
+                  </button>
+                  <button type="button" onclick="autoGenerateUserPin()" style="background:#1e293b; border:1px solid #3b82f6; color:#38bdf8; border-radius:6px; padding:3px 8px; font-size:10.5px; font-weight:800; cursor:pointer;">
+                    🎲 Auto-Generate
+                  </button>
+                </div>
               </div>
-              <div class="pin-boxes-row">
-                <input type="password" maxlength="1" class="pin-box" id="pbox-1" oninput="handlePinKeyInput(1, event)" onkeydown="handlePinBackspace(1, event)" autocomplete="off">
-                <input type="password" maxlength="1" class="pin-box" id="pbox-2" oninput="handlePinKeyInput(2, event)" onkeydown="handlePinBackspace(2, event)" autocomplete="off">
-                <input type="password" maxlength="1" class="pin-box" id="pbox-3" oninput="handlePinKeyInput(3, event)" onkeydown="handlePinBackspace(3, event)" autocomplete="off">
-                <input type="password" maxlength="1" class="pin-box" id="pbox-4" oninput="handlePinKeyInput(4, event)" onkeydown="handlePinBackspace(4, event)" autocomplete="off">
+              <div class="pin-boxes-row" style="margin-bottom:10px;">
+                <input type="text" maxlength="1" class="pin-box" id="pbox-1" oninput="handlePinKeyInput(1, event)" onkeydown="handlePinBackspace(1, event)" autocomplete="off">
+                <input type="text" maxlength="1" class="pin-box" id="pbox-2" oninput="handlePinKeyInput(2, event)" onkeydown="handlePinBackspace(2, event)" autocomplete="off">
+                <input type="text" maxlength="1" class="pin-box" id="pbox-3" oninput="handlePinKeyInput(3, event)" onkeydown="handlePinBackspace(3, event)" autocomplete="off">
+                <input type="text" maxlength="1" class="pin-box" id="pbox-4" oninput="handlePinKeyInput(4, event)" onkeydown="handlePinBackspace(4, event)" autocomplete="off">
+              </div>
+
+              <!-- Live Clear Digits Banner -->
+              <div id="pin-readable-banner" style="font-size:12px; font-weight:800; color:#94a3b8; background:#08101a; border:1px solid #1e3a5f; padding:8px 14px; border-radius:12px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+                <span>Ride PIN to tell Captain:</span>
+                <span id="pin-readable-digits" style="letter-spacing:6px; font-family:'IBM Plex Mono'; font-size:16px; font-weight:900; color:#4ade80;">_ _ _ _</span>
               </div>
 
               <button type="submit" class="auth-submit-action" id="btn-submit-cred">
@@ -971,6 +982,7 @@
         var next = document.getElementById('pbox-' + (boxNum + 1));
         if (next) next.focus();
       }
+      updateReadablePinBanner();
       updateInspectorPayload();
     }
 
@@ -985,6 +997,7 @@
           }
         }
       }
+      setTimeout(updateReadablePinBanner, 50);
     }
 
     function getBoxesPin() {
@@ -995,21 +1008,54 @@
       return p1 + p2 + p3 + p4;
     }
 
+    var pinIsMasked = false;
+
+    function togglePinVisibility() {
+      pinIsMasked = !pinIsMasked;
+      var btn = document.getElementById('btn-toggle-pin-visibility');
+      if (btn) btn.textContent = pinIsMasked ? '👁️ Show' : '🙈 Hide';
+      for (var i = 1; i <= 4; i++) {
+        var b = document.getElementById('pbox-' + i);
+        if (b) b.type = pinIsMasked ? 'password' : 'text';
+      }
+    }
+
+    function updateReadablePinBanner() {
+      var pin = getBoxesPin();
+      var bannerDigits = document.getElementById('pin-readable-digits');
+      if (bannerDigits) {
+        if (!pin) {
+          bannerDigits.textContent = '_ _ _ _';
+        } else {
+          var padded = (pin + '____').substring(0, 4);
+          bannerDigits.textContent = padded.split('').join(' ');
+        }
+      }
+    }
+
     function clearPinBoxes() {
       for (var i = 1; i <= 4; i++) {
         var b = document.getElementById('pbox-' + i);
         if (b) b.value = '';
       }
+      updateReadablePinBanner();
     }
 
     function autoGenerateUserPin() {
       var randDigits = String(Math.floor(1000 + Math.random() * 9000));
       for (var i = 1; i <= 4; i++) {
         var b = document.getElementById('pbox-' + i);
-        if (b) b.value = randDigits.charAt(i - 1);
+        if (b) {
+          b.value = randDigits.charAt(i - 1);
+          b.type = 'text'; // keep visible so user can clearly see the generated numbers
+        }
       }
+      pinIsMasked = false;
+      var btn = document.getElementById('btn-toggle-pin-visibility');
+      if (btn) btn.textContent = '🙈 Hide';
+      updateReadablePinBanner();
       updateInspectorPayload();
-      showToast('🎲 Auto-generated Secret PIN: ' + randDigits);
+      showToast('🎲 Auto-generated PIN: ' + randDigits + ' (Visible in boxes)');
     }
 
     // Step 2: Credentials Submit (Create User or Log In)
