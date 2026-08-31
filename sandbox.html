@@ -548,9 +548,9 @@
               </span>
             </div>
 
-            <h3 class="auth-title" id="auth-cred-heading">Set your 4-Digit Ride PIN</h3>
-            <p class="auth-sub" id="auth-cred-sub" style="margin-bottom:16px;">
-              This permanent PIN (Method B) secures all your rides and parcels.
+            <h3 class="auth-title" id="auth-cred-heading">Create your 4-Digit Ride PIN</h3>
+            <p class="auth-sub" id="auth-cred-sub" style="margin-bottom:14px;">
+              You choose any 4 secret numbers of your choice (like an ATM / UPI PIN) or tap <strong>Auto-Generate</strong>. You will tell this PIN to your captain when boarding!
             </p>
 
             <!-- User identifier display pill -->
@@ -563,10 +563,13 @@
                 <input type="text" id="auth-cred-name" class="auth-input-field" placeholder="Enter your Full Name" required>
               </div>
 
-              <div style="text-align:left; margin:6px 0 2px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin:6px 0 2px;">
                 <label style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase; letter-spacing:0.5px;">
-                  Enter 4-Digit Permanent PIN
+                  Choose your 4-Digit PIN:
                 </label>
+                <button type="button" onclick="autoGenerateUserPin()" style="background:#1e293b; border:1px solid #3b82f6; color:#38bdf8; border-radius:6px; padding:3px 8px; font-size:10.5px; font-weight:800; cursor:pointer;">
+                  🎲 Auto-Generate PIN
+                </button>
               </div>
               <div class="pin-boxes-row">
                 <input type="password" maxlength="1" class="pin-box" id="pbox-1" oninput="handlePinKeyInput(1, event)" onkeydown="handlePinBackspace(1, event)" autocomplete="off">
@@ -576,7 +579,7 @@
               </div>
 
               <button type="submit" class="auth-submit-action" id="btn-submit-cred">
-                ✨ Confirm & Sign In
+                ✨ Confirm & Create Account
               </button>
             </form>
           </div>
@@ -997,6 +1000,16 @@
         var b = document.getElementById('pbox-' + i);
         if (b) b.value = '';
       }
+    }
+
+    function autoGenerateUserPin() {
+      var randDigits = String(Math.floor(1000 + Math.random() * 9000));
+      for (var i = 1; i <= 4; i++) {
+        var b = document.getElementById('pbox-' + i);
+        if (b) b.value = randDigits.charAt(i - 1);
+      }
+      updateInspectorPayload();
+      showToast('🎲 Auto-generated Secret PIN: ' + randDigits);
     }
 
     // Step 2: Credentials Submit (Create User or Log In)
