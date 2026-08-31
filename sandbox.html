@@ -199,6 +199,223 @@
       pointer-events: none;
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ==========================================================================
+       AUTH ARCHITECTURE LAB & CHATGPT-STYLE MODAL STYLING
+       ========================================================================== */
+    .auth-lab-banner {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #0d1527 0%, #111a33 100%);
+      border: 1.5px solid #2563eb;
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .arch-tabs {
+      display: flex;
+      gap: 12px;
+      background: #090d16;
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid #1e293b;
+    }
+
+    .arch-tab {
+      flex: 1;
+      padding: 12px 18px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .arch-tab.active {
+      background: #1e293b;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      border: 1px solid #3b82f6;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 900px) {
+      .arch-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ChatGPT-Style Modern Modal Box */
+    .chatgpt-modal-card {
+      background: #171717;
+      border: 1px solid #2d2d2d;
+      border-radius: 24px;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+      position: relative;
+    }
+
+    .chatgpt-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+    .chatgpt-sub {
+      font-size: 12.5px;
+      color: #9e9e9e;
+      margin-bottom: 22px;
+      line-height: 1.4;
+      max-width: 280px;
+    }
+
+    .auth-btn-pill {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 99px;
+      border: 1px solid #383838;
+      background: #212121;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: all 0.2s ease;
+    }
+    .auth-btn-pill:hover {
+      background: #2a2a2a;
+      border-color: #555555;
+    }
+
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      margin: 12px 0 16px;
+      color: #737373;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #2e2e2e;
+    }
+    .auth-divider span { padding: 0 10px; }
+
+    .auth-input-pill {
+      width: 100%;
+      padding: 13px 16px;
+      background: #0d0d0d;
+      border: 1.5px solid #333333;
+      border-radius: 14px;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      box-sizing: border-box;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+    .auth-input-pill:focus {
+      border-color: #3b82f6;
+    }
+
+    .auth-submit-btn {
+      width: 100%;
+      padding: 13px;
+      border-radius: 99px;
+      border: none;
+      background: #ffffff;
+      color: #0d0d0d;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 4px;
+    }
+    .auth-submit-btn:hover {
+      background: #e5e5e5;
+    }
+
+    .pin-input-group {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 8px 0 14px;
+      width: 100%;
+    }
+    .pin-digit-box {
+      width: 46px;
+      height: 52px;
+      background: #0d0d0d;
+      border: 1.5px solid #333;
+      border-radius: 12px;
+      font-size: 20px;
+      font-weight: 900;
+      color: #4ade80;
+      text-align: center;
+      outline: none;
+    }
+    .pin-digit-box:focus {
+      border-color: #4ade80;
+      box-shadow: 0 0 10px rgba(74, 222, 128, 0.25);
+    }
+
+    /* Inspector Card Styles */
+    .inspector-card {
+      background: #0a0e17;
+      border: 1px solid #1e293b;
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .portability-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .badge-pure {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid #22c55e;
+      color: #4ade80;
+    }
+    .badge-vendor {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid #ef4444;
+      color: #f87171;
+    }
   </style>
 </head>
 <body>
@@ -216,6 +433,152 @@
   </div>
 
   <div class="container">
+
+    <!-- ==========================================================================
+         AUTH ARCHITECTURE & PORTABILITY LAB (ZERO LOCK-IN vs MANAGED LOCK-IN)
+         ========================================================================== -->
+    <div class="auth-lab-banner">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h2 style="font-size:18px; font-weight:900; color:#fff; display:flex; align-items:center; gap:8px;">
+            🔐 Auth Architecture & Data Portability Lab
+          </h2>
+          <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;">
+            Test the ChatGPT-style login modal in real time. Compare <strong>Zero Lock-In (Pure Code / Rapido Architecture)</strong> vs <strong>Managed Lock-In (Supabase Auth)</strong>.
+          </p>
+        </div>
+        <div id="arch-portability-pill" class="portability-badge badge-pure">
+          🛡️ Zero Lock-In • 100% Cloud-Portable
+        </div>
+      </div>
+
+      <!-- Architecture Switcher Tabs -->
+      <div class="arch-tabs">
+        <button type="button" class="arch-tab active" id="tab-arch-zero" onclick="switchAuthArchitecture('zero')">
+          🛡️ Option A: Zero Lock-In (Pure Code / Rapido Model)
+        </button>
+        <button type="button" class="arch-tab" id="tab-arch-managed" onclick="switchAuthArchitecture('managed')">
+          🔒 Option B: Managed Lock-In (Supabase Auth)
+        </button>
+      </div>
+
+      <div class="arch-grid">
+
+        <!-- LEFT COLUMN: LIVE CHATGPT-STYLE MODAL PREVIEW -->
+        <div class="chatgpt-modal-card">
+          <!-- Flow Switcher: Signup vs Login -->
+          <div style="display:flex; background:#222; border-radius:99px; padding:3px; margin-bottom:18px; width:100%; max-width:240px;">
+            <button type="button" id="btn-flow-signup" onclick="setAuthFlow('signup')" style="flex:1; border:none; background:#383838; color:#fff; font-size:11.5px; font-weight:800; padding:6px 12px; border-radius:99px; cursor:pointer;">
+              Sign Up
+            </button>
+            <button type="button" id="btn-flow-login" onclick="setAuthFlow('login')" style="flex:1; border:none; background:transparent; color:#888; font-size:11.5px; font-weight:800; padding:6px 12px; border-radius:99px; cursor:pointer;">
+              Log In
+            </button>
+          </div>
+
+          <h3 class="chatgpt-title" id="auth-modal-heading">Log in or sign up</h3>
+          <p class="chatgpt-sub" id="auth-modal-sub">Book bike rides, send parcels & track captains with zero hassle.</p>
+
+          <!-- 1-Tap Options -->
+          <button type="button" class="auth-btn-pill" onclick="simulateGoogleAuth()">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+            Continue with Google
+          </button>
+
+          <button type="button" class="auth-btn-pill" onclick="setAuthMethod('phone')">
+            📞 Continue with Phone
+          </button>
+
+          <div class="auth-divider"><span>OR</span></div>
+
+          <!-- Phone / Email Input Form -->
+          <div style="width:100%;">
+            <input type="text" id="auth-input-name" class="auth-input-pill" placeholder="Full Name (e.g. Hemanth Poreddy)" value="Hemanth Poreddy">
+            <input type="tel" id="auth-input-phone" class="auth-input-pill" placeholder="Mobile Number (e.g. 9876543210)" value="9876543210">
+
+            <div style="text-align:left; margin:6px 0 2px;">
+              <label style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase; letter-spacing:0.5px;">
+                🔐 4-Digit Permanent Account PIN (Method B)
+              </label>
+            </div>
+            <div class="pin-input-group">
+              <input type="password" maxlength="1" class="pin-digit-box" id="pin-d1" value="8" oninput="focusNextPin(1)">
+              <input type="password" maxlength="1" class="pin-digit-box" id="pin-d2" value="5" oninput="focusNextPin(2)">
+              <input type="password" maxlength="1" class="pin-digit-box" id="pin-d3" value="9" oninput="focusNextPin(3)">
+              <input type="password" maxlength="1" class="pin-digit-box" id="pin-d4" value="8" oninput="focusNextPin(4)">
+            </div>
+
+            <button type="button" class="auth-submit-btn" id="btn-auth-submit" onclick="submitAuthSimulator()">
+              ✨ Complete & Create Account
+            </button>
+          </div>
+
+          <p style="font-size:11px; color:#666; margin-top:14px;">
+            By continuing, you agree to Rydealot's Terms of Service and Privacy Policy.
+          </p>
+        </div>
+
+        <!-- RIGHT COLUMN: LIVE DATA & PORTABILITY INSPECTOR -->
+        <div class="inspector-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:10px;">
+            <span style="font-size:14px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+              🔬 Architecture & Payload Inspector
+            </span>
+            <button type="button" class="btn-action" style="padding:4px 10px; font-size:11px; background:#1e293b; border:1px solid #334155;" onclick="exportAwsR2Json()">
+              📥 Export AWS / R2 JSON
+            </button>
+          </div>
+
+          <!-- Portability Assessment Specs -->
+          <div id="arch-specs-box" style="background:#111726; border-radius:12px; padding:12px; border:1px solid #1e293b; font-size:12px; line-height:1.5;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span style="color:#888;">Vendor Dependency:</span>
+              <strong style="color:#4ade80;" id="spec-dependency">0% (Pure Standard JavaScript)</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span style="color:#888;">Migration to AWS / R2:</span>
+              <strong style="color:#4ade80;" id="spec-migration">Instant (Zero Frontend Refactor)</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span style="color:#888;">PIN Cryptography:</span>
+              <strong style="color:#38bdf8;" id="spec-crypto">Native W3C WebCrypto (SHA-256)</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:#888;">SMS Gateway Cost:</span>
+              <strong style="color:#facc15;" id="spec-cost">₹0.00 / Month (Permanent MPIN)</strong>
+            </div>
+          </div>
+
+          <!-- Live Universal JSON Payload -->
+          <div>
+            <div style="font-size:11px; font-weight:800; color:#888; text-transform:uppercase; margin-bottom:6px; display:flex; justify-content:space-between;">
+              <span>Generated User Record (Universal Schema)</span>
+              <span id="hash-status" style="color:#4ade80; font-family:'IBM Plex Mono'; font-size:10px;">SHA-256 OK</span>
+            </div>
+            <pre class="log-box" id="json-payload-display" style="max-height:140px; color:#a5f3fc; font-size:11px;"></pre>
+          </div>
+
+          <!-- Trip Ride-PIN Driver Verification Simulator -->
+          <div style="background:#131826; border-radius:12px; padding:12px; border:1px solid #1e293b;">
+            <div style="font-size:12px; font-weight:800; color:#fff; margin-bottom:6px;">
+              🛵 Driver Ride-PIN Verification Test (Rapido Flow)
+            </div>
+            <p style="font-size:11.5px; color:#888; margin-bottom:8px;">
+              When the bike arrives, the driver types the passenger's Account PIN to start the ride:
+            </p>
+            <div style="display:flex; gap:8px;">
+              <input type="password" id="sim-driver-pin-input" placeholder="Type 4-digit PIN" maxlength="4" style="flex:1; padding:8px 12px; background:#0b0f19; border:1px solid #334155; border-radius:8px; color:#fff; font-size:13px; font-weight:800; text-align:center;">
+              <button type="button" class="btn-action btn-success" style="padding:8px 16px; font-size:12px;" onclick="simulateDriverPinVerification()">
+                🚀 Verify & Start Ride
+              </button>
+            </div>
+            <div id="sim-driver-pin-result" style="font-size:11.5px; font-weight:700; margin-top:6px; min-height:16px;"></div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
 
     <!-- PANEL 1: LIVE VIRTUAL FLEET SIMULATOR -->
     <div class="panel">
@@ -319,6 +682,250 @@
       t.textContent = msg;
       t.classList.add('show');
       setTimeout(function() { t.classList.remove('show'); }, 2500);
+    }
+
+    // ==========================================================================
+    // AUTH ARCHITECTURE & PORTABILITY LAB ENGINE
+    // ==========================================================================
+    var currentArchMode = 'zero'; // 'zero' (pure code) or 'managed' (supabase auth)
+    var currentAuthFlow = 'signup'; // 'signup' or 'login'
+    var simulatedUser = {
+      id: 'usr_89214',
+      name: 'Hemanth Poreddy',
+      phone: '+91 98765 43210',
+      email: 'hemanth@rydealot.com',
+      account_ride_pin: '8598',
+      pin_sha256_hash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+      role: 'passenger',
+      created_at: new Date().toISOString(),
+      portable_storage_schema: 'Universal JSON (AWS DynamoDB / Cloudflare R2 Ready)'
+    };
+
+    // Native WebCrypto SHA-256 (0 External Libraries)
+    async function sha256Hex(message) {
+      var msgBuffer = new TextEncoder().encode(message);
+      var hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      var hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }
+
+    function switchAuthArchitecture(mode) {
+      currentArchMode = mode;
+      var tabZero = document.getElementById('tab-arch-zero');
+      var tabManaged = document.getElementById('tab-arch-managed');
+      var pill = document.getElementById('arch-portability-pill');
+      var specDep = document.getElementById('spec-dependency');
+      var specMig = document.getElementById('spec-migration');
+      var specCrypto = document.getElementById('spec-crypto');
+      var specCost = document.getElementById('spec-cost');
+
+      if (mode === 'zero') {
+        tabZero.classList.add('active');
+        tabManaged.classList.remove('active');
+        pill.className = 'portability-badge badge-pure';
+        pill.innerHTML = '🛡️ Zero Lock-In • 100% Cloud-Portable (Rapido Architecture)';
+
+        specDep.textContent = '0% (Pure Standard JavaScript)';
+        specDep.style.color = '#4ade80';
+        specMig.textContent = 'Instant (Zero Frontend Refactor for AWS / R2)';
+        specMig.style.color = '#4ade80';
+        specCrypto.textContent = 'Native W3C WebCrypto (SHA-256)';
+        specCrypto.style.color = '#38bdf8';
+        specCost.textContent = '₹0.00 / Month (Permanent MPIN)';
+
+        showToast('🛡️ Switched to Zero Lock-In (Rapido Pure Code Model)');
+      } else {
+        tabZero.classList.remove('active');
+        tabManaged.classList.add('active');
+        pill.className = 'portability-badge badge-vendor';
+        pill.innerHTML = '🔒 Vendor Managed Lock-In (Supabase Auth / GoTrue)';
+
+        specDep.textContent = 'High (Bound to Supabase auth.users & GoTrue JWT)';
+        specDep.style.color = '#f87171';
+        specMig.textContent = 'Requires full auth backend refactor to move to AWS';
+        specMig.style.color = '#f87171';
+        specCrypto.textContent = 'Server-Side BCrypt (Vendor Managed)';
+        specCrypto.style.color = '#f87171';
+        specCost.textContent = 'Free Tier (Up to 50k MAU) -> Paid Tier';
+
+        showToast('🔒 Switched to Managed Lock-In Mode');
+      }
+      updateInspectorPayload();
+    }
+
+    function setAuthFlow(flow) {
+      currentAuthFlow = flow;
+      var btnSignup = document.getElementById('btn-flow-signup');
+      var btnLogin = document.getElementById('btn-flow-login');
+      var heading = document.getElementById('auth-modal-heading');
+      var submitBtn = document.getElementById('btn-auth-submit');
+      var nameInput = document.getElementById('auth-input-name');
+
+      if (flow === 'signup') {
+        btnSignup.style.background = '#383838';
+        btnSignup.style.color = '#fff';
+        btnLogin.style.background = 'transparent';
+        btnLogin.style.color = '#888';
+        heading.textContent = 'Create your account';
+        submitBtn.textContent = '✨ Complete & Create Account';
+        nameInput.style.display = 'block';
+      } else {
+        btnLogin.style.background = '#383838';
+        btnLogin.style.color = '#fff';
+        btnSignup.style.background = 'transparent';
+        btnSignup.style.color = '#888';
+        heading.textContent = 'Welcome back';
+        submitBtn.textContent = '🚀 Log In to Rydealot';
+        nameInput.style.display = 'none';
+      }
+    }
+
+    function focusNextPin(idx) {
+      if (idx < 4) {
+        var next = document.getElementById('pin-d' + (idx + 1));
+        if (next && document.getElementById('pin-d' + idx).value) next.focus();
+      }
+      updateInspectorPayload();
+    }
+
+    function getEnteredPin() {
+      var d1 = document.getElementById('pin-d1').value || '0';
+      var d2 = document.getElementById('pin-d2').value || '0';
+      var d3 = document.getElementById('pin-d3').value || '0';
+      var d4 = document.getElementById('pin-d4').value || '0';
+      return d1 + d2 + d3 + d4;
+    }
+
+    async function updateInspectorPayload() {
+      var pin = getEnteredPin();
+      var hash = await sha256Hex(pin);
+      var name = document.getElementById('auth-input-name').value || 'Customer';
+      var phone = document.getElementById('auth-input-phone').value || '9876543210';
+
+      simulatedUser.name = name;
+      simulatedUser.phone = phone;
+      simulatedUser.account_ride_pin = pin;
+      simulatedUser.pin_sha256_hash = hash;
+
+      var displayObj;
+      if (currentArchMode === 'zero') {
+        displayObj = {
+          architecture: 'Zero Lock-In (Pure Code / Portable)',
+          portable_cloud_compatibility: ['AWS DynamoDB', 'Cloudflare R2', 'Node.js Express', 'PostgreSQL', 'Bare-Metal VPS'],
+          user_profile: {
+            user_id: 'usr_' + phone.replace(/\D/g,'').slice(-6),
+            phone: phone,
+            name: name,
+            permanent_ride_pin: pin,
+            crypto_pin_hash_sha256: hash,
+            account_status: 'verified_active',
+            created_at: new Date().toISOString()
+          },
+          session: {
+            type: 'Universal Bearer / Local Session',
+            storage: 'Standard W3C localStorage (0 SDKs)'
+          }
+        };
+      } else {
+        displayObj = {
+          architecture: 'Vendor Managed Lock-In (Supabase Auth)',
+          vendor_service: 'GoTrue Auth Server',
+          supabase_auth_users_row: {
+            id: 'd9b7f5e2-411a-4c28-9843-294b08709e81',
+            email: phone + '@phone.rydealot.local',
+            encrypted_password: '$2a$10$N9qo8uLOickgx2ZMRZoMye...',
+            role: 'authenticated',
+            aud: 'authenticated',
+            app_metadata: { provider: 'phone' },
+            user_metadata: { name: name }
+          },
+          lock_in_warning: 'Migrating to AWS DynamoDB / R2 requires export & schema conversion of Supabase Auth tables.'
+        };
+      }
+
+      var pre = document.getElementById('json-payload-display');
+      if (pre) pre.textContent = JSON.stringify(displayObj, null, 2);
+    }
+
+    async function submitAuthSimulator() {
+      var pin = getEnteredPin();
+      var phone = document.getElementById('auth-input-phone').value;
+      var name = document.getElementById('auth-input-name').value;
+
+      if (!phone || phone.length < 10) {
+        alert('Please enter a valid 10-digit mobile number');
+        return;
+      }
+      if (pin.length !== 4) {
+        alert('Please enter all 4 digits of your permanent Ride PIN');
+        return;
+      }
+
+      await updateInspectorPayload();
+
+      if (currentAuthFlow === 'signup') {
+        showToast('🎉 Account Created! Permanent Ride PIN set to: ' + pin);
+        logMsg('✅ [Auth Lab] Registered ' + name + ' with Permanent PIN: ' + pin + ' (Mode: ' + currentArchMode.toUpperCase() + ')');
+      } else {
+        showToast('🚀 Logged in successfully! Welcome back, ' + name);
+        logMsg('✅ [Auth Lab] User authenticated successfully with PIN: ' + pin);
+      }
+    }
+
+    function simulateGoogleAuth() {
+      showToast('🇬 1-Tap Google Sign-In Simulated! User profile loaded.');
+      document.getElementById('auth-input-name').value = 'Hemanth Poreddy (Google)';
+      updateInspectorPayload();
+      logMsg('🇬 [Auth Lab] Google 1-Tap OAuth flow simulated successfully.');
+    }
+
+    function simulateDriverPinVerification() {
+      var entered = document.getElementById('sim-driver-pin-input').value;
+      var actual = getEnteredPin();
+      var resEl = document.getElementById('sim-driver-pin-result');
+
+      if (!entered || entered.length !== 4) {
+        resEl.innerHTML = '<span style="color:#f87171;">❌ Please type a 4-digit PIN</span>';
+        return;
+      }
+
+      if (entered === actual) {
+        resEl.innerHTML = '<span style="color:#4ade80;">✅ PIN MATCH! Trip Started 🚀 (Booking Verified)</span>';
+        showToast('🎉 PIN Verified! Trip started successfully.');
+        logMsg('🛵 [Driver Sim] Captain entered ' + entered + ' -> PIN MATCH! Trip in progress.');
+      } else {
+        resEl.innerHTML = '<span style="color:#f87171;">❌ INCORRECT PIN! (Entered: ' + entered + ' | Expected: ' + actual + ')</span>';
+        showToast('❌ Incorrect PIN. Driver cannot start trip.');
+        logMsg('⚠️ [Driver Sim] Captain entered incorrect PIN: ' + entered);
+      }
+    }
+
+    function exportAwsR2Json() {
+      var pin = getEnteredPin();
+      var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+        database_engine: "Universal AWS / Cloudflare R2 JSON Schema",
+        export_date: new Date().toISOString(),
+        users: [
+          {
+            user_id: "usr_987654",
+            name: document.getElementById('auth-input-name').value || "Hemanth Poreddy",
+            phone: document.getElementById('auth-input-phone').value || "9876543210",
+            ride_pin: pin,
+            verified: true,
+            created_at: new Date().toISOString()
+          }
+        ]
+      }, null, 2));
+
+      var dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", "rydealot_aws_r2_users_schema.json");
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+
+      showToast('📥 Downloaded AWS / R2 JSON Schema File!');
+      logMsg('📥 [Export] Exported user schema file ready for AWS DynamoDB / Cloudflare R2.');
     }
 
     function logMsg(txt) {
@@ -543,6 +1150,7 @@
 
     window.onload = function() {
       initSandboxMap();
+      if (typeof updateInspectorPayload === 'function') updateInspectorPayload();
     };
   </script>
 </body>
