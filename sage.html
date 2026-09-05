@@ -103,6 +103,23 @@
     position: relative;
     overflow: hidden;
     box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .hero-content {
+    flex: 1;
+    z-index: 2;
+  }
+  .hero-mascot {
+    width: 90px;
+    height: auto;
+    max-height: 110px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+    flex-shrink: 0;
+    z-index: 2;
   }
   .hero-tag {
     display: inline-flex;
@@ -126,10 +143,9 @@
     margin-bottom: 4px;
   }
   .hero-desc {
-    font-size: 12.5px;
+    font-size: 12px;
     color: #94A3B8;
     line-height: 1.4;
-    max-width: 320px;
   }
 
   /* Form Card */
@@ -398,11 +414,14 @@
 
     <!-- Hero Card -->
     <div class="hero-card">
-      <div class="hero-tag">⚡ 25-Min Express Delivery</div>
-      <h1 class="hero-title">Rydealot Sage</h1>
-      <p class="hero-desc">
-        Send documents, lunchboxes, keys, medicines & packages across town with verified bike captains.
-      </p>
+      <div class="hero-content">
+        <div class="hero-tag">⚡ 25-Min Express Delivery</div>
+        <h1 class="hero-title">Rydealot Sage</h1>
+        <p class="hero-desc">
+          Send documents, lunchboxes, keys, medicines & packages across town with verified bike captains.
+        </p>
+      </div>
+      <img src="assets/mascot-sage.png" class="hero-mascot" alt="Rydealot Sage Captain">
     </div>
 
     <!-- Step 1: Package Type -->
@@ -498,7 +517,9 @@
 <!-- Searching for Captain Modal Overlay -->
 <div class="search-overlay" id="search-modal">
   <div class="search-box">
-    <div class="radar-bike">🛵</div>
+    <div class="radar-bike">
+      <img src="assets/mascot-sage.png" style="width:58px; height:58px; object-fit:contain; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.15));" alt="Sage Mascot">
+    </div>
     <h3 style="font-size:18px; font-weight:800; color:#0F172A;" id="modal-status-title">Searching for Nearby Sage Captain…</h3>
     <p style="font-size:12.5px; color:#64748B; line-height:1.4;" id="modal-status-desc">
       Connecting to nearest verified bike captain around Hanamkonda / Kazipet.
