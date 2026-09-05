@@ -1,7 +1,9 @@
-var CACHE_NAME = 'rydealot-v15';
+var CACHE_NAME = 'rydealot-v16';
 var urlsToCache = [
   './',
   './index.html',
+  './login.html',
+  './profile.html',
   './style.css',
   './app.js',
   './icon.svg',
@@ -55,4 +57,3 @@ self.addEventListener('fetch', function(event) {
       })
   );
 });
-

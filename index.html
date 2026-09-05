@@ -95,82 +95,6 @@
     </p>
   </div>
 
-  <!-- SCREEN: CUSTOMER PROFILE -->
-  <div class="screen" id="screen-customer-profile" style="background:#fff;">
-    <div class="nav" style="border-bottom:1.5px solid var(--border);">
-      <button class="icon-btn" id="profile-back" aria-label="Back"><i class="ti ti-arrow-left"></i></button>
-      <h1>My Profile</h1>
-    </div>
-    <div class="content" style="padding:20px; display:flex; flex-direction:column; gap:18px; overflow-y:auto; flex:1;">
-      
-      <!-- User Avatar & Header -->
-      <div style="display:flex; align-items:center; gap:16px; background:var(--bg); padding:16px; border-radius:16px; border:1.5px solid var(--border);">
-        <div id="prof-avatar" style="width:54px; height:54px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800;">HP</div>
-        <div>
-          <h3 id="prof-name" style="font-size:17px; font-weight:800; color:var(--text); margin:0;">User Name</h3>
-          <p id="prof-email" style="font-size:12px; color:var(--text-mute); margin:2px 0 0;">user@example.com</p>
-        </div>
-      </div>
-
-      <!-- Saved Places Section -->
-      <div style="background:#fff; border:1.5px solid var(--border); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:12px;">
-        <h4 style="font-size:13px; font-weight:800; color:var(--text-mute); margin:0; text-transform:uppercase; letter-spacing:0.5px;">Saved Places</h4>
-        
-        <!-- Home -->
-        <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid var(--border);">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:20px;">🏠</span>
-            <div>
-              <div style="font-weight:700; font-size:13px;">Home</div>
-              <div id="prof-home-label" style="font-size:11px; color:var(--text-mute);">Not set</div>
-            </div>
-          </div>
-          <button type="button" id="btn-edit-home" style="background:var(--bg); border:1px solid var(--border); padding:6px 12px; border-radius:8px; font-weight:700; font-size:11px; cursor:pointer;">Set</button>
-        </div>
-
-        <!-- Work -->
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span style="font-size:20px;">🏢</span>
-            <div>
-              <div style="font-weight:700; font-size:13px;">Work</div>
-              <div id="prof-work-label" style="font-size:11px; color:var(--text-mute);">Not set</div>
-            </div>
-          </div>
-          <button type="button" id="btn-edit-work" style="background:var(--bg); border:1px solid var(--border); padding:6px 12px; border-radius:8px; font-weight:700; font-size:11px; cursor:pointer;">Set</button>
-        </div>
-      </div>
-
-      <!-- User Stats -->
-      <div style="display:flex; gap:12px;">
-        <div style="flex:1; background:var(--bg); padding:14px; border-radius:14px; border:1px solid var(--border); text-align:center;">
-          <div id="prof-rides-count" style="font-size:22px; font-weight:900; color:var(--accent);">0</div>
-          <div style="font-size:11px; font-weight:700; color:var(--text-mute); margin-top:2px;">Total Rides</div>
-        </div>
-        <div style="flex:1; background:var(--bg); padding:14px; border-radius:14px; border:1px solid var(--border); text-align:center;">
-          <div id="prof-rating" style="font-size:22px; font-weight:900; color:var(--green);">5.0 ★</div>
-          <div style="font-size:11px; font-weight:700; color:var(--text-mute); margin-top:2px;">Rating</div>
-        </div>
-      </div>
-
-      <button type="button" id="btn-profile-view-rides" class="btn" style="background:var(--accent); color:#fff; font-size:13px; margin-top:6px;">📜 View My Ride History</button>
-
-      <!-- Logout Button -->
-      <button class="btn btn-outline" id="prof-logout-btn" style="color:var(--red); border-color:#f3d4d4; margin-top:auto;">Logout Account</button>
-    </div>
-  </div>
-
-  <!-- SCREEN: CUSTOMER RIDE HISTORY -->
-  <div class="screen" id="screen-customer-rides" style="background:#fff;">
-    <div class="nav" style="border-bottom:1.5px solid var(--border);">
-      <button class="icon-btn" id="rides-back" aria-label="Back"><i class="ti ti-arrow-left"></i></button>
-      <h1>My Rides</h1>
-    </div>
-    <div class="content" style="padding:16px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px;" id="customer-rides-list">
-      <div style="text-align:center; padding:40px 20px; color:var(--text-mute);">Loading your rides...</div>
-    </div>
-  </div>
-
   <!-- SCREEN: SETUP -->
   <div class="screen" id="screen-login" style="background:#fff;">
     <!-- Large, prominent map at the top of the screen -->
@@ -196,8 +120,8 @@
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <button type="button" id="btn-open-my-rides" style="background:#f8fafc; border:1.5px solid var(--border); border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:4px; color:var(--text);" title="My Rides">📜 Rides</button>
-          <button type="button" id="btn-open-user-profile" style="background:var(--bg); border:1.5px solid var(--border); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;" title="My Profile">👤</button>
+          <a href="profile.html#rides" id="btn-open-my-rides" style="background:#f8fafc; border:1.5px solid var(--border); border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:4px; color:var(--text);" title="My Rides">📜 Rides</a>
+          <a href="profile.html" id="btn-open-user-profile" style="background:var(--bg); border:1.5px solid var(--border); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:16px; text-decoration:none; color:inherit;" title="My Profile">👤</a>
         </div>
       </div>
       <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 8px;">Find nearby drivers and book in seconds</p>

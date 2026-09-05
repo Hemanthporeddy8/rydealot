@@ -468,25 +468,9 @@
     applySession();
 
     var btnOpenProf = document.getElementById('btn-open-user-profile');
-    var btnBackProf = document.getElementById('profile-back');
-    var btnLogoutProf = document.getElementById('prof-logout-btn');
-
-    if (btnOpenProf) {
+    if (btnOpenProf && btnOpenProf.tagName !== 'A') {
       btnOpenProf.addEventListener('click', function() {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById('screen-customer-profile').classList.add('active');
-      });
-    }
-    if (btnBackProf) {
-      btnBackProf.addEventListener('click', function() {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById('screen-login').classList.add('active');
-      });
-    }
-    if (btnLogoutProf) {
-      btnLogoutProf.addEventListener('click', function() {
-        localStorage.removeItem('rydealot_user_session');
-        location.reload();
+        window.location.href = 'profile.html';
       });
     }
 

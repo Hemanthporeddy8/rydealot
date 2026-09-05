@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>My Profile • Rydealot</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #F5F7FB;
+    --card: #FFFFFF;
+    --ink: #0F172A;
+    --ink-soft: #64748B;
+    --line: #E2E8F0;
+    --accent: #2563EB;
+    --accent-light: #EFF6FF;
+    --green: #16A34A;
+    --green-light: #DCFCE7;
+    --amber: #D97706;
+    --amber-light: #FEF3C7;
+    --red: #DC2626;
+    --red-light: #FEE2E2;
+    --radius: 18px;
+    --shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    transition: all 0.15s;
+  }
+  .nav-back:hover { background: var(--line); }
+  .page-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+  .nav-spacer { width: 70px; text-align: right; }
+
+  /* Body Content */
+  .content {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1;
+  }
+
+  /* Profile Header Card */
+  .profile-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #2563EB, #7C3AED);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 800;
+    font-family: 'Manrope', sans-serif;
+    box-shadow: 0 8px 16px -4px rgba(37, 99, 235, 0.4);
+    flex-shrink: 0;
+  }
+  .user-info { flex: 1; overflow: hidden; }
+  .user-name {
+    font-family: 'Manrope', sans-serif;
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--ink);
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .user-email, .user-phone {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.4;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 99px;
+    background: var(--green-light);
+    color: var(--green);
+    margin-top: 4px;
+  }
+
+  /* Permanent Ride PIN Card (Method B) */
+  .pin-card {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    color: #fff;
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .pin-info h4 {
+    font-size: 12px;
+    font-weight: 800;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+  }
+  .pin-digits {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 6px;
+    color: #4ADE80;
+  }
+  .pin-note {
+    font-size: 11.5px;
+    color: #94A3B8;
+    margin-top: 4px;
+  }
+  .pin-action-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .pin-action-btn:hover { background: rgba(255, 255, 255, 0.2); }
+
+  /* Stats Grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .stat-val {
+    font-family: 'Manrope', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .stat-lbl {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-top: 2px;
+  }
+
+  /* Section Card */
+  .section-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  /* Saved Places */
+  .place-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .place-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .place-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .place-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--accent-light);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .place-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .place-addr {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 1px;
+  }
+  .btn-set {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-set:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
+  /* Ride History Items */
+  .ride-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    background: #FAFAFD;
+  }
+  .ride-item:last-child { margin-bottom: 0; }
+  .ride-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .ride-type {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ride-fare {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--green);
+  }
+  .ride-route {
+    font-size: 12px;
+    color: var(--ink-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  /* Action Buttons */
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s;
+  }
+  .btn-primary:hover { background: #1E293B; }
+
+  .btn-logout {
+    width: 100%;
+    padding: 14px;
+    background: #FFF;
+    color: var(--red);
+    border: 1.5px solid #FECACA;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.15s;
+  }
+  .btn-logout:hover { background: var(--red-light); }
+
+  /* Toast Notification */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #0F172A;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Top Sticky Navigation -->
+  <div class="top-nav">
+    <a href="index.html" class="nav-back">
+      <i class="ti ti-arrow-left"></i> Rides
+    </a>
+    <h1 class="page-title">My Profile</h1>
+    <div class="nav-spacer">
+      <a href="index.html" style="text-decoration:none; font-size:12px; font-weight:700; color:var(--accent);">Book Ride</a>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Profile Header Card -->
+    <div class="profile-card">
+      <div class="avatar" id="prof-avatar">HP</div>
+      <div class="user-info">
+        <div class="user-name">
+          <span id="prof-name">Hemanth Poreddy</span>
+        </div>
+        <div class="user-phone" id="prof-phone">+91 98765 43210</div>
+        <div class="user-email" id="prof-email">hemanth@rydealot.com</div>
+        <div class="status-badge">
+          <i class="ti ti-circle-check"></i> Verified Rider
+        </div>
+      </div>
+    </div>
+
+    <!-- Permanent Ride PIN (Method B) -->
+    <div class="pin-card">
+      <div class="pin-info">
+        <h4>Permanent Ride PIN</h4>
+        <div class="pin-digits" id="prof-pin-display">8598</div>
+        <div class="pin-note">🔒 Tell this PIN to captain on boarding</div>
+      </div>
+      <button type="button" class="pin-action-btn" onclick="changeRidePin()">
+        ✏️ Change PIN
+      </button>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-val" id="prof-rides-count">0</div>
+        <div class="stat-lbl">Total Rides</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color:var(--green);" id="prof-rating">5.0 ★</div>
+        <div class="stat-lbl">Rider Rating</div>
+      </div>
+    </div>
+
+    <!-- Saved Places Card -->
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title">Saved Places</span>
+      </div>
+
+      <!-- Home -->
+      <div class="place-item">
+        <div class="place-left">
+          <div class="place-icon"><i class="ti ti-home"></i></div>
+          <div>
+            <div class="place-name">Home</div>
+            <div class="place-addr" id="prof-home-label">Not set</div>
+          </div>
+        </div>
+        <button type="button" class="btn-set" onclick="editSavedPlace('Home')">Set</button>
+      </div>
+
+      <!-- Work -->
+      <div class="place-item">
+        <div class="place-left">
+          <div class="place-icon" style="background:#FEF3C7; color:#D97706;"><i class="ti ti-briefcase"></i></div>
+          <div>
+            <div class="place-name">Work / College</div>
+            <div class="place-addr" id="prof-work-label">Not set</div>
+          </div>
+        </div>
+        <button type="button" class="btn-set" onclick="editSavedPlace('Work')">Set</button>
+      </div>
+    </div>
+
+    <!-- Recent Rides Section -->
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title">Recent Trips</span>
+        <span style="font-size:11.5px; color:var(--ink-soft);" id="rides-badge-count">Live</span>
+      </div>
+
+      <div id="prof-rides-list">
+        <div style="text-align:center; padding:24px 10px; color:var(--ink-soft); font-size:13px;">
+          🛵 No trips taken yet. Book your first ride on Rydealot!
+        </div>
+      </div>
+    </div>
+
+    <!-- App Navigation Links -->
+    <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+      <a href="index.html" class="btn-primary">
+        🚗 Book a Ride (Passenger App)
+      </a>
+      <a href="alongwith.html" class="btn-primary" style="background:#1E293B;">
+        🚚 Along With — Send Cargo / Freight
+      </a>
+      <a href="driver.html" class="btn-primary" style="background:#D97706;">
+        🛺 Become a Rydealot Driver
+      </a>
+      <button type="button" class="btn-logout" onclick="handleLogout()">
+        🚪 Logout Account
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2500);
+  }
+
+  function loadUserProfile() {
+    var raw = localStorage.getItem('rydealot_user_session');
+    var sess = null;
+    if (raw) {
+      try { sess = JSON.parse(raw); } catch(e){}
+    }
+
+    if (!sess) {
+      // If no session, show default or redirect to login
+      sess = {
+        name: 'Rider',
+        email: 'rider@rydealot.com',
+        phone: '9876543210',
+        savedHome: null,
+        savedWork: null,
+        permanent_ride_pin: '8598'
+      };
+    }
+
+    // Set UI elements
+    var name = sess.name || 'Rider';
+    var email = sess.email || '';
+    var phone = sess.phone || '';
+    var initials = name.substring(0, 2).toUpperCase();
+
+    document.getElementById('prof-name').textContent = name;
+    document.getElementById('prof-avatar').textContent = initials;
+    document.getElementById('prof-email').textContent = email || 'No email linked';
+    document.getElementById('prof-phone').textContent = phone ? ('+91 ' + phone.replace(/^\+91/,'')) : 'No phone linked';
+    document.getElementById('prof-home-label').textContent = sess.savedHome || 'Not set';
+    document.getElementById('prof-work-label').textContent = sess.savedWork || 'Not set';
+
+    // Ride PIN
+    var pin = sess.permanent_ride_pin || localStorage.getItem('rydealot_ride_pin') || '8598';
+    document.getElementById('prof-pin-display').textContent = pin;
+
+    // Load recent trip history
+    loadRideHistory();
+  }
+
+  function loadRideHistory() {
+    var list = document.getElementById('prof-rides-list');
+    var rawHistory = localStorage.getItem('rydealot_customer_trips');
+    var trips = [];
+    if (rawHistory) {
+      try { trips = JSON.parse(rawHistory); } catch(e){}
+    }
+
+    document.getElementById('prof-rides-count').textContent = trips.length;
+
+    if (trips.length === 0) {
+      list.innerHTML = `
+        <div style="text-align:center; padding:20px 10px; color:var(--ink-soft); font-size:13px;">
+          🛵 No trips taken yet. Book your first ride on Rydealot!
+        </div>
+      `;
+      return;
+    }
+
+    var html = '';
+    trips.slice(0, 5).forEach(function(trip) {
+      html += `
+        <div class="ride-item">
+          <div class="ride-top">
+            <div class="ride-type">
+              <span>${trip.vehicle === 'auto' ? '🛺' : '🛵'}</span>
+              <span>${trip.vehicle === 'auto' ? 'Auto Ride' : 'Bike Ride'}</span>
+            </div>
+            <div class="ride-fare">₹${trip.fare || 45}</div>
+          </div>
+          <div class="ride-route">
+            <div>📍 <strong>Pickup:</strong> ${trip.pickup || 'Current Location'}</div>
+            <div>🏁 <strong>Drop:</strong> ${trip.drop || 'Destination'}</div>
+            <div style="color:#94A3B8; font-size:11px; margin-top:2px;">📅 ${trip.date || new Date().toLocaleDateString()} • ✅ Completed</div>
+          </div>
+        </div>
+      `;
+    });
+    list.innerHTML = html;
+  }
+
+  function editSavedPlace(type) {
+    var promptMsg = type === 'Home' ? 'Enter your Home address (e.g. Subedari, Hanamkonda):' : 'Enter your Work / College address (e.g. Kakatiya University):';
+    var val = prompt(promptMsg);
+    if (!val) return;
+
+    var raw = localStorage.getItem('rydealot_user_session');
+    var sess = raw ? JSON.parse(raw) : {};
+    if (type === 'Home') sess.savedHome = val;
+    if (type === 'Work') sess.savedWork = val;
+    localStorage.setItem('rydealot_user_session', JSON.stringify(sess));
+
+    loadUserProfile();
+    showToast('✅ Saved ' + type + ' address!');
+  }
+
+  function changeRidePin() {
+    var newPin = prompt('Enter your new 4-digit secret Ride PIN:');
+    if (!newPin || newPin.length !== 4 || isNaN(newPin)) {
+      alert('Please enter a valid 4-digit number (e.g. 8598)');
+      return;
+    }
+
+    var raw = localStorage.getItem('rydealot_user_session');
+    var sess = raw ? JSON.parse(raw) : {};
+    sess.permanent_ride_pin = newPin;
+    localStorage.setItem('rydealot_user_session', JSON.stringify(sess));
+    localStorage.setItem('rydealot_ride_pin', newPin);
+
+    document.getElementById('prof-pin-display').textContent = newPin;
+    showToast('🔐 Permanent Ride PIN updated to ' + newPin);
+  }
+
+  function handleLogout() {
+    if (confirm('Are you sure you want to log out of Rydealot?')) {
+      localStorage.removeItem('rydealot_user_session');
+      localStorage.removeItem('app_token');
+      localStorage.removeItem('sb_access_token');
+      showToast('👋 Logged out successfully');
+      setTimeout(function() {
+        window.location.href = 'login.html';
+      }, 500);
+    }
+  }
+
+  window.onload = function() {
+    loadUserProfile();
+  };
+</script>
+</body>
+</html>
