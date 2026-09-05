@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Sign in • Rydealot</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#10131A;
+    --ink-soft:#585F6E;
+    --line:#E3E5EA;
+    --panel:#F5F6F8;
+    --white:#FFFFFF;
+    --accent:#2451F2;
+    --accent-ink:#0F2FA8;
+    --accent-tint:#EAEFFE;
+    --error:#D6304A;
+    --success:#16A34A;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    color:var(--ink);
+    background:var(--white);
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{
+    min-height:100vh;
+    display:grid;
+    grid-template-columns:1.05fr 1fr;
+  }
+  @media (max-width:860px){
+    .shell{grid-template-columns:1fr;}
+    .brand{min-height:200px;}
+  }
+
+  /* ---------- Left brand panel ---------- */
+  .brand{
+    position:relative;
+    background:var(--ink);
+    color:var(--white);
+    padding:48px 44px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    overflow:hidden;
+  }
+  .brand-mark{
+    font-family:'Manrope',sans-serif;
+    font-weight:800;
+    font-size:24px;
+    letter-spacing:-0.02em;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .brand-mark img{
+    width:32px;
+    height:32px;
+    border-radius:8px;
+    object-fit:cover;
+  }
+  .brand-copy{z-index:2;max-width:420px;}
+  .brand-copy h1{
+    font-family:'Manrope',sans-serif;
+    font-weight:800;
+    font-size:clamp(28px,3.4vw,42px);
+    line-height:1.12;
+    letter-spacing:-0.02em;
+    margin:0 0 14px;
+  }
+  .brand-copy p{
+    font-size:15px;
+    line-height:1.6;
+    color:#B7BDCC;
+    margin:0;
+  }
+  .route{position:absolute;inset:0;z-index:1;}
+  .route svg{width:100%;height:100%;}
+  .route-line{fill:none;stroke:#2A3040;stroke-width:2;}
+  .route-line.active{
+    stroke:var(--accent);
+    stroke-dasharray:6 520;
+    stroke-dashoffset:0;
+    animation:travel 4.5s ease-in-out infinite;
+  }
+  @keyframes travel{
+    0%{stroke-dasharray:6 520; stroke-dashoffset:0;}
+    45%{stroke-dasharray:520 520; stroke-dashoffset:0;}
+    55%{stroke-dasharray:520 520; stroke-dashoffset:0;}
+    100%{stroke-dasharray:6 520; stroke-dashoffset:-520;}
+  }
+  .pin{fill:var(--accent);}
+  .pin-dot{fill:var(--ink);}
+
+  /* ---------- Right form panel ---------- */
+  .stage{display:flex;align-items:center;justify-content:center;padding:32px 28px;}
+  .card{width:100%;max-width:380px;}
+  .step{display:none;}
+  .step.active{display:block;}
+
+  /* method tabs */
+  .method-tabs{
+    display:flex;
+    background:var(--panel);
+    border-radius:12px;
+    padding:4px;
+    margin-bottom:24px;
+  }
+  .method-tabs button{
+    flex:1;
+    border:0;
+    background:transparent;
+    padding:10px 0;
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    border-radius:9px;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .method-tabs button.active{
+    background:var(--white);
+    color:var(--ink);
+    box-shadow:0 1px 2px rgba(16,19,26,.08);
+  }
+
+  .eyebrow-row{display:flex;align-items:center;gap:8px;margin-bottom:18px;min-height:20px;}
+  .back-btn{
+    display:none;align-items:center;justify-content:center;
+    width:32px;height:32px;border-radius:10px;
+    border:1px solid var(--line);background:var(--white);
+    cursor:pointer;color:var(--ink);flex-shrink:0;
+  }
+  .back-btn.show{display:inline-flex;}
+  .back-btn:hover{background:var(--panel);}
+
+  h2{font-family:'Manrope',sans-serif;font-weight:800;font-size:24px;letter-spacing:-0.01em;margin:0 0 8px;}
+  .sub{font-size:14px;color:var(--ink-soft);line-height:1.55;margin:0 0 24px;}
+  .sub b{color:var(--ink);font-weight:600;}
+
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin-bottom:8px;}
+  .field-group{margin-bottom:16px;}
+  .field-group:last-of-type{margin-bottom:0;}
+
+  .phone-field, .text-field{
+    display:flex;
+    border:1.5px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+    transition:border-color .15s;
+  }
+  .phone-field:focus-within, .text-field:focus-within{border-color:var(--accent);}
+  .cc{
+    display:flex;align-items:center;gap:6px;padding:0 12px;
+    background:var(--panel);border-right:1.5px solid var(--line);
+    font-size:15px;font-weight:600;color:var(--ink);white-space:nowrap;
+  }
+  .phone-field input, .text-field input{
+    flex:1;border:0;outline:0;padding:15px 14px;
+    font-size:16px;font-family:'Inter',sans-serif;color:var(--ink);min-width:0;
+    background:transparent;
+  }
+  .phone-field input::placeholder, .text-field input::placeholder{color:#A6ACBA;}
+
+  .field-msg{font-size:12.5px;margin-top:8px;min-height:16px;color:var(--error);}
+  .field-msg.ok{color:var(--success);}
+  .form-msg{font-size:13px;margin-top:14px;color:var(--error);display:none;}
+  .form-msg.show{display:block;}
+
+  button.primary{
+    width:100%;margin-top:20px;padding:15px 16px;border:0;border-radius:var(--radius);
+    background:var(--ink);color:var(--white);font-size:15px;font-weight:600;
+    font-family:'Inter',sans-serif;cursor:pointer;
+    transition:background .15s, opacity .15s, transform .1s;
+  }
+  button.primary:hover:not(:disabled){background:var(--accent-ink);}
+  button.primary:active:not(:disabled){transform:scale(0.99);}
+  button.primary:disabled{background:#D6D9E0;color:#9AA0AD;cursor:not-allowed;}
+  button.primary .spinner{display:none;}
+  button.primary.loading .label{display:none;}
+  button.primary.loading .spinner{
+    display:inline-block;width:16px;height:16px;
+    border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+    border-radius:50%;animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .terms{font-size:12px;color:var(--ink-soft);line-height:1.6;margin-top:16px;}
+  .terms a{color:var(--ink);font-weight:600;text-decoration:none;border-bottom:1px solid var(--line);}
+
+  /* OTP */
+  .otp-row{display:flex;gap:8px;justify-content:space-between;}
+  .otp-row input{
+    width:44px;height:52px;text-align:center;font-size:20px;font-weight:700;
+    font-family:'Manrope',sans-serif;border:1.5px solid var(--line);border-radius:10px;
+    outline:0;transition:border-color .15s, background .15s;color:var(--ink);
+  }
+  .otp-row input:focus{border-color:var(--accent);background:var(--accent-tint);}
+  .otp-row input.filled{border-color:#C7CBD6;}
+  .otp-row input.err{border-color:var(--error);}
+
+  .resend-row{display:flex;align-items:center;justify-content:space-between;margin-top:18px;font-size:13.5px;}
+  .resend-row span{color:var(--ink-soft);}
+  .resend-link{
+    background:none;border:0;color:var(--accent);font-weight:600;font-size:13.5px;
+    cursor:pointer;padding:0;font-family:'Inter',sans-serif;
+  }
+  .resend-link:disabled{color:#A6ACBA;cursor:not-allowed;}
+
+  /* Success */
+  .success-wrap{text-align:center;padding:20px 0 4px;}
+  .success-icon{
+    width:64px;height:64px;border-radius:50%;background:#E9F9EF;
+    display:flex;align-items:center;justify-content:center;margin:0 auto 20px;
+  }
+  .success-wrap h2{font-size:21px;}
+  .success-wrap .sub{margin-bottom:8px;}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="brand">
+    <div class="route">
+      <svg viewBox="0 0 500 700" preserveAspectRatio="xMidYMid slice">
+        <path class="route-line" d="M 60 620 C 140 560, 100 470, 190 430 S 300 320, 260 230 S 380 120, 430 70"/>
+        <path class="route-line active" d="M 60 620 C 140 560, 100 470, 190 430 S 300 320, 260 230 S 380 120, 430 70"/>
+        <circle class="pin-dot" cx="60" cy="620" r="6"/>
+        <circle class="pin" cx="430" cy="70" r="7"/>
+      </svg>
+    </div>
+    <div class="brand-mark">
+      <span>🚕 Rydealot</span>
+    </div>
+    <div class="brand-copy">
+      <h1>Your ride, the moment you need it.</h1>
+      <p>Bikes, autos, cars and freight on demand across Telangana. Sign in to book your ride or manage your account.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+
+      <!-- STEP 0: method entry (phone or email) -->
+      <div class="step active" id="step-entry">
+        <div class="method-tabs">
+          <button type="button" class="active" id="tab-phone">Phone</button>
+          <button type="button" id="tab-email">Email</button>
+        </div>
+
+        <!-- PHONE PANE -->
+        <div id="pane-phone">
+          <h2>Log in or sign up</h2>
+          <p class="sub">Enter your mobile number. We'll text you a code to verify it's you.</p>
+
+          <div class="field-group">
+            <label for="phone-input">Mobile number</label>
+            <div class="phone-field">
+              <div class="cc">🇮🇳 +91</div>
+              <input id="phone-input" type="tel" inputmode="numeric" maxlength="10" placeholder="98765 43210" autocomplete="tel">
+            </div>
+            <div class="field-msg" id="phone-msg"></div>
+          </div>
+
+          <button class="primary" id="send-otp-btn" disabled>
+            <span class="label">Continue</span>
+            <span class="spinner"></span>
+          </button>
+          <div class="form-msg" id="phone-form-msg"></div>
+
+          <p class="terms">By continuing, you agree to Rydealot's <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</p>
+        </div>
+
+        <!-- EMAIL PANE -->
+        <div id="pane-email" style="display:none;">
+          <h2>Log in or sign up</h2>
+          <p class="sub">Enter your email. We'll send a 6-digit code to verify it's you.</p>
+
+          <div class="field-group">
+            <label for="email-input">Email</label>
+            <div class="text-field">
+              <input id="email-input" type="email" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="field-msg" id="email-msg"></div>
+          </div>
+
+          <button class="primary" id="email-submit-btn" disabled>
+            <span class="label" id="email-submit-label">Continue</span>
+            <span class="spinner"></span>
+          </button>
+          <div class="form-msg" id="email-form-msg"></div>
+
+          <p class="terms">By continuing, you agree to Rydealot's <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</p>
+        </div>
+      </div>
+
+      <!-- STEP 1: otp -->
+      <div class="step" id="step-otp">
+        <div class="eyebrow-row"><div class="back-btn show" id="back-otp">←</div></div>
+        <h2>Enter the code</h2>
+        <p class="sub">We sent a 6-digit code to <b id="otp-phone-display"></b></p>
+
+        <div class="otp-row" id="otp-row">
+          <input maxlength="1" inputmode="numeric" />
+          <input maxlength="1" inputmode="numeric" />
+          <input maxlength="1" inputmode="numeric" />
+          <input maxlength="1" inputmode="numeric" />
+          <input maxlength="1" inputmode="numeric" />
+          <input maxlength="1" inputmode="numeric" />
+        </div>
+        <div class="field-msg" id="otp-msg"></div>
+
+        <button class="primary" id="verify-btn" disabled>
+          <span class="label">Verify &amp; continue</span>
+          <span class="spinner"></span>
+        </button>
+
+        <div class="resend-row">
+          <span id="resend-timer">Resend code in 0:30</span>
+          <button class="resend-link" id="resend-btn" disabled>Resend code</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: success -->
+      <div class="step" id="step-success">
+        <div class="success-wrap">
+          <div class="success-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h2 id="success-title">You're verified</h2>
+          <p class="sub" id="success-sub">Taking you to Rydealot…</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   RYDEALOT AUTH CONFIGURATION
+   ========================================================================= */
+const SUPABASE_URL = "https://wupndimumeugfjxzejlj.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y";
+
+const COUNTRY_CODE = "+91";
+const RESEND_SECONDS = 30;
+
+// URL redirect target
+const urlParams = new URLSearchParams(window.location.search);
+const redirectTarget = urlParams.get('redirect') || 'index.html';
+
+/* ---------- shared refs ---------- */
+const stepEntry    = document.getElementById('step-entry');
+const stepOtp       = document.getElementById('step-otp');
+const stepSuccess   = document.getElementById('step-success');
+const successTitle  = document.getElementById('success-title');
+const successSub    = document.getElementById('success-sub');
+
+function setLoading(btn, isLoading){
+  btn.classList.toggle('loading', isLoading);
+  btn.disabled = isLoading;
+}
+function showStep(step){
+  [stepEntry, stepOtp, stepSuccess].forEach(s => s.classList.remove('active'));
+  step.classList.add('active');
+}
+
+/* ---------- method tabs ---------- */
+const tabPhone   = document.getElementById('tab-phone');
+const tabEmail   = document.getElementById('tab-email');
+const panePhone  = document.getElementById('pane-phone');
+const paneEmail  = document.getElementById('pane-email');
+
+tabPhone.addEventListener('click', () => {
+  tabPhone.classList.add('active'); tabEmail.classList.remove('active');
+  panePhone.style.display = ''; paneEmail.style.display = 'none';
+});
+tabEmail.addEventListener('click', () => {
+  tabEmail.classList.add('active'); tabPhone.classList.remove('active');
+  paneEmail.style.display = ''; panePhone.style.display = 'none';
+});
+
+/* =========================================================================
+   PHONE + OTP FLOW
+   ========================================================================= */
+const phoneInput   = document.getElementById('phone-input');
+const phoneMsg     = document.getElementById('phone-msg');
+const phoneFormMsg = document.getElementById('phone-form-msg');
+const sendBtn      = document.getElementById('send-otp-btn');
+
+const otpRow        = document.getElementById('otp-row');
+const otpInputs      = [...otpRow.querySelectorAll('input')];
+const otpMsg         = document.getElementById('otp-msg');
+const verifyBtn      = document.getElementById('verify-btn');
+const otpPhoneDisp   = document.getElementById('otp-phone-display');
+const resendBtn      = document.getElementById('resend-btn');
+const resendTimerEl  = document.getElementById('resend-timer');
+const backOtp        = document.getElementById('back-otp');
+
+let fullPhone = "";
+let resendHandle = null;
+let otpContext = "phone"; // "phone" or "email"
+
+function isValidPhone(v){ return /^[6-9]\d{9}$/.test(v); }
+
+phoneInput.addEventListener('input', () => {
+  phoneInput.value = phoneInput.value.replace(/\D/g,'').slice(0,10);
+  const valid = isValidPhone(phoneInput.value);
+  sendBtn.disabled = !valid;
+  phoneMsg.textContent = phoneInput.value.length === 10 && !valid
+    ? "Enter a valid 10-digit mobile number." : "";
+});
+
+async function callSupabase(path, body){
+  let res, data;
+  try {
+    res = await fetch(`${SUPABASE_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify(body)
+    });
+  } catch (networkErr) {
+    throw new Error("Couldn't reach the server. Please check your internet connection.");
+  }
+  data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.msg || data.error_description || data.error || "Something went wrong. Please try again.");
+  return data;
+}
+
+sendBtn.addEventListener('click', async () => {
+  if (!isValidPhone(phoneInput.value)) return;
+  fullPhone = COUNTRY_CODE + phoneInput.value;
+  setLoading(sendBtn, true);
+  phoneMsg.textContent = ""; phoneFormMsg.classList.remove('show');
+
+  try {
+    await callSupabase('/auth/v1/otp', { phone: fullPhone });
+    otpContext = "phone";
+    otpPhoneDisp.textContent = `${COUNTRY_CODE} ${phoneInput.value}`;
+    otpInputs.forEach(i => { i.value=''; i.classList.remove('filled','err'); });
+    otpMsg.textContent = "";
+    verifyBtn.disabled = true;
+    showStep(stepOtp);
+    otpInputs[0].focus();
+    startResendTimer();
+  } catch (e) {
+    phoneFormMsg.textContent = e.message;
+    phoneFormMsg.classList.add('show');
+  } finally {
+    setLoading(sendBtn, false);
+  }
+});
+
+otpInputs.forEach((input, idx) => {
+  input.addEventListener('input', () => {
+    input.value = input.value.replace(/\D/g,'').slice(0,1);
+    input.classList.toggle('filled', input.value !== '');
+    input.classList.remove('err');
+    if (input.value && idx < otpInputs.length - 1) otpInputs[idx+1].focus();
+    verifyBtn.disabled = otpInputs.some(i => i.value === '');
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Backspace' && !input.value && idx > 0) otpInputs[idx-1].focus();
+  });
+  input.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const digits = (e.clipboardData.getData('text').match(/\d/g) || []).slice(0,6);
+    digits.forEach((d,i) => { if (otpInputs[i]) { otpInputs[i].value = d; otpInputs[i].classList.add('filled'); } });
+    verifyBtn.disabled = otpInputs.some(i => i.value === '');
+    (otpInputs[digits.length] || otpInputs[otpInputs.length-1]).focus();
+  });
+});
+
+backOtp.addEventListener('click', () => {
+  clearInterval(resendHandle);
+  showStep(stepEntry);
+});
+
+verifyBtn.addEventListener('click', async () => {
+  const code = otpInputs.map(i => i.value).join('');
+  if (code.length !== 6) return;
+  setLoading(verifyBtn, true);
+  otpMsg.textContent = "";
+
+  try {
+    let sessionUser;
+    if (otpContext === "email") {
+      const data = await callOwnApi('/api/verify-otp', { email: emailAddress, code });
+      if (data.token) localStorage.setItem('app_token', data.token);
+      sessionUser = {
+        id: 'usr_' + Date.now(),
+        name: emailAddress.split('@')[0],
+        email: emailAddress,
+        phone: '',
+        role: 'customer'
+      };
+      localStorage.setItem('rydealot_user_session', JSON.stringify(sessionUser));
+      successTitle.textContent = "You're verified";
+      successSub.textContent = "Email confirmed. Taking you to Rydealot…";
+    } else {
+      const data = await callSupabase('/auth/v1/verify', { phone: fullPhone, token: code, type: 'sms' });
+      if (data.access_token) localStorage.setItem('sb_access_token', data.access_token);
+      sessionUser = {
+        id: (data.user && data.user.id) || ('usr_' + phoneInput.value),
+        name: 'Rider ' + phoneInput.value.slice(-4),
+        phone: phoneInput.value,
+        email: (data.user && data.user.email) || '',
+        role: 'customer'
+      };
+      localStorage.setItem('rydealot_user_session', JSON.stringify(sessionUser));
+      successTitle.textContent = "You're verified";
+      successSub.textContent = "Number confirmed. Taking you to Rydealot…";
+    }
+    showStep(stepSuccess);
+    setTimeout(() => {
+      window.location.href = redirectTarget;
+    }, 1200);
+  } catch (e) {
+    otpMsg.textContent = e.message;
+    otpInputs.forEach(i => i.classList.add('err'));
+  } finally {
+    setLoading(verifyBtn, false);
+  }
+});
+
+function startResendTimer(){
+  let remaining = RESEND_SECONDS;
+  resendBtn.disabled = true;
+  updateResendLabel(remaining);
+  clearInterval(resendHandle);
+  resendHandle = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(resendHandle);
+      resendTimerEl.textContent = "";
+      resendBtn.disabled = false;
+    } else {
+      updateResendLabel(remaining);
+    }
+  }, 1000);
+}
+function updateResendLabel(s){
+  const m = Math.floor(s/60), sec = String(s%60).padStart(2,'0');
+  resendTimerEl.textContent = `Resend code in ${m}:${sec}`;
+}
+resendBtn.addEventListener('click', async () => {
+  resendBtn.disabled = true;
+  try {
+    if (otpContext === "email") {
+      await callOwnApi('/api/send-otp', { email: emailAddress });
+    } else {
+      await callSupabase('/auth/v1/otp', { phone: fullPhone });
+    }
+    startResendTimer();
+  } catch (e) {
+    resendBtn.disabled = false;
+  }
+});
+
+/* =========================================================================
+   EMAIL + OTP FLOW — self-hosted Vercel serverless functions
+   ========================================================================= */
+const emailInput    = document.getElementById('email-input');
+const emailMsg      = document.getElementById('email-msg');
+const emailSubmitBtn= document.getElementById('email-submit-btn');
+const emailFormMsg  = document.getElementById('email-form-msg');
+
+let emailAddress = "";
+
+function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+emailInput.addEventListener('input', () => {
+  emailMsg.textContent = "";
+  emailFormMsg.classList.remove('show');
+  emailSubmitBtn.disabled = !isValidEmail(emailInput.value.trim());
+});
+
+async function callOwnApi(path, body){
+  let res, data;
+  try {
+    res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+  } catch (networkErr) {
+    throw new Error("Couldn't reach the server. Check your connection and that the API is deployed.");
+  }
+  data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again.");
+  return data;
+}
+
+emailSubmitBtn.addEventListener('click', async () => {
+  if (!isValidEmail(emailInput.value.trim())) return;
+  emailAddress = emailInput.value.trim().toLowerCase();
+  setLoading(emailSubmitBtn, true);
+  emailFormMsg.classList.remove('show');
+
+  try {
+    await callOwnApi('/api/send-otp', { email: emailAddress });
+    otpContext = "email";
+    otpPhoneDisp.textContent = emailAddress;
+    otpInputs.forEach(i => { i.value=''; i.classList.remove('filled','err'); });
+    otpMsg.textContent = "";
+    verifyBtn.disabled = true;
+    showStep(stepOtp);
+    otpInputs[0].focus();
+    startResendTimer();
+  } catch (e) {
+    emailFormMsg.textContent = e.message;
+    emailFormMsg.classList.add('show');
+  } finally {
+    setLoading(emailSubmitBtn, false);
+  }
+});
+</script>
+</body>
+</html>
