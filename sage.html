@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Rydealot Sage • Fast Bike Parcel Delivery</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #F5F7FB;
+    --card: #FFFFFF;
+    --ink: #0F172A;
+    --ink-soft: #64748B;
+    --line: #E2E8F0;
+    --accent: #2563EB;
+    --accent-light: #EFF6FF;
+    --green: #16A34A;
+    --green-light: #DCFCE7;
+    --amber: #D97706;
+    --amber-light: #FEF3C7;
+    --radius: 18px;
+    --shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    padding-bottom: 30px;
+  }
+
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+  }
+  .brand-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #0F172A;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 800;
+    font-family: 'Manrope', sans-serif;
+  }
+  .brand-pill span { color: #38BDF8; }
+
+  /* Body Content */
+  .content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    flex: 1;
+  }
+
+  /* Hero Card */
+  .hero-card {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    color: #fff;
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+  }
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid #38BDF8;
+    color: #38BDF8;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .hero-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+  .hero-desc {
+    font-size: 12.5px;
+    color: #94A3B8;
+    line-height: 1.4;
+    max-width: 320px;
+  }
+
+  /* Form Card */
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .form-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Package Category Grid */
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .category-pill {
+    padding: 10px 6px;
+    border-radius: 12px;
+    border: 1.5px solid var(--line);
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 11.5px;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .category-pill span { font-size: 18px; }
+  .category-pill.selected {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+  }
+
+  /* Form Inputs */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 0 12px;
+    background: #FAFAFD;
+    transition: border-color 0.15s;
+  }
+  .input-wrap:focus-within {
+    border-color: var(--accent);
+    background: #FFF;
+  }
+  .input-wrap input, .input-wrap textarea {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 12px 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    font-family: inherit;
+    background: transparent;
+    color: var(--ink);
+  }
+
+  /* Route Indicator */
+  .route-dots {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    padding-left: 20px;
+  }
+  .route-dots::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 18px;
+    bottom: 18px;
+    width: 2px;
+    border-left: 2px dashed #94A3B8;
+  }
+  .route-point {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .dot-pickup {
+    position: absolute;
+    left: -20px;
+    top: 14px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--green);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px var(--green);
+  }
+  .dot-drop {
+    position: absolute;
+    left: -20px;
+    top: 14px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #EF4444;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #EF4444;
+  }
+
+  /* Fare Summary Card */
+  .fare-card {
+    background: #0F172A;
+    color: #fff;
+    border-radius: var(--radius);
+    padding: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .fare-title { font-size: 11.5px; color: #94A3B8; font-weight: 700; text-transform: uppercase; }
+  .fare-amount {
+    font-family: 'Manrope', sans-serif;
+    font-size: 26px;
+    font-weight: 900;
+    color: #4ADE80;
+  }
+  .fare-est { font-size: 11px; color: #94A3B8; }
+
+  /* Submit Button */
+  .btn-submit {
+    width: 100%;
+    padding: 15px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-size: 14.5px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+    transition: all 0.15s;
+  }
+  .btn-submit:hover { background: #1D4ED8; }
+
+  /* Modal / Searching Overlay */
+  .search-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 99;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .search-overlay.active { display: flex; }
+  .search-box {
+    background: #FFF;
+    border-radius: 24px;
+    padding: 28px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    animation: popIn 0.3s ease;
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .radar-bike {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    position: relative;
+  }
+  .radar-bike::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 2px dashed var(--accent);
+    animation: spin 6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #0F172A;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Top Sticky Navigation -->
+  <div class="top-nav">
+    <a href="index.html" class="nav-back">
+      <i class="ti ti-arrow-left"></i> Rides
+    </a>
+    <div class="brand-pill">
+      <span>📦 SAGE</span> PARCEL
+    </div>
+    <a href="profile.html" style="font-size:18px; text-decoration:none; color:inherit;">👤</a>
+  </div>
+
+  <div class="content">
+
+    <!-- Hero Card -->
+    <div class="hero-card">
+      <div class="hero-tag">⚡ 25-Min Express Delivery</div>
+      <h1 class="hero-title">Rydealot Sage</h1>
+      <p class="hero-desc">
+        Send documents, lunchboxes, keys, medicines & packages across town with verified bike captains.
+      </p>
+    </div>
+
+    <!-- Step 1: Package Type -->
+    <div class="form-card">
+      <div class="form-title">
+        <span>📦</span> 1. What are you sending?
+      </div>
+      <div class="category-grid" id="category-grid">
+        <div class="category-pill selected" onclick="selectCategory(this, 'documents', 35)">
+          <span>📄</span> Documents
+        </div>
+        <div class="category-pill" onclick="selectCategory(this, 'food', 40)">
+          <span>🍱</span> Food / Lunch
+        </div>
+        <div class="category-pill" onclick="selectCategory(this, 'keys', 35)">
+          <span>🔑</span> Keys
+        </div>
+        <div class="category-pill" onclick="selectCategory(this, 'medicine', 35)">
+          <span>💊</span> Medicine
+        </div>
+        <div class="category-pill" onclick="selectCategory(this, 'clothes', 45)">
+          <span>👕</span> Clothes
+        </div>
+        <div class="category-pill" onclick="selectCategory(this, 'box', 50)">
+          <span>📦</span> Box (&lt;10kg)
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Route & Addresses -->
+    <div class="form-card">
+      <div class="form-title">
+        <span>📍</span> 2. Pickup & Drop Locations
+      </div>
+
+      <div class="route-dots">
+        <!-- Pickup -->
+        <div class="route-point">
+          <div class="dot-pickup"></div>
+          <label class="field-label">Sender Pickup Address</label>
+          <div class="input-wrap">
+            <input type="text" id="sage-pickup" placeholder="e.g. Hanamkonda Bus Stand or Current GPS" value="Current Location">
+          </div>
+          <div style="display:flex; gap:8px; margin-top:4px;">
+            <input type="text" id="sage-sender-name" class="input-wrap" style="flex:1; padding:8px 12px; font-size:12px;" placeholder="Sender Name">
+            <input type="tel" id="sage-sender-phone" class="input-wrap" style="flex:1; padding:8px 12px; font-size:12px;" placeholder="Sender Phone">
+          </div>
+        </div>
+
+        <!-- Drop -->
+        <div class="route-point">
+          <div class="dot-drop"></div>
+          <label class="field-label">Receiver Drop Address</label>
+          <div class="input-wrap">
+            <input type="text" id="sage-drop" placeholder="e.g. Kazipet Railway Station Gate 1" value="Kazipet Station">
+          </div>
+          <div style="display:flex; gap:8px; margin-top:4px;">
+            <input type="text" id="sage-recv-name" class="input-wrap" style="flex:1; padding:8px 12px; font-size:12px;" placeholder="Receiver Name">
+            <input type="tel" id="sage-recv-phone" class="input-wrap" style="flex:1; padding:8px 12px; font-size:12px;" placeholder="Receiver Phone">
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes / Instructions -->
+      <div class="field" style="margin-top:6px;">
+        <label class="field-label">Delivery Note for Captain (Optional)</label>
+        <div class="input-wrap">
+          <input type="text" id="sage-notes" placeholder="e.g. Call receiver before coming, fragile item">
+        </div>
+      </div>
+    </div>
+
+    <!-- Fare & Confirmation -->
+    <div class="fare-card">
+      <div>
+        <div class="fare-title">Estimated Sage Fare</div>
+        <div class="fare-amount" id="sage-fare-display">₹45</div>
+        <div class="fare-est">🛵 Includes live tracking & PIN verification</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px; color:#94A3B8; font-weight:700;">Est. Time</div>
+        <div style="font-size:16px; font-weight:800; color:#38BDF8;">~20 mins</div>
+      </div>
+    </div>
+
+    <button type="button" class="btn-submit" onclick="bookSageParcel()">
+      🚀 Book Rydealot Sage Captain
+    </button>
+
+  </div>
+</div>
+
+<!-- Searching for Captain Modal Overlay -->
+<div class="search-overlay" id="search-modal">
+  <div class="search-box">
+    <div class="radar-bike">🛵</div>
+    <h3 style="font-size:18px; font-weight:800; color:#0F172A;" id="modal-status-title">Searching for Nearby Sage Captain…</h3>
+    <p style="font-size:12.5px; color:#64748B; line-height:1.4;" id="modal-status-desc">
+      Connecting to nearest verified bike captain around Hanamkonda / Kazipet.
+    </p>
+    
+    <!-- PIN Display Box -->
+    <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:14px; padding:12px; width:100%; text-align:center;">
+      <div style="font-size:11px; font-weight:800; color:#64748B; text-transform:uppercase;">Pickup Verification PIN:</div>
+      <div style="font-size:24px; font-weight:900; color:#2563EB; font-family:'IBM Plex Mono'; letter-spacing:4px;" id="modal-pin-display">
+        8598
+      </div>
+      <div style="font-size:10.5px; color:#94A3B8; margin-top:2px;">Tell this PIN to captain when handing over the bag</div>
+    </div>
+
+    <button type="button" onclick="cancelSageSearch()" style="background:transparent; border:none; color:#EF4444; font-weight:700; font-size:12.5px; cursor:pointer; margin-top:4px;">
+      Cancel Request
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
+
+  var selectedCategory = 'documents';
+  var baseFare = 45;
+  var searchTimer = null;
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2500);
+  }
+
+  function selectCategory(el, cat, fare) {
+    document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedCategory = cat;
+    baseFare = fare;
+    document.getElementById('sage-fare-display').textContent = '₹' + fare;
+  }
+
+  function loadUserSession() {
+    var raw = localStorage.getItem('rydealot_user_session');
+    if (raw) {
+      try {
+        var sess = JSON.parse(raw);
+        if (sess.name) document.getElementById('sage-sender-name').value = sess.name;
+        if (sess.phone) document.getElementById('sage-sender-phone').value = sess.phone;
+        if (sess.permanent_ride_pin) document.getElementById('modal-pin-display').textContent = sess.permanent_ride_pin;
+      } catch(e){}
+    }
+  }
+
+  async function bookSageParcel() {
+    var pickup = document.getElementById('sage-pickup').value.trim();
+    var drop = document.getElementById('sage-drop').value.trim();
+    var senderName = document.getElementById('sage-sender-name').value.trim() || 'Sender';
+    var senderPhone = document.getElementById('sage-sender-phone').value.trim() || '9876543210';
+    var recvName = document.getElementById('sage-recv-name').value.trim() || 'Receiver';
+    var recvPhone = document.getElementById('sage-recv-phone').value.trim();
+
+    if (!pickup || !drop) {
+      alert('Please enter both Pickup and Drop addresses');
+      return;
+    }
+    if (!recvPhone || recvPhone.length < 10) {
+      alert('Please enter a valid 10-digit Receiver Mobile Number');
+      document.getElementById('sage-recv-phone').focus();
+      return;
+    }
+
+    var pin = localStorage.getItem('rydealot_ride_pin') || '8598';
+    document.getElementById('modal-pin-display').textContent = pin;
+
+    // Show searching modal
+    document.getElementById('search-modal').classList.add('active');
+    document.getElementById('modal-status-title').textContent = 'Searching for Nearby Sage Captain…';
+    document.getElementById('modal-status-desc').textContent = 'Connecting to nearest verified bike captain in your area.';
+
+    // Send record to Supabase if available
+    try {
+      fetch(SUPABASE_URL + '/rest/v1/sage_parcels', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          sender_name: senderName,
+          sender_phone: senderPhone,
+          receiver_name: recvName,
+          receiver_phone: recvPhone,
+          package_category: selectedCategory,
+          pickup_address: pickup,
+          drop_address: drop,
+          fare: baseFare,
+          permanent_ride_pin: pin,
+          status: 'pending'
+        })
+      }).catch(function(e){ console.log('Sage sync note:', e); });
+    } catch(e){}
+
+    // Simulate Captain Match
+    searchTimer = setTimeout(function() {
+      document.getElementById('modal-status-title').textContent = '✅ Captain Assigned!';
+      document.getElementById('modal-status-desc').textContent = 'Captain Suresh (TS03 AB 1234) is on the way for pickup in 4 mins.';
+      showToast('🎉 Captain Suresh assigned for your Sage parcel!');
+    }, 3500);
+  }
+
+  function cancelSageSearch() {
+    clearTimeout(searchTimer);
+    document.getElementById('search-modal').classList.remove('active');
+    showToast('❌ Sage Parcel search cancelled');
+  }
+
+  window.onload = function() {
+    loadUserSession();
+  };
+</script>
+</body>
+</html>

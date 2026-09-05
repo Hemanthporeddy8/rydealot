@@ -1,5 +1,6 @@
--- Run this in Postgres / Supabase SQL editor to set up the OTP and Users tables:
+-- Run this in Postgres / Supabase SQL editor:
 
+-- 1. OTP Codes Table
 create table if not exists otp_codes (
   id            bigserial primary key,
   email         text not null,
@@ -9,11 +10,9 @@ create table if not exists otp_codes (
   consumed      boolean not null default false,
   created_at    timestamptz not null default now()
 );
-
--- Speeds up "find latest active OTP for this email" lookups
 create index if not exists idx_otp_codes_email on otp_codes(email);
 
--- Users table (Self-hosted app users)
+-- 2. Users Table (Self-hosted app users)
 create table if not exists app_users (
   id            bigserial primary key,
   email         text unique not null,
@@ -22,3 +21,30 @@ create table if not exists app_users (
   created_at    timestamptz not null default now(),
   last_login_at timestamptz
 );
+
+-- 3. Rydealot Sage (Bike Parcel Delivery Table)
+create table if not exists sage_parcels (
+  id                  uuid default gen_random_uuid() primary key,
+  sender_name         text not null,
+  sender_phone        text not null,
+  receiver_name       text not null,
+  receiver_phone      text not null,
+  package_category    text default 'documents', -- documents, food, keys, medicine, clothes, box
+  package_weight_kg   numeric default 2.0,
+  pickup_address      text not null,
+  pickup_lat          numeric,
+  pickup_lng          numeric,
+  drop_address        text not null,
+  drop_lat            numeric,
+  drop_lng            numeric,
+  fare                numeric not null,
+  permanent_ride_pin  text,
+  status              text default 'pending', -- pending, accepted, picked_up, in_transit, delivered, cancelled
+  driver_id           text,
+  driver_name         text,
+  driver_phone        text,
+  driver_vehicle      text,
+  notes               text,
+  created_at          timestamptz not null default now()
+);
+create index if not exists idx_sage_parcels_status on sage_parcels(status);

@@ -1,16 +1,19 @@
-var CACHE_NAME = 'rydealot-v16';
+var CACHE_NAME = 'rydealot-v17';
 var urlsToCache = [
   './',
   './index.html',
+  './sage.html',
   './login.html',
   './profile.html',
+  './offline.html',
   './style.css',
   './app.js',
   './icon.svg',
-  './manifest.json'
+  './manifest.json',
+  './logo.png'
 ];
 
-// Install: cache files
+// Install: cache essential assets and offline fallback page
 self.addEventListener('install', function(event) {
   self.skipWaiting();
   event.waitUntil(
@@ -20,7 +23,7 @@ self.addEventListener('install', function(event) {
   );
 });
 
-// Activate: delete ALL old caches immediately
+// Activate: purge older caches immediately
 self.addEventListener('activate', function(event) {
   event.waitUntil(
     caches.keys().then(function(keys) {
@@ -34,10 +37,10 @@ self.addEventListener('activate', function(event) {
   );
 });
 
-// Fetch: NETWORK FIRST for local GET assets, BYPASS API and non-GET calls
+// Fetch: Network-first with automatic offline fallback to offline.html
 self.addEventListener('fetch', function(event) {
-  // Never intercept non-GET requests (POST, PATCH, DELETE) or Supabase API calls
-  if (event.request.method !== 'GET' || event.request.url.indexOf('supabase.co') !== -1) {
+  // Bypass API and non-GET calls
+  if (event.request.method !== 'GET' || event.request.url.indexOf('supabase.co') !== -1 || event.request.url.indexOf('/api/') !== -1) {
     return;
   }
 
@@ -53,7 +56,13 @@ self.addEventListener('fetch', function(event) {
         return response;
       })
       .catch(function() {
-        return caches.match(event.request);
+        return caches.match(event.request).then(function(cachedResp) {
+          if (cachedResp) return cachedResp;
+          // If HTML page request fails and is not cached, return custom offline mascot page
+          if (event.request.mode === 'navigate' || (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
+            return caches.match('./offline.html');
+          }
+        });
       })
   );
 });
