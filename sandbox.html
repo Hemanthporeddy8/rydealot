@@ -163,7 +163,7 @@
   .video-frame video {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     display: block;
   }
 
@@ -315,12 +315,12 @@
         <i class="ti ti-sparkles"></i> Mascot Studio Sandbox
       </div>
       <div style="font-size:12px; color:var(--ink-soft); font-family:'IBM Plex Mono';">
-        5 Clips Extracted • Clean Playback • No Glitch
+        Direct Hardware Autoplay • Zero Lag • Glitch-Free
       </div>
     </div>
     <h1 class="header-title">Rydealot Animation Sandbox</h1>
     <p class="header-desc">
-      Test, preview, and play all extracted mascot video animations. Use this sandbox to compare and simulate how the animations look in live app components.
+      Test, preview, and play all mascot video animations. The simulations below automatically play the exact clip segment smoothly on load!
     </p>
 
     <div class="nav-links">
@@ -335,7 +335,7 @@
   <!-- Live In-App Simulations -->
   <div>
     <h2 class="section-title">
-      <i class="ti ti-device-mobile"></i> Live In-App Component Previews
+      <i class="ti ti-device-mobile"></i> Live In-App Component Previews (Direct Autoplay)
     </h2>
 
     <div class="sim-container">
@@ -348,7 +348,7 @@
         <div class="offline-stage">
           <div class="pulse-ring"></div>
           <div class="pulse-ring"></div>
-          <video class="offline-video" src="assets/video/mascot-offline.mp4" autoplay loop muted playsinline></video>
+          <video class="offline-video time-clip" data-start="0.0" data-end="1.75" src="bro_look_at_the_clips_bro_nd.mp4" autoplay loop muted playsinline></video>
         </div>
         <h3 style="font-size:16px; font-weight:800; margin-bottom:4px;">No Internet Connection</h3>
         <p style="font-size:12px; color:var(--ink-soft); margin-bottom:16px;">
@@ -366,7 +366,7 @@
         </span>
         <div class="sage-radar-stage">
           <div class="radar-spinner"></div>
-          <video class="sage-video" src="assets/video/mascot-sage.mp4" autoplay loop muted playsinline></video>
+          <video class="sage-video time-clip" data-start="6.04" data-end="7.83" src="bro_look_at_the_clips_bro_nd.mp4" autoplay loop muted playsinline></video>
         </div>
         <h3 style="font-size:16px; font-weight:800; margin-bottom:4px;">Finding Sage Captain…</h3>
         <p style="font-size:12px; color:var(--ink-soft); margin-bottom:16px;">
@@ -384,7 +384,7 @@
           🎉 Ride Completed Modal
         </span>
         <div class="success-stage">
-          <video class="success-video" src="assets/video/mascot-success.mp4" autoplay loop muted playsinline></video>
+          <video class="success-video time-clip" data-start="7.88" data-end="9.15" src="bro_look_at_the_clips_bro_nd.mp4" autoplay loop muted playsinline></video>
         </div>
         <h3 style="font-size:16px; font-weight:800; margin-bottom:4px;">Ride Completed!</h3>
         <p style="font-size:12px; color:var(--ink-soft); margin-bottom:16px;">
@@ -410,13 +410,13 @@
       <div class="clip-card">
         <div class="clip-header">
           <div class="clip-name">1. Offline / Lost Signal</div>
-          <div class="clip-size">530 KB (1.75s)</div>
+          <div class="clip-size">0.0s – 1.75s</div>
         </div>
         <div class="video-frame">
-          <video id="vid-offline" src="assets/video/mascot-offline.mp4" loop muted playsinline controls></video>
+          <video id="vid-offline" class="time-clip" data-start="0.0" data-end="1.75" src="bro_look_at_the_clips_bro_nd.mp4" loop muted playsinline autoplay></video>
         </div>
         <div class="clip-controls">
-          <button class="ctrl-btn" onclick="togglePlay('vid-offline', this)"><i class="ti ti-player-play"></i> Play</button>
+          <button class="ctrl-btn" onclick="togglePlay('vid-offline', this)"><i class="ti ti-player-pause"></i> Pause</button>
           <button class="ctrl-btn" onclick="toggleMute('vid-offline', this)"><i class="ti ti-volume-3"></i> Unmute</button>
         </div>
       </div>
@@ -425,13 +425,13 @@
       <div class="clip-card">
         <div class="clip-header">
           <div class="clip-name">2. Waving Hello</div>
-          <div class="clip-size">455 KB (1.8s)</div>
+          <div class="clip-size">1.88s – 3.67s</div>
         </div>
         <div class="video-frame">
-          <video id="vid-waving" src="assets/video/mascot-waving.mp4" loop muted playsinline controls></video>
+          <video id="vid-waving" class="time-clip" data-start="1.88" data-end="3.67" src="bro_look_at_the_clips_bro_nd.mp4" loop muted playsinline autoplay></video>
         </div>
         <div class="clip-controls">
-          <button class="ctrl-btn" onclick="togglePlay('vid-waving', this)"><i class="ti ti-player-play"></i> Play</button>
+          <button class="ctrl-btn" onclick="togglePlay('vid-waving', this)"><i class="ti ti-player-pause"></i> Pause</button>
           <button class="ctrl-btn" onclick="toggleMute('vid-waving', this)"><i class="ti ti-volume-3"></i> Unmute</button>
         </div>
       </div>
@@ -440,13 +440,13 @@
       <div class="clip-card">
         <div class="clip-header">
           <div class="clip-name">3. Fast Ride in Motion</div>
-          <div class="clip-size">1.6 MB (2.3s)</div>
+          <div class="clip-size">3.71s – 6.00s</div>
         </div>
         <div class="video-frame">
-          <video id="vid-moving" src="assets/video/mascot-moving.mp4" loop muted playsinline controls></video>
+          <video id="vid-moving" class="time-clip" data-start="3.71" data-end="6.00" src="bro_look_at_the_clips_bro_nd.mp4" loop muted playsinline autoplay></video>
         </div>
         <div class="clip-controls">
-          <button class="ctrl-btn" onclick="togglePlay('vid-moving', this)"><i class="ti ti-player-play"></i> Play</button>
+          <button class="ctrl-btn" onclick="togglePlay('vid-moving', this)"><i class="ti ti-player-pause"></i> Pause</button>
           <button class="ctrl-btn" onclick="toggleMute('vid-moving', this)"><i class="ti ti-volume-3"></i> Unmute</button>
         </div>
       </div>
@@ -455,13 +455,13 @@
       <div class="clip-card">
         <div class="clip-header">
           <div class="clip-name">4. Sage Parcel Delivery</div>
-          <div class="clip-size">554 KB (1.8s)</div>
+          <div class="clip-size">6.04s – 7.83s</div>
         </div>
         <div class="video-frame">
-          <video id="vid-sage" src="assets/video/mascot-sage.mp4" loop muted playsinline controls></video>
+          <video id="vid-sage" class="time-clip" data-start="6.04" data-end="7.83" src="bro_look_at_the_clips_bro_nd.mp4" loop muted playsinline autoplay></video>
         </div>
         <div class="clip-controls">
-          <button class="ctrl-btn" onclick="togglePlay('vid-sage', this)"><i class="ti ti-player-play"></i> Play</button>
+          <button class="ctrl-btn" onclick="togglePlay('vid-sage', this)"><i class="ti ti-player-pause"></i> Pause</button>
           <button class="ctrl-btn" onclick="toggleMute('vid-sage', this)"><i class="ti ti-volume-3"></i> Unmute</button>
         </div>
       </div>
@@ -470,13 +470,13 @@
       <div class="clip-card">
         <div class="clip-header">
           <div class="clip-name">5. Ride Success (Glitch-Free)</div>
-          <div class="clip-size">695 KB (1.3s)</div>
+          <div class="clip-size">7.88s – 9.15s</div>
         </div>
         <div class="video-frame">
-          <video id="vid-success" src="assets/video/mascot-success.mp4" loop muted playsinline controls></video>
+          <video id="vid-success" class="time-clip" data-start="7.88" data-end="9.15" src="bro_look_at_the_clips_bro_nd.mp4" loop muted playsinline autoplay></video>
         </div>
         <div class="clip-controls">
-          <button class="ctrl-btn" onclick="togglePlay('vid-success', this)"><i class="ti ti-player-play"></i> Play</button>
+          <button class="ctrl-btn" onclick="togglePlay('vid-success', this)"><i class="ti ti-player-pause"></i> Pause</button>
           <button class="ctrl-btn" onclick="toggleMute('vid-success', this)"><i class="ti ti-volume-3"></i> Unmute</button>
         </div>
       </div>
@@ -487,16 +487,39 @@
 </div>
 
 <script>
+  // High-performance direct time-range video player
+  document.querySelectorAll('.time-clip').forEach(function(vid) {
+    var start = parseFloat(vid.getAttribute('data-start') || 0);
+    var end = parseFloat(vid.getAttribute('data-end') || 10);
+
+    vid.addEventListener('loadedmetadata', function() {
+      vid.currentTime = start;
+    });
+
+    vid.addEventListener('timeupdate', function() {
+      if (vid.currentTime >= end || vid.currentTime < start) {
+        vid.currentTime = start;
+        if (vid.paused) vid.play();
+      }
+    });
+
+    // Ensure immediate autoplay
+    vid.play().catch(function() {
+      vid.muted = true;
+      vid.play();
+    });
+  });
+
   function togglePlay(vidId, btn) {
     var v = document.getElementById(vidId);
     if (v.paused) {
       v.play();
       btn.innerHTML = '<i class="ti ti-player-pause"></i> Pause';
-      btn.classList.add('active');
+      btn.classList.remove('active');
     } else {
       v.pause();
       btn.innerHTML = '<i class="ti ti-player-play"></i> Play';
-      btn.classList.remove('active');
+      btn.classList.add('active');
     }
   }
 
