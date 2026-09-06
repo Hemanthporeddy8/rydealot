@@ -35,7 +35,7 @@
   }
 
   .container {
-    max-width: 900px;
+    max-width: 960px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -107,7 +107,7 @@
   }
   .nav-btn:hover { background: #334155; transform: translateY(-1px); }
 
-  /* Sections */
+  /* Section Title */
   .section-title {
     font-family: 'Manrope', sans-serif;
     font-size: 18px;
@@ -118,10 +118,120 @@
     margin-bottom: 14px;
   }
 
-  /* Clip Grid */
+  /* Sim Cards */
+  .sim-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .sim-phone {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 28px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  }
+  .sim-tag {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 99px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+
+  /* Offline Simulation */
+  .offline-stage {
+    width: 170px;
+    height: 170px;
+    position: relative;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .offline-anim {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    z-index: 2;
+    border: 2.5px solid var(--gold);
+    box-shadow: 0 0 25px rgba(250, 204, 21, 0.4);
+  }
+  .pulse-ring {
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    border: 2px dashed rgba(245, 158, 11, 0.45);
+    animation: pulseRadar 2.5s linear infinite;
+  }
+  .pulse-ring:nth-child(2) { animation-delay: 1.25s; }
+  @keyframes pulseRadar {
+    0% { transform: scale(0.6); opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+
+  /* Sage Simulation */
+  .sage-radar-stage {
+    width: 140px;
+    height: 140px;
+    position: relative;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sage-anim {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    z-index: 2;
+    border: 2.5px solid #38BDF8;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.45);
+  }
+  .radar-spinner {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 2px dashed #38BDF8;
+    animation: spin 5s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Success Simulation */
+  .success-stage {
+    width: 150px;
+    height: 150px;
+    position: relative;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .success-anim {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    object-fit: cover;
+    z-index: 2;
+    border: 2.5px solid var(--green);
+    box-shadow: 0 0 25px rgba(34, 197, 94, 0.45);
+  }
+
+  /* Gallery Grid */
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
   }
 
@@ -151,7 +261,7 @@
     font-family: 'IBM Plex Mono', monospace;
   }
 
-  .video-frame {
+  .anim-frame {
     width: 100%;
     aspect-ratio: 16 / 9;
     background: #000;
@@ -159,147 +269,15 @@
     overflow: hidden;
     position: relative;
     border: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .video-frame video {
+  .anim-frame img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
-  }
-
-  .clip-controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .ctrl-btn {
-    flex: 1;
-    padding: 8px 10px;
-    background: var(--card-light);
-    border: 1px solid var(--line);
-    color: var(--ink);
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    transition: all 0.15s;
-  }
-  .ctrl-btn:hover { background: #334155; }
-  .ctrl-btn.active { background: var(--accent); border-color: var(--accent); }
-
-  /* Interactive Simulator */
-  .sim-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-    gap: 20px;
-  }
-
-  .sim-phone {
-    background: var(--card);
-    border: 2px solid var(--line);
-    border-radius: 28px;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-  }
-  .sim-tag {
-    font-size: 11px;
-    font-weight: 800;
-    padding: 4px 10px;
-    border-radius: 99px;
-    margin-bottom: 16px;
-    text-transform: uppercase;
-  }
-
-  /* Offline Sim Component */
-  .offline-stage {
-    width: 170px;
-    height: 170px;
-    position: relative;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .offline-video {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    object-fit: cover;
-    z-index: 2;
-    border: 2px solid var(--gold);
-    box-shadow: 0 0 25px rgba(250, 204, 21, 0.35);
-  }
-  .pulse-ring {
-    position: absolute;
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    border: 2px dashed rgba(245, 158, 11, 0.4);
-    animation: pulseRadar 2.5s linear infinite;
-  }
-  .pulse-ring:nth-child(2) { animation-delay: 1.25s; }
-  @keyframes pulseRadar {
-    0% { transform: scale(0.6); opacity: 1; }
-    100% { transform: scale(1.4); opacity: 0; }
-  }
-
-  /* Sage Sim Component */
-  .sage-radar-stage {
-    width: 140px;
-    height: 140px;
-    position: relative;
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .sage-video {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    z-index: 2;
-    border: 2px solid #38BDF8;
-    box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
-  }
-  .radar-spinner {
-    position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-    border: 2px dashed #38BDF8;
-    animation: spin 5s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Success Sim Component */
-  .success-stage {
-    width: 150px;
-    height: 150px;
-    position: relative;
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .success-video {
-    width: 130px;
-    height: 130px;
-    border-radius: 50%;
-    object-fit: cover;
-    z-index: 2;
-    border: 2px solid var(--green);
-    box-shadow: 0 0 25px rgba(34, 197, 94, 0.4);
   }
 
 </style>
@@ -315,12 +293,12 @@
         <i class="ti ti-sparkles"></i> Mascot Studio Sandbox
       </div>
       <div style="font-size:12px; color:var(--ink-soft); font-family:'IBM Plex Mono';">
-        Direct Hardware Autoplay • Zero Lag • Glitch-Free
+        Universal Animated WebP • 100% Guaranteed Autoplay
       </div>
     </div>
-    <h1 class="header-title">Rydealot Animation Sandbox</h1>
+    <h1 class="header-title">Rydealot Mascot Animation Sandbox</h1>
     <p class="header-desc">
-      Test, preview, and play all mascot video animations. The simulations below automatically play the exact clip segment smoothly on load!
+      All 5 mascot animations are rendered in universal Animated WebP format — zero black screens, instant looping playback, and compatible with all mobile browsers & local files.
     </p>
 
     <div class="nav-links">
@@ -335,7 +313,7 @@
   <!-- Live In-App Simulations -->
   <div>
     <h2 class="section-title">
-      <i class="ti ti-device-mobile"></i> Live In-App Component Previews (Direct Autoplay)
+      <i class="ti ti-device-mobile"></i> Live In-App Component Previews
     </h2>
 
     <div class="sim-container">
@@ -348,7 +326,7 @@
         <div class="offline-stage">
           <div class="pulse-ring"></div>
           <div class="pulse-ring"></div>
-          <video class="offline-video time-clip" data-start="0.0" data-end="1.75" src="bro_look_at_the_clips_bro_nd.mp4" autoplay loop muted playsinline></video>
+          <img class="offline-anim" src="assets/mascot-offline.webp" alt="Animated Offline Rydo">
         </div>
         <h3 style="font-size:16px; font-weight:800; margin-bottom:4px;">No Internet Connection</h3>
         <p style="font-size:12px; color:var(--ink-soft); margin-bottom:16px;">
@@ -366,7 +344,7 @@
         </span>
         <div class="sage-radar-stage">
           <div class="radar-spinner"></div>
-          <video class="sage-video time-clip" data-start="6.04" data-end="7.83" src="bro_look_at_the_clips_bro_nd.mp4" autoplay loop muted playsinline></video>
+          <img class="sage-anim" src="assets/mascot-sage.webp" alt="Animated Sage Captain">
         </div>
         <h3 style="font-size:16px; font-weight:800; margin-bottom:4px;">Finding Sage Captain…</h3>
         <p style="font-size:12px; color:var(--ink-soft); margin-bottom:16px;">
@@ -384,7 +362,7 @@
           🎉 Ride Completed Modal
         </span>
         <div class="success-stage">
-          <video class="success-video time-clip" data-start="7.88" data-end="9.15" src="bro_look_at_the_clips_bro_nd.mp4" autoplay loop muted playsinline></video>
+          <img class="success-anim" src="assets/mascot-success.webp" alt="Animated Success Rydo">
         </div>
         <h3 style="font-size:16px; font-weight:800; margin-bottom:4px;">Ride Completed!</h3>
         <p style="font-size:12px; color:var(--ink-soft); margin-bottom:16px;">
@@ -398,10 +376,10 @@
     </div>
   </div>
 
-  <!-- Sliced Video Clips Gallery -->
+  <!-- Sliced Animations Gallery -->
   <div>
     <h2 class="section-title">
-      <i class="ti ti-movie"></i> All Extracted Mascot Clips (720p HD)
+      <i class="ti ti-movie"></i> All Extracted Mascot Animations
     </h2>
 
     <div class="grid">
@@ -410,14 +388,10 @@
       <div class="clip-card">
         <div class="clip-header">
           <div class="clip-name">1. Offline / Lost Signal</div>
-          <div class="clip-size">0.0s – 1.75s</div>
+          <div class="clip-size">418 KB (Animated WebP)</div>
         </div>
-        <div class="video-frame">
-          <video id="vid-offline" class="time-clip" data-start="0.0" data-end="1.75" src="bro_look_at_the_clips_bro_nd.mp4" loop muted playsinline autoplay></video>
-        </div>
-        <div class="clip-controls">
-          <button class="ctrl-btn" onclick="togglePlay('vid-offline', this)"><i class="ti ti-player-pause"></i> Pause</button>
-          <button class="ctrl-btn" onclick="toggleMute('vid-offline', this)"><i class="ti ti-volume-3"></i> Unmute</button>
+        <div class="anim-frame">
+          <img src="assets/mascot-offline.webp" alt="Offline Animation">
         </div>
       </div>
 
@@ -425,14 +399,10 @@
       <div class="clip-card">
         <div class="clip-header">
           <div class="clip-name">2. Waving Hello</div>
-          <div class="clip-size">1.88s – 3.67s</div>
+          <div class="clip-size">304 KB (Animated WebP)</div>
         </div>
-        <div class="video-frame">
-          <video id="vid-waving" class="time-clip" data-start="1.88" data-end="3.67" src="bro_look_at_the_clips_bro_nd.mp4" loop muted playsinline autoplay></video>
-        </div>
-        <div class="clip-controls">
-          <button class="ctrl-btn" onclick="togglePlay('vid-waving', this)"><i class="ti ti-player-pause"></i> Pause</button>
-          <button class="ctrl-btn" onclick="toggleMute('vid-waving', this)"><i class="ti ti-volume-3"></i> Unmute</button>
+        <div class="anim-frame">
+          <img src="assets/mascot-waving.webp" alt="Waving Animation">
         </div>
       </div>
 
@@ -440,14 +410,10 @@
       <div class="clip-card">
         <div class="clip-header">
           <div class="clip-name">3. Fast Ride in Motion</div>
-          <div class="clip-size">3.71s – 6.00s</div>
+          <div class="clip-size">1.1 MB (Animated WebP)</div>
         </div>
-        <div class="video-frame">
-          <video id="vid-moving" class="time-clip" data-start="3.71" data-end="6.00" src="bro_look_at_the_clips_bro_nd.mp4" loop muted playsinline autoplay></video>
-        </div>
-        <div class="clip-controls">
-          <button class="ctrl-btn" onclick="togglePlay('vid-moving', this)"><i class="ti ti-player-pause"></i> Pause</button>
-          <button class="ctrl-btn" onclick="toggleMute('vid-moving', this)"><i class="ti ti-volume-3"></i> Unmute</button>
+        <div class="anim-frame">
+          <img src="assets/mascot-moving.webp" alt="Moving Animation">
         </div>
       </div>
 
@@ -455,29 +421,21 @@
       <div class="clip-card">
         <div class="clip-header">
           <div class="clip-name">4. Sage Parcel Delivery</div>
-          <div class="clip-size">6.04s – 7.83s</div>
+          <div class="clip-size">551 KB (Animated WebP)</div>
         </div>
-        <div class="video-frame">
-          <video id="vid-sage" class="time-clip" data-start="6.04" data-end="7.83" src="bro_look_at_the_clips_bro_nd.mp4" loop muted playsinline autoplay></video>
-        </div>
-        <div class="clip-controls">
-          <button class="ctrl-btn" onclick="togglePlay('vid-sage', this)"><i class="ti ti-player-pause"></i> Pause</button>
-          <button class="ctrl-btn" onclick="toggleMute('vid-sage', this)"><i class="ti ti-volume-3"></i> Unmute</button>
+        <div class="anim-frame">
+          <img src="assets/mascot-sage.webp" alt="Sage Animation">
         </div>
       </div>
 
-      <!-- Clip 5: Success (Cleaned) -->
+      <!-- Clip 5: Success (Glitch-Free) -->
       <div class="clip-card">
         <div class="clip-header">
           <div class="clip-name">5. Ride Success (Glitch-Free)</div>
-          <div class="clip-size">7.88s – 9.15s</div>
+          <div class="clip-size">437 KB (Animated WebP)</div>
         </div>
-        <div class="video-frame">
-          <video id="vid-success" class="time-clip" data-start="7.88" data-end="9.15" src="bro_look_at_the_clips_bro_nd.mp4" loop muted playsinline autoplay></video>
-        </div>
-        <div class="clip-controls">
-          <button class="ctrl-btn" onclick="togglePlay('vid-success', this)"><i class="ti ti-player-pause"></i> Pause</button>
-          <button class="ctrl-btn" onclick="toggleMute('vid-success', this)"><i class="ti ti-volume-3"></i> Unmute</button>
+        <div class="anim-frame">
+          <img src="assets/mascot-success.webp" alt="Success Animation">
         </div>
       </div>
 
@@ -485,56 +443,6 @@
   </div>
 
 </div>
-
-<script>
-  // High-performance direct time-range video player
-  document.querySelectorAll('.time-clip').forEach(function(vid) {
-    var start = parseFloat(vid.getAttribute('data-start') || 0);
-    var end = parseFloat(vid.getAttribute('data-end') || 10);
-
-    vid.addEventListener('loadedmetadata', function() {
-      vid.currentTime = start;
-    });
-
-    vid.addEventListener('timeupdate', function() {
-      if (vid.currentTime >= end || vid.currentTime < start) {
-        vid.currentTime = start;
-        if (vid.paused) vid.play();
-      }
-    });
-
-    // Ensure immediate autoplay
-    vid.play().catch(function() {
-      vid.muted = true;
-      vid.play();
-    });
-  });
-
-  function togglePlay(vidId, btn) {
-    var v = document.getElementById(vidId);
-    if (v.paused) {
-      v.play();
-      btn.innerHTML = '<i class="ti ti-player-pause"></i> Pause';
-      btn.classList.remove('active');
-    } else {
-      v.pause();
-      btn.innerHTML = '<i class="ti ti-player-play"></i> Play';
-      btn.classList.add('active');
-    }
-  }
-
-  function toggleMute(vidId, btn) {
-    var v = document.getElementById(vidId);
-    v.muted = !v.muted;
-    if (v.muted) {
-      btn.innerHTML = '<i class="ti ti-volume-3"></i> Unmute';
-      btn.classList.remove('active');
-    } else {
-      btn.innerHTML = '<i class="ti ti-volume"></i> Muted';
-      btn.classList.add('active');
-    }
-  }
-</script>
 
 </body>
 </html>
