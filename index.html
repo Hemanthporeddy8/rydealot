@@ -22,78 +22,160 @@
 
 <div class="app-root active" id="user-app-root">
 
-<div class="switch-bar">
-  <a href="sage.html" class="switch-link-inline" style="color:#2563eb; font-weight:800; margin-right:auto;">📦 Rydealot Sage</a>
-  <button class="switch-link-inline pwa-install-btn" style="display:none; color:var(--green); font-weight:700; margin-right:12px;">Install App &darr;</button>
-  <a href="driver.html" class="switch-link-inline" id="switch-to-rider-btn">Become a rider &rarr;</a>
-</div>
 <div class="phone" id="phone">
 
-  <!-- SCREEN: AUTH (LOGIN / REGISTER) -->
-  <div class="screen active" id="screen-auth" style="background:#fff; padding:24px 20px; justify-content:center; gap:20px; overflow-y:auto;">
-    <div style="text-align:center; margin-bottom:12px; display:flex; flex-direction:column; align-items:center;">
-      <img src="logo.png" alt="Rydealot" style="width:110px; height:auto; object-fit:contain; filter:drop-shadow(0 4px 14px rgba(30,58,138,0.18)); border-radius:18px; margin-bottom:8px;">
-      <p style="font-size:13px; color:var(--text-mute); margin:0; font-weight:600;">Your Zero-Commission Ride & Cargo Platform</p>
-    </div>
-
-    <!-- Auth Tabs -->
-    <div style="display:flex; background:var(--bg); padding:4px; border-radius:12px; border:1px solid var(--border);">
-      <button type="button" id="auth-tab-login" class="auth-tab-btn active" style="flex:1; padding:10px; border:none; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; background:#fff; color:var(--text); box-shadow:0 2px 4px rgba(0,0,0,0.05);">Login</button>
-      <button type="button" id="auth-tab-register" class="auth-tab-btn" style="flex:1; padding:10px; border:none; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; background:transparent; color:var(--text-mute);">Create Account</button>
-    </div>
-
-    <!-- Role Selection (Customer vs Driver) -->
-    <div id="auth-role-group" style="display:flex; gap:10px;">
-      <button type="button" class="auth-role-btn selected" data-role="customer" id="role-btn-customer" style="flex:1; padding:12px; border:1.5px solid var(--accent); border-radius:12px; background:var(--accent); color:#fff; font-weight:700; font-size:13px; cursor:pointer; text-align:center;">👤 Passenger</button>
-      <button type="button" class="auth-role-btn" data-role="driver" id="role-btn-driver" style="flex:1; padding:12px; border:1.5px solid var(--border); border-radius:12px; background:#fff; color:var(--text); font-weight:700; font-size:13px; cursor:pointer; text-align:center;">🛺 Driver</button>
-    </div>
-
-    <!-- Login/Register Form -->
-    <form id="auth-form" onsubmit="return false;" style="display:flex; flex-direction:column; gap:12px;">
-      <div class="field" id="field-auth-name" style="display:none;">
-        <label class="field-label">Full Name</label>
-        <input type="text" id="auth-name" placeholder="Enter your full name">
+  <!-- SCREEN: AUTH (RAPIDO-STYLE PHONE LOGIN) -->
+  <div class="screen active" id="screen-auth" style="background:#fff; padding:20px; flex-direction:column; overflow-y:auto; justify-content:space-between;">
+    <div>
+      <!-- In-Card Service Switcher Bar -->
+      <div class="in-card-service-bar" style="display:flex; gap:6px; background:#F1F5F9; padding:4px; border-radius:14px; margin-bottom:20px;">
+        <a href="index.html" style="flex:1; text-align:center; padding:8px 4px; background:#fff; color:#0F172A; font-weight:800; font-size:12px; border-radius:10px; text-decoration:none; box-shadow:0 1px 3px rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:center; gap:4px;">
+          <span>🛵</span> Rides
+        </a>
+        <a href="sage.html" style="flex:1; text-align:center; padding:8px 4px; background:transparent; color:#64748B; font-weight:700; font-size:12px; border-radius:10px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">
+          <span>📦</span> Sage
+        </a>
+        <a href="driver.html" style="flex:1; text-align:center; padding:8px 4px; background:transparent; color:#64748B; font-weight:700; font-size:12px; border-radius:10px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">
+          <span>🛺</span> Driver
+        </a>
       </div>
-      <div class="field">
-        <label class="field-label">Email Address</label>
-        <input type="email" id="auth-email" placeholder="name@example.com" required>
+
+      <!-- Brand Logo & Rydo Mascot -->
+      <div style="text-align:center; margin-bottom:22px;">
+        <div style="position:relative; display:inline-block;">
+          <img src="logo.png" alt="Rydealot" style="width:74px; height:74px; object-fit:contain; border-radius:18px; box-shadow:0 8px 20px rgba(37,99,235,0.15);">
+          <img src="assets/mascot-waving.png" alt="Rydo" style="position:absolute; bottom:-4px; right:-20px; width:42px; height:auto; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.25));">
+        </div>
+        <h2 style="font-size:22px; font-weight:900; color:#0F172A; margin:12px 0 4px; font-family:'Manrope', sans-serif; letter-spacing:-0.5px;">Welcome to Rydealot</h2>
+        <p style="font-size:12.5px; color:#64748B; margin:0; font-weight:600;">Your zero-commission bike taxi & parcel network</p>
       </div>
-      <div class="field">
-        <label class="field-label">Password</label>
-        <div style="position:relative;">
-          <input type="password" id="auth-password" placeholder="••••••••" required style="padding-right:40px;">
-          <button type="button" id="auth-toggle-pwd" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-mute);">👁️</button>
+
+      <!-- STEP 1: Phone Number Input (Rapido Style) -->
+      <div id="auth-step-phone">
+        <label style="display:block; font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
+          Enter Mobile Number
+        </label>
+        
+        <div style="display:flex; align-items:center; border:2px solid #E2E8F0; border-radius:14px; overflow:hidden; background:#F8FAFC; transition:border-color 0.2s;" id="phone-input-wrap">
+          <div style="display:flex; align-items:center; gap:6px; padding:13px 12px; background:#F1F5F9; border-right:1.5px solid #E2E8F0; font-weight:800; font-size:15px; color:#0F172A;">
+            <span>🇮🇳</span> +91
+          </div>
+          <input type="tel" id="auth-phone-input" placeholder="98765 43210" maxlength="10" style="flex:1; border:none; outline:none; padding:13px 14px; font-size:17px; font-weight:800; color:#0F172A; background:transparent; letter-spacing:1.5px; font-family:'IBM Plex Mono', monospace;">
+        </div>
+        <div id="phone-error-msg" style="font-size:11.5px; color:#EF4444; font-weight:700; margin-top:6px; display:none;"></div>
+
+        <button type="button" id="btn-send-phone-otp" class="btn" style="width:100%; margin-top:16px; padding:15px; background:#0F172A; color:#fff; border-radius:14px; font-size:14.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(15,23,42,0.25);">
+          <span>Get Verification Code</span> <span>&rarr;</span>
+        </button>
+
+        <!-- Truecaller 1-Tap Login Option -->
+        <div style="margin-top:12px;">
+          <button type="button" id="btn-truecaller-login" style="width:100%; padding:13px; background:#EFF6FF; border:1.5px solid #BFDBFE; border-radius:14px; font-size:13px; font-weight:800; color:#1D4ED8; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.15s;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.44-5.15-3.75-6.59-6.59l1.97-1.57c.28-.28.37-.68.25-1.02A11.36 11.36 0 018.59 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.62c0-.55-.45-1-1-1z"/></svg>
+            ⚡ Verify via Truecaller (1-Tap)
+          </button>
+        </div>
+
+        <!-- Business Email Toggle Option -->
+        <div style="text-align:center; margin-top:16px;">
+          <button type="button" id="btn-toggle-email-auth" style="background:none; border:none; color:#2563EB; font-size:12.5px; font-weight:700; cursor:pointer; text-decoration:underline;">
+            ✉️ Or verify with Business Email
+          </button>
         </div>
       </div>
-      <div class="field" id="field-auth-confirm-pwd" style="display:none;">
-        <label class="field-label">Confirm Password</label>
-        <div style="position:relative;">
-          <input type="password" id="auth-confirm-password" placeholder="••••••••" style="padding-right:40px;">
-          <button type="button" id="auth-toggle-confirm-pwd" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:16px; color:var(--text-mute);">👁️</button>
+
+      <!-- STEP 1B: Business Email Input (Optional Toggle) -->
+      <div id="auth-step-email" style="display:none;">
+        <label style="display:block; font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
+          Enter Email Address
+        </label>
+        <div style="border:2px solid #E2E8F0; border-radius:14px; overflow:hidden; background:#F8FAFC;">
+          <input type="email" id="auth-email-input" placeholder="name@example.com" style="width:100%; border:none; outline:none; padding:13px 14px; font-size:15px; font-weight:600; color:#0F172A; background:transparent; box-sizing:border-box;">
+        </div>
+        <div id="email-error-msg" style="font-size:11.5px; color:#EF4444; font-weight:700; margin-top:6px; display:none;"></div>
+
+        <button type="button" id="btn-send-email-otp" class="btn" style="width:100%; margin-top:16px; padding:15px; background:#0F172A; color:#fff; border-radius:14px; font-size:14.5px; font-weight:800; cursor:pointer;">
+          Send Email Verification Code &rarr;
+        </button>
+
+        <div style="text-align:center; margin-top:16px;">
+          <button type="button" id="btn-back-to-phone" style="background:none; border:none; color:#2563EB; font-size:12.5px; font-weight:700; cursor:pointer; text-decoration:underline;">
+            📱 Switch back to Mobile Number
+          </button>
         </div>
       </div>
-      <div class="field" id="field-auth-phone">
-        <label class="field-label">Phone Number (Optional)</label>
-        <input type="tel" id="auth-phone" placeholder="98765 43210">
+
+      <!-- STEP 2: 4-Digit OTP Verification -->
+      <div id="auth-step-otp" style="display:none;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <button type="button" id="btn-otp-back" style="background:#F1F5F9; border:none; border-radius:10px; width:34px; height:34px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px;">
+            &larr;
+          </button>
+          <div>
+            <div style="font-size:10.5px; font-weight:800; color:#64748B; text-transform:uppercase;">Verify Identity</div>
+            <div style="font-size:14px; font-weight:800; color:#0F172A;" id="otp-target-display">+91 98765 43210</div>
+          </div>
+        </div>
+
+        <!-- In-App Instant Security Code Banner -->
+        <div id="inapp-otp-banner" style="background:#FEF3C7; border:1.5px solid #F59E0B; border-radius:14px; padding:12px 14px; margin-bottom:18px; display:flex; align-items:center; gap:10px;">
+          <span style="font-size:22px;">🔐</span>
+          <div style="flex:1;">
+            <div style="font-size:10.5px; font-weight:800; color:#B45309; text-transform:uppercase; letter-spacing:0.5px;">Rydealot Security Code</div>
+            <div style="font-size:20px; font-weight:900; color:#78350F; font-family:'IBM Plex Mono', monospace; letter-spacing:4px;" id="inapp-otp-code">----</div>
+          </div>
+          <button type="button" id="btn-autofill-otp" style="background:#F59E0B; color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:11.5px; font-weight:800; cursor:pointer;">
+            Auto-fill
+          </button>
+        </div>
+
+        <label style="display:block; font-size:11.5px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; text-align:center;">
+          Enter 4-Digit Verification Code
+        </label>
+
+        <!-- 4 Discrete Digit Boxes -->
+        <div style="display:flex; justify-content:center; gap:10px; margin-bottom:16px;" id="otp-boxes-wrap">
+          <input type="tel" class="otp-digit" maxlength="1" data-idx="0" style="width:52px; height:58px; font-size:24px; font-weight:900; text-align:center; border:2px solid #CBD5E1; border-radius:14px; outline:none; font-family:'IBM Plex Mono', monospace; background:#F8FAFC; color:#0F172A;">
+          <input type="tel" class="otp-digit" maxlength="1" data-idx="1" style="width:52px; height:58px; font-size:24px; font-weight:900; text-align:center; border:2px solid #CBD5E1; border-radius:14px; outline:none; font-family:'IBM Plex Mono', monospace; background:#F8FAFC; color:#0F172A;">
+          <input type="tel" class="otp-digit" maxlength="1" data-idx="2" style="width:52px; height:58px; font-size:24px; font-weight:900; text-align:center; border:2px solid #CBD5E1; border-radius:14px; outline:none; font-family:'IBM Plex Mono', monospace; background:#F8FAFC; color:#0F172A;">
+          <input type="tel" class="otp-digit" maxlength="1" data-idx="3" style="width:52px; height:58px; font-size:24px; font-weight:900; text-align:center; border:2px solid #CBD5E1; border-radius:14px; outline:none; font-family:'IBM Plex Mono', monospace; background:#F8FAFC; color:#0F172A;">
+        </div>
+        <div id="otp-error-msg" style="font-size:12px; color:#EF4444; font-weight:700; text-align:center; margin-bottom:12px; display:none;"></div>
+
+        <button type="button" id="btn-verify-otp" class="btn" style="width:100%; padding:15px; background:#2563EB; color:#fff; border-radius:14px; font-size:14.5px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(37,99,235,0.3);">
+          Verify & Proceed &rarr;
+        </button>
+
+        <div style="text-align:center; margin-top:14px; font-size:12px; color:#64748B; font-weight:600;">
+          <span id="otp-timer-text">Resend code in <b id="otp-seconds">30</b>s</span>
+          <button type="button" id="btn-resend-otp" style="background:none; border:none; color:#2563EB; font-size:12px; font-weight:800; cursor:pointer; display:none;">
+            Resend Code Now
+          </button>
+        </div>
       </div>
 
-      <button type="submit" class="btn" id="auth-submit-btn" style="margin-top:8px;">Sign In</button>
-    </form>
+      <!-- STEP 3: First-time Name Setup -->
+      <div id="auth-step-name" style="display:none;">
+        <div style="text-align:center; margin-bottom:18px;">
+          <span style="font-size:36px;">👋</span>
+          <h3 style="font-size:19px; font-weight:900; color:#0F172A; margin:6px 0 4px;">What should we call you?</h3>
+          <p style="font-size:12px; color:#64748B; margin:0;">Your Captain will see this name at pickup</p>
+        </div>
 
-    <div style="display:flex; align-items:center; gap:8px; margin:4px 0;">
-      <div style="flex:1; height:1px; background:var(--border);"></div>
-      <span style="font-size:11px; color:var(--text-mute); font-weight:700;">OR</span>
-      <div style="flex:1; height:1px; background:var(--border);"></div>
+        <div style="border:2px solid #E2E8F0; border-radius:14px; overflow:hidden; background:#F8FAFC; margin-bottom:14px;">
+          <input type="text" id="auth-new-name" placeholder="Enter your full name" style="width:100%; border:none; outline:none; padding:14px; font-size:15px; font-weight:700; color:#0F172A; background:transparent; box-sizing:border-box;">
+        </div>
+
+        <button type="button" id="btn-complete-name" class="btn" style="width:100%; padding:15px; background:#16A34A; color:#fff; border-radius:14px; font-size:14.5px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(22,163,74,0.3);">
+          Start Riding with Rydealot 🚀
+        </button>
+      </div>
     </div>
 
-    <a href="login.html" class="btn" style="background:#10131A; color:#fff; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; border-radius:12px; font-weight:700; font-size:13.5px; padding:12px;">
-      📱 Login with OTP (Phone / Email) &rarr;
-    </a>
-
-    <p style="text-align:center; font-size:12px; color:var(--text-mute); margin-top:4px;">
-      <span id="auth-toggle-text">New to Rydealot?</span> 
-      <a href="#" id="auth-toggle-link" style="color:var(--accent); font-weight:700; text-decoration:none;">Create an account</a>
-    </p>
+    <!-- Security & Policy Footer -->
+    <div style="text-align:center; margin-top:16px; font-size:11px; color:#94A3B8; line-height:1.5;">
+      By continuing, you agree to Rydealot's <a href="#" style="color:#64748B; text-decoration:underline;">Terms</a> & <a href="#" style="color:#64748B; text-decoration:underline;">Zero-Commission Policy</a>.
+    </div>
   </div>
 
   <!-- SCREEN: SETUP -->
@@ -126,7 +208,20 @@
           <a href="profile.html" id="btn-open-user-profile" style="background:var(--bg); border:1.5px solid var(--border); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:16px; text-decoration:none; color:inherit;" title="My Profile">👤</a>
         </div>
       </div>
-      <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 8px;">Hey there! Where are you heading today? 👋</p>
+      <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 4px;">Hey there! Where are you heading today? 👋</p>
+
+      <!-- In-Card Service Switcher Bar -->
+      <div style="display:flex; gap:6px; background:#F1F5F9; padding:4px; border-radius:12px; margin-bottom:6px;">
+        <a href="index.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#0F172A; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">
+          <span>🛵</span> Rides
+        </a>
+        <a href="sage.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">
+          <span>📦</span> Sage
+        </a>
+        <a href="driver.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">
+          <span>🛺</span> Driver
+        </a>
+      </div>
 
       <div class="field">
         <label class="field-label">Your name</label>

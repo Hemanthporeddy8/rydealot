@@ -1,4 +1,4 @@
-var CACHE_NAME = 'rydealot-v18';
+var CACHE_NAME = 'rydealot-v19';
 var urlsToCache = [
   './',
   './index.html',
@@ -6,6 +6,7 @@ var urlsToCache = [
   './login.html',
   './profile.html',
   './offline.html',
+  './sandbox.html',
   './style.css',
   './app.js',
   './icon.svg',
@@ -15,7 +16,12 @@ var urlsToCache = [
   './assets/mascot-sage.png',
   './assets/mascot-waving.png',
   './assets/mascot-success.png',
-  './assets/mascot-moving.png'
+  './assets/mascot-moving.png',
+  './assets/mascot-offline.webp',
+  './assets/mascot-sage.webp',
+  './assets/mascot-waving.webp',
+  './assets/mascot-success.webp',
+  './assets/mascot-moving.webp'
 ];
 
 // Install: cache essential assets and offline fallback page

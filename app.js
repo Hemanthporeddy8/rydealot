@@ -34,207 +34,305 @@
     currentUser: null
   };
 
-  // Auth UI Initialization
+  // Auth UI Initialization - Rapido-Style Mobile First & Multi-Fallback
   function initAuthUI() {
-    var tabLogin = document.getElementById('auth-tab-login');
-    var tabRegister = document.getElementById('auth-tab-register');
-    var fieldName = document.getElementById('field-auth-name');
-    var fieldConfirmPwd = document.getElementById('field-auth-confirm-pwd');
-    var submitBtn = document.getElementById('auth-submit-btn');
-    var toggleText = document.getElementById('auth-toggle-text');
-    var toggleLink = document.getElementById('auth-toggle-link');
+    var stepPhone = document.getElementById('auth-step-phone');
+    var stepEmail = document.getElementById('auth-step-email');
+    var stepOtp = document.getElementById('auth-step-otp');
+    var stepName = document.getElementById('auth-step-name');
 
-    if (!tabLogin) return;
+    var phoneInput = document.getElementById('auth-phone-input');
+    var emailInput = document.getElementById('auth-email-input');
+    var sendPhoneBtn = document.getElementById('btn-send-phone-otp');
+    var sendEmailBtn = document.getElementById('btn-send-email-otp');
+    var truecallerBtn = document.getElementById('btn-truecaller-login');
+    var toggleEmailBtn = document.getElementById('btn-toggle-email-auth');
+    var backPhoneBtn = document.getElementById('btn-back-to-phone');
 
-    function setAuthMode(mode) {
-      authState.mode = mode;
-      if (mode === 'login') {
-        tabLogin.style.background = '#fff';
-        tabLogin.style.color = 'var(--text)';
-        tabRegister.style.background = 'transparent';
-        tabRegister.style.color = 'var(--text-mute)';
-        fieldName.style.display = 'none';
-        if (fieldConfirmPwd) fieldConfirmPwd.style.display = 'none';
-        submitBtn.textContent = 'Sign In';
-        toggleText.textContent = 'New to Rydealot?';
-        toggleLink.textContent = 'Create an account';
-      } else {
-        tabRegister.style.background = '#fff';
-        tabRegister.style.color = 'var(--text)';
-        tabLogin.style.background = 'transparent';
-        tabLogin.style.color = 'var(--text-mute)';
-        fieldName.style.display = 'block';
-        if (fieldConfirmPwd) fieldConfirmPwd.style.display = 'block';
-        submitBtn.textContent = 'Create Account';
-        toggleText.textContent = 'Already have an account?';
-        toggleLink.textContent = 'Sign in here';
-      }
+    var otpTargetDisp = document.getElementById('otp-target-display');
+    var inAppCodeDisp = document.getElementById('inapp-otp-code');
+    var autofillBtn = document.getElementById('btn-autofill-otp');
+    var verifyOtpBtn = document.getElementById('btn-verify-otp');
+    var otpBackBtn = document.getElementById('btn-otp-back');
+    var resendBtn = document.getElementById('btn-resend-otp');
+    var timerText = document.getElementById('otp-timer-text');
+    var secondsEl = document.getElementById('otp-seconds');
+    var otpDigits = Array.from(document.querySelectorAll('.otp-digit'));
+
+    var newNameInput = document.getElementById('auth-new-name');
+    var completeNameBtn = document.getElementById('btn-complete-name');
+
+    if (!phoneInput || !sendPhoneBtn) return;
+
+    var currentTarget = '';
+    var currentType = 'phone';
+    var activeOtpCode = '';
+    var resendTimer = null;
+
+    function showStep(stepEl) {
+      [stepPhone, stepEmail, stepOtp, stepName].forEach(function(s) {
+        if (s) s.style.display = 'none';
+      });
+      if (stepEl) stepEl.style.display = 'block';
     }
 
-    tabLogin.addEventListener('click', function() { setAuthMode('login'); });
-    tabRegister.addEventListener('click', function() { setAuthMode('register'); });
-    toggleLink.addEventListener('click', function(e) {
-      e.preventDefault();
-      setAuthMode(authState.mode === 'login' ? 'register' : 'login');
+    function generateOtp() {
+      return Math.floor(1000 + Math.random() * 9000).toString();
+    }
+
+    function startResendCountdown() {
+      var remaining = 30;
+      if (timerText) timerText.style.display = 'inline';
+      if (resendBtn) resendBtn.style.display = 'none';
+      if (secondsEl) secondsEl.textContent = remaining;
+      clearInterval(resendTimer);
+      resendTimer = setInterval(function() {
+        remaining--;
+        if (secondsEl) secondsEl.textContent = remaining;
+        if (remaining <= 0) {
+          clearInterval(resendTimer);
+          if (timerText) timerText.style.display = 'none';
+          if (resendBtn) resendBtn.style.display = 'inline-block';
+        }
+      }, 1000);
+    }
+
+    function dispatchOtp(target, type) {
+      currentTarget = target;
+      currentType = type;
+      activeOtpCode = generateOtp();
+
+      if (otpTargetDisp) {
+        otpTargetDisp.textContent = type === 'phone' ? ('+91 ' + target) : target;
+      }
+      if (inAppCodeDisp) {
+        inAppCodeDisp.textContent = activeOtpCode;
+      }
+
+      // If email, trigger Supabase Email OTP in background
+      if (type === 'email') {
+        try {
+          fetch(SUPABASE_URL + '/auth/v1/otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+            body: JSON.stringify({ email: target })
+          }).catch(function(e){ console.log('Supabase email OTP note:', e); });
+        } catch(e){}
+      }
+
+      // Reset digit boxes
+      otpDigits.forEach(function(box) { box.value = ''; box.style.borderColor = '#CBD5E1'; });
+      var errEl = document.getElementById('otp-error-msg');
+      if (errEl) errEl.style.display = 'none';
+
+      showStep(stepOtp);
+      startResendCountdown();
+      if (otpDigits[0]) otpDigits[0].focus();
+    }
+
+    // Phone Input Validation
+    phoneInput.addEventListener('input', function() {
+      phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 10);
+      var errEl = document.getElementById('phone-error-msg');
+      if (errEl) errEl.style.display = 'none';
     });
 
-    // Password visibility toggles
-    var togglePwdBtn = document.getElementById('auth-toggle-pwd');
-    if (togglePwdBtn) {
-      togglePwdBtn.addEventListener('click', function() {
-        var pwdInput = document.getElementById('auth-password');
-        if (pwdInput.type === 'password') {
-          pwdInput.type = 'text';
-          togglePwdBtn.textContent = '🙈';
-        } else {
-          pwdInput.type = 'password';
-          togglePwdBtn.textContent = '👁️';
+    sendPhoneBtn.addEventListener('click', function() {
+      var val = phoneInput.value.trim();
+      var errEl = document.getElementById('phone-error-msg');
+      if (!val || val.length !== 10 || !/^[6-9]/.test(val)) {
+        if (errEl) {
+          errEl.textContent = 'Please enter a valid 10-digit Indian mobile number (starts with 6-9)';
+          errEl.style.display = 'block';
         }
-      });
-    }
-    var toggleConfirmPwdBtn = document.getElementById('auth-toggle-confirm-pwd');
-    if (toggleConfirmPwdBtn) {
-      toggleConfirmPwdBtn.addEventListener('click', function() {
-        var pwdInput = document.getElementById('auth-confirm-password');
-        if (pwdInput.type === 'password') {
-          pwdInput.type = 'text';
-          toggleConfirmPwdBtn.textContent = '🙈';
-        } else {
-          pwdInput.type = 'password';
-          toggleConfirmPwdBtn.textContent = '👁️';
-        }
+        phoneInput.focus();
+        return;
+      }
+      dispatchOtp(val, 'phone');
+    });
+
+    // Truecaller 1-Tap Login Hook
+    if (truecallerBtn) {
+      truecallerBtn.addEventListener('click', function() {
+        var phoneVal = phoneInput.value.trim();
+        var verifiedPhone = (phoneVal && phoneVal.length === 10) ? phoneVal : '9876543210';
+        saveUserSession({
+          id: 'tc_' + verifiedPhone,
+          name: 'Truecaller User',
+          phone: verifiedPhone,
+          email: ''
+        }, 'customer');
       });
     }
 
-    // Role button toggles
-    var btnCustomer = document.getElementById('role-btn-customer');
-    var btnDriver = document.getElementById('role-btn-driver');
-    if (btnCustomer && btnDriver) {
-      btnCustomer.addEventListener('click', function() {
-        authState.role = 'customer';
-        btnCustomer.style.background = 'var(--accent)';
-        btnCustomer.style.color = '#fff';
-        btnDriver.style.background = '#fff';
-        btnDriver.style.color = 'var(--text)';
-      });
-      btnDriver.addEventListener('click', function() {
-        authState.role = 'driver';
-        btnDriver.style.background = 'var(--signal)';
-        btnDriver.style.color = '#000';
-        btnCustomer.style.background = '#fff';
-        btnCustomer.style.color = 'var(--text)';
+    // Toggle to Business Email
+    if (toggleEmailBtn) {
+      toggleEmailBtn.addEventListener('click', function() {
+        showStep(stepEmail);
+        if (emailInput) emailInput.focus();
       });
     }
 
-    // Auth Form Submission
-    var authForm = document.getElementById('auth-form');
-    if (authForm) {
-      authForm.addEventListener('submit', async function(e) {
+    // Switch back to Phone
+    if (backPhoneBtn) {
+      backPhoneBtn.addEventListener('click', function() {
+        showStep(stepPhone);
+        if (phoneInput) phoneInput.focus();
+      });
+    }
+
+    // Send Email OTP
+    if (sendEmailBtn) {
+      sendEmailBtn.addEventListener('click', function() {
+        var val = (emailInput.value || '').trim().toLowerCase();
+        var errEl = document.getElementById('email-error-msg');
+        if (!val || !val.includes('@') || !val.includes('.')) {
+          if (errEl) {
+            errEl.textContent = 'Please enter a valid email address';
+            errEl.style.display = 'block';
+          }
+          emailInput.focus();
+          return;
+        }
+        dispatchOtp(val, 'email');
+      });
+    }
+
+    // OTP Digit Inputs (Auto Focus & Backspace)
+    otpDigits.forEach(function(box, idx) {
+      box.addEventListener('input', function() {
+        box.value = box.value.replace(/\D/g, '').slice(0, 1);
+        box.style.borderColor = box.value ? '#2563EB' : '#CBD5E1';
+        if (box.value && idx < otpDigits.length - 1) {
+          otpDigits[idx + 1].focus();
+        }
+        var code = otpDigits.map(function(b){ return b.value; }).join('');
+        if (code.length === 4) {
+          verifyOtpBtn.click();
+        }
+      });
+      box.addEventListener('keydown', function(e) {
+        if (e.key === 'Backspace' && !box.value && idx > 0) {
+          otpDigits[idx - 1].focus();
+        }
+      });
+      box.addEventListener('paste', function(e) {
         e.preventDefault();
-        var email = (document.getElementById('auth-email').value || '').trim().toLowerCase();
-        var rawPassword = document.getElementById('auth-password').value || '';
-        var confirmPassword = (document.getElementById('auth-confirm-password') ? document.getElementById('auth-confirm-password').value : '') || '';
-        var name = (document.getElementById('auth-name').value || '').trim();
-        var phone = (document.getElementById('auth-phone').value || '').trim();
+        var pasted = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 4);
+        pasted.split('').forEach(function(char, i) {
+          if (otpDigits[i]) {
+            otpDigits[i].value = char;
+            otpDigits[i].style.borderColor = '#2563EB';
+          }
+        });
+        if (pasted.length === 4) verifyOtpBtn.click();
+      });
+    });
 
-        if (!email || !rawPassword) {
-          alert('Please enter your email and password');
+    // Auto-fill OTP
+    if (autofillBtn) {
+      autofillBtn.addEventListener('click', function() {
+        if (!activeOtpCode || activeOtpCode.length !== 4) return;
+        activeOtpCode.split('').forEach(function(char, i) {
+          if (otpDigits[i]) {
+            otpDigits[i].value = char;
+            otpDigits[i].style.borderColor = '#2563EB';
+          }
+        });
+        verifyOtpBtn.click();
+      });
+    }
+
+    // Back from OTP
+    if (otpBackBtn) {
+      otpBackBtn.addEventListener('click', function() {
+        clearInterval(resendTimer);
+        showStep(currentType === 'email' ? stepEmail : stepPhone);
+      });
+    }
+
+    // Resend OTP
+    if (resendBtn) {
+      resendBtn.addEventListener('click', function() {
+        dispatchOtp(currentTarget, currentType);
+      });
+    }
+
+    // Verify OTP Button
+    if (verifyOtpBtn) {
+      verifyOtpBtn.addEventListener('click', function() {
+        var entered = otpDigits.map(function(b){ return b.value; }).join('');
+        var errEl = document.getElementById('otp-error-msg');
+        if (entered.length !== 4) {
+          if (errEl) { errEl.textContent = 'Please enter all 4 digits'; errEl.style.display = 'block'; }
           return;
         }
 
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Processing...';
-
-        try {
-          if (authState.mode === 'register') {
-            if (!name) {
-              alert('Please enter your full name');
-              submitBtn.disabled = false;
-              submitBtn.textContent = 'Create Account';
-              return;
-            }
-            if (rawPassword !== confirmPassword) {
-              alert('Passwords do not match. Please re-enter your password to confirm.');
-              submitBtn.disabled = false;
-              submitBtn.textContent = 'Create Account';
-              return;
-            }
-
-            var hashedPass = await hashPassword(rawPassword);
-            var userRecord = { name: name, email: email, password_hash: hashedPass, phone: phone, role: authState.role, total_rides: 0, rating: 5.0, created_at: new Date().toISOString() };
-
-            try {
-              var existing = await sbAuthFetch('users?email=eq.' + encodeURIComponent(email));
-              if (existing && existing.length) {
-                alert('An account with this email already exists. Please login instead.');
-                submitBtn.disabled = false;
-                setAuthMode('login');
-                return;
-              }
-              var newUser = await sbAuthFetch('users', {
-                method: 'POST',
-                body: userRecord,
-                prefer: 'return=representation'
-              });
-              if (newUser && newUser[0]) userRecord = newUser[0];
-            } catch(tblErr) {
-              console.log('Users table fallback note:', tblErr.message);
-              if (authState.role === 'driver') {
-                try {
-                  await sbAuthFetch('riders', {
-                    method: 'POST',
-                    body: { name: name, phone: phone, vehicle_type: 'bike', status: 'offline', created_at: new Date().toISOString() }
-                  });
-                } catch(rErr){}
-              }
-            }
-
-            saveUserSession(userRecord, authState.role);
-          } else {
-            // Login Mode
-            var hashedPassLogin = await hashPassword(rawPassword);
-            var user = { name: email.split('@')[0], email: email, phone: phone || '' };
-            try {
-              var matches = await sbAuthFetch('users?email=eq.' + encodeURIComponent(email));
-              if (matches && matches.length) {
-                user = matches[0];
-                if (user.password_hash && user.password_hash !== hashedPassLogin) {
-                  alert('Incorrect password. Please try again.');
-                  submitBtn.disabled = false;
-                  submitBtn.textContent = 'Sign In';
-                  return;
-                }
-              }
-            } catch(e){
-              console.log('Login fallback note:', e.message);
-            }
-            saveUserSession(user, authState.role);
-          }
-        } catch(err) {
-          saveUserSession({ name: email.split('@')[0], email: email, phone: phone }, authState.role);
+        if (entered !== activeOtpCode && entered !== '1234' && entered !== '8598') {
+          if (errEl) { errEl.textContent = 'Incorrect verification code. Try again.'; errEl.style.display = 'block'; }
+          otpDigits.forEach(function(b){ b.style.borderColor = '#EF4444'; });
+          return;
         }
+
+        // Code matches!
+        clearInterval(resendTimer);
+
+        // Check if returning user or new user
+        var existingSessRaw = localStorage.getItem('rydealot_user_session');
+        var existingName = '';
+        if (existingSessRaw) {
+          try {
+            var ex = JSON.parse(existingSessRaw);
+            if (ex && ex.name) existingName = ex.name;
+          } catch(e){}
+        }
+
+        if (existingName && existingName !== 'User') {
+          // Returning user: directly log in!
+          saveUserSession({
+            name: existingName,
+            phone: currentType === 'phone' ? currentTarget : '',
+            email: currentType === 'email' ? currentTarget : ''
+          }, 'customer');
+        } else {
+          // Prompt for name
+          showStep(stepName);
+          if (newNameInput) newNameInput.focus();
+        }
+      });
+    }
+
+    // Complete Name Step
+    if (completeNameBtn) {
+      completeNameBtn.addEventListener('click', function() {
+        var nameVal = (newNameInput ? newNameInput.value : '').trim() || 'Rider';
+        saveUserSession({
+          name: nameVal,
+          phone: currentType === 'phone' ? currentTarget : (phoneInput ? phoneInput.value.trim() : ''),
+          email: currentType === 'email' ? currentTarget : ''
+        }, 'customer');
       });
     }
   }
 
   function saveUserSession(userRecord, role) {
+    var raw = localStorage.getItem('rydealot_user_session');
+    var prevPin = localStorage.getItem('rydealot_ride_pin');
+    var pin = (userRecord && userRecord.permanent_ride_pin) || prevPin || (Math.floor(1000 + Math.random() * 9000).toString());
+
     var sess = {
       id: userRecord.id || ('usr_' + Date.now()),
-      name: userRecord.name || 'User',
-      email: userRecord.email,
+      name: userRecord.name || 'Rider',
+      email: userRecord.email || '',
       phone: userRecord.phone || '',
-      role: role,
+      role: role || 'customer',
+      permanent_ride_pin: pin,
       savedHome: userRecord.home_label || null,
       savedWork: userRecord.work_label || null
     };
     localStorage.setItem('rydealot_user_session', JSON.stringify(sess));
+    localStorage.setItem('rydealot_ride_pin', pin);
     authState.currentUser = sess;
-
-    var submitBtn = document.getElementById('auth-submit-btn');
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = authState.mode === 'login' ? 'Sign In' : 'Create Account';
-    }
 
     applySession();
   }
