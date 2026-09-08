@@ -171,6 +171,10 @@
 
         var nameInput = document.getElementById('login-name');
         if (nameInput) nameInput.value = sess.name || '';
+        if (typeof state !== 'undefined') state.userName = sess.name || '';
+        try {
+          localStorage.setItem('rydealot_user', JSON.stringify({ name: sess.name, phone: sess.phone, email: sess.email }));
+        } catch(e){}
 
         var pName = document.getElementById('prof-name');
         var pEmail = document.getElementById('prof-email');
@@ -4050,7 +4054,7 @@
   })();
 
   document.getElementById('login-btn').addEventListener('click', async function(){
-    var name = document.getElementById('login-name').value.trim();
+    var name = document.getElementById('login-name').value.trim() || (authState.currentUser && authState.currentUser.name) || 'Rider';
     var pickup = document.getElementById('pickup-input').value.trim();
     var drop = document.getElementById('drop-input').value.trim();
     if(!name){
