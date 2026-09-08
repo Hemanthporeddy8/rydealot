@@ -241,6 +241,7 @@
 
   <div class="tabs">
     <button class="tab active" onclick="showPanel('drivers', this)">🏍️ Drivers</button>
+    <button class="tab" onclick="showPanel('users', this)">👥 Registered Users</button>
     <button class="tab" onclick="showPanel('map', this)">🗺️ Fleet God View</button>
     <button class="tab" onclick="showPanel('ratings', this)">⭐ Ratings & Quality</button>
     <button class="tab" onclick="showPanel('verification', this)">📄 Verification</button>
@@ -279,6 +280,36 @@
       </thead>
       <tbody id="drivers-tbody">
         <tr><td colspan="7" class="loading">Loading drivers...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== REGISTERED USERS PANEL ===== -->
+<div class="panel" id="panel-users">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="stat-total-users">-</div><div class="stat-label">Total Users</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-customers-count">-</div><div class="stat-label">Customer Profiles</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-active-today">-</div><div class="stat-label">Active Recently</div></div>
+  </div>
+  <div class="toolbar">
+    <button class="btn btn-amber" onclick="loadUsers()">↺ Refresh Users</button>
+    <input class="search-input" type="text" id="user-search" placeholder="Search user name, email, or plate..." oninput="filterUsers()">
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>User Name</th>
+          <th>Account Details / Email</th>
+          <th>User Identifier / Plate</th>
+          <th>Status</th>
+          <th>Last Seen</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="users-tbody">
+        <tr><td colspan="6" class="loading">Loading registered users...</td></tr>
       </tbody>
     </table>
   </div>
@@ -899,6 +930,7 @@
 
     try {
       if(name === 'drivers') loadDrivers();
+      if(name === 'users') loadUsers();
       if(name === 'map') loadGodViewMap();
       if(name === 'ratings') loadRatingsAndFeedback();
       if(name === 'verification') loadVerificationData();
@@ -1195,6 +1227,86 @@
     a.click();
     document.body.removeChild(a);
     toast("✅ Excel CSV Report downloaded successfully!");
+  };
+
+  // ===== REGISTERED USERS ENGINE =====
+  var allUsersCache = [];
+
+  window.loadUsers = async function() {
+    var tbody = document.getElementById('users-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Fetching registered users from database...</td></tr>';
+    
+    try {
+      var rows = await sb('riders?select=*&order=updated_at.desc');
+      if (!Array.isArray(rows)) rows = [];
+      
+      var customerUsers = rows.filter(function(r) {
+        return (r.plate && r.plate.startsWith('CUST')) || 
+               (r.vehicle_label && r.vehicle_label.toLowerCase().includes('user:')) ||
+               (r.vehicle_label && r.vehicle_label.toLowerCase().includes('customer'));
+      });
+      
+      if (customerUsers.length === 0) customerUsers = rows;
+      allUsersCache = customerUsers;
+      renderUsers(customerUsers);
+
+      var totalEl = document.getElementById('stat-total-users');
+      var custEl = document.getElementById('stat-customers-count');
+      var activeEl = document.getElementById('stat-active-today');
+      if (totalEl) totalEl.textContent = customerUsers.length;
+      if (custEl) custEl.textContent = customerUsers.length;
+      if (activeEl) activeEl.textContent = customerUsers.filter(function(u){ 
+        return u.updated_at && (Date.now() - new Date(u.updated_at).getTime() < 24*60*60*1000); 
+      }).length;
+    } catch(err) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:var(--red); text-align:center;">Failed to load users: ' + (err.message || 'Network error') + '</td></tr>';
+    }
+  };
+
+  function renderUsers(list) {
+    var tbody = document.getElementById('users-tbody');
+    if (!tbody) return;
+    if (!list || list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--mute); padding:24px;">No registered users found yet.</td></tr>';
+      return;
+    }
+    
+    var html = '';
+    list.forEach(function(u) {
+      var email = u.vehicle_label ? u.vehicle_label.replace(/^User:\s*/i, '') : (u.phone || '—');
+      var lastSeen = u.updated_at ? new Date(u.updated_at).toLocaleString() : 'Recent';
+      html += '<tr>' +
+        '<td><strong>' + (u.name || 'Anonymous User') + '</strong></td>' +
+        '<td>' + email + '</td>' +
+        '<td><span class="badge" style="background:#1e293b; color:#38bdf8;">' + (u.plate || 'CUST') + '</span></td>' +
+        '<td><span class="badge badge-green">1-Tap Verified</span></td>' +
+        '<td style="font-size:0.8rem; color:var(--mute);">' + lastSeen + '</td>' +
+        '<td><button class="btn btn-mute" style="padding:4px 8px; font-size:0.75rem;" onclick="deleteUserRow(\'' + u.id + '\')">🗑 Remove</button></td>' +
+      '</tr>';
+    });
+    tbody.innerHTML = html;
+  }
+
+  window.filterUsers = function() {
+    var q = (document.getElementById('user-search').value || '').toLowerCase();
+    var filtered = allUsersCache.filter(function(u) {
+      return (u.name || '').toLowerCase().includes(q) ||
+             (u.vehicle_label || '').toLowerCase().includes(q) ||
+             (u.plate || '').toLowerCase().includes(q);
+    });
+    renderUsers(filtered);
+  };
+
+  window.deleteUserRow = async function(id) {
+    if (!confirm('Are you sure you want to remove this user from the database?')) return;
+    try {
+      await sb('riders?id=eq.' + id, { method: 'DELETE' });
+      toast('User removed from database');
+      loadUsers();
+    } catch(err) {
+      toast('Error deleting user: ' + err.message);
+    }
   };
 
   // ===== 5. 🚨 SOS EMERGENCY ALERT ENGINE =====

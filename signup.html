@@ -25,7 +25,7 @@
     --error-bg: #FEF2F2;
     --success: #10B981;
     --success-bg: #ECFDF5;
-    --radius: 14px;
+    --radius: 16px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -43,11 +43,11 @@
 
   .auth-shell {
     width: 100%;
-    max-width: 420px;
+    max-width: 400px;
     background: var(--card-bg);
     border: 1.5px solid var(--line);
     border-radius: 24px;
-    padding: 36px 28px;
+    padding: 38px 28px 30px;
     box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
     position: relative;
     overflow: hidden;
@@ -55,7 +55,7 @@
 
   .brand-header {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
   }
   .brand-logo-wrap {
     display: inline-flex;
@@ -65,8 +65,8 @@
     margin-bottom: 12px;
   }
   .brand-logo {
-    width: 58px;
-    height: 58px;
+    width: 60px;
+    height: 60px;
     border-radius: 16px;
     object-fit: cover;
     box-shadow: 0 4px 14px rgba(37, 99, 235, 0.18);
@@ -75,7 +75,7 @@
     position: absolute;
     bottom: -6px;
     right: -16px;
-    width: 32px;
+    width: 34px;
     height: auto;
     filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
   }
@@ -99,7 +99,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
   }
   .google-wrap {
     width: 100%;
@@ -112,104 +112,20 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    padding: 12px 16px;
+    padding: 13px 16px;
     background: #1877F2;
     color: #FFFFFF;
     border: none;
     border-radius: 12px;
-    font-size: 14px;
+    font-size: 14.5px;
     font-weight: 700;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(24, 119, 242, 0.25);
+    box-shadow: 0 2px 8px rgba(24, 119, 242, 0.25);
     transition: background 0.15s ease, transform 0.1s ease;
   }
   .btn-facebook:hover { background: #166FE5; }
   .btn-facebook:active { transform: scale(0.99); }
-
-  /* Divider */
-  .divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 20px 0;
-  }
-  .divider-line {
-    flex: 1;
-    height: 1px;
-    background: var(--line);
-  }
-  .divider-text {
-    font-size: 11px;
-    font-weight: 800;
-    color: var(--ink-soft);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  /* Form Fields */
-  .form-group {
-    margin-bottom: 16px;
-  }
-  .form-label {
-    display: block;
-    font-size: 12.5px;
-    font-weight: 700;
-    color: var(--ink);
-    margin-bottom: 6px;
-  }
-  .form-input-wrap {
-    position: relative;
-  }
-  .form-input {
-    width: 100%;
-    padding: 13px 14px;
-    background: #F8FAFC;
-    border: 1.5px solid var(--line);
-    border-radius: var(--radius);
-    font-size: 14.5px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    color: var(--ink);
-    outline: none;
-    transition: border-color 0.15s ease, background 0.15s ease;
-  }
-  .form-input:focus {
-    border-color: var(--accent);
-    background: #FFFFFF;
-  }
-  .form-input::placeholder {
-    color: #94A3B8;
-    font-weight: 400;
-  }
-
-  /* Primary Button */
-  .btn-primary {
-    width: 100%;
-    padding: 14px 16px;
-    background: var(--ink);
-    color: #FFFFFF;
-    border: none;
-    border-radius: var(--radius);
-    font-size: 15px;
-    font-weight: 800;
-    font-family: 'Manrope', sans-serif;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: background 0.15s ease, transform 0.1s ease;
-    margin-top: 20px;
-  }
-  .btn-primary:hover { background: #1E293B; }
-  .btn-primary:active { transform: scale(0.99); }
-  .btn-primary:disabled {
-    background: #CBD5E1;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
 
   /* Status message banner */
   .status-box {
@@ -220,8 +136,10 @@
     font-weight: 600;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     animation: fadeIn 0.2s ease;
+    text-align: center;
   }
   .status-box.error {
     background: var(--error-bg);
@@ -238,35 +156,27 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Footer Switcher */
-  .auth-footer {
-    text-align: center;
-    margin-top: 24px;
-    padding-top: 18px;
+  /* Trust & Security Notes */
+  .trust-footer {
+    margin-top: 26px;
+    padding-top: 20px;
     border-top: 1px solid var(--line);
-    font-size: 13px;
+    text-align: center;
+    font-size: 12px;
     color: var(--ink-soft);
-    font-weight: 500;
+    line-height: 1.6;
   }
-  .auth-footer a {
-    color: var(--accent);
-    font-weight: 800;
-    text-decoration: none;
+  .trust-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    color: #10B981;
+    background: #ECFDF5;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 8px;
   }
-  .auth-footer a:hover {
-    text-decoration: underline;
-  }
-
-  .spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #FFFFFF;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    display: inline-block;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -285,8 +195,8 @@
       <img src="logo.png" alt="Rydealot" class="brand-logo">
       <img src="assets/mascot-waving.png" alt="Rydo" class="brand-mascot">
     </div>
-    <h1 class="brand-title">Create an account</h1>
-    <p class="brand-subtitle">Join Rydealot for fast, zero-commission bike taxis and instant parcel delivery</p>
+    <h1 class="brand-title">Create your account</h1>
+    <p class="brand-subtitle">Join Rydealot in 1-Tap. No passwords to remember, no OTP delays.</p>
   </div>
 
   <!-- Social 1-Tap Stack -->
@@ -300,7 +210,7 @@
            data-text="signup_with"
            data-size="large"
            data-logo_alignment="left"
-           data-width="360">
+           data-width="344">
       </div>
     </div>
 
@@ -311,53 +221,21 @@
     </button>
   </div>
 
-  <!-- Divider -->
-  <div class="divider">
-    <div class="divider-line"></div>
-    <span class="divider-text">or create with email</span>
-    <div class="divider-line"></div>
-  </div>
+  <!-- Status Alert Banner -->
+  <div id="status-box" class="status-box" style="display:none;"></div>
 
-  <!-- Registration Form -->
-  <form id="signup-form" onsubmit="handleEmailSignup(event)">
-    <div class="form-group">
-      <label class="form-label" for="name-input">Full name</label>
-      <div class="form-input-wrap">
-        <input type="text" id="name-input" class="form-input" placeholder="e.g. Rahul Sharma" required autocomplete="name">
-      </div>
+  <!-- Trust & Privacy Footer -->
+  <div class="trust-footer">
+    <div class="trust-pill">
+      <span>🔒</span> 100% Free &amp; Secure 1-Tap Registration
     </div>
-
-    <div class="form-group">
-      <label class="form-label" for="email-input">Email address</label>
-      <div class="form-input-wrap">
-        <input type="email" id="email-input" class="form-input" placeholder="you@example.com" required autocomplete="email">
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label" for="password-input">Create password</label>
-      <div class="form-input-wrap">
-        <input type="password" id="password-input" class="form-input" placeholder="At least 6 characters" minlength="6" required autocomplete="new-password">
-      </div>
-    </div>
-
-    <button type="submit" class="btn-primary" id="btn-submit">
-      <span id="btn-submit-text">Create Account &rarr;</span>
-      <span id="btn-submit-spinner" class="spinner" style="display:none;"></span>
-    </button>
-
-    <div id="status-box" class="status-box" style="display:none;"></div>
-  </form>
-
-  <!-- Footer Link to Login -->
-  <div class="auth-footer">
-    Already have an account? <a href="login.html">Sign in here</a>
+    <div>Your verified profile is instantly set up via Google or Facebook.</div>
   </div>
 </div>
 
 <script>
 /* =========================================================================
-   RYDEALOT AUTH ENGINE: SIGNUP
+   RYDEALOT 1-TAP AUTH ENGINE: SIGNUP
    ========================================================================= */
 const SUPABASE_URL = "https://wupndimumeugfjxzejlj.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y";
@@ -366,9 +244,6 @@ const urlParams = new URLSearchParams(window.location.search);
 const redirectTarget = urlParams.get('redirect') || 'index.html';
 
 const statusBox = document.getElementById('status-box');
-const submitBtn = document.getElementById('btn-submit');
-const submitBtnText = document.getElementById('btn-submit-text');
-const submitBtnSpinner = document.getElementById('btn-submit-spinner');
 
 function showStatus(msg, isSuccess) {
   statusBox.textContent = msg;
@@ -377,12 +252,6 @@ function showStatus(msg, isSuccess) {
 }
 function hideStatus() {
   statusBox.style.display = 'none';
-}
-
-function setButtonLoading(loading) {
-  submitBtn.disabled = loading;
-  submitBtnText.style.display = loading ? 'none' : 'inline';
-  submitBtnSpinner.style.display = loading ? 'inline-block' : 'none';
 }
 
 // ── Sync User Record to Supabase ──
@@ -413,7 +282,7 @@ async function syncUserToDatabase(user) {
 
 // ── Complete Login Session and Redirect ──
 async function completeAuth(user) {
-  showStatus(`Account created! Welcome, ${user.name}! Redirecting…`, true);
+  showStatus(`Welcome, ${user.name}! Redirecting…`, true);
   
   // 1. Sync to Supabase in background
   syncUserToDatabase(user);
@@ -426,13 +295,13 @@ async function completeAuth(user) {
     phone: user.phone || '',
     avatar: user.avatar || '',
     role: 'customer',
-    auth_provider: user.provider || 'email'
+    auth_provider: user.provider || 'google'
   };
   localStorage.setItem('rydealot_user_session', JSON.stringify(session));
 
   setTimeout(() => {
     window.location.href = redirectTarget;
-  }, 900);
+  }, 800);
 }
 
 // ── 1. Google 1-Tap / Sign-In Handler ──
@@ -468,18 +337,6 @@ window.handleGoogleResponse = async function(response) {
     avatar: payload.picture || '',
     provider: 'google'
   };
-
-  // Save to registered users list
-  let users = [];
-  try {
-    const stored = localStorage.getItem('rydealot_registered_users');
-    if (stored) users = JSON.parse(stored);
-  } catch(e) {}
-  if (!users.some(u => u.email === user.email)) {
-    users.push(user);
-    localStorage.setItem('rydealot_registered_users', JSON.stringify(users));
-  }
-
   await completeAuth(user);
 };
 
@@ -513,82 +370,12 @@ function loginWithFacebook() {
           avatar: profile.picture?.data?.url || '',
           provider: 'facebook'
         };
-
-        // Save to registered users list
-        let users = [];
-        try {
-          const stored = localStorage.getItem('rydealot_registered_users');
-          if (stored) users = JSON.parse(stored);
-        } catch(e) {}
-        if (!users.some(u => u.email === user.email)) {
-          users.push(user);
-          localStorage.setItem('rydealot_registered_users', JSON.stringify(users));
-        }
-
         await completeAuth(user);
       });
     } else {
-      showStatus("Facebook sign-up was cancelled.", false);
+      showStatus("Facebook sign-in was cancelled.", false);
     }
   }, { scope: 'public_profile,email' });
-}
-
-// ── 3. Email & Password Registration ──
-async function handleEmailSignup(event) {
-  event.preventDefault();
-  hideStatus();
-
-  const name = document.getElementById('name-input').value.trim();
-  const email = document.getElementById('email-input').value.trim().toLowerCase();
-  const password = document.getElementById('password-input').value;
-
-  if (!name) {
-    showStatus("Please enter your full name.", false);
-    return;
-  }
-  if (!email) {
-    showStatus("Please enter your email address.", false);
-    return;
-  }
-  if (!password || password.length < 6) {
-    showStatus("Password must be at least 6 characters.", false);
-    return;
-  }
-
-  setButtonLoading(true);
-
-  try {
-    let users = [];
-    try {
-      const stored = localStorage.getItem('rydealot_registered_users');
-      if (stored) users = JSON.parse(stored);
-    } catch(e) {}
-
-    const existingUser = users.find(u => u.email === email);
-    if (existingUser) {
-      showStatus("An account with this email already exists. Redirecting to login…", false);
-      setTimeout(() => {
-        window.location.href = 'login.html';
-      }, 1500);
-      return;
-    }
-
-    const newUser = {
-      id: 'usr_' + Date.now(),
-      name: name,
-      email: email,
-      password: password,
-      provider: 'email'
-    };
-
-    users.push(newUser);
-    localStorage.setItem('rydealot_registered_users', JSON.stringify(users));
-
-    await completeAuth(newUser);
-  } catch (err) {
-    showStatus(err.message || "Registration failed. Please try again.", false);
-    setButtonLoading(false);
-  }
 }
 </script>
 </body>
