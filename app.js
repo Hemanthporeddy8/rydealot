@@ -34,362 +34,16 @@
     currentUser: null
   };
 
-  // Auth UI Initialization - Rapido-Style Mobile First & Multi-Fallback
+  // Auth UI & App Header Initialization
   function initAuthUI() {
-    var stepPhone = document.getElementById('auth-step-phone');
-    var stepEmail = document.getElementById('auth-step-email');
-    var stepOtp = document.getElementById('auth-step-otp');
-    var stepName = document.getElementById('auth-step-name');
-
-    var phoneInput = document.getElementById('auth-phone-input');
-    var emailInput = document.getElementById('auth-email-input');
-    var sendPhoneBtn = document.getElementById('btn-send-phone-otp');
-    var sendEmailBtn = document.getElementById('btn-send-email-otp');
-    var truecallerBtn = document.getElementById('btn-truecaller-login');
-    var toggleEmailBtn = document.getElementById('btn-toggle-email-auth');
-    var backPhoneBtn = document.getElementById('btn-back-to-phone');
-
-    var otpTargetDisp = document.getElementById('otp-target-display');
-    var inAppCodeDisp = document.getElementById('inapp-otp-code');
-    var autofillBtn = document.getElementById('btn-autofill-otp');
-    var verifyOtpBtn = document.getElementById('btn-verify-otp');
-    var otpBackBtn = document.getElementById('btn-otp-back');
-    var resendBtn = document.getElementById('btn-resend-otp');
-    var timerText = document.getElementById('otp-timer-text');
-    var secondsEl = document.getElementById('otp-seconds');
-    var otpDigits = Array.from(document.querySelectorAll('.otp-digit'));
-
-    var newNameInput = document.getElementById('auth-new-name');
-    var completeNameBtn = document.getElementById('btn-complete-name');
-
-    if (!phoneInput || !sendPhoneBtn) return;
-
-    var currentTarget = '';
-    var currentType = 'phone';
-    var activeOtpCode = '';
-    var resendTimer = null;
-
-    function showStep(stepEl) {
-      [stepPhone, stepEmail, stepOtp, stepName].forEach(function(s) {
-        if (s) s.style.display = 'none';
-      });
-      if (stepEl) stepEl.style.display = 'block';
-    }
-
-    function generateOtp() {
-      return Math.floor(1000 + Math.random() * 9000).toString();
-    }
-
-    function startResendCountdown() {
-      var remaining = 30;
-      if (timerText) timerText.style.display = 'inline';
-      if (resendBtn) resendBtn.style.display = 'none';
-      if (secondsEl) secondsEl.textContent = remaining;
-      clearInterval(resendTimer);
-      resendTimer = setInterval(function() {
-        remaining--;
-        if (secondsEl) secondsEl.textContent = remaining;
-        if (remaining <= 0) {
-          clearInterval(resendTimer);
-          if (timerText) timerText.style.display = 'none';
-          if (resendBtn) resendBtn.style.display = 'inline-block';
+    var logoutBtn = document.getElementById('btn-app-logout');
+    if (logoutBtn) {
+      logoutBtn.onclick = function() {
+        if (confirm('Are you sure you want to log out of Rydealot?')) {
+          localStorage.removeItem('rydealot_user_session');
+          window.location.href = 'login.html';
         }
-      }, 1000);
-    }
-
-    function dispatchOtp(target, type) {
-      currentTarget = target;
-      currentType = type;
-      activeOtpCode = generateOtp();
-
-      if (otpTargetDisp) {
-        otpTargetDisp.textContent = type === 'phone' ? ('+91 ' + target) : target;
-      }
-      if (inAppCodeDisp) {
-        inAppCodeDisp.textContent = activeOtpCode;
-      }
-
-      // If email, trigger Supabase Email OTP in background
-      if (type === 'email') {
-        try {
-          fetch(SUPABASE_URL + '/auth/v1/otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-            body: JSON.stringify({ email: target })
-          }).catch(function(e){ console.log('Supabase email OTP note:', e); });
-        } catch(e){}
-      }
-
-      // Reset digit boxes
-      otpDigits.forEach(function(box) { box.value = ''; box.style.borderColor = '#CBD5E1'; });
-      var errEl = document.getElementById('otp-error-msg');
-      if (errEl) errEl.style.display = 'none';
-
-      showStep(stepOtp);
-      startResendCountdown();
-      if (otpDigits[0]) otpDigits[0].focus();
-    }
-
-    // Phone Input Validation
-    phoneInput.addEventListener('input', function() {
-      phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 10);
-      var errEl = document.getElementById('phone-error-msg');
-      if (errEl) errEl.style.display = 'none';
-    });
-
-    sendPhoneBtn.addEventListener('click', function() {
-      var val = phoneInput.value.trim();
-      var errEl = document.getElementById('phone-error-msg');
-      if (!val || val.length !== 10 || !/^[6-9]/.test(val)) {
-        if (errEl) {
-          errEl.textContent = 'Please enter a valid 10-digit Indian mobile number (starts with 6-9)';
-          errEl.style.display = 'block';
-        }
-        phoneInput.focus();
-        return;
-      }
-      dispatchOtp(val, 'phone');
-    });
-
-    // Truecaller 1-Tap Login Hook
-    if (truecallerBtn) {
-      truecallerBtn.addEventListener('click', function() {
-        var phoneVal = phoneInput.value.trim();
-        var verifiedPhone = (phoneVal && phoneVal.length === 10) ? phoneVal : '9876543210';
-        saveUserSession({
-          id: 'tc_' + verifiedPhone,
-          name: 'Truecaller User',
-          phone: verifiedPhone,
-          email: ''
-        }, 'customer');
-      });
-    }
-
-    // Google 1-Tap Login Integration
-    var google1TapBtn = document.getElementById('btn-google-1tap');
-    var GOOGLE_CLIENT_ID = "889345672190-rydealot-auth.apps.googleusercontent.com";
-
-    function handleGoogleCredentialResponse(response) {
-      try {
-        var base64Url = response.credential.split('.')[1];
-        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        var user = JSON.parse(jsonPayload);
-        
-        saveUserSession({
-          id: 'g_' + (user.sub || Date.now()),
-          name: user.name || 'Google Rider',
-          email: user.email || '',
-          avatar: user.picture || ''
-        }, 'customer');
-      } catch(e) {
-        console.error('Google token parse note:', e);
-      }
-    }
-
-    function initGoogleOneTap() {
-      if (typeof window.google !== 'undefined' && window.google.accounts && window.google.accounts.id) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: handleGoogleCredentialResponse,
-            auto_select: false,
-            cancel_on_tap_outside: true
-          });
-          window.google.accounts.id.prompt();
-        } catch(gErr) {
-          console.log('Google 1-Tap init note:', gErr);
-        }
-      }
-    }
-
-    if (typeof window.google !== 'undefined') {
-      initGoogleOneTap();
-    } else {
-      window.addEventListener('load', function() {
-        setTimeout(initGoogleOneTap, 600);
-      });
-    }
-
-    if (google1TapBtn) {
-      google1TapBtn.addEventListener('click', function() {
-        if (typeof window.google !== 'undefined' && window.google.accounts && window.google.accounts.id) {
-          window.google.accounts.id.prompt(function(notification) {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              var mockName = prompt('Enter your Name for Google 1-Tap Login:', 'Google Rider');
-              if (mockName) {
-                saveUserSession({
-                  id: 'g_' + Date.now(),
-                  name: mockName,
-                  email: 'rider@gmail.com',
-                  avatar: ''
-                }, 'customer');
-              }
-            }
-          });
-        } else {
-          var mockName = prompt('Enter your Name for Google 1-Tap Login:', 'Google Rider');
-          if (mockName) {
-            saveUserSession({
-              id: 'g_' + Date.now(),
-              name: mockName,
-              email: 'rider@gmail.com',
-              avatar: ''
-            }, 'customer');
-          }
-        }
-      });
-    }
-
-    // Toggle to Business Email
-    if (toggleEmailBtn) {
-      toggleEmailBtn.addEventListener('click', function() {
-        showStep(stepEmail);
-        if (emailInput) emailInput.focus();
-      });
-    }
-
-    // Switch back to Phone
-    if (backPhoneBtn) {
-      backPhoneBtn.addEventListener('click', function() {
-        showStep(stepPhone);
-        if (phoneInput) phoneInput.focus();
-      });
-    }
-
-    // Send Email OTP
-    if (sendEmailBtn) {
-      sendEmailBtn.addEventListener('click', function() {
-        var val = (emailInput.value || '').trim().toLowerCase();
-        var errEl = document.getElementById('email-error-msg');
-        if (!val || !val.includes('@') || !val.includes('.')) {
-          if (errEl) {
-            errEl.textContent = 'Please enter a valid email address';
-            errEl.style.display = 'block';
-          }
-          emailInput.focus();
-          return;
-        }
-        dispatchOtp(val, 'email');
-      });
-    }
-
-    // OTP Digit Inputs (Auto Focus & Backspace)
-    otpDigits.forEach(function(box, idx) {
-      box.addEventListener('input', function() {
-        box.value = box.value.replace(/\D/g, '').slice(0, 1);
-        box.style.borderColor = box.value ? '#2563EB' : '#CBD5E1';
-        if (box.value && idx < otpDigits.length - 1) {
-          otpDigits[idx + 1].focus();
-        }
-        var code = otpDigits.map(function(b){ return b.value; }).join('');
-        if (code.length === 4) {
-          verifyOtpBtn.click();
-        }
-      });
-      box.addEventListener('keydown', function(e) {
-        if (e.key === 'Backspace' && !box.value && idx > 0) {
-          otpDigits[idx - 1].focus();
-        }
-      });
-      box.addEventListener('paste', function(e) {
-        e.preventDefault();
-        var pasted = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 4);
-        pasted.split('').forEach(function(char, i) {
-          if (otpDigits[i]) {
-            otpDigits[i].value = char;
-            otpDigits[i].style.borderColor = '#2563EB';
-          }
-        });
-        if (pasted.length === 4) verifyOtpBtn.click();
-      });
-    });
-
-    // Auto-fill OTP
-    if (autofillBtn) {
-      autofillBtn.addEventListener('click', function() {
-        if (!activeOtpCode || activeOtpCode.length !== 4) return;
-        activeOtpCode.split('').forEach(function(char, i) {
-          if (otpDigits[i]) {
-            otpDigits[i].value = char;
-            otpDigits[i].style.borderColor = '#2563EB';
-          }
-        });
-        verifyOtpBtn.click();
-      });
-    }
-
-    // Back from OTP
-    if (otpBackBtn) {
-      otpBackBtn.addEventListener('click', function() {
-        clearInterval(resendTimer);
-        showStep(currentType === 'email' ? stepEmail : stepPhone);
-      });
-    }
-
-    // Resend OTP
-    if (resendBtn) {
-      resendBtn.addEventListener('click', function() {
-        dispatchOtp(currentTarget, currentType);
-      });
-    }
-
-    // Verify OTP Button
-    if (verifyOtpBtn) {
-      verifyOtpBtn.addEventListener('click', function() {
-        var entered = otpDigits.map(function(b){ return b.value; }).join('');
-        var errEl = document.getElementById('otp-error-msg');
-        if (entered.length !== 4) {
-          if (errEl) { errEl.textContent = 'Please enter all 4 digits'; errEl.style.display = 'block'; }
-          return;
-        }
-
-        if (entered !== activeOtpCode && entered !== '1234' && entered !== '8598') {
-          if (errEl) { errEl.textContent = 'Incorrect verification code. Try again.'; errEl.style.display = 'block'; }
-          otpDigits.forEach(function(b){ b.style.borderColor = '#EF4444'; });
-          return;
-        }
-
-        // Code matches!
-        clearInterval(resendTimer);
-
-        // Check if returning user or new user
-        var existingSessRaw = localStorage.getItem('rydealot_user_session');
-        var existingName = '';
-        if (existingSessRaw) {
-          try {
-            var ex = JSON.parse(existingSessRaw);
-            if (ex && ex.name) existingName = ex.name;
-          } catch(e){}
-        }
-
-        if (existingName && existingName !== 'User') {
-          // Returning user: directly log in!
-          saveUserSession({
-            name: existingName,
-            phone: currentType === 'phone' ? currentTarget : '',
-            email: currentType === 'email' ? currentTarget : ''
-          }, 'customer');
-        } else {
-          // Prompt for name
-          showStep(stepName);
-          if (newNameInput) newNameInput.focus();
-        }
-      });
-    }
-
-    // Complete Name Step
-    if (completeNameBtn) {
-      completeNameBtn.addEventListener('click', function() {
-        var nameVal = (newNameInput ? newNameInput.value : '').trim() || 'Rider';
-        saveUserSession({
-          name: nameVal,
-          phone: currentType === 'phone' ? currentTarget : (phoneInput ? phoneInput.value.trim() : ''),
-          email: currentType === 'email' ? currentTarget : ''
-        }, 'customer');
-      });
+      };
     }
   }
 
@@ -417,22 +71,14 @@
 
   function applySession() {
     var raw = localStorage.getItem('rydealot_user_session');
+    var uRoot = document.getElementById('user-app-root');
+    var rRoot = document.getElementById('rider-app-root');
+
     if (!raw) {
-      // No active session: ensure Auth screen is shown
-      var uRoot = document.getElementById('user-app-root');
-      var rRoot = document.getElementById('rider-app-root');
-      if (uRoot) {
-        uRoot.classList.add('active');
-        uRoot.style.display = 'block';
-      }
-      if (rRoot) {
-        rRoot.classList.remove('active');
-        rRoot.style.display = 'none';
-      }
-      var sAuth = document.getElementById('screen-auth');
-      if (sAuth) {
-        sAuth.classList.add('active');
-        sAuth.style.display = 'flex';
+      // Standalone index.html passenger booking page: redirect to login.html
+      if (uRoot && !rRoot) {
+        window.location.href = 'login.html';
+        return;
       }
       return;
     }
@@ -440,8 +86,19 @@
       var sess = JSON.parse(raw);
       authState.currentUser = sess;
 
-      var uRoot = document.getElementById('user-app-root');
-      var rRoot = document.getElementById('rider-app-root');
+      // Update header avatar & greeting
+      var avatarSlot = document.getElementById('user-avatar-slot');
+      if (avatarSlot) {
+        if (sess.avatar) {
+          avatarSlot.innerHTML = '<img src="' + sess.avatar + '" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">';
+        } else if (sess.name) {
+          avatarSlot.textContent = sess.name.charAt(0).toUpperCase();
+        }
+      }
+      var greetingEl = document.getElementById('user-greeting-text');
+      if (greetingEl && sess.name) {
+        greetingEl.innerHTML = 'Hey <b>' + sess.name + '</b>! Where are you heading today? 👋';
+      }
 
       // Standalone driver.html page mode
       if (!uRoot && rRoot) {
@@ -496,19 +153,12 @@
         } catch(e) {}
 
         if (hasActiveBooking) {
-          var screenAuth = document.getElementById('screen-auth');
-          if (screenAuth) { screenAuth.classList.remove('active'); screenAuth.style.display = 'none'; }
           var screenLogin = document.getElementById('screen-login');
           if (screenLogin) { screenLogin.classList.remove('active'); screenLogin.style.display = 'none'; }
           var screenTrack = document.getElementById('screen-tracking');
           if (screenTrack) { screenTrack.classList.add('active'); screenTrack.style.display = 'flex'; }
         } else if (!hasActiveLot) {
-          var screenAuth = document.getElementById('screen-auth');
           var screenLogin = document.getElementById('screen-login');
-          if (screenAuth) {
-            screenAuth.classList.remove('active');
-            screenAuth.style.display = 'none';
-          }
           if (screenLogin) {
             screenLogin.classList.add('active');
             screenLogin.style.display = 'flex';
@@ -556,15 +206,11 @@
         } catch(e) {}
 
         if (hasActiveBooking2) {
-          var screenAuth = document.getElementById('screen-auth');
-          if (screenAuth) { screenAuth.classList.remove('active'); screenAuth.style.display = 'none'; }
           var screenLogin = document.getElementById('screen-login');
           if (screenLogin) { screenLogin.classList.remove('active'); screenLogin.style.display = 'none'; }
           var screenTrack = document.getElementById('screen-tracking');
           if (screenTrack) { screenTrack.classList.add('active'); screenTrack.style.display = 'flex'; }
         } else if (!hasActiveLot2) {
-          var screenAuth = document.getElementById('screen-auth');
-          if (screenAuth) { screenAuth.classList.remove('active'); screenAuth.style.display = 'none'; }
           var screenLogin = document.getElementById('screen-login');
           if (screenLogin) { screenLogin.classList.add('active'); screenLogin.style.display = 'flex'; }
 
@@ -1723,7 +1369,6 @@
       var sess = null;
       try { sess = JSON.parse(raw || '{}'); } catch(e){}
       
-      var authScreen = document.getElementById('screen-auth');
       var loginScreen = document.getElementById('screen-login');
       
       var hasActiveBooking = false;
@@ -1744,15 +1389,13 @@
         }
       } catch(e) {}
 
-      // If user is already logged in, show screen-login; otherwise show screen-auth
+      // If user is already logged in, show screen-login; otherwise redirect to login.html
       if (sess && (sess.phone || sess.email || sess.name)) {
         if (hasActiveBooking) {
-          if (authScreen) { authScreen.classList.remove('active'); authScreen.style.display = 'none'; }
           if (loginScreen) { loginScreen.classList.remove('active'); loginScreen.style.display = 'none'; }
           var trackScreen = document.getElementById('screen-tracking');
           if (trackScreen) { trackScreen.classList.add('active'); trackScreen.style.display = 'flex'; }
         } else if (!hasActiveLot) {
-          if (authScreen) { authScreen.classList.remove('active'); authScreen.style.display = 'none'; }
           if (loginScreen) { loginScreen.classList.add('active'); loginScreen.style.display = 'flex'; }
           if (typeof window.initSetupMap === 'function') window.initSetupMap();
           setTimeout(function(){
@@ -1763,8 +1406,8 @@
           }, 350);
         }
       } else {
-        if (loginScreen) { loginScreen.classList.remove('active'); loginScreen.style.display = 'none'; }
-        if (authScreen) { authScreen.classList.add('active'); authScreen.style.display = 'flex'; }
+        window.location.href = 'login.html';
+        return;
       }
     } else {
       // Driver side: if already registered with valid profile, show main dashboard; otherwise show setup form

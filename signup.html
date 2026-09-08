@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Sign in • Rydealot</title>
+<title>Sign up • Rydealot</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -285,8 +285,8 @@
       <img src="logo.png" alt="Rydealot" class="brand-logo">
       <img src="assets/mascot-waving.png" alt="Rydo" class="brand-mascot">
     </div>
-    <h1 class="brand-title">Welcome back</h1>
-    <p class="brand-subtitle">Sign in to book rides, track trips, and manage your Rydealot account</p>
+    <h1 class="brand-title">Create an account</h1>
+    <p class="brand-subtitle">Join Rydealot for fast, zero-commission bike taxis and instant parcel delivery</p>
   </div>
 
   <!-- Social 1-Tap Stack -->
@@ -297,7 +297,7 @@
            data-type="standard"
            data-shape="rectangular"
            data-theme="outline"
-           data-text="continue_with"
+           data-text="signup_with"
            data-size="large"
            data-logo_alignment="left"
            data-width="360">
@@ -307,19 +307,26 @@
     <!-- Facebook Login Button -->
     <button type="button" class="btn-facebook" id="btn-facebook" onclick="loginWithFacebook()">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-      <span>Continue with Facebook</span>
+      <span>Sign up with Facebook</span>
     </button>
   </div>
 
   <!-- Divider -->
   <div class="divider">
     <div class="divider-line"></div>
-    <span class="divider-text">or sign in with email</span>
+    <span class="divider-text">or create with email</span>
     <div class="divider-line"></div>
   </div>
 
-  <!-- Email & Password Form -->
-  <form id="login-form" onsubmit="handleEmailLogin(event)">
+  <!-- Registration Form -->
+  <form id="signup-form" onsubmit="handleEmailSignup(event)">
+    <div class="form-group">
+      <label class="form-label" for="name-input">Full name</label>
+      <div class="form-input-wrap">
+        <input type="text" id="name-input" class="form-input" placeholder="e.g. Rahul Sharma" required autocomplete="name">
+      </div>
+    </div>
+
     <div class="form-group">
       <label class="form-label" for="email-input">Email address</label>
       <div class="form-input-wrap">
@@ -328,29 +335,29 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="password-input">Password</label>
+      <label class="form-label" for="password-input">Create password</label>
       <div class="form-input-wrap">
-        <input type="password" id="password-input" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+        <input type="password" id="password-input" class="form-input" placeholder="At least 6 characters" minlength="6" required autocomplete="new-password">
       </div>
     </div>
 
     <button type="submit" class="btn-primary" id="btn-submit">
-      <span id="btn-submit-text">Sign In &rarr;</span>
+      <span id="btn-submit-text">Create Account &rarr;</span>
       <span id="btn-submit-spinner" class="spinner" style="display:none;"></span>
     </button>
 
     <div id="status-box" class="status-box" style="display:none;"></div>
   </form>
 
-  <!-- Footer Link to Signup -->
+  <!-- Footer Link to Login -->
   <div class="auth-footer">
-    Don't have an account? <a href="signup.html">Create an account</a>
+    Already have an account? <a href="login.html">Sign in here</a>
   </div>
 </div>
 
 <script>
 /* =========================================================================
-   RYDEALOT AUTH ENGINE: LOGIN
+   RYDEALOT AUTH ENGINE: SIGNUP
    ========================================================================= */
 const SUPABASE_URL = "https://wupndimumeugfjxzejlj.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y";
@@ -406,7 +413,7 @@ async function syncUserToDatabase(user) {
 
 // ── Complete Login Session and Redirect ──
 async function completeAuth(user) {
-  showStatus(`Welcome, ${user.name}! Redirecting…`, true);
+  showStatus(`Account created! Welcome, ${user.name}! Redirecting…`, true);
   
   // 1. Sync to Supabase in background
   syncUserToDatabase(user);
@@ -461,6 +468,18 @@ window.handleGoogleResponse = async function(response) {
     avatar: payload.picture || '',
     provider: 'google'
   };
+
+  // Save to registered users list
+  let users = [];
+  try {
+    const stored = localStorage.getItem('rydealot_registered_users');
+    if (stored) users = JSON.parse(stored);
+  } catch(e) {}
+  if (!users.some(u => u.email === user.email)) {
+    users.push(user);
+    localStorage.setItem('rydealot_registered_users', JSON.stringify(users));
+  }
+
   await completeAuth(user);
 };
 
@@ -494,61 +513,80 @@ function loginWithFacebook() {
           avatar: profile.picture?.data?.url || '',
           provider: 'facebook'
         };
+
+        // Save to registered users list
+        let users = [];
+        try {
+          const stored = localStorage.getItem('rydealot_registered_users');
+          if (stored) users = JSON.parse(stored);
+        } catch(e) {}
+        if (!users.some(u => u.email === user.email)) {
+          users.push(user);
+          localStorage.setItem('rydealot_registered_users', JSON.stringify(users));
+        }
+
         await completeAuth(user);
       });
     } else {
-      showStatus("Facebook sign-in was cancelled.", false);
+      showStatus("Facebook sign-up was cancelled.", false);
     }
   }, { scope: 'public_profile,email' });
 }
 
-// ── 3. Email & Password Sign-In ──
-async function handleEmailLogin(event) {
+// ── 3. Email & Password Registration ──
+async function handleEmailSignup(event) {
   event.preventDefault();
   hideStatus();
 
+  const name = document.getElementById('name-input').value.trim();
   const email = document.getElementById('email-input').value.trim().toLowerCase();
   const password = document.getElementById('password-input').value;
 
-  if (!email || !password) {
-    showStatus("Please enter both email and password.", false);
+  if (!name) {
+    showStatus("Please enter your full name.", false);
+    return;
+  }
+  if (!email) {
+    showStatus("Please enter your email address.", false);
+    return;
+  }
+  if (!password || password.length < 6) {
+    showStatus("Password must be at least 6 characters.", false);
     return;
   }
 
   setButtonLoading(true);
 
   try {
-    // Read registered accounts
     let users = [];
     try {
       const stored = localStorage.getItem('rydealot_registered_users');
       if (stored) users = JSON.parse(stored);
     } catch(e) {}
 
-    const matchedUser = users.find(u => u.email === email);
-
-    if (matchedUser) {
-      if (matchedUser.password && matchedUser.password !== password) {
-        showStatus("Incorrect password. Please try again.", false);
-        setButtonLoading(false);
-        return;
-      }
-      await completeAuth(matchedUser);
-    } else {
-      // Direct email login fallback: automatically create session
-      const newUser = {
-        id: 'usr_' + Date.now(),
-        name: email.split('@')[0],
-        email: email,
-        password: password,
-        provider: 'email'
-      };
-      users.push(newUser);
-      localStorage.setItem('rydealot_registered_users', JSON.stringify(users));
-      await completeAuth(newUser);
+    const existingUser = users.find(u => u.email === email);
+    if (existingUser) {
+      showStatus("An account with this email already exists. Redirecting to login…", false);
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 1500);
+      return;
     }
+
+    const newUser = {
+      id: 'usr_' + Date.now(),
+      name: name,
+      email: email,
+      password: password,
+      provider: 'email'
+    };
+
+    users.push(newUser);
+    localStorage.setItem('rydealot_registered_users', JSON.stringify(users));
+
+    await completeAuth(newUser);
   } catch (err) {
-    showStatus(err.message || "Sign in failed. Please try again.", false);
+    showStatus(err.message || "Registration failed. Please try again.", false);
     setButtonLoading(false);
   }
 }
