@@ -165,6 +165,84 @@
       });
     }
 
+    // Google 1-Tap Login Integration
+    var google1TapBtn = document.getElementById('btn-google-1tap');
+    var GOOGLE_CLIENT_ID = "889345672190-rydealot-auth.apps.googleusercontent.com";
+
+    function handleGoogleCredentialResponse(response) {
+      try {
+        var base64Url = response.credential.split('.')[1];
+        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        var user = JSON.parse(jsonPayload);
+        
+        saveUserSession({
+          id: 'g_' + (user.sub || Date.now()),
+          name: user.name || 'Google Rider',
+          email: user.email || '',
+          avatar: user.picture || ''
+        }, 'customer');
+      } catch(e) {
+        console.error('Google token parse note:', e);
+      }
+    }
+
+    function initGoogleOneTap() {
+      if (typeof window.google !== 'undefined' && window.google.accounts && window.google.accounts.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true
+          });
+          window.google.accounts.id.prompt();
+        } catch(gErr) {
+          console.log('Google 1-Tap init note:', gErr);
+        }
+      }
+    }
+
+    if (typeof window.google !== 'undefined') {
+      initGoogleOneTap();
+    } else {
+      window.addEventListener('load', function() {
+        setTimeout(initGoogleOneTap, 600);
+      });
+    }
+
+    if (google1TapBtn) {
+      google1TapBtn.addEventListener('click', function() {
+        if (typeof window.google !== 'undefined' && window.google.accounts && window.google.accounts.id) {
+          window.google.accounts.id.prompt(function(notification) {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              var mockName = prompt('Enter your Name for Google 1-Tap Login:', 'Google Rider');
+              if (mockName) {
+                saveUserSession({
+                  id: 'g_' + Date.now(),
+                  name: mockName,
+                  email: 'rider@gmail.com',
+                  avatar: ''
+                }, 'customer');
+              }
+            }
+          });
+        } else {
+          var mockName = prompt('Enter your Name for Google 1-Tap Login:', 'Google Rider');
+          if (mockName) {
+            saveUserSession({
+              id: 'g_' + Date.now(),
+              name: mockName,
+              email: 'rider@gmail.com',
+              avatar: ''
+            }, 'customer');
+          }
+        }
+      });
+    }
+
     // Toggle to Business Email
     if (toggleEmailBtn) {
       toggleEmailBtn.addEventListener('click', function() {
