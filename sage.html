@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root {
     --bg: #F5F7FB;
@@ -451,19 +453,52 @@
       </div>
     </div>
 
-    <!-- Step 2: Route & Addresses -->
-    <div class="form-card">
-      <div class="form-title">
-        <span>📍</span> 2. Pickup & Drop Locations
+    <!-- Step 2: Route & Addresses with Interactive Map -->
+    <div class="form-card" style="padding: 16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div class="form-title">
+          <span>📍</span> 2. Pickup & Drop Locations
+        </div>
+        <button type="button" onclick="locateUserGPS()" style="background:var(--accent-light); color:var(--accent); border:1px solid #BFDBFE; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px;">
+          🎯 Current GPS
+        </button>
       </div>
 
-      <div class="route-dots">
+      <!-- Live Interactive Map -->
+      <div style="position:relative; width:100%; height:220px; border-radius:14px; overflow:hidden; border:1.5px solid var(--line); margin-top:10px; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <div id="sage-map" style="width:100%; height:100%; z-index:1;"></div>
+        
+        <!-- Map Floating Pinning Mode Switcher -->
+        <div style="position:absolute; top:10px; left:10px; right:10px; z-index:1000; display:flex; gap:6px; background:rgba(255,255,255,0.92); backdrop-filter:blur(6px); padding:4px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.12);">
+          <button type="button" id="btn-mode-pickup" onclick="setPinMode('pickup')" style="flex:1; padding:6px 8px; font-size:11.5px; font-weight:800; border-radius:8px; border:none; cursor:pointer; background:#DCFCE7; color:#166534; display:flex; align-items:center; justify-content:center; gap:4px; transition:all 0.15s;">
+            🟢 Set Pickup
+          </button>
+          <button type="button" id="btn-mode-drop" onclick="setPinMode('drop')" style="flex:1; padding:6px 8px; font-size:11.5px; font-weight:800; border-radius:8px; border:none; cursor:pointer; background:transparent; color:#64748B; display:flex; align-items:center; justify-content:center; gap:4px; transition:all 0.15s;">
+            🔴 Set Drop
+          </button>
+        </div>
+
+        <!-- Distance & Time Badge overlay on map -->
+        <div id="map-route-badge" style="display:none; position:absolute; bottom:10px; left:10px; z-index:1000; background:#0F172A; color:#fff; padding:5px 12px; border-radius:20px; font-size:11px; font-weight:800; box-shadow:0 4px 10px rgba(0,0,0,0.25); display:none; align-items:center; gap:6px;">
+          <span>⚡ <span id="route-dist-text">0 km</span></span>
+          <span style="color:#94A3B8;">•</span>
+          <span style="color:#38BDF8;" id="route-time-text">~0 mins</span>
+        </div>
+      </div>
+      <div style="font-size:10.5px; color:var(--ink-soft); margin-top:4px; text-align:center;">
+        👆 Tap anywhere on the map or drag pins to pinpoint exact door locations
+      </div>
+
+      <div class="route-dots" style="margin-top:12px;">
         <!-- Pickup -->
         <div class="route-point">
           <div class="dot-pickup"></div>
-          <label class="field-label">Sender Pickup Address</label>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="field-label">Sender Pickup Address</label>
+            <span id="pickup-coords-tag" style="font-size:10px; color:#16A34A; font-weight:700;"></span>
+          </div>
           <div class="input-wrap">
-            <input type="text" id="sage-pickup" placeholder="e.g. Hanamkonda Bus Stand or Current GPS" value="Current Location">
+            <input type="text" id="sage-pickup" placeholder="e.g. Hanamkonda Bus Stand or Current GPS" value="Hanamkonda, Warangal" onchange="geocodeAddress('pickup', this.value)">
           </div>
           <div style="display:flex; gap:8px; margin-top:4px;">
             <input type="text" id="sage-sender-name" class="input-wrap" style="flex:1; padding:8px 12px; font-size:12px;" placeholder="Sender Name">
@@ -474,9 +509,12 @@
         <!-- Drop -->
         <div class="route-point">
           <div class="dot-drop"></div>
-          <label class="field-label">Receiver Drop Address</label>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="field-label">Receiver Drop Address</label>
+            <span id="drop-coords-tag" style="font-size:10px; color:#EF4444; font-weight:700;"></span>
+          </div>
           <div class="input-wrap">
-            <input type="text" id="sage-drop" placeholder="e.g. Kazipet Railway Station Gate 1" value="Kazipet Station">
+            <input type="text" id="sage-drop" placeholder="e.g. Kazipet Railway Station Gate 1" value="Kazipet Railway Station" onchange="geocodeAddress('drop', this.value)">
           </div>
           <div style="display:flex; gap:8px; margin-top:4px;">
             <input type="text" id="sage-recv-name" class="input-wrap" style="flex:1; padding:8px 12px; font-size:12px;" placeholder="Receiver Name">
@@ -547,8 +585,19 @@
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
 
   var selectedCategory = 'documents';
-  var baseFare = 45;
+  var categoryBasePrice = 35; // base category weight
+  var calculatedFare = 45;
   var searchTimer = null;
+  var pinMode = 'pickup'; // 'pickup' or 'drop'
+
+  // Coordinates
+  var pickupCoords = { lat: 18.0073, lng: 79.5583 }; // Default: Hanamkonda
+  var dropCoords = { lat: 17.9784, lng: 79.5080 };   // Default: Kazipet Railway Station
+
+  var sageMap = null;
+  var pickupMarker = null;
+  var dropMarker = null;
+  var routeLine = null;
 
   function showToast(msg) {
     var t = document.getElementById('toast');
@@ -558,12 +607,238 @@
     setTimeout(function() { t.classList.remove('show'); }, 2500);
   }
 
-  function selectCategory(el, cat, fare) {
-    document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('selected'));
+  function setPinMode(mode) {
+    pinMode = mode;
+    var btnP = document.getElementById('btn-mode-pickup');
+    var btnD = document.getElementById('btn-mode-drop');
+    if (mode === 'pickup') {
+      btnP.style.background = '#DCFCE7';
+      btnP.style.color = '#166534';
+      btnD.style.background = 'transparent';
+      btnD.style.color = '#64748B';
+      showToast('🟢 Tap map to place Sender Pickup');
+    } else {
+      btnD.style.background = '#FEE2E2';
+      btnD.style.color = '#991B1B';
+      btnP.style.background = 'transparent';
+      btnP.style.color = '#64748B';
+      showToast('🔴 Tap map to place Receiver Drop');
+    }
+  }
+
+  function selectCategory(el, cat, base) {
+    document.querySelectorAll('.category-pill').forEach(function(p) { p.classList.remove('selected'); });
     el.classList.add('selected');
     selectedCategory = cat;
-    baseFare = fare;
-    document.getElementById('sage-fare-display').textContent = '₹' + fare;
+    categoryBasePrice = base;
+    recalculateFare();
+  }
+
+  function initSageMap() {
+    if (typeof L === 'undefined') {
+      setTimeout(initSageMap, 200);
+      return;
+    }
+
+    sageMap = L.map('sage-map', {
+      zoomControl: true
+    }).setView([pickupCoords.lat, pickupCoords.lng], 13);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(sageMap);
+
+    // Custom Icon Creators
+    var greenIcon = L.divIcon({
+      className: 'sage-custom-pin-pickup',
+      html: '<div style="background:#16A34A; width:18px; height:18px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 8px rgba(0,0,0,0.4); transform:translate(-9px,-9px);"></div>',
+      iconSize: [18, 18],
+      iconAnchor: [0, 0]
+    });
+
+    var redIcon = L.divIcon({
+      className: 'sage-custom-pin-drop',
+      html: '<div style="background:#EF4444; width:18px; height:18px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 8px rgba(0,0,0,0.4); transform:translate(-9px,-9px);"></div>',
+      iconSize: [18, 18],
+      iconAnchor: [0, 0]
+    });
+
+    // Pickup Marker
+    pickupMarker = L.marker([pickupCoords.lat, pickupCoords.lng], {
+      icon: greenIcon,
+      draggable: true
+    }).addTo(sageMap);
+
+    pickupMarker.on('dragend', function(e) {
+      var pos = e.target.getLatLng();
+      pickupCoords = { lat: pos.lat, lng: pos.lng };
+      reverseGeocode('pickup', pos.lat, pos.lng);
+      fetchRoute();
+    });
+
+    // Drop Marker
+    dropMarker = L.marker([dropCoords.lat, dropCoords.lng], {
+      icon: redIcon,
+      draggable: true
+    }).addTo(sageMap);
+
+    dropMarker.on('dragend', function(e) {
+      var pos = e.target.getLatLng();
+      dropCoords = { lat: pos.lat, lng: pos.lng };
+      reverseGeocode('drop', pos.lat, pos.lng);
+      fetchRoute();
+    });
+
+    // Map Click Listener
+    sageMap.on('click', function(e) {
+      var lat = e.latlng.lat;
+      var lng = e.latlng.lng;
+      if (pinMode === 'pickup') {
+        pickupCoords = { lat: lat, lng: lng };
+        pickupMarker.setLatLng([lat, lng]);
+        reverseGeocode('pickup', lat, lng);
+        setPinMode('drop'); // automatically suggest setting drop next
+      } else {
+        dropCoords = { lat: lat, lng: lng };
+        dropMarker.setLatLng([lat, lng]);
+        reverseGeocode('drop', lat, lng);
+      }
+      fetchRoute();
+    });
+
+    // Initial Route
+    fetchRoute();
+
+    // Auto-locate GPS on start
+    locateUserGPS(true);
+  }
+
+  function locateUserGPS(silent) {
+    if (!navigator.geolocation) {
+      if (!silent) showToast('⚠️ Geolocation not supported on this browser');
+      return;
+    }
+    if (!silent) showToast('📡 Locating your GPS position…');
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        pickupCoords = { lat: lat, lng: lng };
+        if (pickupMarker) pickupMarker.setLatLng([lat, lng]);
+        if (sageMap) sageMap.setView([lat, lng], 14);
+        reverseGeocode('pickup', lat, lng);
+        fetchRoute();
+        if (!silent) showToast('📍 Current location set as pickup!');
+      },
+      function(err) {
+        if (!silent) showToast('⚠️ Could not fetch GPS: ' + err.message);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }
+
+  // Reverse Geocoding (Lat, Lng -> Address text)
+  function reverseGeocode(type, lat, lng) {
+    var tag = document.getElementById(type + '-coords-tag');
+    if (tag) tag.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+
+    var url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=18&addressdetails=1';
+    fetch(url, { headers: { 'Accept-Language': 'en' } })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data && data.display_name) {
+          var parts = data.display_name.split(',');
+          var cleanName = (parts[0] || '').trim() + (parts[1] ? ', ' + parts[1].trim() : '') + (parts[2] ? ', ' + parts[2].trim() : '');
+          var input = document.getElementById(type === 'pickup' ? 'sage-pickup' : 'sage-drop');
+          if (input) input.value = cleanName;
+        }
+      })
+      .catch(function(){});
+  }
+
+  // Forward Geocoding (Address typed -> Lat, Lng on Map)
+  function geocodeAddress(type, query) {
+    if (!query || query.trim().length < 3) return;
+    var url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query + ', Telangana, India') + '&limit=1';
+    fetch(url)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data && data.length > 0) {
+          var lat = parseFloat(data[0].lat);
+          var lng = parseFloat(data[0].lon);
+          if (type === 'pickup') {
+            pickupCoords = { lat: lat, lng: lng };
+            if (pickupMarker) pickupMarker.setLatLng([lat, lng]);
+            var tag = document.getElementById('pickup-coords-tag');
+            if (tag) tag.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+          } else {
+            dropCoords = { lat: lat, lng: lng };
+            if (dropMarker) dropMarker.setLatLng([lat, lng]);
+            var tag = document.getElementById('drop-coords-tag');
+            if (tag) tag.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+          }
+          fetchRoute();
+        }
+      })
+      .catch(function(){});
+  }
+
+  // Draw OSRM Road Route & Calculate Live Distance
+  var routeDistanceKm = 5.2; // default fallback
+  function fetchRoute() {
+    if (!pickupCoords || !dropCoords || !sageMap) return;
+
+    var url = 'https://router.project-osrm.org/route/v1/driving/' + pickupCoords.lng + ',' + pickupCoords.lat + ';' + dropCoords.lng + ',' + dropCoords.lat + '?overview=full&geometries=geojson';
+
+    fetch(url)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.routes && data.routes.length > 0) {
+          var route = data.routes[0];
+          var distKm = (route.distance / 1000).toFixed(1);
+          var durationMins = Math.round(route.duration / 60);
+          routeDistanceKm = parseFloat(distKm);
+
+          var coords = route.geometry.coordinates;
+          var latLngs = coords.map(function(c) { return [c[1], c[0]]; });
+
+          if (routeLine) {
+            routeLine.setLatLngs(latLngs);
+          } else {
+            routeLine = L.polyline(latLngs, {
+              color: '#2563EB',
+              weight: 4,
+              opacity: 0.85
+            }).addTo(sageMap);
+          }
+
+          sageMap.fitBounds(L.latLngBounds(latLngs), { padding: [35, 35] });
+
+          // Update badges
+          var badge = document.getElementById('map-route-badge');
+          if (badge) badge.style.display = 'flex';
+          document.getElementById('route-dist-text').textContent = distKm + ' km';
+          document.getElementById('route-time-text').textContent = '~' + Math.max(10, durationMins) + ' mins';
+
+          recalculateFare();
+        }
+      })
+      .catch(function() {
+        // Fallback straight line
+        var latLngs = [[pickupCoords.lat, pickupCoords.lng], [dropCoords.lat, dropCoords.lng]];
+        if (routeLine) routeLine.setLatLngs(latLngs);
+        else routeLine = L.polyline(latLngs, { color: '#2563EB', dashArray: '6, 6', weight: 3 }).addTo(sageMap);
+      });
+  }
+
+  // Dynamic Fare Formula: base category price + (km * ₹8/km)
+  function recalculateFare() {
+    var km = routeDistanceKm || 5.0;
+    var distanceCharge = Math.round(km * 8); // ₹8 per km
+    calculatedFare = categoryBasePrice + distanceCharge;
+    var display = document.getElementById('sage-fare-display');
+    if (display) display.textContent = '₹' + calculatedFare;
   }
 
   function loadUserSession() {
@@ -585,6 +860,7 @@
     var senderPhone = document.getElementById('sage-sender-phone').value.trim() || '9876543210';
     var recvName = document.getElementById('sage-recv-name').value.trim() || 'Receiver';
     var recvPhone = document.getElementById('sage-recv-phone').value.trim();
+    var notes = document.getElementById('sage-notes') ? document.getElementById('sage-notes').value.trim() : '';
 
     if (!pickup || !drop) {
       alert('Please enter both Pickup and Drop addresses');
@@ -602,9 +878,9 @@
     // Show searching modal
     document.getElementById('search-modal').classList.add('active');
     document.getElementById('modal-status-title').textContent = 'Searching for Nearby Sage Captain…';
-    document.getElementById('modal-status-desc').textContent = 'Connecting to nearest verified bike captain in your area.';
+    document.getElementById('modal-status-desc').textContent = 'Connecting to nearest verified bike captain with parcel box.';
 
-    // Send record to Supabase if available
+    // Send full record with exact GPS coordinates to Supabase
     try {
       fetch(SUPABASE_URL + '/rest/v1/sage_parcels', {
         method: 'POST',
@@ -621,12 +897,21 @@
           receiver_phone: recvPhone,
           package_category: selectedCategory,
           pickup_address: pickup,
+          pickup_lat: pickupCoords.lat,
+          pickup_lng: pickupCoords.lng,
           drop_address: drop,
-          fare: baseFare,
+          drop_lat: dropCoords.lat,
+          drop_lng: dropCoords.lng,
+          fare: calculatedFare,
+          notes: notes,
           permanent_ride_pin: pin,
           status: 'pending'
         })
-      }).catch(function(e){ console.log('Sage sync note:', e); });
+      }).then(function(r) { return r.json(); })
+        .then(function(data) {
+          console.log('✅ Sage parcel recorded in Supabase:', data);
+        })
+        .catch(function(e){ console.log('Sage sync note:', e); });
     } catch(e){}
 
     // Simulate Captain Match
@@ -645,6 +930,7 @@
 
   window.onload = function() {
     loadUserSession();
+    initSageMap();
   };
 </script>
 </body>
