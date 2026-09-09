@@ -578,25 +578,65 @@
 <!-- Searching for Captain Modal Overlay -->
 <div class="search-overlay" id="search-modal">
   <div class="search-box">
-    <div class="radar-bike">
+    <!-- Pulsing Radar Mascot -->
+    <div class="radar-bike" id="modal-radar-bike">
       <img src="assets/mascot-sage.webp" style="width:58px; height:58px; object-fit:contain; filter:drop-shadow(0 4px 6px rgba(0,0,0,0.15));" alt="Sage Mascot">
     </div>
-    <h3 style="font-size:18px; font-weight:800; color:#0F172A;" id="modal-status-title">Searching for Nearby Sage Captain…</h3>
-    <p style="font-size:12.5px; color:#64748B; line-height:1.4;" id="modal-status-desc">
-      Connecting to nearest verified bike captain around Hanamkonda / Kazipet.
+
+    <!-- Status Headers -->
+    <h3 style="font-size:17px; font-weight:900; color:#0F172A; margin:0;" id="modal-status-title">Searching for Nearby Sage Captain…</h3>
+    <p style="font-size:12px; color:#64748B; line-height:1.4; margin:4px 0 10px;" id="modal-status-desc">
+      Connecting to nearest verified bike captain within 2 km.
     </p>
+
+    <!-- Trip Progress Steps Indicator -->
+    <div id="modal-trip-steps" style="display:flex; width:100%; justify-content:space-between; align-items:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:6px 12px; margin-bottom:10px; font-size:10.5px; font-weight:800; box-sizing:border-box;">
+      <span id="step-search" style="color:#2563eb;">1. Pinging 📡</span>
+      <span style="color:#cbd5e1;">&rarr;</span>
+      <span id="step-assign" style="color:#94a3b8;">2. Assigned 🛵</span>
+      <span style="color:#cbd5e1;">&rarr;</span>
+      <span id="step-transit" style="color:#94a3b8;">3. In Transit 📦</span>
+      <span style="color:#cbd5e1;">&rarr;</span>
+      <span id="step-deliv" style="color:#94a3b8;">4. Delivered 🎉</span>
+    </div>
+
+    <!-- Real Assigned Captain Details Card (shown when captain is assigned) -->
+    <div id="modal-assigned-captain-card" style="display:none; width:100%; background:#fff; border:1.5px solid #10b981; border-radius:14px; padding:12px; box-shadow:0 4px 12px rgba(16,185,129,0.12); text-align:left; margin-bottom:10px; box-sizing:border-box;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+        <div style="width:44px; height:44px; border-radius:50%; background:#0f172a; color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; border:2px solid #10b981; flex-shrink:0;">
+          <span id="modal-capt-avatar">🏍️</span>
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <div style="font-size:14px; font-weight:900; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="modal-capt-name">Captain</div>
+            <span style="background:#ecfdf5; color:#059669; font-size:9.5px; font-weight:800; padding:1px 6px; border-radius:4px; flex-shrink:0;">★ 4.9 VERIFIED</span>
+          </div>
+          <div style="font-size:11.5px; color:#475569; font-weight:700;" id="modal-capt-vehicle">Vehicle</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <a id="modal-capt-call-btn" href="#" style="flex:1; background:#0f172a; color:#fff; text-decoration:none; padding:8px 10px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; display:flex; align-items:center; justify-content:center; gap:4px;">
+          📞 Call Captain
+        </a>
+        <a id="modal-capt-track-btn" href="#" target="_blank" style="flex:1.2; background:#2563eb; color:#fff; text-decoration:none; padding:8px 10px; border-radius:8px; font-size:11px; font-weight:800; text-align:center; display:flex; align-items:center; justify-content:center; gap:4px;">
+          🗺️ Live GPS Radar
+        </a>
+      </div>
+    </div>
     
     <!-- PIN Display Box -->
-    <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:14px; padding:12px; width:100%; text-align:center;">
-      <div style="font-size:11px; font-weight:800; color:#64748B; text-transform:uppercase;">Pickup Verification PIN:</div>
-      <div style="font-size:24px; font-weight:900; color:#2563EB; font-family:'IBM Plex Mono'; letter-spacing:4px;" id="modal-pin-display">
-        8598
+    <div id="modal-pin-box" style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:14px; padding:12px; width:100%; text-align:center; box-sizing:border-box;">
+      <div id="modal-pickup-pin-wrapper">
+        <div style="font-size:10.5px; font-weight:800; color:#64748B; text-transform:uppercase;">Pickup Verification PIN:</div>
+        <div style="font-size:24px; font-weight:900; color:#2563EB; font-family:'IBM Plex Mono'; letter-spacing:4px;" id="modal-pin-display">
+          ----
+        </div>
+        <div style="font-size:10.5px; color:#94A3B8; margin-top:2px;">Tell this PIN to captain when handing over the package</div>
       </div>
-      <div style="font-size:10.5px; color:#94A3B8; margin-top:2px;">Tell this PIN to captain when handing over the bag</div>
 
       <!-- Optional Receiver PIN Section -->
       <div id="modal-recv-pin-box" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed #CBD5E1;">
-        <div style="font-size:11px; font-weight:800; color:#16A34A; text-transform:uppercase;">Receiver Delivery PIN:</div>
+        <div style="font-size:10.5px; font-weight:800; color:#16A34A; text-transform:uppercase;">Receiver Delivery PIN:</div>
         <div style="font-size:20px; font-weight:900; color:#16A34A; font-family:'IBM Plex Mono'; letter-spacing:3px;" id="modal-recv-pin-display">
           ----
         </div>
@@ -605,13 +645,24 @@
     </div>
 
     <!-- Share Live Tracking Button -->
-    <div id="modal-share-tracking-box" style="display:none; width:100%;">
-      <button type="button" onclick="shareTrackingToReceiver()" style="width:100%; padding:10px 14px; background:#16A34A; color:#fff; border:none; border-radius:10px; font-size:12.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+    <div id="modal-share-tracking-box" style="display:none; width:100%; margin-top:10px;">
+      <button type="button" onclick="shareTrackingToReceiver()" style="width:100%; padding:10px 14px; background:#16A34A; color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
         📲 Share Live Tracking with Receiver
       </button>
     </div>
 
-    <button type="button" onclick="cancelSageSearch()" style="background:transparent; border:none; color:#EF4444; font-weight:700; font-size:12.5px; cursor:pointer; margin-top:4px;">
+    <!-- Delivered Celebration Card (shown when delivery is marked delivered) -->
+    <div id="modal-delivered-card" style="display:none; width:100%; background:#ecfdf5; border:1.5px solid #10b981; border-radius:14px; padding:16px; text-align:center; box-sizing:border-box;">
+      <span style="font-size:36px;">🎉</span>
+      <h3 style="font-size:16px; font-weight:900; color:#064e3b; margin:6px 0 2px;">Delivery Complete!</h3>
+      <p style="font-size:12px; color:#047857; margin:0 0 12px;" id="modal-delivered-text">Package safely handed over to receiver.</p>
+      <button type="button" onclick="closeDeliveredModal()" style="width:100%; padding:10px; background:#10b981; color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:900; cursor:pointer;">
+        Book Another Delivery
+      </button>
+    </div>
+
+    <!-- Cancel Request Button -->
+    <button type="button" id="modal-cancel-btn" onclick="cancelSageSearch()" style="background:transparent; border:none; color:#EF4444; font-weight:700; font-size:12px; cursor:pointer; margin-top:8px;">
       Cancel Request
     </button>
   </div>
@@ -904,6 +955,22 @@
     }
   }
 
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    var R = 6371.0;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  var parcelPollTimer = null;
+  var currentBookingParcelId = null;
+  var currentBookingRecvPhone = '';
+  var currentBookingRecvPin = '';
+
   async function bookSageParcel() {
     var pickup = document.getElementById('sage-pickup').value.trim();
     var drop = document.getElementById('sage-drop').value.trim();
@@ -923,37 +990,73 @@
       return;
     }
 
-    var pin = localStorage.getItem('rydealot_ride_pin') || '8598';
+    // Generate random 4-digit pickup PIN for each order
+    var sess = {};
+    try { sess = JSON.parse(localStorage.getItem('rydealot_user_session') || '{}'); } catch(e){}
+    var pin = sess.permanent_ride_pin || Math.floor(1000 + Math.random() * 9000).toString();
     document.getElementById('modal-pin-display').textContent = pin;
 
     // Check if Receiver PIN is requested
     var requireRecvPin = document.getElementById('require-recv-pin-toggle') ? document.getElementById('require-recv-pin-toggle').checked : true;
     var recvPin = null;
     if (requireRecvPin) {
-      // Generate secure 4-digit receiver delivery PIN
       recvPin = Math.floor(1000 + Math.random() * 9000).toString();
       document.getElementById('modal-recv-pin-box').style.display = 'block';
       document.getElementById('modal-recv-pin-display').textContent = recvPin;
+      currentBookingRecvPin = recvPin;
     } else {
       document.getElementById('modal-recv-pin-box').style.display = 'none';
+      currentBookingRecvPin = '';
     }
 
-    // Append Receiver PIN to notes if required so drivers & dispatch see it
     var fullNotes = notes;
     if (recvPin) {
       fullNotes = (fullNotes ? fullNotes + ' | ' : '') + 'Receiver Drop PIN: ' + recvPin;
     }
 
-    // Show searching modal
+    // Uber / Rapido Radius Strategy: Pinging nearest verified captains
+    var pingDesc = 'Pinging nearest verified bike captains within 2 km…';
+    try {
+      if (pickupCoords && pickupCoords.lat && pickupCoords.lng) {
+        var ridersRes = await fetch(SUPABASE_URL + '/rest/v1/riders?status=eq.available&lat=not.is.null&lng=not.is.null&select=id,name,lat,lng,vehicle_type,vehicle_label,phone', {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+        });
+        var ridersList = await ridersRes.json();
+        if (Array.isArray(ridersList) && ridersList.length > 0) {
+          var nearby = ridersList.map(function(r) {
+            return { r: r, d: haversineKm(pickupCoords.lat, pickupCoords.lng, r.lat, r.lng) };
+          }).filter(function(item) {
+            return item.d <= 5.0; // within 5km radius
+          }).sort(function(a, b) {
+            return a.d - b.d;
+          });
+
+          var topCaptains = nearby.slice(0, 5);
+          if (topCaptains.length > 0) {
+            var minD = topCaptains[0].d;
+            pingDesc = '📡 Broadcasting to ' + topCaptains.length + ' nearest captains within ' + (minD < 2 ? '2 km' : (minD.toFixed(1) + ' km')) + '…';
+          }
+        }
+      }
+    } catch(err) {
+      console.warn('Radius search note:', err);
+    }
+
+    // Open searching modal
     document.getElementById('search-modal').classList.add('active');
     document.getElementById('modal-status-title').textContent = 'Searching for Nearby Sage Captain…';
-    document.getElementById('modal-status-desc').textContent = 'Connecting to nearest verified bike captain with parcel box.';
+    document.getElementById('modal-status-desc').textContent = pingDesc;
+    document.getElementById('modal-radar-bike').style.display = 'block';
+    document.getElementById('modal-assigned-captain-card').style.display = 'none';
+    document.getElementById('modal-delivered-card').style.display = 'none';
+    document.getElementById('modal-pin-box').style.display = 'block';
+    document.getElementById('modal-share-tracking-box').style.display = 'block';
+    document.getElementById('modal-cancel-btn').style.display = 'inline-block';
 
     var createdParcelId = null;
 
-    // Send full record with exact GPS coordinates to Supabase
     try {
-      fetch(SUPABASE_URL + '/rest/v1/sage_parcels', {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/sage_parcels', {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_ANON_KEY,
@@ -978,34 +1081,199 @@
           permanent_ride_pin: pin,
           status: 'pending'
         })
-      }).then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data && data[0] && data[0].id) {
-            createdParcelId = data[0].id;
-            currentBookingParcelId = createdParcelId;
-            currentBookingRecvPhone = recvPhone;
-            currentBookingRecvPin = recvPin;
-            console.log('✅ Sage parcel recorded in Supabase ID:', createdParcelId);
-            var shareBox = document.getElementById('modal-share-tracking-box');
-            if (shareBox) shareBox.style.display = 'block';
-          }
-        })
-        .catch(function(e){ console.log('Sage sync note:', e); });
-    } catch(e){}
+      });
+      var data = await res.json();
+      if (data && data[0] && data[0].id) {
+        createdParcelId = data[0].id;
+        currentBookingParcelId = createdParcelId;
+        currentBookingRecvPhone = recvPhone;
+        localStorage.setItem('rydealot_active_parcel_id', createdParcelId);
+        console.log('✅ Sage parcel recorded in Supabase ID:', createdParcelId);
 
-    // Simulate Captain Match
-    searchTimer = setTimeout(function() {
-      document.getElementById('modal-status-title').textContent = '✅ Captain Assigned!';
-      document.getElementById('modal-status-desc').textContent = 'Captain Suresh (TS03 AB 1234) is on the way for pickup in 4 mins.';
-      showToast('🎉 Captain Suresh assigned for your Sage parcel!');
-      var shareBox = document.getElementById('modal-share-tracking-box');
-      if (shareBox) shareBox.style.display = 'block';
-    }, 3500);
+        // Start live polling for real captain acceptance and delivery
+        startPollingParcelStatus(createdParcelId);
+      }
+    } catch(err) {
+      console.error('Sage sync error:', err);
+      showToast('Error booking parcel: ' + err.message);
+    }
   }
 
-  var currentBookingParcelId = null;
-  var currentBookingRecvPhone = '';
-  var currentBookingRecvPin = '';
+  function startPollingParcelStatus(parcelId) {
+    if (parcelPollTimer) clearInterval(parcelPollTimer);
+    fetchParcelLiveStatus(parcelId);
+    parcelPollTimer = setInterval(function() {
+      fetchParcelLiveStatus(parcelId);
+    }, 2500);
+  }
+
+  async function fetchParcelLiveStatus(parcelId) {
+    if (!parcelId) return;
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + parcelId, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+        }
+      });
+      var rows = await res.json();
+      if (!rows || !rows[0]) return;
+      var p = rows[0];
+
+      updateCustomerParcelView(p);
+    } catch(err) {
+      console.warn('Parcel poll note:', err);
+    }
+  }
+
+  function updateCustomerParcelView(p) {
+    var modal = document.getElementById('search-modal');
+    if (!modal) return;
+    modal.classList.add('active');
+
+    currentBookingParcelId = p.id;
+    currentBookingRecvPhone = p.receiver_phone || '';
+
+    // Extract handover PIN from notes if available
+    if (p.notes) {
+      var m = p.notes.match(/Receiver Drop PIN:\s*(\d{4})/);
+      if (m) currentBookingRecvPin = m[1];
+    }
+
+    var titleEl = document.getElementById('modal-status-title');
+    var descEl = document.getElementById('modal-status-desc');
+    var radarBike = document.getElementById('modal-radar-bike');
+    var captCard = document.getElementById('modal-assigned-captain-card');
+    var pinBox = document.getElementById('modal-pin-box');
+    var shareBox = document.getElementById('modal-share-tracking-box');
+    var deliveredCard = document.getElementById('modal-delivered-card');
+    var cancelBtn = document.getElementById('modal-cancel-btn');
+
+    // Steps
+    var sSearch = document.getElementById('step-search');
+    var sAssign = document.getElementById('step-assign');
+    var sTransit = document.getElementById('step-transit');
+    var sDeliv = document.getElementById('step-deliv');
+
+    // Display PINs
+    var pickupPinEl = document.getElementById('modal-pin-display');
+    if (pickupPinEl && p.permanent_ride_pin) {
+      pickupPinEl.textContent = p.permanent_ride_pin;
+    }
+    var recvPinEl = document.getElementById('modal-recv-pin-display');
+    var recvPinBox = document.getElementById('modal-recv-pin-box');
+    if (currentBookingRecvPin && recvPinEl && recvPinBox) {
+      recvPinEl.textContent = currentBookingRecvPin;
+      recvPinBox.style.display = 'block';
+    }
+
+    if (p.status === 'pending') {
+      if (titleEl) titleEl.textContent = 'Searching for Nearby Sage Captain…';
+      if (radarBike) radarBike.style.display = 'block';
+      if (captCard) captCard.style.display = 'none';
+      if (pinBox) pinBox.style.display = 'block';
+      if (shareBox) shareBox.style.display = 'block';
+      if (deliveredCard) deliveredCard.style.display = 'none';
+      if (cancelBtn) cancelBtn.style.display = 'inline-block';
+
+      if (sSearch) sSearch.style.color = '#2563eb';
+      if (sAssign) sAssign.style.color = '#94a3b8';
+      if (sTransit) sTransit.style.color = '#94a3b8';
+      if (sDeliv) sDeliv.style.color = '#94a3b8';
+    } else if (p.status === 'assigned') {
+      var captName = p.driver_name || 'Verified Captain';
+      var captVehicle = p.driver_vehicle || 'Motorcycle';
+      var captPhone = p.driver_phone || '';
+
+      if (titleEl) titleEl.textContent = '🛵 Captain Assigned & En Route!';
+      if (descEl) descEl.textContent = captName + ' (' + captVehicle + ') is on the way for pickup.';
+      if (radarBike) radarBike.style.display = 'none';
+
+      if (captCard) {
+        captCard.style.display = 'block';
+        var nameEl = document.getElementById('modal-capt-name');
+        if (nameEl) nameEl.textContent = captName;
+        var vehEl = document.getElementById('modal-capt-vehicle');
+        if (vehEl) vehEl.textContent = captVehicle;
+        var callBtn = document.getElementById('modal-capt-call-btn');
+        if (callBtn) {
+          callBtn.href = captPhone ? ('tel:' + captPhone) : '#';
+          callBtn.style.display = captPhone ? 'flex' : 'none';
+        }
+        var trackBtn = document.getElementById('modal-capt-track-btn');
+        if (trackBtn) trackBtn.href = 'track.html?id=' + p.id;
+      }
+
+      if (pinBox) pinBox.style.display = 'block';
+      if (shareBox) shareBox.style.display = 'block';
+      if (deliveredCard) deliveredCard.style.display = 'none';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+
+      if (sSearch) sSearch.style.color = '#10b981';
+      if (sAssign) sAssign.style.color = '#2563eb';
+      if (sTransit) sTransit.style.color = '#94a3b8';
+      if (sDeliv) sDeliv.style.color = '#94a3b8';
+    } else if (p.status === 'picked_up' || p.status === 'in_transit') {
+      var captName = p.driver_name || 'Captain';
+      if (titleEl) titleEl.textContent = '📦 Parcel Picked Up & In Transit!';
+      if (descEl) descEl.textContent = captName + ' has picked up your parcel and is heading to ' + (p.receiver_name || 'Receiver') + '.';
+      if (radarBike) radarBike.style.display = 'none';
+
+      if (captCard) {
+        captCard.style.display = 'block';
+        var trackBtn = document.getElementById('modal-capt-track-btn');
+        if (trackBtn) trackBtn.href = 'track.html?id=' + p.id;
+      }
+
+      if (pinBox) pinBox.style.display = 'block';
+      if (shareBox) shareBox.style.display = 'block';
+      if (deliveredCard) deliveredCard.style.display = 'none';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+
+      if (sSearch) sSearch.style.color = '#10b981';
+      if (sAssign) sAssign.style.color = '#10b981';
+      if (sTransit) sTransit.style.color = '#2563eb';
+      if (sDeliv) sDeliv.style.color = '#94a3b8';
+    } else if (p.status === 'delivered') {
+      if (parcelPollTimer) clearInterval(parcelPollTimer);
+      localStorage.removeItem('rydealot_active_parcel_id');
+
+      if (titleEl) titleEl.textContent = '🎉 Package Delivered Successfully!';
+      if (descEl) descEl.textContent = 'Verified with Handover PIN at destination.';
+      if (radarBike) radarBike.style.display = 'none';
+      if (captCard) captCard.style.display = 'none';
+      if (pinBox) pinBox.style.display = 'none';
+      if (shareBox) shareBox.style.display = 'none';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+
+      if (deliveredCard) {
+        deliveredCard.style.display = 'block';
+        var textEl = document.getElementById('modal-delivered-text');
+        if (textEl) {
+          textEl.innerHTML = 'Package safely handed over to <strong>' + (p.receiver_name || 'Receiver') + '</strong>.<br>Fare: <strong>₹' + (p.fare || '0') + '</strong>';
+        }
+      }
+
+      if (sSearch) sSearch.style.color = '#10b981';
+      if (sAssign) sAssign.style.color = '#10b981';
+      if (sTransit) sTransit.style.color = '#10b981';
+      if (sDeliv) sDeliv.style.color = '#10b981';
+    } else if (p.status === 'cancelled') {
+      if (parcelPollTimer) clearInterval(parcelPollTimer);
+      localStorage.removeItem('rydealot_active_parcel_id');
+      modal.classList.remove('active');
+      showToast('⚠️ Parcel delivery request was cancelled.');
+    }
+  }
+
+  function closeDeliveredModal() {
+    if (parcelPollTimer) clearInterval(parcelPollTimer);
+    localStorage.removeItem('rydealot_active_parcel_id');
+    var modal = document.getElementById('search-modal');
+    if (modal) modal.classList.remove('active');
+    document.getElementById('sage-drop').value = '';
+    showToast('Ready for your next parcel delivery!');
+  }
 
   function shareTrackingToReceiver() {
     var parcelId = currentBookingParcelId || 'latest';
@@ -1020,15 +1288,61 @@
     window.open(waUrl, '_blank');
   }
 
-  function cancelSageSearch() {
-    clearTimeout(searchTimer);
+  async function cancelSageSearch() {
+    if (!confirm('Are you sure you want to cancel this parcel delivery request?')) return;
+    if (parcelPollTimer) clearInterval(parcelPollTimer);
+    var parcelId = currentBookingParcelId || localStorage.getItem('rydealot_active_parcel_id');
+    if (parcelId) {
+      try {
+        await fetch(SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + parcelId, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status: 'cancelled' })
+        });
+      } catch(e){}
+    }
+    localStorage.removeItem('rydealot_active_parcel_id');
+    currentBookingParcelId = null;
     document.getElementById('search-modal').classList.remove('active');
     showToast('❌ Sage Parcel search cancelled');
+  }
+
+  async function checkActiveParcelOnLoad() {
+    var savedId = localStorage.getItem('rydealot_active_parcel_id');
+    if (!savedId) return;
+
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + savedId, {
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+      });
+      var rows = await res.json();
+      var p = rows && rows[0];
+
+      if (p && (p.status === 'pending' || p.status === 'assigned' || p.status === 'in_transit' || p.status === 'picked_up')) {
+        var ageHours = (Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60);
+        if (ageHours <= 4) {
+          currentBookingParcelId = p.id;
+          updateCustomerParcelView(p);
+          startPollingParcelStatus(p.id);
+        } else {
+          localStorage.removeItem('rydealot_active_parcel_id');
+        }
+      } else {
+        localStorage.removeItem('rydealot_active_parcel_id');
+      }
+    } catch(e) {
+      localStorage.removeItem('rydealot_active_parcel_id');
+    }
   }
 
   window.onload = function() {
     loadUserSession();
     initSageMap();
+    checkActiveParcelOnLoad();
   };
 </script>
 </body>

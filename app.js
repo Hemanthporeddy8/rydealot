@@ -3216,8 +3216,18 @@
   async function fetchSageParcels() {
     var rId = state.riderId || localStorage.getItem('ridelot_rider_id');
     try {
-      // 1. Fetch available pending parcels
-      var pendingParcels = await sbFetch('sage_parcels?status=eq.pending&order=created_at.desc&limit=15') || [];
+      // 1. Fetch available pending parcels created within the last 4 hours (avoid stale/cached orders)
+      var recentCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+      var pendingParcels = await sbFetch('sage_parcels?status=eq.pending&created_at=gte.' + recentCutoff + '&order=created_at.desc&limit=20') || [];
+
+      // Sort pending parcels by proximity to driver if GPS is known
+      if (state.lat && state.lng && pendingParcels.length > 0 && typeof haversineKm === 'function') {
+        pendingParcels.sort(function(a, b) {
+          var da = (a.pickup_lat && a.pickup_lng) ? haversineKm(state.lat, state.lng, a.pickup_lat, a.pickup_lng) : 9999;
+          var db = (b.pickup_lat && b.pickup_lng) ? haversineKm(state.lat, state.lng, b.pickup_lat, b.pickup_lng) : 9999;
+          return da - db;
+        });
+      }
 
       // 2. Fetch any assigned or in-transit delivery for this captain
       var activeParcels = [];
@@ -3488,15 +3498,20 @@
       }
 
       listContainer.innerHTML = currentSageParcelsList.map(function(p) {
+        var isNearby = false;
         var pickupDistText = '';
         if (state.lat && state.lng && p.pickup_lat && p.pickup_lng) {
           var d = haversineKm(state.lat, state.lng, p.pickup_lat, p.pickup_lng);
+          isNearby = d <= 2.5;
           pickupDistText = ' <span style="color:#3b82f6; font-weight:700;">(' + d.toFixed(1) + ' km away)</span>';
         }
 
-        return '<div style="background:#fff; border:1.5px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">' +
+        return '<div style="background:#fff; border:1.5px solid ' + (isNearby ? '#10b981' : 'var(--border)') + '; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">' +
           '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
-            '<span style="font-size:13px; font-weight:900; color:#0f172a;">' + getCategoryEmoji(p.package_category) + '</span>' +
+            '<div style="display:flex; align-items:center; gap:6px;">' +
+              '<span style="font-size:13px; font-weight:900; color:#0f172a;">' + getCategoryEmoji(p.package_category) + '</span>' +
+              (isNearby ? '<span style="background:#ecfdf5; color:#047857; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #a7f3d0;">⚡ Nearby (&le;2.5 km)</span>' : '') +
+            '</div>' +
             '<span style="font-size:16px; font-weight:900; color:#10b981;">₹' + (p.fare || '0') + '</span>' +
           '</div>' +
           '<div style="font-size:11.5px; color:#334155; line-height:1.5; margin-bottom:10px;">' +
