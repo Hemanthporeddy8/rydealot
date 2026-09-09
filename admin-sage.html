@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rydealot Sage Admin • Parcel Dispatch Control Tower</title>
+  <link rel="shortcut icon" href="logo.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --bg: #090B10;
+      --card: #12151E;
+      --card-hover: #181C28;
+      --border: #1F2433;
+      --text: #F1F5F9;
+      --mute: #94A3B8;
+      --blue: #2563EB;
+      --blue-light: #38BDF8;
+      --green: #10B981;
+      --amber: #F59E0B;
+      --red: #EF4444;
+      --purple: #8B5CF6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 20px 16px;
+      min-height: 100vh;
+    }
+
+    /* Auth Overlay */
+    #admin-auth-overlay {
+      position: fixed; inset: 0;
+      background: rgba(9, 11, 16, 0.96);
+      backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 99999; padding: 20px;
+    }
+    .auth-card {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 24px;
+      width: 100%; max-width: 390px;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+    }
+    .auth-input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+      outline: none;
+    }
+    .auth-input:focus { border-color: var(--blue-light); }
+    .auth-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .auth-btn:hover { background: #1D4ED8; }
+
+    /* Layout */
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-pill {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid var(--blue-light);
+      color: var(--blue-light);
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 99px;
+      letter-spacing: 0.5px;
+    }
+    .header-btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .btn-blue { background: var(--blue); color: #fff; }
+    .btn-blue:hover { background: #1D4ED8; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-amber { background: var(--amber); color: #000; }
+    .btn-red { background: var(--red); color: #fff; }
+    .btn-mute { background: var(--card); color: var(--mute); border: 1px solid var(--border); }
+    .btn-mute:hover { color: #fff; border-color: var(--mute); }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .stat-val {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--blue-light);
+    }
+    .stat-lbl {
+      font-size: 0.75rem;
+      color: var(--mute);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-top: 4px;
+    }
+
+    /* Tabs */
+    .tabs-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--mute);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active, .tab-btn:hover {
+      background: rgba(37, 99, 235, 0.15);
+      border-color: var(--blue-light);
+      color: var(--blue-light);
+    }
+
+    /* Table */
+    .table-container {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    th {
+      padding: 12px 14px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--mute);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+      background: #0E1118;
+    }
+    td {
+      padding: 14px;
+      font-size: 0.83rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--card-hover); }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 99px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .badge-pending { background: rgba(245, 158, 11, 0.15); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-assigned { background: rgba(37, 99, 235, 0.15); color: var(--blue-light); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-picked_up { background: rgba(139, 92, 246, 0.15); color: var(--purple); border: 1px solid rgba(139, 92, 246, 0.3); }
+    .badge-delivered { background: rgba(16, 185, 129, 0.15); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-cancelled { background: rgba(239, 68, 68, 0.15); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #fff;
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 99px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999999;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Map Card */
+    #sage-admin-map {
+      width: 100%;
+      height: 480px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+  </style>
+</head>
+<body>
+
+<!-- AUTH OVERLAY -->
+<div id="admin-auth-overlay">
+  <div class="auth-card">
+    <img src="logo.png" alt="Rydealot Sage" style="width:72px; height:auto; margin-bottom:12px; border-radius:12px;">
+    <div style="display:flex; justify-content:center; gap:6px; align-items:center; margin-bottom:4px;">
+      <h2 style="font-size:1.4rem; font-weight:900;">SAGE <span>DISPATCH</span></h2>
+      <span class="brand-pill">PARCEL</span>
+    </div>
+    <p style="font-size:0.8rem; color:var(--mute); margin-bottom:20px;">Dedicated Operations Dashboard for Parcel Couriers</p>
+
+    <form onsubmit="event.preventDefault(); verifySageAdmin();">
+      <input type="text" id="sage-admin-user" class="auth-input" placeholder="Admin Gmail or Username" autocomplete="username" value="hemanth@gmail.com">
+      <div style="position:relative; margin-bottom:16px;">
+        <input type="password" id="sage-admin-pass" class="auth-input" style="margin-bottom:0; padding-right:45px;" placeholder="Admin Password" autofocus autocomplete="current-password">
+        <button type="button" onclick="togglePassView()" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1rem;">👁️</button>
+      </div>
+      <button type="submit" class="auth-btn">Unlock Sage Tower</button>
+    </form>
+    <div id="auth-err" style="color:var(--red); font-size:0.8rem; font-weight:700; margin-top:12px; display:none;">Incorrect credentials. Try again.</div>
+  </div>
+</div>
+
+<!-- MAIN DISPATCH TOWER -->
+<div id="sage-main-wrap" style="display:none;">
+
+  <!-- Header -->
+  <div class="top-header">
+    <div class="brand-group">
+      <img src="assets/mascot-sage.png" alt="Sage Mascot" style="width:42px; height:42px; object-fit:contain; border-radius:10px; background:rgba(255,255,255,0.05); padding:2px;">
+      <div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h1 style="font-size:1.4rem; font-weight:900; letter-spacing:-0.5px;">RYDEALOT <span>SAGE DISPATCH</span></h1>
+          <span class="brand-pill">100% INDEPENDENT</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--mute); margin-top:2px;">Dedicated Courier & Parcel Operations Tower • Auto-syncing with Supabase</p>
+      </div>
+    </div>
+    <div class="header-btns">
+      <a href="admin.html" class="btn btn-mute" style="text-decoration:none;">🏍️ Open Bike Taxi Admin</a>
+      <button class="btn btn-green" onclick="exportSageCSV()">📊 Export Parcels CSV</button>
+      <button class="btn btn-blue" onclick="loadSageParcels(true)">🔄 Refresh</button>
+      <button class="btn btn-mute" onclick="logoutSageAdmin()">🔒 Lock</button>
+    </div>
+  </div>
+
+  <!-- Operational Independence Notice -->
+  <div style="background:rgba(37,99,235,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:12px; padding:10px 16px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem;">
+      <span style="font-size:1.1rem;">🛡️</span>
+      <span><strong>Regulatory Immunity:</strong> Courier & Hyperlocal delivery operates under Transport Logistics Law, completely insulated from passenger bike taxi regulations.</span>
+    </div>
+    <span class="badge badge-delivered">🟢 Logistics Active</span>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-val" id="stat-total">0</div>
+      <div class="stat-lbl">Total Deliveries</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--amber);" id="stat-pending">0</div>
+      <div class="stat-lbl">Pending Dispatch</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--purple);" id="stat-transit">0</div>
+      <div class="stat-lbl">In Transit</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--green);" id="stat-delivered">0</div>
+      <div class="stat-lbl">Delivered</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:#38BDF8;" id="stat-revenue">₹0</div>
+      <div class="stat-lbl">Sage Revenue</div>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <div class="tabs-bar">
+    <button class="tab-btn active" id="tab-parcels" onclick="switchTab('parcels')">📦 Parcel Orders List</button>
+    <button class="tab-btn" id="tab-map" onclick="switchTab('map')">🗺️ Live Parcel Route Map</button>
+    <button class="tab-btn" id="tab-dispatch" onclick="switchTab('dispatch')">⚡ Fast Dispatch Action</button>
+  </div>
+
+  <!-- TAB 1: PARCELS TABLE -->
+  <div id="view-parcels">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+      <input type="text" id="parcel-search" placeholder="Search by Sender, Receiver, Phone or Address..." oninput="filterParcels()" style="padding:8px 14px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:0.83rem; width:100%; max-width:320px;">
+      <div style="display:flex; gap:8px;">
+        <select id="status-filter" onchange="filterParcels()" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:0.8rem;">
+          <option value="all">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="assigned">Assigned</option>
+          <option value="picked_up">Picked Up</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select id="category-filter" onchange="filterParcels()" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:0.8rem;">
+          <option value="all">All Categories</option>
+          <option value="documents">📄 Documents</option>
+          <option value="food">🍱 Food / Lunch</option>
+          <option value="keys">🔑 Keys</option>
+          <option value="medicine">💊 Medicine</option>
+          <option value="clothes">👕 Clothes</option>
+          <option value="box">📦 Box</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Date & Time</th>
+            <th>Package</th>
+            <th>Sender (Pickup)</th>
+            <th>Receiver (Drop)</th>
+            <th>Fare & PIN</th>
+            <th>Assigned Captain</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="parcels-tbody">
+          <tr><td colspan="8" style="text-align:center; padding:30px; color:var(--mute);">Loading Sage parcel deliveries from Supabase...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: LIVE MAP -->
+  <div id="view-map" style="display:none;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="font-size:0.9rem; font-weight:800;">📍 Real-Time Pickup & Drop Parcel Radar</div>
+        <div style="font-size:0.75rem; color:var(--mute);">Showing live deliveries on map with GPS pins</div>
+      </div>
+      <div id="sage-admin-map"></div>
+    </div>
+  </div>
+
+  <!-- TAB 3: FAST DISPATCH -->
+  <div id="view-dispatch" style="display:none;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:600px;">
+      <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:6px;">⚡ Quick Manual Parcel Dispatch</h3>
+      <p style="font-size:0.8rem; color:var(--mute); margin-bottom:18px;">Directly assign a registered bike captain or auto to any pending parcel.</p>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="font-size:0.75rem; font-weight:700; color:var(--mute); display:block; margin-bottom:4px;">SELECT PENDING PARCEL</label>
+          <select id="dispatch-parcel-select" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:0.85rem;"></select>
+        </div>
+        <div>
+          <label style="font-size:0.75rem; font-weight:700; color:var(--mute); display:block; margin-bottom:4px;">CAPTAIN NAME</label>
+          <input type="text" id="dispatch-captain-name" placeholder="e.g. Suresh Kumar" class="auth-input" style="margin-bottom:0;">
+        </div>
+        <div>
+          <label style="font-size:0.75rem; font-weight:700; color:var(--mute); display:block; margin-bottom:4px;">CAPTAIN PHONE</label>
+          <input type="tel" id="dispatch-captain-phone" placeholder="e.g. 9876543210" class="auth-input" style="margin-bottom:0;">
+        </div>
+        <div>
+          <label style="font-size:0.75rem; font-weight:700; color:var(--mute); display:block; margin-bottom:4px;">VEHICLE NUMBER</label>
+          <input type="text" id="dispatch-captain-vehicle" placeholder="e.g. TS03 AB 1234 (Hero Splendor)" class="auth-input" style="margin-bottom:0;">
+        </div>
+        <button type="button" class="btn btn-blue" style="padding:12px; justify-content:center; margin-top:6px;" onclick="submitManualDispatch()">🚀 Assign Captain to Parcel</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ASSIGN CAPTAIN MODAL -->
+<div id="modal-assign" style="display:none; position:fixed; inset:0; background:rgba(9,11,16,0.85); backdrop-filter:blur(6px); z-index:100000; align-items:center; justify-content:center; padding:20px;">
+  <div class="auth-card" style="text-align:left; max-width:420px;">
+    <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:4px;">🛵 Assign Parcel Captain</h3>
+    <p style="font-size:0.8rem; color:var(--mute); margin-bottom:16px;" id="modal-assign-subtitle">Assign a rider to this delivery.</p>
+
+    <input type="hidden" id="assign-target-id">
+    <label style="font-size:0.75rem; font-weight:700; color:var(--mute); display:block; margin-bottom:4px;">CAPTAIN FULL NAME</label>
+    <input type="text" id="modal-capt-name" class="auth-input" placeholder="e.g. Captain Ramesh">
+    
+    <label style="font-size:0.75rem; font-weight:700; color:var(--mute); display:block; margin-bottom:4px;">CAPTAIN MOBILE NUMBER</label>
+    <input type="tel" id="modal-capt-phone" class="auth-input" placeholder="e.g. 9876543210">
+    
+    <label style="font-size:0.75rem; font-weight:700; color:var(--mute); display:block; margin-bottom:4px;">VEHICLE MODEL & PLATE</label>
+    <input type="text" id="modal-capt-plate" class="auth-input" placeholder="e.g. TS03 EA 9988 (Pulsar 150)">
+
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button type="button" class="btn btn-mute" style="flex:1;" onclick="closeAssignModal()">Cancel</button>
+      <button type="button" class="btn btn-blue" style="flex:1;" onclick="saveAssignedCaptain()">Confirm Assignment</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
+
+  var parcels = [];
+  var adminMap = null;
+  var mapMarkers = [];
+
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2500);
+  }
+
+  // Auth Verification (Master override passwords match main admin: 123456, 000000, rydealot2026)
+  function verifySageAdmin() {
+    var user = (document.getElementById('sage-admin-user').value || '').trim();
+    var pass = document.getElementById('sage-admin-pass').value;
+    var savedPass = localStorage.getItem('rydealot_admin_pass') || '123456';
+
+    if (pass === savedPass || pass === '123456' || pass === '000000' || pass === 'rydealot2026') {
+      sessionStorage.setItem('rydealot_sage_admin_authed', 'true');
+      document.getElementById('admin-auth-overlay').style.display = 'none';
+      document.getElementById('sage-main-wrap').style.display = 'block';
+      loadSageParcels();
+    } else {
+      document.getElementById('auth-err').style.display = 'block';
+    }
+  }
+
+  function togglePassView() {
+    var inp = document.getElementById('sage-admin-pass');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  function logoutSageAdmin() {
+    sessionStorage.removeItem('rydealot_sage_admin_authed');
+    location.reload();
+  }
+
+  // Tab switching
+  function switchTab(tab) {
+    document.getElementById('tab-parcels').classList.remove('active');
+    document.getElementById('tab-map').classList.remove('active');
+    document.getElementById('tab-dispatch').classList.remove('active');
+
+    document.getElementById('view-parcels').style.display = 'none';
+    document.getElementById('view-map').style.display = 'none';
+    document.getElementById('view-dispatch').style.display = 'none';
+
+    if (tab === 'parcels') {
+      document.getElementById('tab-parcels').classList.add('active');
+      document.getElementById('view-parcels').style.display = 'block';
+    } else if (tab === 'map') {
+      document.getElementById('tab-map').classList.add('active');
+      document.getElementById('view-map').style.display = 'block';
+      initAdminMap();
+    } else if (tab === 'dispatch') {
+      document.getElementById('tab-dispatch').classList.add('active');
+      document.getElementById('view-dispatch').style.display = 'block';
+      populateDispatchDropdown();
+    }
+  }
+
+  // Load from Supabase
+  async function loadSageParcels(showNotification) {
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/sage_parcels?select=*&order=created_at.desc', {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+        }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      parcels = await res.json();
+      renderStats();
+      renderParcelsTable(parcels);
+      if (adminMap) updateMapPins();
+      if (showNotification) toast('✅ Sage parcels refreshed (' + parcels.length + ' records)');
+    } catch(err) {
+      console.error('Failed to load sage parcels:', err);
+      toast('⚠️ Could not load parcels: ' + err.message);
+    }
+  }
+
+  // Render Stats Cards
+  function renderStats() {
+    var total = parcels.length;
+    var pending = 0;
+    var transit = 0;
+    var delivered = 0;
+    var revenue = 0;
+
+    parcels.forEach(function(p) {
+      if (p.status === 'pending') pending++;
+      else if (p.status === 'assigned' || p.status === 'picked_up' || p.status === 'in_transit') transit++;
+      else if (p.status === 'delivered') { delivered++; revenue += (Number(p.fare) || 0); }
+    });
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-pending').textContent = pending;
+    document.getElementById('stat-transit').textContent = transit;
+    document.getElementById('stat-delivered').textContent = delivered;
+    document.getElementById('stat-revenue').textContent = '₹' + revenue.toLocaleString('en-IN');
+  }
+
+  // Render Table
+  function renderParcelsTable(data) {
+    var tbody = document.getElementById('parcels-tbody');
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--mute);">No Sage parcel deliveries found.</td></tr>';
+      return;
+    }
+
+    var html = '';
+    data.forEach(function(p) {
+      var dateStr = p.created_at ? new Date(p.created_at).toLocaleString('en-IN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '-';
+      var categoryIcon = {
+        documents: '📄 Documents',
+        food: '🍱 Food',
+        keys: '🔑 Keys',
+        medicine: '💊 Medicine',
+        clothes: '👕 Clothes',
+        box: '📦 Box'
+      }[p.package_category] || p.package_category || '📦 Item';
+
+      var statusClass = 'badge-' + (p.status || 'pending');
+
+      html += '<tr>';
+      html += '<td class="mono" style="font-size:0.75rem; color:var(--mute);">' + dateStr + '</td>';
+      html += '<td><strong>' + categoryIcon + '</strong>' + (p.notes ? '<div style="font-size:0.72rem; color:var(--mute); margin-top:2px;">📝 ' + escapeHtml(p.notes) + '</div>' : '') + '</td>';
+      
+      // Sender
+      html += '<td>';
+      html += '<div style="font-weight:700;">' + escapeHtml(p.sender_name || 'Sender') + '</div>';
+      html += '<div style="font-size:0.75rem; color:var(--blue-light);"><a href="tel:' + (p.sender_phone || '') + '" style="color:inherit; text-decoration:none;">📞 ' + (p.sender_phone || '-') + '</a></div>';
+      html += '<div style="font-size:0.72rem; color:var(--mute); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📍 ' + escapeHtml(p.pickup_address || '-') + '</div>';
+      html += '</td>';
+
+      // Receiver
+      html += '<td>';
+      html += '<div style="font-weight:700;">' + escapeHtml(p.receiver_name || 'Receiver') + '</div>';
+      html += '<div style="font-size:0.75rem; color:var(--green);"><a href="tel:' + (p.receiver_phone || '') + '" style="color:inherit; text-decoration:none;">📞 ' + (p.receiver_phone || '-') + '</a></div>';
+      html += '<div style="font-size:0.72rem; color:var(--mute); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🎯 ' + escapeHtml(p.drop_address || '-') + '</div>';
+      html += '</td>';
+
+      // Fare & PIN
+      html += '<td>';
+      html += '<div style="font-weight:900; color:var(--green); font-size:0.95rem;">₹' + (p.fare || 45) + '</div>';
+      html += '<div style="font-size:0.72rem; color:var(--mute);">PIN: <span class="mono" style="color:#fff; font-weight:800;">' + (p.permanent_ride_pin || '-') + '</span></div>';
+      html += '</td>';
+
+      // Driver
+      html += '<td>';
+      if (p.driver_name) {
+        html += '<div style="font-weight:700;">' + escapeHtml(p.driver_name) + '</div>';
+        html += '<div style="font-size:0.72rem; color:var(--mute);">' + escapeHtml(p.driver_vehicle || '-') + '</div>';
+        html += '<div style="font-size:0.72rem; color:var(--blue-light);"><a href="tel:' + p.driver_phone + '" style="color:inherit; text-decoration:none;">📞 ' + p.driver_phone + '</a></div>';
+      } else {
+        html += '<span style="color:var(--mute); font-size:0.78rem;">Unassigned</span>';
+      }
+      html += '</td>';
+
+      // Status
+      html += '<td><span class="badge ' + statusClass + '">' + (p.status || 'pending') + '</span></td>';
+
+      // Actions
+      html += '<td><div style="display:flex; gap:4px; flex-wrap:wrap;">';
+      if (p.status === 'pending' || !p.driver_name) {
+        html += '<button class="btn btn-blue" style="padding:4px 8px; font-size:0.72rem;" onclick="openAssignModal(\'' + p.id + '\')">🛵 Assign</button>';
+      }
+      if (p.status !== 'delivered') {
+        html += '<button class="btn btn-green" style="padding:4px 8px; font-size:0.72rem;" onclick="updateParcelStatus(\'' + p.id + '\', \'delivered\')">✅ Done</button>';
+      }
+      if (p.status !== 'cancelled') {
+        html += '<button class="btn btn-red" style="padding:4px 8px; font-size:0.72rem;" onclick="updateParcelStatus(\'' + p.id + '\', \'cancelled\')">❌</button>';
+      }
+      html += '</div></td>';
+
+      html += '</tr>';
+    });
+
+    tbody.innerHTML = html;
+  }
+
+  // Filter Search
+  function filterParcels() {
+    var q = (document.getElementById('parcel-search').value || '').toLowerCase();
+    var sFilter = document.getElementById('status-filter').value;
+    var cFilter = document.getElementById('category-filter').value;
+
+    var filtered = parcels.filter(function(p) {
+      var matchQ = !q ||
+        (p.sender_name && p.sender_name.toLowerCase().includes(q)) ||
+        (p.sender_phone && p.sender_phone.includes(q)) ||
+        (p.receiver_name && p.receiver_name.toLowerCase().includes(q)) ||
+        (p.receiver_phone && p.receiver_phone.includes(q)) ||
+        (p.pickup_address && p.pickup_address.toLowerCase().includes(q)) ||
+        (p.drop_address && p.drop_address.toLowerCase().includes(q));
+
+      var matchS = (sFilter === 'all') || (p.status === sFilter);
+      var matchC = (cFilter === 'all') || (p.package_category === cFilter);
+
+      return matchQ && matchS && matchC;
+    });
+
+    renderParcelsTable(filtered);
+  }
+
+  // Update Status in Supabase
+  async function updateParcelStatus(id, newStatus) {
+    if (!confirm('Change status of this parcel to ' + newStatus.toUpperCase() + '?')) return;
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + id, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      toast('✅ Parcel status updated to ' + newStatus);
+      loadSageParcels();
+    } catch(err) {
+      alert('Failed to update status: ' + err.message);
+    }
+  }
+
+  // Assign Captain Modal
+  function openAssignModal(id) {
+    var p = parcels.find(function(item){ return item.id === id; });
+    document.getElementById('assign-target-id').value = id;
+    document.getElementById('modal-assign-subtitle').textContent = 'Assign rider for ' + (p ? (p.sender_name + ' ➔ ' + p.receiver_name) : 'parcel');
+    document.getElementById('modal-capt-name').value = '';
+    document.getElementById('modal-capt-phone').value = '';
+    document.getElementById('modal-capt-plate').value = '';
+    document.getElementById('modal-assign').style.display = 'flex';
+  }
+
+  function closeAssignModal() {
+    document.getElementById('modal-assign').style.display = 'none';
+  }
+
+  async function saveAssignedCaptain() {
+    var id = document.getElementById('assign-target-id').value;
+    var name = document.getElementById('modal-capt-name').value.trim();
+    var phone = document.getElementById('modal-capt-phone').value.trim();
+    var plate = document.getElementById('modal-capt-plate').value.trim();
+
+    if (!name || !phone) {
+      alert('Please enter Captain Name and Phone number.');
+      return;
+    }
+
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + id, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          driver_name: name,
+          driver_phone: phone,
+          driver_vehicle: plate,
+          status: 'assigned'
+        })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      toast('🎉 Captain assigned successfully!');
+      closeAssignModal();
+      loadSageParcels();
+    } catch(err) {
+      alert('Failed to assign captain: ' + err.message);
+    }
+  }
+
+  // Fast Dispatch Dropdown
+  function populateDispatchDropdown() {
+    var select = document.getElementById('dispatch-parcel-select');
+    var pending = parcels.filter(function(p){ return p.status === 'pending' || !p.driver_name; });
+    if (pending.length === 0) {
+      select.innerHTML = '<option value="">No pending parcels right now</option>';
+      return;
+    }
+    select.innerHTML = pending.map(function(p) {
+      return '<option value="' + p.id + '">' + p.package_category.toUpperCase() + ': ' + p.sender_name + ' (' + (p.pickup_address||'').substring(0,25) + ') ➔ ' + p.receiver_name + '</option>';
+    }).join('');
+  }
+
+  async function submitManualDispatch() {
+    var parcelId = document.getElementById('dispatch-parcel-select').value;
+    var captName = document.getElementById('dispatch-captain-name').value.trim();
+    var captPhone = document.getElementById('dispatch-captain-phone').value.trim();
+    var captVehicle = document.getElementById('dispatch-captain-vehicle').value.trim();
+
+    if (!parcelId) { alert('No parcel selected.'); return; }
+    if (!captName || !captPhone) { alert('Please enter Captain Name and Mobile.'); return; }
+
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + parcelId, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          driver_name: captName,
+          driver_phone: captPhone,
+          driver_vehicle: captVehicle,
+          status: 'assigned'
+        })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      toast('🚀 Fast dispatch confirmed!');
+      switchTab('parcels');
+      loadSageParcels();
+    } catch(err) {
+      alert('Dispatch failed: ' + err.message);
+    }
+  }
+
+  // Live Admin Map
+  function initAdminMap() {
+    if (adminMap) {
+      setTimeout(function(){ adminMap.invalidateSize(); }, 150);
+      updateMapPins();
+      return;
+    }
+    adminMap = L.map('sage-admin-map').setView([17.9961, 79.5509], 12);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(adminMap);
+    updateMapPins();
+  }
+
+  function updateMapPins() {
+    if (!adminMap) return;
+    mapMarkers.forEach(function(m){ adminMap.removeLayer(m); });
+    mapMarkers = [];
+
+    var bounds = [];
+
+    parcels.forEach(function(p) {
+      if (p.pickup_lat && p.pickup_lng) {
+        var pIcon = L.divIcon({
+          html: '<div style="background:#10B981; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 6px rgba(0,0,0,0.5);"></div>',
+          iconSize: [16,16], iconAnchor: [8,8]
+        });
+        var markerP = L.marker([p.pickup_lat, p.pickup_lng], { icon: pIcon }).addTo(adminMap);
+        markerP.bindPopup('<b>🟢 Sender Pickup</b><br>' + escapeHtml(p.sender_name) + '<br>' + escapeHtml(p.pickup_address));
+        mapMarkers.push(markerP);
+        bounds.push([p.pickup_lat, p.pickup_lng]);
+      }
+
+      if (p.drop_lat && p.drop_lng) {
+        var dIcon = L.divIcon({
+          html: '<div style="background:#EF4444; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 6px rgba(0,0,0,0.5);"></div>',
+          iconSize: [16,16], iconAnchor: [8,8]
+        });
+        var markerD = L.marker([p.drop_lat, p.drop_lng], { icon: dIcon }).addTo(adminMap);
+        markerD.bindPopup('<b>🔴 Parcel Drop</b><br>' + escapeHtml(p.receiver_name) + '<br>' + escapeHtml(p.drop_address));
+        mapMarkers.push(markerD);
+        bounds.push([p.drop_lat, p.drop_lng]);
+      }
+    });
+
+    if (bounds.length > 0) {
+      adminMap.fitBounds(L.latLngBounds(bounds), { padding: [40, 40] });
+    }
+  }
+
+  // Export CSV
+  function exportSageCSV() {
+    if (!parcels || parcels.length === 0) { toast('No parcels to export'); return; }
+    var headers = ['Date', 'Status', 'Category', 'Sender Name', 'Sender Phone', 'Pickup Address', 'Receiver Name', 'Receiver Phone', 'Drop Address', 'Fare (INR)', 'Ride PIN', 'Captain Name', 'Captain Phone', 'Vehicle', 'Notes'];
+    var rows = parcels.map(function(p) {
+      return [
+        p.created_at || '',
+        p.status || '',
+        p.package_category || '',
+        p.sender_name || '',
+        p.sender_phone || '',
+        p.pickup_address || '',
+        p.receiver_name || '',
+        p.receiver_phone || '',
+        p.drop_address || '',
+        p.fare || '',
+        p.permanent_ride_pin || '',
+        p.driver_name || '',
+        p.driver_phone || '',
+        p.driver_vehicle || '',
+        p.notes || ''
+      ];
+    });
+
+    var csv = '\uFEFF' + headers.join(',') + '\n';
+    rows.forEach(function(r) {
+      csv += r.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'rydealot_sage_parcels_' + new Date().toISOString().slice(0,10) + '.csv';
+    link.click();
+    toast('📊 Parcels CSV downloaded!');
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  // On page load check session
+  window.onload = function() {
+    if (sessionStorage.getItem('rydealot_sage_admin_authed') === 'true') {
+      document.getElementById('admin-auth-overlay').style.display = 'none';
+      document.getElementById('sage-main-wrap').style.display = 'block';
+      loadSageParcels();
+    }
+  };
+</script>
+</body>
+</html>
