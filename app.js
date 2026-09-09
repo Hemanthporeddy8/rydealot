@@ -1485,8 +1485,14 @@
     return data;
   }
 
+  var rawRiderId = localStorage.getItem('ridelot_rider_id');
+  if (rawRiderId === 'undefined' || rawRiderId === 'null' || !rawRiderId) {
+    rawRiderId = null;
+    localStorage.removeItem('ridelot_rider_id');
+  }
+
   var state = {
-    riderId: localStorage.getItem('ridelot_rider_id') || null,
+    riderId: rawRiderId,
     online: false,
     watchId: null,
     testLocationTimer: null,
@@ -1733,20 +1739,24 @@
       if (statusEl) {
         if (doc && doc.url) {
           uploadedCount++;
+          var viewLink = (k !== 'selfie' && doc.url && doc.url.length > 20)
+            ? ' <a href="' + doc.url + '" target="_blank" style="font-size:10.5px; color:#3b82f6; text-decoration:underline; font-weight:700; margin-left:6px;">[👁️ View Uploaded]</a>'
+            : '';
+
           if (doc.status === 'approved') {
             approvedCount++;
-            statusEl.innerHTML = '<span style="color:#16a34a; font-weight:800;">✅ Document Verified & Approved</span>';
+            statusEl.innerHTML = '<span style="color:#16a34a; font-weight:800;">✅ Document Verified & Approved</span>' + viewLink;
           } else if (doc.status === 'rejected') {
             rejectedCount++;
             var reason = doc.notes ? ('Reason: "' + doc.notes + '"') : 'Re-upload needed';
             var reuploadMsg = (k === 'selfie') ? 'Tap "Take Live KYC Selfie" above to re-take.' : 'Tap "Choose File" above to re-upload a clear copy.';
             statusEl.innerHTML = '<div style="background:#fef2f2; border:1px solid #f87171; border-radius:6px; padding:6px 10px; margin-top:4px;">' +
-              '<span style="color:#b91c1c; font-weight:800; font-size:12px;">❌ Rejected by Admin</span>' +
+              '<span style="color:#b91c1c; font-weight:800; font-size:12px;">❌ Rejected by Admin</span>' + viewLink +
               (doc.notes ? ('<div style="color:#7f1d1d; font-size:11.5px; margin-top:2px;"><strong>Admin note:</strong> ' + doc.notes + '</div>') : '') +
               '<div style="color:#991b1b; font-size:10.5px; margin-top:2px; font-weight:600;">' + reuploadMsg + '</div>' +
             '</div>';
           } else {
-            statusEl.innerHTML = '<span style="color:#d97706; font-weight:700;">⏳ Uploaded & Submitted (Pending Admin Review)</span>';
+            statusEl.innerHTML = '<span style="color:#d97706; font-weight:700;">⏳ Uploaded & Submitted (Pending Admin Review)</span>' + viewLink;
           }
         } else {
           statusEl.innerHTML = '<span style="color:var(--amber); font-weight:700;">⏳ ' + (k === 'selfie' ? 'KYC Selfie pending' : 'Upload pending') + '</span>';
@@ -1978,7 +1988,7 @@
         var img = new Image();
         img.onload = function() {
           var canvas = document.createElement('canvas');
-          var maxDim = 800;
+          var maxDim = 720;
           var w = img.width, h = img.height;
           if (w > maxDim || h > maxDim) {
             if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
@@ -1988,7 +1998,7 @@
           canvas.height = h;
           var ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
         };
         img.onerror = function() { resolve(e.target.result); };
         img.src = e.target.result;
@@ -2024,6 +2034,9 @@
   var kycConfirmBtn = document.getElementById('rd-kyc-confirm-btn');
   var kycCancelBtn = document.getElementById('rd-kyc-cam-cancel-btn');
   var kycInstruction = document.getElementById('rd-kyc-instruction');
+  var kycFallbackInput = document.getElementById('rd-doc-selfie-fallback');
+  var kycFallbackBtn = document.getElementById('rd-open-kyc-fallback-btn');
+  var kycModalFallbackBtn = document.getElementById('rd-modal-fallback-btn');
   var kycStream = null;
   var currentKycSnapshot = null;
 
@@ -2032,6 +2045,49 @@
       kycStream.getTracks().forEach(function(t) { t.stop(); });
       kycStream = null;
     }
+  }
+
+  if (kycFallbackBtn && kycFallbackInput) {
+    kycFallbackBtn.addEventListener('click', function() {
+      kycFallbackInput.click();
+    });
+  }
+
+  if (kycModalFallbackBtn && kycFallbackInput) {
+    kycModalFallbackBtn.addEventListener('click', function() {
+      stopKycCamera();
+      if (kycCamModal) kycCamModal.style.display = 'none';
+      kycFallbackInput.click();
+    });
+  }
+
+  if (kycFallbackInput) {
+    kycFallbackInput.addEventListener('change', async function() {
+      if (kycFallbackInput.files && kycFallbackInput.files[0]) {
+        var base64 = await readFileAsBase64(kycFallbackInput.files[0]);
+        if (base64) {
+          var hiddenInput = document.getElementById('rd-doc-selfie-data');
+          if (hiddenInput) hiddenInput.value = base64;
+
+          var previewImg = document.getElementById('rd-kyc-preview-img');
+          var previewIcon = document.getElementById('rd-kyc-preview-icon');
+          if (previewImg) {
+            previewImg.src = base64;
+            previewImg.style.display = 'block';
+          }
+          if (previewIcon) previewIcon.style.display = 'none';
+
+          var statusEl = document.getElementById('rd-doc-selfie-status');
+          if (statusEl) {
+            statusEl.innerHTML = '<span style="color:#16a34a; font-weight:800;">📸 Photo Captured (Click Save below)</span>';
+          }
+
+          stopKycCamera();
+          if (kycCamModal) kycCamModal.style.display = 'none';
+          toast('✅ Photo captured from camera! Click "Save & Update All Documents" to upload.');
+        }
+      }
+    });
   }
 
   if (openKycCamBtn && kycCamModal && kycVideo) {
@@ -2051,11 +2107,18 @@
             if (kycInstruction) kycInstruction.textContent = 'Center your face in the oval with good lighting';
           })
           .catch(function(err) {
-            if (kycInstruction) kycInstruction.textContent = '⚠️ Camera permission error: ' + err.message;
+            if (kycInstruction) {
+              kycInstruction.innerHTML = '⚠️ Camera permission issue: ' + err.message + '<br><button type="button" onclick="document.getElementById(\'rd-doc-selfie-fallback\').click()" style="background:#4f46e5;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;margin-top:6px;cursor:pointer;">Tap to Snap Photo with Phone Camera</button>';
+            }
           });
       } else {
-        alert('Camera not supported in this browser.');
-        kycCamModal.style.display = 'none';
+        if (kycFallbackInput) {
+          kycCamModal.style.display = 'none';
+          kycFallbackInput.click();
+        } else {
+          alert('Camera not supported in this browser.');
+          kycCamModal.style.display = 'none';
+        }
       }
     });
 
@@ -2156,12 +2219,15 @@
       } else {
         result = await sbFetch('riders', { method:'POST', body: payload, prefer:'return=representation' });
       }
+      row = (Array.isArray(result) ? result[0] : result) || null;
       var targetRiderId = state.riderId || (row && row.id) || localStorage.getItem('ridelot_rider_id');
       if (row && row.id) {
         state.riderId = row.id;
         targetRiderId = row.id;
       }
-      localStorage.setItem('ridelot_rider_id', targetRiderId);
+      if (targetRiderId) {
+        localStorage.setItem('ridelot_rider_id', targetRiderId);
+      }
       localStorage.setItem('ridelot_rider_name', name);
       localStorage.setItem('ridelot_rider_vtype', vtype);
       localStorage.setItem('ridelot_rider_vlabel', vlabel);
@@ -2186,12 +2252,16 @@
       }
 
       if (Object.keys(docsToSave).length > 0 && targetRiderId) {
-        var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
-        if (!allDocs[targetRiderId]) allDocs[targetRiderId] = {};
-        Object.keys(docsToSave).forEach(function(k) {
-          if (docsToSave[k]) allDocs[targetRiderId][k] = { url: docsToSave[k], status: 'pending', updated_at: new Date().toISOString() };
-        });
-        localStorage.setItem('rydealot_driver_docs', JSON.stringify(allDocs));
+        try {
+          var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+          if (!allDocs[targetRiderId]) allDocs[targetRiderId] = {};
+          Object.keys(docsToSave).forEach(function(k) {
+            if (docsToSave[k]) allDocs[targetRiderId][k] = { url: docsToSave[k], status: 'pending', updated_at: new Date().toISOString() };
+          });
+          localStorage.setItem('rydealot_driver_docs', JSON.stringify(allDocs));
+        } catch(quotaErr) {
+          console.warn('Local storage cache note:', quotaErr);
+        }
 
         // Sync directly to Supabase driver_documents table
         for (var docType in docsToSave) {
@@ -2537,12 +2607,19 @@
   // ---------- booking requests ----------
   function startPollingBookings(){
     fetchBookings();
-    state.pollTimer = setInterval(fetchBookings, 4000);
+    fetchSageParcels();
+    if (state.pollTimer) clearInterval(state.pollTimer);
+    state.pollTimer = setInterval(function() {
+      fetchBookings();
+      fetchSageParcels();
+    }, 4000);
   }
   function stopPollingBookings(){
     clearInterval(state.pollTimer);
     var el = document.getElementById('rd-bookings-list');
     if (el) el.innerHTML = '<div class="empty-state">No requests yet. Stay online to receive them.</div>';
+    var sageEl = document.getElementById('rd-sage-parcels-list');
+    if (sageEl) sageEl.innerHTML = '<div class="empty-state">Offline. Go online to receive parcel requests.</div>';
   }
 
   function destroyRiderMap() {
@@ -3067,6 +3144,424 @@
     }
   }
 
+  // ============================================================================
+  // SAGE COURIER PARCEL DISPATCH ENGINE
+  // ============================================================================
+  var currentDispatchMode = 'passenger'; // 'passenger' | 'sage'
+  var currentActiveSageParcel = null;
+  var currentSageParcelsList = [];
+  var lastSageCount = 0;
+
+  var tabPassenger = document.getElementById('rd-tab-passenger');
+  var tabSage = document.getElementById('rd-tab-sage');
+  var panelPassenger = document.getElementById('rd-passenger-panel');
+  var panelSage = document.getElementById('rd-sage-panel');
+
+  function switchDispatchMode(mode) {
+    currentDispatchMode = mode;
+    if (mode === 'passenger') {
+      if (tabPassenger) {
+        tabPassenger.style.background = '#fff';
+        tabPassenger.style.color = '#0f172a';
+        tabPassenger.style.boxShadow = '0 2px 5px rgba(0,0,0,0.06)';
+      }
+      if (tabSage) {
+        tabSage.style.background = 'transparent';
+        tabSage.style.color = '#64748b';
+        tabSage.style.boxShadow = 'none';
+      }
+      if (panelPassenger) panelPassenger.style.display = 'block';
+      if (panelSage) panelSage.style.display = 'none';
+    } else {
+      if (tabPassenger) {
+        tabPassenger.style.background = 'transparent';
+        tabPassenger.style.color = '#64748b';
+        tabPassenger.style.boxShadow = 'none';
+      }
+      if (tabSage) {
+        tabSage.style.background = '#10b981';
+        tabSage.style.color = '#fff';
+        tabSage.style.boxShadow = '0 2px 8px rgba(16,185,129,0.3)';
+      }
+      if (panelPassenger) panelPassenger.style.display = 'none';
+      if (panelSage) panelSage.style.display = 'block';
+      fetchSageParcels();
+    }
+  }
+
+  if (tabPassenger) tabPassenger.addEventListener('click', function() { switchDispatchMode('passenger'); });
+  if (tabSage) tabSage.addEventListener('click', function() { switchDispatchMode('sage'); });
+
+  var sageRefreshBtn = document.getElementById('rd-sage-refresh-btn');
+  if (sageRefreshBtn) {
+    sageRefreshBtn.addEventListener('click', function() {
+      fetchSageParcels();
+      toast('🔄 Updated Sage parcel orders');
+    });
+  }
+
+  function getCategoryEmoji(cat) {
+    var map = {
+      documents: '📄 Documents',
+      food: '🍱 Food / Lunch',
+      keys: '🔑 Keys',
+      medicine: '💊 Medicine',
+      clothes: '👕 Clothes',
+      box: '📦 Box / Parcel',
+      electronics: '📱 Electronics'
+    };
+    return map[cat] || ('📦 ' + (cat || 'Package'));
+  }
+
+  async function fetchSageParcels() {
+    var rId = state.riderId || localStorage.getItem('ridelot_rider_id');
+    try {
+      // 1. Fetch available pending parcels
+      var pendingParcels = await sbFetch('sage_parcels?status=eq.pending&order=created_at.desc&limit=15') || [];
+
+      // 2. Fetch any assigned or in-transit delivery for this captain
+      var activeParcels = [];
+      if (rId) {
+        activeParcels = await sbFetch('sage_parcels?driver_id=eq.' + rId + '&status=in.(assigned,picked_up,in_transit)&order=created_at.desc&limit=5') || [];
+      }
+
+      currentActiveSageParcel = (activeParcels && activeParcels.length > 0) ? activeParcels[0] : null;
+      currentSageParcelsList = pendingParcels;
+
+      // Update badge
+      var sageBadge = document.getElementById('rd-sage-badge');
+      if (sageBadge) {
+        var totalCount = pendingParcels.length + (currentActiveSageParcel ? 1 : 0);
+        sageBadge.textContent = totalCount > 0 ? totalCount : '0';
+        sageBadge.style.background = currentActiveSageParcel ? '#f59e0b' : '#10b981';
+      }
+
+      var statAvail = document.getElementById('rd-sage-stat-avail');
+      if (statAvail) statAvail.textContent = pendingParcels.length + ' Orders';
+
+      var statActive = document.getElementById('rd-sage-stat-active');
+      if (statActive) statActive.textContent = (activeParcels.length > 0 ? activeParcels.length : 0) + ' In Progress';
+
+      // Chime if new available order arrived
+      if (pendingParcels.length > lastSageCount && lastSageCount !== 0) {
+        playRideRequestAudioChime();
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        toast('📦 New Sage Parcel delivery request available!');
+      }
+      lastSageCount = pendingParcels.length;
+
+      renderSageParcelsUI();
+    } catch(err) {
+      console.warn('fetchSageParcels note:', err);
+    }
+  }
+
+  function renderSageParcelsUI() {
+    var activeContainer = document.getElementById('rd-sage-active-container');
+    var listContainer = document.getElementById('rd-sage-parcels-list');
+
+    // 1. Render Active Delivery Card
+    if (activeContainer) {
+      if (currentActiveSageParcel) {
+        var p = currentActiveSageParcel;
+        var isPickedUp = p.status === 'picked_up' || p.status === 'in_transit';
+
+        // Extract handover PIN from notes if available
+        var handoverPin = '';
+        if (p.notes) {
+          var m = p.notes.match(/\[HANDOVER_PIN:\s*(\d{4})\]/);
+          if (m) handoverPin = m[1];
+        }
+
+        var pickupNavUrl = p.pickup_lat && p.pickup_lng
+          ? ('https://www.google.com/maps/dir/?api=1&destination=' + p.pickup_lat + ',' + p.pickup_lng)
+          : ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.pickup_address || ''));
+
+        var dropNavUrl = p.drop_lat && p.drop_lng
+          ? ('https://www.google.com/maps/dir/?api=1&destination=' + p.drop_lat + ',' + p.drop_lng)
+          : ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.drop_address || ''));
+
+        activeContainer.style.display = 'block';
+        activeContainer.innerHTML =
+          '<div style="background:#fff; border:2px solid #10b981; border-radius:16px; padding:16px; box-shadow:0 4px 18px rgba(16,185,129,0.15);">' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">' +
+              '<div>' +
+                '<span style="font-size:10.5px; font-weight:800; background:' + (isPickedUp ? '#10b981' : '#f59e0b') + '; color:#fff; padding:3px 8px; border-radius:99px; text-transform:uppercase;">' +
+                  (isPickedUp ? '🚀 IN TRANSIT TO DROP' : '🛵 HEADING TO PICKUP') +
+                '</span>' +
+                '<h3 style="margin:6px 0 0; font-size:15px; font-weight:900; color:#0f172a;">' + getCategoryEmoji(p.package_category) + '</h3>' +
+              '</div>' +
+              '<div style="text-align:right;">' +
+                '<span style="font-size:10px; font-weight:700; color:#64748b;">EARNINGS</span>' +
+                '<div style="font-size:20px; font-weight:900; color:#10b981;">₹' + (p.fare || '0') + '</div>' +
+              '</div>' +
+            '</div>' +
+
+            // Step 1: Pickup Info
+            '<div style="background:#f8fafc; border:1px solid ' + (isPickedUp ? '#cbd5e1' : '#10b981') + '; border-radius:12px; padding:12px; margin-bottom:10px;">' +
+              '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
+                '<strong style="font-size:12px; color:#0f172a;">📍 1. Pickup Door (Sender)</strong>' +
+                (isPickedUp ? '<span style="color:#10b981; font-weight:800; font-size:11px;">✅ Picked Up</span>' : '<span style="color:#f59e0b; font-weight:800; font-size:11px;">Active Step</span>') +
+              '</div>' +
+              '<div style="font-size:12px; color:#334155; margin-bottom:4px;">' + (p.pickup_address || 'Pickup location') + '</div>' +
+              '<div style="font-size:11.5px; color:#64748b;">Sender: <strong>' + (p.sender_name || 'Sender') + '</strong> ' + (p.sender_phone ? ('(' + p.sender_phone + ')') : '') + '</div>' +
+
+              (!isPickedUp ? (
+                '<div style="display:flex; gap:8px; margin-top:10px;">' +
+                  (p.sender_phone ? ('<a href="tel:' + p.sender_phone + '" style="flex:1; background:#0f172a; color:#fff; text-decoration:none; padding:8px; border-radius:8px; font-size:11px; font-weight:800; text-align:center;">📞 Call Sender</a>') : '') +
+                  '<a href="' + pickupNavUrl + '" target="_blank" style="flex:1; background:#3b82f6; color:#fff; text-decoration:none; padding:8px; border-radius:8px; font-size:11px; font-weight:800; text-align:center;">🗺️ Maps Directions</a>' +
+                '</div>' +
+                '<div style="margin-top:12px; padding-top:10px; border-top:1px dashed #cbd5e1;">' +
+                  '<label style="font-size:11px; font-weight:800; color:#0f172a; display:block; margin-bottom:4px;">🔑 Ask Sender for 4-Digit Pickup PIN</label>' +
+                  '<div style="display:flex; gap:8px;">' +
+                    '<input type="tel" id="rd-input-sage-pickup-pin" maxlength="4" placeholder="e.g. 1234" style="flex:1; padding:8px 12px; border:1.5px solid #94a3b8; border-radius:8px; font-size:15px; font-weight:800; letter-spacing:3px; text-align:center;">' +
+                    '<button type="button" id="rd-btn-sage-confirm-pickup" style="flex:1.5; background:#10b981; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer;">Confirm Pickup</button>' +
+                  '</div>' +
+                  '<div id="rd-sage-pickup-err" style="color:#ef4444; font-size:10.5px; font-weight:700; margin-top:4px; display:none;"></div>' +
+                '</div>'
+              ) : '') +
+            '</div>' +
+
+            // Step 2: Drop Info
+            '<div style="background:' + (isPickedUp ? '#ecfdf5' : '#f8fafc') + '; border:1.5px solid ' + (isPickedUp ? '#10b981' : '#e2e8f0') + '; border-radius:12px; padding:12px; margin-bottom:12px;">' +
+              '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
+                '<strong style="font-size:12px; color:#0f172a;">🎯 2. Drop Door (Receiver)</strong>' +
+                (isPickedUp ? '<span style="color:#10b981; font-weight:800; font-size:11px;">Deliver Now</span>' : '<span style="color:#94a3b8; font-weight:700; font-size:11px;">Pending Pickup</span>') +
+              '</div>' +
+              '<div style="font-size:12px; color:#334155; margin-bottom:4px;">' + (p.drop_address || 'Drop location') + '</div>' +
+              '<div style="font-size:11.5px; color:#64748b;">Receiver: <strong>' + (p.receiver_name || 'Receiver') + '</strong> ' + (p.receiver_phone ? ('(' + p.receiver_phone + ')') : '') + '</div>' +
+
+              (isPickedUp ? (
+                '<div style="display:flex; gap:8px; margin-top:10px;">' +
+                  (p.receiver_phone ? ('<a href="tel:' + p.receiver_phone + '" style="flex:1; background:#0f172a; color:#fff; text-decoration:none; padding:8px; border-radius:8px; font-size:11px; font-weight:800; text-align:center;">📞 Call Receiver</a>') : '') +
+                  '<a href="' + dropNavUrl + '" target="_blank" style="flex:1; background:#3b82f6; color:#fff; text-decoration:none; padding:8px; border-radius:8px; font-size:11px; font-weight:800; text-align:center;">🗺️ Maps Directions</a>' +
+                '</div>' +
+                '<div style="margin-top:12px; padding-top:10px; border-top:1px dashed #a7f3d0;">' +
+                  '<label style="font-size:11px; font-weight:800; color:#064e3b; display:block; margin-bottom:4px;">🔒 Ask Receiver for 4-Digit Handover PIN</label>' +
+                  '<div style="display:flex; gap:8px;">' +
+                    '<input type="tel" id="rd-input-sage-drop-pin" maxlength="4" placeholder="e.g. 5678" style="flex:1; padding:8px 12px; border:1.5px solid #10b981; border-radius:8px; font-size:15px; font-weight:800; letter-spacing:3px; text-align:center;">' +
+                    '<button type="button" id="rd-btn-sage-confirm-delivery" style="flex:1.5; background:#047857; color:#fff; border:none; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer;">Complete Delivery</button>' +
+                  '</div>' +
+                  '<div id="rd-sage-drop-err" style="color:#ef4444; font-size:10.5px; font-weight:700; margin-top:4px; display:none;"></div>' +
+                '</div>'
+              ) : '') +
+            '</div>' +
+
+            // Radar & Actions Footer
+            '<div style="display:flex; justify-content:space-between; align-items:center; font-size:11px;">' +
+              '<a href="track.html?id=' + p.id + '" target="_blank" style="color:#3b82f6; font-weight:700; text-decoration:none;">🗺️ Open Live Radar Tracking &rarr;</a>' +
+              '<button type="button" id="rd-btn-sage-cancel-del" style="background:transparent; border:none; color:#ef4444; font-size:11px; font-weight:700; cursor:pointer;">Cancel Delivery</button>' +
+            '</div>' +
+          '</div>';
+
+        // Wire pickup confirmation button
+        var confPickupBtn = document.getElementById('rd-btn-sage-confirm-pickup');
+        if (confPickupBtn) {
+          confPickupBtn.addEventListener('click', async function() {
+            var pinInput = document.getElementById('rd-input-sage-pickup-pin');
+            var errEl = document.getElementById('rd-sage-pickup-err');
+            var entered = (pinInput ? pinInput.value : '').trim();
+            var expected = (p.permanent_ride_pin || '').trim();
+
+            if (expected && entered !== expected) {
+              if (errEl) {
+                errEl.textContent = '❌ Incorrect PIN. Ask sender for 4-digit Pickup PIN.';
+                errEl.style.display = 'block';
+              }
+              return;
+            }
+
+            try {
+              confPickupBtn.textContent = '⏳ Confirming...';
+              confPickupBtn.disabled = true;
+              await sbFetch('sage_parcels?id=eq.' + p.id, {
+                method: 'PATCH',
+                body: { status: 'in_transit' }
+              });
+              toast('✅ Pickup verified! Now deliver to drop location.');
+              fetchSageParcels();
+            } catch(e) {
+              alert('Error confirming pickup: ' + e.message);
+              confPickupBtn.textContent = 'Confirm Pickup';
+              confPickupBtn.disabled = false;
+            }
+          });
+        }
+
+        // Wire delivery completion button
+        var confDelBtn = document.getElementById('rd-btn-sage-confirm-delivery');
+        if (confDelBtn) {
+          confDelBtn.addEventListener('click', async function() {
+            var pinInput = document.getElementById('rd-input-sage-drop-pin');
+            var errEl = document.getElementById('rd-sage-drop-err');
+            var entered = (pinInput ? pinInput.value : '').trim();
+
+            if (handoverPin && entered !== handoverPin) {
+              if (errEl) {
+                errEl.textContent = '❌ Incorrect Handover PIN. Ask receiver for 4-digit PIN.';
+                errEl.style.display = 'block';
+              }
+              return;
+            }
+
+            try {
+              confDelBtn.textContent = '⏳ Completing...';
+              confDelBtn.disabled = true;
+
+              // 1. Mark parcel as delivered in Supabase
+              await sbFetch('sage_parcels?id=eq.' + p.id, {
+                method: 'PATCH',
+                body: { status: 'delivered' }
+              });
+
+              // 2. Set driver status available in riders
+              if (state.riderId) {
+                await sbFetch('riders?id=eq.' + state.riderId, {
+                  method: 'PATCH',
+                  body: { status: 'available', updated_at: new Date().toISOString() }
+                });
+                setPill('available');
+              }
+
+              // 3. Credit fare to Driver Wallet
+              var fareNum = parseFloat(p.fare || 0);
+              var curBal = parseFloat(localStorage.getItem('rydealot_driver_wallet_balance') || '0');
+              var newBal = curBal + fareNum;
+              localStorage.setItem('rydealot_driver_wallet_balance', newBal.toFixed(0));
+
+              var balDisplay = document.getElementById('rd-wallet-balance-display');
+              if (balDisplay) balDisplay.textContent = '₹' + newBal.toFixed(0);
+              var balHero = document.getElementById('rd-wallet-total-balance');
+              if (balHero) balHero.textContent = '₹' + newBal.toFixed(0);
+
+              // Daily trip increment
+              if (typeof window.incrementDailySprintCount === 'function') {
+                window.incrementDailySprintCount();
+              }
+
+              toast('🎉 Delivery Complete! ₹' + fareNum + ' added to your Driver Wallet!', 5000);
+              if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+              fetchSageParcels();
+            } catch(e) {
+              alert('Error completing delivery: ' + e.message);
+              confDelBtn.textContent = 'Complete Delivery';
+              confDelBtn.disabled = false;
+            }
+          });
+        }
+
+        // Wire cancel delivery button
+        var cancelDelBtn = document.getElementById('rd-btn-sage-cancel-del');
+        if (cancelDelBtn) {
+          cancelDelBtn.addEventListener('click', async function() {
+            if (!confirm('Are you sure you want to cancel this parcel delivery?')) return;
+            try {
+              await sbFetch('sage_parcels?id=eq.' + p.id, {
+                method: 'PATCH',
+                body: { status: 'pending', driver_id: null, driver_name: null, driver_phone: null, driver_vehicle: null }
+              });
+              if (state.riderId) {
+                await sbFetch('riders?id=eq.' + state.riderId, {
+                  method: 'PATCH',
+                  body: { status: 'available', updated_at: new Date().toISOString() }
+                });
+                setPill('available');
+              }
+              toast('Delivery cancelled and released for dispatch.');
+              fetchSageParcels();
+            } catch(e) {
+              alert('Could not cancel: ' + e.message);
+            }
+          });
+        }
+      } else {
+        activeContainer.style.display = 'none';
+        activeContainer.innerHTML = '';
+      }
+    }
+
+    // 2. Render Available Parcels List
+    if (listContainer) {
+      if (!currentSageParcelsList || currentSageParcelsList.length === 0) {
+        listContainer.innerHTML = '<div class="empty-state">No parcel orders nearby right now. Stay online to receive incoming requests.</div>';
+        return;
+      }
+
+      listContainer.innerHTML = currentSageParcelsList.map(function(p) {
+        var pickupDistText = '';
+        if (state.lat && state.lng && p.pickup_lat && p.pickup_lng) {
+          var d = haversineKm(state.lat, state.lng, p.pickup_lat, p.pickup_lng);
+          pickupDistText = ' <span style="color:#3b82f6; font-weight:700;">(' + d.toFixed(1) + ' km away)</span>';
+        }
+
+        return '<div style="background:#fff; border:1.5px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
+            '<span style="font-size:13px; font-weight:900; color:#0f172a;">' + getCategoryEmoji(p.package_category) + '</span>' +
+            '<span style="font-size:16px; font-weight:900; color:#10b981;">₹' + (p.fare || '0') + '</span>' +
+          '</div>' +
+          '<div style="font-size:11.5px; color:#334155; line-height:1.5; margin-bottom:10px;">' +
+            '<div><strong>📍 Pickup:</strong> ' + (p.pickup_address || 'Pickup location') + pickupDistText + '</div>' +
+            '<div><strong>🎯 Drop:</strong> ' + (p.drop_address || 'Drop location') + '</div>' +
+            (p.notes ? ('<div style="color:#64748b; font-size:10.5px; margin-top:2px;"><em>Note: ' + p.notes.replace(/\[HANDOVER_PIN:[^\]]+\]/, '') + '</em></div>') : '') +
+          '</div>' +
+          '<button type="button" class="btn btn-accept-sage" data-id="' + p.id + '" style="background:#10b981; color:#fff; border:none; padding:10px; border-radius:10px; font-size:12.5px; font-weight:900; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:6px;">' +
+            '<span>🚀 Accept Delivery (₹' + (p.fare || '0') + ')</span>' +
+          '</button>' +
+        '</div>';
+      }).join('');
+
+      // Wire accept buttons
+      Array.prototype.forEach.call(listContainer.querySelectorAll('.btn-accept-sage'), function(btn) {
+        btn.addEventListener('click', async function() {
+          var parcelId = btn.getAttribute('data-id');
+          if (!state.riderId) {
+            toast('Please complete your driver profile first.');
+            return;
+          }
+          if (currentActiveSageParcel) {
+            toast('⚠️ You already have an active parcel delivery in progress!');
+            return;
+          }
+
+          var captName = localStorage.getItem('ridelot_rider_name') || 'Captain';
+          var captPhone = localStorage.getItem('ridelot_rider_phone') || '';
+          var captVehicle = (localStorage.getItem('ridelot_rider_vlabel') || 'Bike') + ' (' + (localStorage.getItem('ridelot_rider_plate') || '') + ')';
+
+          btn.textContent = '⏳ Accepting...';
+          btn.disabled = true;
+
+          try {
+            await sbFetch('sage_parcels?id=eq.' + parcelId, {
+              method: 'PATCH',
+              body: {
+                status: 'assigned',
+                driver_id: state.riderId,
+                driver_name: captName,
+                driver_phone: captPhone,
+                driver_vehicle: captVehicle
+              }
+            });
+
+            await sbFetch('riders?id=eq.' + state.riderId, {
+              method: 'PATCH',
+              body: { status: 'busy', updated_at: new Date().toISOString() }
+            });
+            setPill('busy');
+
+            toast('✅ Parcel accepted! Proceed to pickup door.');
+            switchDispatchMode('sage');
+            fetchSageParcels();
+          } catch(err) {
+            alert('Could not accept parcel: ' + err.message);
+            btn.textContent = 'Accept Delivery';
+            btn.disabled = false;
+            fetchSageParcels();
+          }
+        });
+      });
+    }
+  }
+
   async function loadDriverTripHistory() {
     var listEl = document.getElementById('rd-trips-history-list');
     var totalTripsEl = document.getElementById('rd-hist-total-trips');
@@ -3186,6 +3681,7 @@
         if (mainS2) mainS2.style.display = 'none';
       }
     }
+    fetchSageParcels();
   }
   init();
 })();
