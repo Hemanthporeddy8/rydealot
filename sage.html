@@ -395,6 +395,11 @@
     z-index: 999;
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Hide Leaflet & OpenStreetMap attribution watermarks */
+  .leaflet-control-attribution {
+    display: none !important;
+  }
 </style>
 </head>
 <body>
@@ -498,7 +503,7 @@
             <span id="pickup-coords-tag" style="font-size:10px; color:#16A34A; font-weight:700;"></span>
           </div>
           <div class="input-wrap">
-            <input type="text" id="sage-pickup" placeholder="e.g. Hanamkonda Bus Stand or Current GPS" value="Hanamkonda, Warangal" onchange="geocodeAddress('pickup', this.value)">
+            <input type="text" id="sage-pickup" placeholder="Enter Pickup Address or Tap 'Current GPS'" value="" onchange="geocodeAddress('pickup', this.value)">
           </div>
           <div style="display:flex; gap:8px; margin-top:4px;">
             <input type="text" id="sage-sender-name" class="input-wrap" style="flex:1; padding:8px 12px; font-size:12px;" placeholder="Sender Name">
@@ -514,7 +519,7 @@
             <span id="drop-coords-tag" style="font-size:10px; color:#EF4444; font-weight:700;"></span>
           </div>
           <div class="input-wrap">
-            <input type="text" id="sage-drop" placeholder="e.g. Kazipet Railway Station Gate 1" value="Kazipet Railway Station" onchange="geocodeAddress('drop', this.value)">
+            <input type="text" id="sage-drop" placeholder="Enter Receiver Drop Address or Tap on Map" value="" onchange="geocodeAddress('drop', this.value)">
           </div>
           <div style="display:flex; gap:8px; margin-top:4px;">
             <input type="text" id="sage-recv-name" class="input-wrap" style="flex:1; padding:8px 12px; font-size:12px;" placeholder="Receiver Name">
@@ -590,9 +595,9 @@
   var searchTimer = null;
   var pinMode = 'pickup'; // 'pickup' or 'drop'
 
-  // Coordinates
-  var pickupCoords = { lat: 18.0073, lng: 79.5583 }; // Default: Hanamkonda
-  var dropCoords = { lat: 17.9784, lng: 79.5080 };   // Default: Kazipet Railway Station
+  // Coordinates (Clean on start, populated by GPS or user map tap)
+  var pickupCoords = null;
+  var dropCoords = null;
 
   var sageMap = null;
   var pickupMarker = null;
@@ -640,13 +645,16 @@
       return;
     }
 
+    // Default center Warangal / Kazipet region
+    var defaultCenter = [17.9961, 79.5509];
+
     sageMap = L.map('sage-map', {
-      zoomControl: true
-    }).setView([pickupCoords.lat, pickupCoords.lng], 13);
+      zoomControl: true,
+      attributionControl: false
+    }).setView(defaultCenter, 13);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
+      maxZoom: 19
     }).addTo(sageMap);
 
     // Custom Icon Creators
@@ -664,53 +672,44 @@
       iconAnchor: [0, 0]
     });
 
-    // Pickup Marker
-    pickupMarker = L.marker([pickupCoords.lat, pickupCoords.lng], {
-      icon: greenIcon,
-      draggable: true
-    }).addTo(sageMap);
-
-    pickupMarker.on('dragend', function(e) {
-      var pos = e.target.getLatLng();
-      pickupCoords = { lat: pos.lat, lng: pos.lng };
-      reverseGeocode('pickup', pos.lat, pos.lng);
-      fetchRoute();
-    });
-
-    // Drop Marker
-    dropMarker = L.marker([dropCoords.lat, dropCoords.lng], {
-      icon: redIcon,
-      draggable: true
-    }).addTo(sageMap);
-
-    dropMarker.on('dragend', function(e) {
-      var pos = e.target.getLatLng();
-      dropCoords = { lat: pos.lat, lng: pos.lng };
-      reverseGeocode('drop', pos.lat, pos.lng);
-      fetchRoute();
-    });
-
     // Map Click Listener
     sageMap.on('click', function(e) {
       var lat = e.latlng.lat;
       var lng = e.latlng.lng;
       if (pinMode === 'pickup') {
         pickupCoords = { lat: lat, lng: lng };
-        pickupMarker.setLatLng([lat, lng]);
+        if (!pickupMarker) {
+          pickupMarker = L.marker([lat, lng], { icon: greenIcon, draggable: true }).addTo(sageMap);
+          pickupMarker.on('dragend', function(ev) {
+            var pos = ev.target.getLatLng();
+            pickupCoords = { lat: pos.lat, lng: pos.lng };
+            reverseGeocode('pickup', pos.lat, pos.lng);
+            fetchRoute();
+          });
+        } else {
+          pickupMarker.setLatLng([lat, lng]);
+        }
         reverseGeocode('pickup', lat, lng);
         setPinMode('drop'); // automatically suggest setting drop next
       } else {
         dropCoords = { lat: lat, lng: lng };
-        dropMarker.setLatLng([lat, lng]);
+        if (!dropMarker) {
+          dropMarker = L.marker([lat, lng], { icon: redIcon, draggable: true }).addTo(sageMap);
+          dropMarker.on('dragend', function(ev) {
+            var pos = ev.target.getLatLng();
+            dropCoords = { lat: pos.lat, lng: pos.lng };
+            reverseGeocode('drop', pos.lat, pos.lng);
+            fetchRoute();
+          });
+        } else {
+          dropMarker.setLatLng([lat, lng]);
+        }
         reverseGeocode('drop', lat, lng);
       }
       fetchRoute();
     });
 
-    // Initial Route
-    fetchRoute();
-
-    // Auto-locate GPS on start
+    // Attempt GPS locate for user's convenience
     locateUserGPS(true);
   }
 
@@ -725,7 +724,25 @@
         var lat = pos.coords.latitude;
         var lng = pos.coords.longitude;
         pickupCoords = { lat: lat, lng: lng };
-        if (pickupMarker) pickupMarker.setLatLng([lat, lng]);
+        if (!pickupMarker && sageMap) {
+          pickupMarker = L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: 'sage-custom-pin-pickup',
+              html: '<div style="background:#16A34A; width:18px; height:18px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 8px rgba(0,0,0,0.4); transform:translate(-9px,-9px);"></div>',
+              iconSize: [18, 18],
+              iconAnchor: [0, 0]
+            }),
+            draggable: true
+          }).addTo(sageMap);
+          pickupMarker.on('dragend', function(ev) {
+            var p = ev.target.getLatLng();
+            pickupCoords = { lat: p.lat, lng: p.lng };
+            reverseGeocode('pickup', p.lat, p.lng);
+            fetchRoute();
+          });
+        } else if (pickupMarker) {
+          pickupMarker.setLatLng([lat, lng]);
+        }
         if (sageMap) sageMap.setView([lat, lng], 14);
         reverseGeocode('pickup', lat, lng);
         fetchRoute();
@@ -897,11 +914,11 @@
           receiver_phone: recvPhone,
           package_category: selectedCategory,
           pickup_address: pickup,
-          pickup_lat: pickupCoords.lat,
-          pickup_lng: pickupCoords.lng,
+          pickup_lat: pickupCoords ? pickupCoords.lat : null,
+          pickup_lng: pickupCoords ? pickupCoords.lng : null,
           drop_address: drop,
-          drop_lat: dropCoords.lat,
-          drop_lng: dropCoords.lng,
+          drop_lat: dropCoords ? dropCoords.lat : null,
+          drop_lng: dropCoords ? dropCoords.lng : null,
           fare: calculatedFare,
           notes: notes,
           permanent_ride_pin: pin,
