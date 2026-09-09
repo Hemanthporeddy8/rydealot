@@ -611,10 +611,17 @@
       html += '<div style="font-size:0.72rem; color:var(--mute); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🎯 ' + escapeHtml(p.drop_address || '-') + '</div>';
       html += '</td>';
 
-      // Fare & PIN
+      // Fare & PINs
+      var pinMatch = (p.notes || '').match(/Receiver Drop PIN:\s*(\d+)/i);
+      var recvPinText = pinMatch ? pinMatch[1] : '-';
+
       html += '<td>';
       html += '<div style="font-weight:900; color:var(--green); font-size:0.95rem;">₹' + (p.fare || 45) + '</div>';
-      html += '<div style="font-size:0.72rem; color:var(--mute);">PIN: <span class="mono" style="color:#fff; font-weight:800;">' + (p.permanent_ride_pin || '-') + '</span></div>';
+      html += '<div style="font-size:0.72rem; color:var(--mute);">Pickup: <span class="mono" style="color:#fff; font-weight:800;">' + (p.permanent_ride_pin || '-') + '</span></div>';
+      if (recvPinText !== '-') {
+        html += '<div style="font-size:0.72rem; color:#4ADE80;">Drop: <span class="mono" style="font-weight:800;">' + recvPinText + '</span></div>';
+      }
+      html += '<a href="track.html?id=' + p.id + '" target="_blank" style="font-size:0.7rem; color:var(--blue-light); text-decoration:underline; display:inline-block; margin-top:2px;">🗺️ Open Radar</a>';
       html += '</td>';
 
       // Driver

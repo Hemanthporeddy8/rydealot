@@ -528,8 +528,22 @@
         </div>
       </div>
 
+      <!-- Receiver PIN Security Toggle -->
+      <div style="background:#F8FAFC; border:1.5px solid var(--line); border-radius:14px; padding:12px 14px; margin-top:8px;">
+        <label style="display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:18px;">🔒</span>
+            <div>
+              <div style="font-size:12.5px; font-weight:800; color:var(--ink);">Require Receiver Handover PIN</div>
+              <div style="font-size:10.5px; color:var(--ink-soft);">Captain cannot mark delivered without receiver's PIN</div>
+            </div>
+          </div>
+          <input type="checkbox" id="require-recv-pin-toggle" checked style="width:18px; height:18px; accent-color:var(--accent); cursor:pointer;">
+        </label>
+      </div>
+
       <!-- Notes / Instructions -->
-      <div class="field" style="margin-top:6px;">
+      <div class="field" style="margin-top:8px;">
         <label class="field-label">Delivery Note for Captain (Optional)</label>
         <div class="input-wrap">
           <input type="text" id="sage-notes" placeholder="e.g. Call receiver before coming, fragile item">
@@ -575,6 +589,22 @@
         8598
       </div>
       <div style="font-size:10.5px; color:#94A3B8; margin-top:2px;">Tell this PIN to captain when handing over the bag</div>
+
+      <!-- Optional Receiver PIN Section -->
+      <div id="modal-recv-pin-box" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed #CBD5E1;">
+        <div style="font-size:11px; font-weight:800; color:#16A34A; text-transform:uppercase;">Receiver Delivery PIN:</div>
+        <div style="font-size:20px; font-weight:900; color:#16A34A; font-family:'IBM Plex Mono'; letter-spacing:3px;" id="modal-recv-pin-display">
+          ----
+        </div>
+        <div style="font-size:10px; color:#64748B;">Receiver will tell this PIN to captain at the door</div>
+      </div>
+    </div>
+
+    <!-- Share Live Tracking Button -->
+    <div id="modal-share-tracking-box" style="display:none; width:100%;">
+      <button type="button" onclick="shareTrackingToReceiver()" style="width:100%; padding:10px 14px; background:#16A34A; color:#fff; border:none; border-radius:10px; font-size:12.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+        📲 Share Live Tracking with Receiver
+      </button>
     </div>
 
     <button type="button" onclick="cancelSageSearch()" style="background:transparent; border:none; color:#EF4444; font-weight:700; font-size:12.5px; cursor:pointer; margin-top:4px;">
@@ -892,10 +922,30 @@
     var pin = localStorage.getItem('rydealot_ride_pin') || '8598';
     document.getElementById('modal-pin-display').textContent = pin;
 
+    // Check if Receiver PIN is requested
+    var requireRecvPin = document.getElementById('require-recv-pin-toggle') ? document.getElementById('require-recv-pin-toggle').checked : true;
+    var recvPin = null;
+    if (requireRecvPin) {
+      // Generate secure 4-digit receiver delivery PIN
+      recvPin = Math.floor(1000 + Math.random() * 9000).toString();
+      document.getElementById('modal-recv-pin-box').style.display = 'block';
+      document.getElementById('modal-recv-pin-display').textContent = recvPin;
+    } else {
+      document.getElementById('modal-recv-pin-box').style.display = 'none';
+    }
+
+    // Append Receiver PIN to notes if required so drivers & dispatch see it
+    var fullNotes = notes;
+    if (recvPin) {
+      fullNotes = (fullNotes ? fullNotes + ' | ' : '') + 'Receiver Drop PIN: ' + recvPin;
+    }
+
     // Show searching modal
     document.getElementById('search-modal').classList.add('active');
     document.getElementById('modal-status-title').textContent = 'Searching for Nearby Sage Captain…';
     document.getElementById('modal-status-desc').textContent = 'Connecting to nearest verified bike captain with parcel box.';
+
+    var createdParcelId = null;
 
     // Send full record with exact GPS coordinates to Supabase
     try {
@@ -920,13 +970,21 @@
           drop_lat: dropCoords ? dropCoords.lat : null,
           drop_lng: dropCoords ? dropCoords.lng : null,
           fare: calculatedFare,
-          notes: notes,
+          notes: fullNotes,
           permanent_ride_pin: pin,
           status: 'pending'
         })
       }).then(function(r) { return r.json(); })
         .then(function(data) {
-          console.log('✅ Sage parcel recorded in Supabase:', data);
+          if (data && data[0] && data[0].id) {
+            createdParcelId = data[0].id;
+            currentBookingParcelId = createdParcelId;
+            currentBookingRecvPhone = recvPhone;
+            currentBookingRecvPin = recvPin;
+            console.log('✅ Sage parcel recorded in Supabase ID:', createdParcelId);
+            var shareBox = document.getElementById('modal-share-tracking-box');
+            if (shareBox) shareBox.style.display = 'block';
+          }
         })
         .catch(function(e){ console.log('Sage sync note:', e); });
     } catch(e){}
@@ -936,7 +994,26 @@
       document.getElementById('modal-status-title').textContent = '✅ Captain Assigned!';
       document.getElementById('modal-status-desc').textContent = 'Captain Suresh (TS03 AB 1234) is on the way for pickup in 4 mins.';
       showToast('🎉 Captain Suresh assigned for your Sage parcel!');
+      var shareBox = document.getElementById('modal-share-tracking-box');
+      if (shareBox) shareBox.style.display = 'block';
     }, 3500);
+  }
+
+  var currentBookingParcelId = null;
+  var currentBookingRecvPhone = '';
+  var currentBookingRecvPin = '';
+
+  function shareTrackingToReceiver() {
+    var parcelId = currentBookingParcelId || 'latest';
+    var trackUrl = window.location.origin + '/track.html?id=' + parcelId;
+    var msg = '📦 Your Rydealot Sage Parcel is on the way! Track captain live here: ' + trackUrl;
+    if (currentBookingRecvPin) {
+      msg += ' | Your Handover PIN: ' + currentBookingRecvPin;
+    }
+
+    var cleanPhone = (currentBookingRecvPhone || '').replace(/\D/g, '');
+    var waUrl = 'https://wa.me/' + (cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone) + '?text=' + encodeURIComponent(msg);
+    window.open(waUrl, '_blank');
   }
 
   function cancelSageSearch() {
