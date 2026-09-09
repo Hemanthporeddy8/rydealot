@@ -115,13 +115,17 @@
     z-index: 2;
   }
   .hero-mascot {
-    width: 90px;
+    width: 105px;
     height: auto;
-    max-height: 110px;
+    max-height: 125px;
     object-fit: contain;
-    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
     flex-shrink: 0;
     z-index: 2;
+    transition: transform 0.2s ease;
+  }
+  .hero-mascot:hover {
+    transform: scale(1.05);
   }
   .hero-tag {
     display: inline-flex;
@@ -683,7 +687,7 @@
       attributionControl: false
     }).setView(defaultCenter, 13);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19
     }).addTo(sageMap);
 
