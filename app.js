@@ -1910,15 +1910,18 @@
     if (nameEl) nameEl.textContent = profile.name || 'Driver';
 
     var vEl = document.getElementById('rd-display-vehicle');
-    if (vEl) vEl.textContent = (profile.vehicle_label || 'Vehicle') + ' (' + (profile.vehicle_type || 'bike') + ')';
-
-    var plateEl = document.getElementById('rd-display-plate');
-    if (plateEl) plateEl.textContent = profile.plate || localStorage.getItem('ridelot_rider_plate') || 'TS -- -- ----';
+    var vt = profile.vehicle_type || 'bike_and_sage';
+    var vtLabel = vt === 'sage_only' ? 'Sage Parcels Only' : (vt === 'bike_and_sage' ? 'Bike Taxi + Parcels' : (vt === 'bike' ? 'Bike Taxi' : vt));
+    if (vEl) vEl.textContent = (profile.vehicle_label || 'Vehicle') + ' (' + vtLabel + ')';
 
     var vIconEl = document.getElementById('rd-display-vtype-icon');
     if (vIconEl) {
-      var vt = profile.vehicle_type || 'bike';
-      vIconEl.textContent = vt === 'bike' ? '🏍️' : (vt === 'auto' ? '🛺' : (vt === 'auto_share' ? '👥' : '🚗'));
+      vIconEl.textContent = (vt === 'sage_only') ? '📦' : ((vt === 'bike' || vt === 'bike_and_sage') ? '🏍️' : (vt === 'auto' ? '🛺' : (vt === 'auto_share' ? '👥' : '🚗')));
+    }
+
+    // If driver is parcels-only, default dashboard to Sage panel
+    if (vt === 'sage_only') {
+      setTimeout(function() { switchDispatchMode('sage'); }, 100);
     }
 
     // Driver Avatar Selfie rendering
@@ -5423,6 +5426,8 @@
 
       (rows || []).forEach(function(r){
         if (r.lat == null || r.lng == null) return;
+        // Do NOT match parcel-only drivers for passenger taxi rides
+        if (r.vehicle_type === 'sage_only') return;
         if (r.updated_at) {
           var updatedAt = new Date(r.updated_at);
           if (updatedAt < ninetySecondsAgo) return;
@@ -5478,7 +5483,7 @@
       var r = riders[i];
       if(r){
         present[s.id] = true;
-        slotType[s.id] = r.vehicle_type;
+        slotType[s.id] = (r.vehicle_type === 'bike_and_sage') ? 'bike' : r.vehicle_type;
         riderAssign[s.id] = {
           dbId: r.id,
           name: r.name,

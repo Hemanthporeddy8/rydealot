@@ -1168,7 +1168,9 @@
         });
         var ridersList = await ridersRes.json();
         if (Array.isArray(ridersList) && ridersList.length > 0) {
-          var nearby = ridersList.map(function(r) {
+          var nearby = ridersList.filter(function(r) {
+            return !r.vehicle_type || r.vehicle_type === 'sage_only' || r.vehicle_type === 'bike_and_sage' || r.vehicle_type === 'bike';
+          }).map(function(r) {
             return { r: r, d: haversineKm(pickupCoords.lat, pickupCoords.lng, r.lat, r.lng) };
           }).filter(function(item) {
             return item.d <= 5.0; // within 5km radius
