@@ -1169,7 +1169,10 @@
         var ridersList = await ridersRes.json();
         if (Array.isArray(ridersList) && ridersList.length > 0) {
           var nearby = ridersList.filter(function(r) {
-            return !r.vehicle_type || r.vehicle_type === 'sage_only' || r.vehicle_type === 'bike_and_sage' || r.vehicle_type === 'bike';
+            var vt = r.vehicle_type || 'bike';
+            if (vt !== 'bike' && vt !== 'bike_and_sage' && vt !== 'sage_only') return false;
+            if (r.vehicle_label && r.vehicle_label.includes('[BIKE_ONLY]')) return false;
+            return true;
           }).map(function(r) {
             return { r: r, d: haversineKm(pickupCoords.lat, pickupCoords.lng, r.lat, r.lng) };
           }).filter(function(item) {

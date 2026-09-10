@@ -1860,9 +1860,18 @@
   }
 
   function loadProfileIntoForm(profile){
+    var rawLabel = profile.vehicle_label || '';
+    var detectedVtype = profile.vehicle_type || 'bike';
+    if (rawLabel.includes('[SAGE_ONLY]')) detectedVtype = 'sage_only';
+    else if (rawLabel.includes('[BIKE_AND_SAGE]')) detectedVtype = 'bike_and_sage';
+    else if (rawLabel.includes('[BIKE_ONLY]')) detectedVtype = 'bike';
+    else if (localStorage.getItem('ridelot_rider_vtype')) detectedVtype = localStorage.getItem('ridelot_rider_vtype');
+
+    var cleanLabel = rawLabel.replace(/\s*\[(BIKE_AND_SAGE|SAGE_ONLY|BIKE_ONLY)\]/ig, '').trim();
+
     document.getElementById('rd-rider-name').value = profile.name || '';
-    document.getElementById('rd-rider-vtype').value = profile.vehicle_type || 'bike';
-    document.getElementById('rd-rider-vlabel').value = profile.vehicle_label || '';
+    document.getElementById('rd-rider-vtype').value = detectedVtype;
+    document.getElementById('rd-rider-vlabel').value = cleanLabel;
     document.getElementById('rd-rider-plate').value = profile.plate || '';
     document.getElementById('rd-rider-phone').value = profile.phone || '';
     updateDriverVerificationStatusUI(profile.id);
@@ -1873,19 +1882,13 @@
     var banner = document.getElementById('rd-broadcast-banner');
     var textEl = document.getElementById('rd-broadcast-text');
     if (!banner || !textEl) return;
-
-    var localMsg = localStorage.getItem('rydealot_admin_broadcast');
-    if (localMsg) {
-      textEl.textContent = localMsg;
-      banner.style.display = 'flex';
-    }
-
     try {
       var rows = await sbFetch('driver_documents?doc_type=eq.admin_broadcast&status=eq.active&order=created_at.desc&limit=1');
-      if (rows && rows[0] && rows[0].admin_notes) {
-        textEl.textContent = rows[0].admin_notes;
-        banner.style.display = 'flex';
-      } else if (!localMsg) {
+      if (rows && rows.length > 0) {
+        var b = rows[0];
+        textEl.textContent = b.admin_notes || b.file_url || 'Alert from Rydealot Operations';
+        banner.style.display = 'block';
+      } else {
         banner.style.display = 'none';
       }
     } catch(e){}
@@ -1909,10 +1912,21 @@
     var nameEl = document.getElementById('rd-display-name');
     if (nameEl) nameEl.textContent = profile.name || 'Driver';
 
-    var vEl = document.getElementById('rd-display-vehicle');
+    var rawLabel = profile.vehicle_label || '';
     var vt = profile.vehicle_type || 'bike';
+    if (rawLabel.includes('[SAGE_ONLY]')) vt = 'sage_only';
+    else if (rawLabel.includes('[BIKE_AND_SAGE]')) vt = 'bike_and_sage';
+    else if (rawLabel.includes('[BIKE_ONLY]')) vt = 'bike';
+    else if (localStorage.getItem('ridelot_rider_vtype')) vt = localStorage.getItem('ridelot_rider_vtype');
+
+    var cleanLabel = rawLabel.replace(/\s*\[(BIKE_AND_SAGE|SAGE_ONLY|BIKE_ONLY)\]/ig, '').trim();
     var vtLabel = vt === 'sage_only' ? 'Sage Parcels Only' : (vt === 'bike_and_sage' ? 'Bike Taxi + Parcels' : (vt === 'bike' ? 'Bike Taxi' : vt));
-    if (vEl) vEl.textContent = (profile.vehicle_label || 'Vehicle') + ' (' + vtLabel + ')';
+
+    var vEl = document.getElementById('rd-display-vehicle');
+    if (vEl) vEl.textContent = (cleanLabel || 'Vehicle') + ' (' + vtLabel + ')';
+
+    var plateEl = document.getElementById('rd-display-plate');
+    if (plateEl) plateEl.textContent = profile.plate || localStorage.getItem('ridelot_rider_plate') || 'TS -- -- ----';
 
     var vIconEl = document.getElementById('rd-display-vtype-icon');
     if (vIconEl) {
@@ -2210,7 +2224,15 @@
       toast('Please fill in name, vehicle model, and plate');
       return;
     }
-    var payload = { name: name, vehicle_type: vtype, vehicle_label: vlabel, plate: plate, phone: phone, status: 'offline' };
+    // Satisfy PostgreSQL check constraint (riders_vehicle_type_check: 'bike','auto','auto_share','car')
+    var dbVehicleType = (vtype === 'bike_and_sage' || vtype === 'sage_only') ? 'bike' : vtype;
+    var cleanLabel = vlabel.replace(/\s*\[(BIKE_AND_SAGE|SAGE_ONLY|BIKE_ONLY)\]/ig, '').trim();
+    var dbLabel = cleanLabel;
+    if (vtype === 'sage_only') dbLabel += ' [SAGE_ONLY]';
+    else if (vtype === 'bike_and_sage') dbLabel += ' [BIKE_AND_SAGE]';
+    else if (vtype === 'bike') dbLabel += ' [BIKE_ONLY]';
+
+    var payload = { name: name, vehicle_type: dbVehicleType, vehicle_label: dbLabel, plate: plate, phone: phone, status: 'offline' };
 
     var saveBtn = document.getElementById('rd-save-profile-btn');
     if (saveBtn) { saveBtn.textContent = '⏳ Saving documents...'; saveBtn.disabled = true; }
@@ -2233,7 +2255,7 @@
       }
       localStorage.setItem('ridelot_rider_name', name);
       localStorage.setItem('ridelot_rider_vtype', vtype);
-      localStorage.setItem('ridelot_rider_vlabel', vlabel);
+      localStorage.setItem('ridelot_rider_vlabel', cleanLabel);
       localStorage.setItem('ridelot_rider_plate', plate);
       localStorage.setItem('ridelot_rider_phone', phone);
 
@@ -5427,7 +5449,7 @@
       (rows || []).forEach(function(r){
         if (r.lat == null || r.lng == null) return;
         // Do NOT match parcel-only drivers for passenger taxi rides
-        if (r.vehicle_type === 'sage_only') return;
+        if (r.vehicle_type === 'sage_only' || (r.vehicle_label && r.vehicle_label.includes('[SAGE_ONLY]'))) return;
         if (r.updated_at) {
           var updatedAt = new Date(r.updated_at);
           if (updatedAt < ninetySecondsAgo) return;
@@ -5454,14 +5476,14 @@
         return nearbyInZone;
       } else if (expandedZone.length > 0) {
         // Remote / temple area expansion
-        if (countLabel) countLabel.textContent = expandedZone.length + ' drivers in extended zone (' + expandedZone[0]._distanceKm.toFixed(1) + ' km away)';
+        if (countLabel) countLabel.textContent = expandedZone.length + ' drivers in 12 km zone';
         if (bonusBanner) {
           bonusBanner.style.display = 'flex';
           if (bonusText) bonusText.textContent = 'Remote area detected. Matched nearest driver ' + expandedZone[0]._distanceKm.toFixed(1) + ' km away with transparent upfront pickup allowance.';
         }
         return expandedZone;
       } else {
-        if (countLabel) countLabel.textContent = '0 drivers active nearby';
+        if (countLabel) countLabel.textContent = 'No drivers available nearby';
         if (bonusBanner) {
           bonusBanner.style.display = 'flex';
           if (bonusText) bonusText.textContent = 'No drivers active within 12 km. Searching nearby highway corridors...';
@@ -5483,7 +5505,9 @@
       var r = riders[i];
       if(r){
         present[s.id] = true;
-        slotType[s.id] = (r.vehicle_type === 'bike_and_sage') ? 'bike' : r.vehicle_type;
+        var isBike = (r.vehicle_type === 'bike' || r.vehicle_type === 'bike_and_sage' || (r.vehicle_label && r.vehicle_label.includes('[BIKE_AND_SAGE]')));
+        slotType[s.id] = isBike ? 'bike' : r.vehicle_type;
+        var cleanLabel = (r.vehicle_label || '').replace(/\s*\[(BIKE_AND_SAGE|SAGE_ONLY|BIKE_ONLY)\]/ig, '').trim();
         riderAssign[s.id] = {
           dbId: r.id,
           name: r.name,
