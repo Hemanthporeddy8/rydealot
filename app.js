@@ -1910,7 +1910,7 @@
     if (nameEl) nameEl.textContent = profile.name || 'Driver';
 
     var vEl = document.getElementById('rd-display-vehicle');
-    var vt = profile.vehicle_type || 'bike_and_sage';
+    var vt = profile.vehicle_type || 'bike';
     var vtLabel = vt === 'sage_only' ? 'Sage Parcels Only' : (vt === 'bike_and_sage' ? 'Bike Taxi + Parcels' : (vt === 'bike' ? 'Bike Taxi' : vt));
     if (vEl) vEl.textContent = (profile.vehicle_label || 'Vehicle') + ' (' + vtLabel + ')';
 
