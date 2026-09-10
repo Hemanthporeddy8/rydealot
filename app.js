@@ -3283,6 +3283,8 @@
           if (m) handoverPin = m[1];
         }
 
+        var isPaymentByReceiver = (p.notes && p.notes.includes('[PAYMENT_BY: RECEIVER]'));
+
         var pickupNavUrl = p.pickup_lat && p.pickup_lng
           ? ('https://www.google.com/maps/dir/?api=1&destination=' + p.pickup_lat + ',' + p.pickup_lng)
           : ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.pickup_address || ''));
@@ -3317,6 +3319,11 @@
               '<div style="font-size:11.5px; color:#64748b;">Sender: <strong>' + (p.sender_name || 'Sender') + '</strong> ' + (p.sender_phone ? ('(' + p.sender_phone + ')') : '') + '</div>' +
 
               (!isPickedUp ? (
+                // Payment prompt at pickup
+                (!isPaymentByReceiver
+                  ? '<div style="background:#ecfdf5; border:1.5px solid #10b981; border-radius:8px; padding:8px 10px; margin-top:8px; font-size:12px; font-weight:900; color:#064e3b; display:flex; align-items:center; gap:6px;"><span>💰 Collect ₹' + (p.fare || '0') + ' from SENDER at pickup (Cash/UPI)</span></div>'
+                  : '<div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:7px 10px; margin-top:8px; font-size:11px; font-weight:700; color:#475569;">ℹ️ Do NOT collect money at pickup. Fare will be collected from RECEIVER at drop.</div>'
+                ) +
                 '<div style="display:flex; gap:8px; margin-top:10px;">' +
                   (p.sender_phone ? ('<a href="tel:' + p.sender_phone + '" style="flex:1; background:#0f172a; color:#fff; text-decoration:none; padding:8px; border-radius:8px; font-size:11px; font-weight:800; text-align:center;">📞 Call Sender</a>') : '') +
                   '<a href="' + pickupNavUrl + '" target="_blank" style="flex:1; background:#3b82f6; color:#fff; text-decoration:none; padding:8px; border-radius:8px; font-size:11px; font-weight:800; text-align:center;">🗺️ Maps Directions</a>' +
@@ -3342,6 +3349,11 @@
               '<div style="font-size:11.5px; color:#64748b;">Receiver: <strong>' + (p.receiver_name || 'Receiver') + '</strong> ' + (p.receiver_phone ? ('(' + p.receiver_phone + ')') : '') + '</div>' +
 
               (isPickedUp ? (
+                // Payment prompt at drop
+                (isPaymentByReceiver
+                  ? '<div style="background:#fef3c7; border:1.5px solid #f59e0b; border-radius:8px; padding:8px 10px; margin-top:8px; font-size:12px; font-weight:900; color:#92400e; display:flex; align-items:center; gap:6px;"><span>💰 Collect ₹' + (p.fare || '0') + ' Cash/UPI from RECEIVER before handover!</span></div>'
+                  : '<div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; padding:7px 10px; margin-top:8px; font-size:11px; font-weight:800; color:#0f172a;">✅ Fare already collected from Sender — DO NOT ask receiver for cash.</div>'
+                ) +
                 '<div style="display:flex; gap:8px; margin-top:10px;">' +
                   (p.receiver_phone ? ('<a href="tel:' + p.receiver_phone + '" style="flex:1; background:#0f172a; color:#fff; text-decoration:none; padding:8px; border-radius:8px; font-size:11px; font-weight:800; text-align:center;">📞 Call Receiver</a>') : '') +
                   '<a href="' + dropNavUrl + '" target="_blank" style="flex:1; background:#3b82f6; color:#fff; text-decoration:none; padding:8px; border-radius:8px; font-size:11px; font-weight:800; text-align:center;">🗺️ Maps Directions</a>' +
@@ -3506,10 +3518,18 @@
           pickupDistText = ' <span style="color:#3b82f6; font-weight:700;">(' + d.toFixed(1) + ' km away)</span>';
         }
 
+        var isPaymentByReceiver = (p.notes && p.notes.includes('[PAYMENT_BY: RECEIVER]'));
+        var paymentBadge = isPaymentByReceiver
+          ? '<span style="background:#fef3c7; color:#92400e; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #fde68a;">🎯 Receiver Pays (COD)</span>'
+          : '<span style="background:#eff6ff; color:#1e40af; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #bfdbfe;">🟢 Sender Pays</span>';
+
+        var cleanNote = (p.notes || '').replace(/\[HANDOVER_PIN:[^\]]+\]/g, '').replace(/\[PAYMENT_BY:[^\]]+\]/g, '').trim();
+
         return '<div style="background:#fff; border:1.5px solid ' + (isNearby ? '#10b981' : 'var(--border)') + '; border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,0.03);">' +
           '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
-            '<div style="display:flex; align-items:center; gap:6px;">' +
+            '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">' +
               '<span style="font-size:13px; font-weight:900; color:#0f172a;">' + getCategoryEmoji(p.package_category) + '</span>' +
+              paymentBadge +
               (isNearby ? '<span style="background:#ecfdf5; color:#047857; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; border:1px solid #a7f3d0;">⚡ Nearby (&le;2.5 km)</span>' : '') +
             '</div>' +
             '<span style="font-size:16px; font-weight:900; color:#10b981;">₹' + (p.fare || '0') + '</span>' +
@@ -3517,7 +3537,7 @@
           '<div style="font-size:11.5px; color:#334155; line-height:1.5; margin-bottom:10px;">' +
             '<div><strong>📍 Pickup:</strong> ' + (p.pickup_address || 'Pickup location') + pickupDistText + '</div>' +
             '<div><strong>🎯 Drop:</strong> ' + (p.drop_address || 'Drop location') + '</div>' +
-            (p.notes ? ('<div style="color:#64748b; font-size:10.5px; margin-top:2px;"><em>Note: ' + p.notes.replace(/\[HANDOVER_PIN:[^\]]+\]/, '') + '</em></div>') : '') +
+            (cleanNote ? ('<div style="color:#64748b; font-size:10.5px; margin-top:2px;"><em>Note: ' + cleanNote + '</em></div>') : '') +
           '</div>' +
           '<button type="button" class="btn btn-accept-sage" data-id="' + p.id + '" style="background:#10b981; color:#fff; border:none; padding:10px; border-radius:10px; font-size:12.5px; font-weight:900; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:6px;">' +
             '<span>🚀 Accept Delivery (₹' + (p.fare || '0') + ')</span>' +
