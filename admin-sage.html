@@ -305,6 +305,7 @@
     </div>
     <div class="header-btns">
       <a href="admin.html" class="btn btn-mute" style="text-decoration:none;">🏍️ Open Bike Taxi Admin</a>
+      <button class="btn btn-purple" style="background:#7c3aed; color:#fff;" onclick="exportAIDataset()">🤖 AI Dataset Export</button>
       <button class="btn btn-green" onclick="exportSageCSV()">📊 Export Parcels CSV</button>
       <button class="btn btn-blue" onclick="loadSageParcels(true)">🔄 Refresh</button>
       <button class="btn btn-mute" onclick="logoutSageAdmin()">🔒 Lock</button>
@@ -886,6 +887,63 @@
     link.download = 'rydealot_sage_parcels_' + new Date().toISOString().slice(0,10) + '.csv';
     link.click();
     toast('📊 Parcels CSV downloaded!');
+  }
+
+  // Export AI Training Dataset (CSV + download all photo links)
+  function exportAIDataset() {
+    if (!parcels || parcels.length === 0) { toast('No parcels to export'); return; }
+
+    var headers = ['Parcel ID', 'Date', 'Status', 'Category', 'Fare', 'Photo URL', 'Sender Name', 'Receiver Name', 'Pickup Address', 'Drop Address', 'Notes'];
+    var photoUrls = [];
+
+    var rows = parcels.map(function(p) {
+      var photoMatch = (p.notes || '').match(/\[PHOTO:(https?:[^\]]+)\]/);
+      var photoUrl = photoMatch ? photoMatch[1] : '';
+      if (photoUrl) {
+        photoUrls.push({ id: p.id, url: photoUrl, category: p.package_category || 'general' });
+      }
+      return [
+        p.id || '',
+        p.created_at || '',
+        p.status || '',
+        p.package_category || '',
+        p.fare || '',
+        photoUrl,
+        p.sender_name || '',
+        p.receiver_name || '',
+        p.pickup_address || '',
+        p.drop_address || '',
+        (p.notes || '').replace(/\[PHOTO:[^\]]+\]/, '').trim()
+      ];
+    });
+
+    var csv = '\uFEFF' + headers.join(',') + '\n';
+    rows.forEach(function(r) {
+      csv += r.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',') + '\n';
+    });
+
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'rydealot_ai_parcel_dataset_' + new Date().toISOString().slice(0,10) + '.csv';
+    link.click();
+
+    if (photoUrls.length > 0) {
+      toast('🤖 AI CSV Exported! Triggering download for ' + photoUrls.length + ' dataset images...', 4000);
+      photoUrls.forEach(function(item, idx) {
+        setTimeout(function() {
+          var imgLink = document.createElement('a');
+          imgLink.href = item.url;
+          imgLink.target = '_blank';
+          imgLink.download = 'ai_parcel_' + item.category + '_' + item.id.slice(0,8) + '.jpg';
+          document.body.appendChild(imgLink);
+          imgLink.click();
+          document.body.removeChild(imgLink);
+        }, idx * 400);
+      });
+    } else {
+      toast('🤖 AI Dataset CSV exported successfully! (No attached photos in current batch)');
+    }
   }
 
   function escapeHtml(str) {

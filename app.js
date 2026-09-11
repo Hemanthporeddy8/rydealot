@@ -2025,6 +2025,53 @@
     });
   }
 
+  // ==================== CLOUDINARY UPLOAD ENGINE ====================
+  var CLOUDINARY_CLOUD_NAME = 'tozbcn77';
+  var CLOUDINARY_UPLOAD_PRESET = 'rydealot_upload';
+
+  // Upload an image (File, Blob, or base64 Data URL) to Cloudinary
+  // Keeps Supabase DB 100% free of heavy image strings
+  async function uploadToCloudinary(fileOrDataUrl, folder) {
+    if (!fileOrDataUrl) return null;
+    try {
+      var formData = new FormData();
+      if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('http')) {
+        // Already a remote hosted URL
+        return fileOrDataUrl;
+      }
+      if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:')) {
+        formData.append('file', fileOrDataUrl);
+      } else if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
+        formData.append('file', fileOrDataUrl);
+      } else {
+        return null;
+      }
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      if (folder) formData.append('folder', folder);
+
+      var res = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) {
+        var errBody = await res.json().catch(function() { return {}; });
+        throw new Error((errBody.error && errBody.error.message) || 'Cloudinary upload failed (' + res.status + ')');
+      }
+      var json = await res.json();
+      return json.secure_url || json.url;
+    } catch(err) {
+      console.warn('Cloudinary upload note (fallback to local base64):', err.message || err);
+      // Fallback gracefully so driver is never blocked even if network or quota issue arises
+      if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:')) {
+        return fileOrDataUrl;
+      }
+      return await readFileAsBase64(fileOrDataUrl);
+    }
+  }
+  window.uploadToCloudinary = uploadToCloudinary;
+
+
   // Visual status indicators on file selection (for DL, RC, Aadhaar)
   ['dl', 'rc', 'aadhaar'].forEach(function(type) {
     var input = document.getElementById('rd-doc-' + type);
@@ -2267,14 +2314,20 @@
       var selfieData = document.getElementById('rd-doc-selfie-data') ? document.getElementById('rd-doc-selfie-data').value : null;
 
       var docsToSave = {};
-      if (dlFile) docsToSave.driving_license = await readFileAsBase64(dlFile);
-      if (rcFile) docsToSave.vehicle_rc = await readFileAsBase64(rcFile);
-      if (aadhaarFile) docsToSave.aadhaar = await readFileAsBase64(aadhaarFile);
-      if (selfieData) {
-        docsToSave.selfie = selfieData;
-      } else if (selfieFile) {
-        docsToSave.selfie = await readFileAsBase64(selfieFile);
+      var hasDocsToUpload = !!(dlFile || rcFile || aadhaarFile || selfieFile || selfieData);
+      if (hasDocsToUpload && saveBtn) {
+        saveBtn.textContent = '⏳ Uploading to Cloudinary...';
       }
+
+      if (dlFile) docsToSave.driving_license = await uploadToCloudinary(dlFile, 'rydealot/drivers/dl');
+      if (rcFile) docsToSave.vehicle_rc = await uploadToCloudinary(rcFile, 'rydealot/drivers/rc');
+      if (aadhaarFile) docsToSave.aadhaar = await uploadToCloudinary(aadhaarFile, 'rydealot/drivers/aadhaar');
+      if (selfieData) {
+        docsToSave.selfie = await uploadToCloudinary(selfieData, 'rydealot/drivers/selfies');
+      } else if (selfieFile) {
+        docsToSave.selfie = await uploadToCloudinary(selfieFile, 'rydealot/drivers/selfies');
+      }
+
 
       if (Object.keys(docsToSave).length > 0 && targetRiderId) {
         try {

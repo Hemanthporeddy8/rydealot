@@ -586,6 +586,17 @@
       </div>
     </div>
 
+    <!-- Optional Package Photo (AI & Verification) -->
+    <div style="background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:12px; padding:10px 12px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <label for="sage-pkg-photo" style="font-size:11px; font-weight:800; color:#334155; margin:0; cursor:pointer;">
+          📸 Package Photo (Optional for AI & Proof)
+        </label>
+        <span id="sage-photo-status" style="font-size:10px; color:#64748B;">Tap to attach</span>
+      </div>
+      <input type="file" id="sage-pkg-photo" accept="image/*" capture="environment" style="font-size:11px; color:#475569; width:100%; cursor:pointer;" onchange="handlePackagePhotoSelected(this)">
+    </div>
+
     <!-- Prohibited Items & Safety Policy Disclaimer -->
     <div style="background:#FFFBEB; border:1.5px solid #FDE68A; border-radius:12px; padding:10px 12px; margin-bottom:12px;">
       <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer; font-size:11px; line-height:1.45; color:#92400E;">
@@ -757,6 +768,45 @@
     t.classList.add('show');
     setTimeout(function() { t.classList.remove('show'); }, 2500);
   }
+
+  // ==================== CLOUDINARY SAGE ENGINE ====================
+  var CLOUDINARY_CLOUD_NAME = 'tozbcn77';
+  var CLOUDINARY_UPLOAD_PRESET = 'rydealot_upload';
+
+  async function uploadToCloudinary(file, folder) {
+    if (!file) return null;
+    try {
+      var formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      if (folder) formData.append('folder', folder);
+
+      var res = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload', {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) {
+        var errJson = await res.json().catch(function(){ return {}; });
+        throw new Error((errJson.error && errJson.error.message) || 'Upload failed');
+      }
+      var json = await res.json();
+      return json.secure_url || json.url;
+    } catch(err) {
+      console.warn('Cloudinary upload note:', err.message || err);
+      return null;
+    }
+  }
+
+  function handlePackagePhotoSelected(input) {
+    var status = document.getElementById('sage-photo-status');
+    if (input.files && input.files[0]) {
+      if (status) {
+        status.textContent = '✅ ' + input.files[0].name.slice(0, 18);
+        status.style.color = '#10b981';
+      }
+    }
+  }
+
 
   function setPinMode(mode) {
     pinMode = mode;
@@ -1157,6 +1207,18 @@
     var fullNotes = payNote + (notes ? (' | ' + notes) : '');
     if (recvPin) {
       fullNotes = fullNotes + ' | Receiver Drop PIN: ' + recvPin;
+    }
+
+    var photoInput = document.getElementById('sage-pkg-photo');
+    if (photoInput && photoInput.files && photoInput.files[0]) {
+      try {
+        var pUrl = await uploadToCloudinary(photoInput.files[0], 'rydealot/parcels');
+        if (pUrl) {
+          fullNotes = fullNotes + ' | [PHOTO:' + pUrl + ']';
+        }
+      } catch(e) {
+        console.warn('Parcel photo upload note:', e);
+      }
     }
 
     // Uber / Rapido Radius Strategy: Pinging nearest verified captains
