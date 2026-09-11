@@ -488,9 +488,15 @@
     return (leftEar + rightEar) / 2.0;
   }
 
+  var cachedKycDescriptor = null;
+  var cachedKycUrl = null;
+
   // Extract 128-D Deep Neural Descriptor from KYC Photo
   async function extractKycNeuralDescriptor(url) {
     if (!url) return null;
+    if (cachedKycDescriptor && cachedKycUrl === url) {
+      return cachedKycDescriptor;
+    }
     try {
       var img = new Image();
       img.crossOrigin = 'anonymous';
@@ -502,7 +508,11 @@
       var det = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }))
         .withFaceLandmarks(true)
         .withFaceDescriptor();
-      if (det && det.descriptor) return det.descriptor;
+      if (det && det.descriptor) {
+        cachedKycDescriptor = det.descriptor;
+        cachedKycUrl = url;
+        return det.descriptor;
+      }
     } catch(e) {
       console.warn('Image element KYC extraction note, trying fetchImage:', e);
     }
@@ -511,7 +521,11 @@
       var det2 = await faceapi.detectSingleFace(fetched, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 }))
         .withFaceLandmarks(true)
         .withFaceDescriptor();
-      if (det2 && det2.descriptor) return det2.descriptor;
+      if (det2 && det2.descriptor) {
+        cachedKycDescriptor = det2.descriptor;
+        cachedKycUrl = url;
+        return det2.descriptor;
+      }
     } catch(e2) {
       console.warn('fetchImage KYC extraction note:', e2);
     }
@@ -580,6 +594,13 @@
     }
 
     if (!kycPhotoUrl) {
+      var fallbackFace = localStorage.getItem('rydealot_driver_live_face');
+      if (fallbackFace && fallbackFace.length > 50) {
+        kycPhotoUrl = fallbackFace;
+      }
+    }
+
+    if (!kycPhotoUrl) {
       if (faceStatus) {
         faceStatus.innerHTML = '<div style="color:#ef4444; font-weight:800; font-size:12px;">⚠️ No Registered KYC Photo Found!</div>' +
           '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">You must complete <strong>Live KYC Selfie</strong> in profile before going online.</div>';
@@ -628,6 +649,7 @@
           var livenessState = 'WAIT_OPEN'; // 'WAIT_OPEN' -> 'WAIT_BLINK' -> 'WAIT_REOPEN' -> 'VERIFIED'
           var openFrames = 0;
           var closedFrames = 0;
+          var mismatchFrames = 0;
           var livenessVerified = false;
           var scanStartTime = Date.now();
           var isScanComplete = false;
@@ -778,18 +800,21 @@
               }, 1200);
             } else {
               // Different person (mother, brother, stranger) - Distance > 0.46!
-              // Allow up to 2 seconds of sampling in case of momentary extreme angle
-              if (Date.now() - scanStartTime < 10000 && openFrames < 20) {
-                openFrames++;
-                setTimeout(checkLoop, 180);
+              mismatchFrames++;
+              var maxMismatchFrames = (distance > 0.55) ? 2 : 6;
+
+              if (mismatchFrames < maxMismatchFrames) {
+                faceStatus.innerHTML = '<div style="color:#f59e0b; font-size:13px; font-weight:800;">🔍 Matching Face Fingerprint...</div>' +
+                  '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Hold face steady inside circle...</div>';
+                setTimeout(checkLoop, 160);
                 return;
               }
 
               isScanComplete = true;
               if (faceCircle) faceCircle.style.borderColor = '#ef4444';
               if (faceStatus) {
-                faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">❌ Face Mismatch (Identity Denied)</div>' +
-                  '<div style="font-size:10.5px; color:#fca5a5; margin-top:2px;">Face does not match registered driver KYC photo!</div>';
+                faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">❌ Face Mismatch: ' + matchPercent + '% Match (Denied)</div>' +
+                  '<div style="font-size:10.5px; color:#fca5a5; margin-top:2px;">Face does not match registered driver KYC photo! (Different Person)</div>';
               }
               if (faceRetryBtn) faceRetryBtn.style.display = 'block';
             }
