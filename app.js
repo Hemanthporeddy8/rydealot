@@ -511,37 +511,89 @@
   // Extract 128-D Deep Neural Descriptor from KYC Photo
   async function extractKycNeuralDescriptor(url) {
     if (!url) return null;
+
+    // 1. In-memory cache
     if (cachedKycDescriptor && cachedKycUrl === url) {
       return cachedKycDescriptor;
     }
+
+    // 2. Check localStorage persisted KYC descriptor (Instant 0ms)
     try {
+      var storedDesc = localStorage.getItem('rydealot_driver_kyc_descriptor');
+      if (storedDesc) {
+        var parsed = JSON.parse(storedDesc);
+        if (Array.isArray(parsed) && parsed.length === 128) {
+          cachedKycDescriptor = new Float32Array(parsed);
+          cachedKycUrl = url;
+          return cachedKycDescriptor;
+        }
+      }
+    } catch(e){}
+
+    // 3. Robust HTMLImageElement loader with timeout safeguard and CORS fix
+    try {
+      var isDataUri = typeof url === 'string' && url.indexOf('data:') === 0;
       var img = new Image();
-      img.crossOrigin = 'anonymous';
+      if (!isDataUri) {
+        img.crossOrigin = 'anonymous';
+      }
+
       await new Promise(function(resolve, reject) {
-        img.onload = resolve;
-        img.onerror = reject;
+        var timer = setTimeout(function() {
+          reject(new Error('KYC image load timeout'));
+        }, 4000);
+
+        img.onload = function() {
+          clearTimeout(timer);
+          resolve();
+        };
+        img.onerror = function(err) {
+          clearTimeout(timer);
+          reject(err || new Error('Image error'));
+        };
         img.src = url;
+        if (img.complete && img.naturalWidth > 0) {
+          clearTimeout(timer);
+          resolve();
+        }
       });
+
       var det = await detectFaceWithMultipleOptions(img);
       if (det && det.descriptor) {
         cachedKycDescriptor = det.descriptor;
         cachedKycUrl = url;
+        try {
+          localStorage.setItem('rydealot_driver_kyc_descriptor', JSON.stringify(Array.from(det.descriptor)));
+        } catch(e){}
         return det.descriptor;
       }
     } catch(e) {
-      console.warn('Image element KYC extraction note, trying fetchImage:', e);
+      console.warn('Image element KYC extraction note:', e);
     }
-    try {
-      var fetched = await faceapi.fetchImage(url);
-      var det2 = await detectFaceWithMultipleOptions(fetched);
-      if (det2 && det2.descriptor) {
-        cachedKycDescriptor = det2.descriptor;
-        cachedKycUrl = url;
-        return det2.descriptor;
+
+    // 4. Fallback using fetchImage if remote URL
+    if (typeof url === 'string' && url.indexOf('http') === 0) {
+      try {
+        var fetched = await Promise.race([
+          faceapi.fetchImage(url),
+          new Promise(function(_, reject) { setTimeout(function(){ reject(new Error('fetchImage timeout')); }, 4000); })
+        ]);
+        if (fetched) {
+          var det2 = await detectFaceWithMultipleOptions(fetched);
+          if (det2 && det2.descriptor) {
+            cachedKycDescriptor = det2.descriptor;
+            cachedKycUrl = url;
+            try {
+              localStorage.setItem('rydealot_driver_kyc_descriptor', JSON.stringify(Array.from(det2.descriptor)));
+            } catch(e){}
+            return det2.descriptor;
+          }
+        }
+      } catch(e2) {
+        console.warn('fetchImage KYC extraction note:', e2);
       }
-    } catch(e2) {
-      console.warn('fetchImage KYC extraction note:', e2);
     }
+
     return null;
   }
 
@@ -887,7 +939,7 @@
     }
 
     // 4. Extract 128-D Neural Descriptor from registered KYC baseline photo
-    if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Extracting KYC facial fingerprint...</span>';
+    if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Verifying KYC baseline photo...</span>';
     refDescriptor = await extractKycNeuralDescriptor(kycPhotoUrl);
 
     if (!refDescriptor) {
@@ -2451,7 +2503,7 @@
     }
 
     if (kycInstruction) {
-      kycInstruction.innerHTML = '<span style="color:#818cf8;">⚡ Initializing Google AI Vision...</span>';
+      kycInstruction.innerHTML = '<span style="color:#818cf8;">⚡ Starting biometric camera...</span>';
     }
 
     // Pre-initialize MediaPipe Landmarker (Fast Wasm/GPU)
@@ -2724,15 +2776,20 @@
         // Asynchronously compute and cache faceapi descriptor once on static canvas
         try {
           if (typeof faceapi !== 'undefined') {
-            faceapi.detectSingleFace(snapCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 }))
-              .withFaceLandmarks(true)
-              .withFaceDescriptor()
-              .then(function(d) {
-                if (d && d.descriptor) {
-                  cachedKycDescriptor = d.descriptor;
-                  cachedKycUrl = finalSnapshot;
-                }
-              }).catch(function(){});
+            loadFaceApiModels().then(function() {
+              faceapi.detectSingleFace(snapCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.20 }))
+                .withFaceLandmarks(true)
+                .withFaceDescriptor()
+                .then(function(d) {
+                  if (d && d.descriptor) {
+                    cachedKycDescriptor = d.descriptor;
+                    cachedKycUrl = finalSnapshot;
+                    try {
+                      localStorage.setItem('rydealot_driver_kyc_descriptor', JSON.stringify(Array.from(d.descriptor)));
+                    } catch(e){}
+                  }
+                }).catch(function(){});
+            }).catch(function(){});
           }
         } catch(e){}
 
@@ -2882,7 +2939,7 @@
       var docsToSave = {};
       var hasDocsToUpload = !!(dlFile || rcFile || aadhaarFile || selfieFile || selfieData);
       if (hasDocsToUpload && saveBtn) {
-        saveBtn.textContent = '⏳ Uploading to Cloudinary...';
+        saveBtn.textContent = '🔒 Saving documents securely...';
       }
 
       if (dlFile) docsToSave.driving_license = await uploadToCloudinary(dlFile, 'rydealot/drivers/dl');
@@ -7505,7 +7562,7 @@ var RydealotChat = (function() {
 
     var streamEl = document.getElementById(role === 'customer' ? 'cust-chat-stream' : 'rd-chat-stream');
     if (streamEl) {
-      streamEl.innerHTML = '<div class="chat-empty-hint">Messages are delivered instantly via Google Firebase. Say hi! 👋</div>';
+      streamEl.innerHTML = '<div class="chat-empty-hint">Messages are delivered instantly. Say hi! 👋</div>';
     }
 
     // Attach Firebase Realtime Listener
