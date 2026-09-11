@@ -2523,7 +2523,8 @@
     }
 
     if (kycInstruction) {
-      kycInstruction.innerHTML = '<span style="color:#818cf8;">⚡ Starting biometric camera...</span>';
+      kycInstruction.innerHTML = '<div style="color:#818cf8; font-size:13px; font-weight:900;">👁️ STEP 1/3: BLINK YOUR EYES</div>' +
+        '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Align face in oval and blink your eyes.</div>';
     }
 
     // Warm up faceapi in background so it is ready for the single final capture
@@ -2539,6 +2540,7 @@
     var earHistory = [];
     var kycStartTime = Date.now();
     var isKycCaptured = false;
+    var hasReceivedMeshFrame = false;
 
     // The single capture execution handler
     var executeKycCapture = async function() {
@@ -2575,9 +2577,6 @@
       }
       if (kycVideo) kycVideo.style.display = 'none';
 
-      var riderId = (typeof state !== 'undefined' && state.riderId) || localStorage.getItem('ridelot_rider_id');
-      localStorage.setItem('rydealot_driver_live_face', finalSnapshot);
-
       var hiddenInput = document.getElementById('rd-doc-selfie-data');
       if (hiddenInput) hiddenInput.value = finalSnapshot;
 
@@ -2591,42 +2590,45 @@
 
       var statusEl = document.getElementById('rd-doc-selfie-status');
       if (statusEl) {
-        statusEl.innerHTML = '<span style="color:#16a34a; font-weight:800;">🛡️ 3D Liveness Verified & Captured! (Click Save below)</span>';
+        statusEl.innerHTML = '<span style="color:#16a34a; font-weight:800;">✅ 3D Verified (Live Selfie Saved)</span>';
       }
 
-      try {
-        var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
-        if (!allDocs[riderId]) allDocs[riderId] = {};
-        allDocs[riderId].selfie = { url: finalSnapshot, status: 'approved', updated_at: new Date().toISOString() };
-        localStorage.setItem('rydealot_driver_docs', JSON.stringify(allDocs));
-      } catch(e){}
+      var riderId = (typeof state !== 'undefined' && state.riderId) || localStorage.getItem('ridelot_rider_id');
 
-      // 1. Single one-shot descriptor extraction on the final static frame (Takes ~50ms once, 0% video lag)
-      var descriptor = null;
+      // 1. One-shot descriptor extraction for instant future pre-shift check
       try {
-        await loadFaceApiModels();
-        var det = await faceapi.detectSingleFace(snapCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.20 }))
-          .withFaceLandmarks(true)
-          .withFaceDescriptor();
-        if (det && det.descriptor) {
-          descriptor = Array.from(det.descriptor);
-          cachedKycDescriptor = det.descriptor;
-          cachedKycUrl = finalSnapshot;
-          try {
-            localStorage.setItem('rydealot_driver_kyc_descriptor', JSON.stringify(descriptor));
-          } catch(e){}
+        if (typeof faceapi !== 'undefined') {
+          var detection = await faceapi.detectSingleFace(
+            snapCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 })
+          ).withFaceLandmarks(true).withFaceDescriptor();
+
+          if (detection && detection.descriptor) {
+            var descArr = Array.from(detection.descriptor);
+            localStorage.setItem('rydealot_driver_kyc_descriptor', JSON.stringify(descArr));
+            if (riderId) {
+              sbFetch('face_profiles', {
+                method: 'POST',
+                body: { rider_id: riderId, descriptor: descArr, photo_url: finalSnapshot },
+                headers: { 'Prefer': 'resolution=merge-duplicates' }
+              }).catch(function(err){ console.warn('face_profiles sync note:', err); });
+            }
+          }
         }
-      } catch(dErr){
-        console.warn('Single capture KYC descriptor note:', dErr);
+      } catch(descErr) {
+        console.warn('KYC descriptor extraction note:', descErr);
       }
 
-      // 2. Sync directly to Supabase face_profiles table
-      if (riderId && descriptor) {
+      // 2. Persist local selfie backup
+      localStorage.setItem('rydealot_driver_live_face', finalSnapshot);
+      if (riderId) {
         try {
-          sbFetch('face_profiles?rider_id=eq.' + riderId, { method: 'DELETE' }).catch(function(){});
-          sbFetch('face_profiles', {
+          var docs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+          if (!docs[riderId]) docs[riderId] = {};
+          docs[riderId].selfie = { url: finalSnapshot, type: 'live_face', uploadedAt: new Date().toISOString() };
+          localStorage.setItem('rydealot_driver_docs', JSON.stringify(docs));
+          sbFetch('driver_documents', {
             method: 'POST',
-            body: { rider_id: riderId, descriptor: descriptor, photo_url: finalSnapshot }
+            body: { rider_id: riderId, doc_type: 'selfie', file_url: finalSnapshot, status: 'approved' }
           }).catch(function(err){ console.warn('face_profiles sync note:', err); });
         } catch(sbErr){}
       }
@@ -2658,12 +2660,22 @@
     // Live frame processor called by MediaPipe or fallback loop
     var processFrameLandmarks = function(landmarks, blendshapes) {
       if (!landmarks || landmarks.length === 0 || isKycCaptured) return;
+      hasReceivedMeshFrame = true;
 
       if (kycCircle) kycCircle.style.borderColor = '#6366f1';
 
       var ear = 0.30;
       if (landmarks.length >= 400) {
         ear = (eyeAspectRatioFaceMesh(landmarks, MP_LEFT_EYE) + eyeAspectRatioFaceMesh(landmarks, MP_RIGHT_EYE)) / 2;
+      } else if (landmarks.length >= 68) {
+        // 68-point face-api landmarks
+        var earLeft = (Math.hypot(landmarks[37].x - landmarks[41].x, landmarks[37].y - landmarks[41].y) +
+                       Math.hypot(landmarks[38].x - landmarks[40].x, landmarks[38].y - landmarks[40].y)) /
+                      (2 * (Math.hypot(landmarks[36].x - landmarks[39].x, landmarks[36].y - landmarks[39].y) || 1));
+        var earRight = (Math.hypot(landmarks[43].x - landmarks[47].x, landmarks[43].y - landmarks[47].y) +
+                        Math.hypot(landmarks[44].x - landmarks[46].x, landmarks[44].y - landmarks[46].y)) /
+                       (2 * (Math.hypot(landmarks[42].x - landmarks[45].x, landmarks[42].y - landmarks[45].y) || 1));
+        ear = (earLeft + earRight) / 2;
       }
 
       var blinkLeft = 0;
@@ -2675,19 +2687,27 @@
         }
       }
 
-      var ratio = (landmarks.length >= 455) ? noseRatioFaceMesh(landmarks) : 0.5;
+      var ratio = 0.5;
+      if (landmarks.length >= 455) {
+        ratio = noseRatioFaceMesh(landmarks);
+      } else if (landmarks.length >= 68) {
+        var edgeA = landmarks[0].x;
+        var edgeB = landmarks[16].x;
+        var nose = landmarks[30].x;
+        ratio = (nose - edgeA) / (edgeB - edgeA || 1);
+      }
 
       // ================= POSE 1: EYE BLINK =================
       if (stage === 'BLINK') {
         if (kycStep1) kycStep1.style.background = '#4f46e5';
 
         if (blinkStage === 'WAIT_OPEN') {
-          var eyesOpen = (blinkLeft < 0.25 && blinkRight < 0.25) || ear >= 0.22;
+          var eyesOpen = (blinkLeft < 0.25 && blinkRight < 0.25) || ear >= 0.21;
           if (eyesOpen) openFrames++;
           else openFrames = 0;
           if (kycInstruction) {
             kycInstruction.innerHTML = '<div style="color:#818cf8; font-size:13px; font-weight:900;">👁️ STEP 1/3: BLINK YOUR EYES</div>' +
-              '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Hold steady and close eyelids clearly.</div>';
+              '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Align face inside oval and blink clearly.</div>';
           }
           if (openFrames >= 2) blinkStage = 'WAIT_BLINK';
           return;
@@ -2698,7 +2718,7 @@
             kycInstruction.innerHTML = '<div style="color:#38bdf8; font-size:13.5px; font-weight:900;">😉 BLINK NOW!</div>' +
               '<div style="font-size:10.5px; color:#bae6fd; margin-top:2px;">Close your eyelids firmly, then re-open.</div>';
           }
-          var eyesClosed = (blinkLeft >= 0.38 || blinkRight >= 0.38) || (ear <= 0.175);
+          var eyesClosed = (blinkLeft >= 0.38 || blinkRight >= 0.38) || (ear <= 0.18);
           if (eyesClosed) {
             blinkStage = 'WAIT_REOPEN';
           }
@@ -2706,7 +2726,7 @@
         }
 
         if (blinkStage === 'WAIT_REOPEN') {
-          var eyesReopened = (blinkLeft < 0.25 && blinkRight < 0.25) || ear >= 0.22;
+          var eyesReopened = (blinkLeft < 0.25 && blinkRight < 0.25) || ear >= 0.21;
           if (eyesReopened) {
             if (kycStep1) kycStep1.style.background = '#22c55e';
             if (navigator.vibrate) navigator.vibrate(60);
@@ -2759,7 +2779,7 @@
           rightHoldFrames++;
           if (rightHoldFrames >= 2) {
             if (kycStep3) kycStep3.style.background = '#22c55e';
-            if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+            if (navigator.vibrate) navigator.vibrate(60);
             stage = 'CAPTURE';
             if (kycInstruction) {
               kycInstruction.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:900;">✅ Poses Complete!</div>' +
@@ -2774,7 +2794,7 @@
 
       // ================= POSE 4: AUTO-CAPTURE =================
       if (stage === 'CAPTURE') {
-        var isCentered = (ratio >= 0.40 && ratio <= 0.60) && (blinkLeft < 0.25 && blinkRight < 0.25);
+        var isCentered = (ratio >= 0.38 && ratio <= 0.62) && (blinkLeft < 0.25 && blinkRight < 0.25);
         if (isCentered) {
           straightHoldFrames++;
         } else {
@@ -2830,71 +2850,99 @@
           var mpCam = new Camera(kycVideo, {
             onFrame: async function() {
               if (kycLivenessActive && !isKycCaptured) {
-                await faceMesh.send({ image: kycVideo });
+                try {
+                  await faceMesh.send({ image: kycVideo });
+                } catch(sendErr){
+                  // Handled by fallback
+                }
               }
             },
             width: 320, height: 240
           });
           mpCam.start();
-          return;
         }
       } catch(fmErr){
         console.warn('FaceMesh global init note:', fmErr);
       }
     }
 
-    // 2. Fallback: MediaPipe Tasks Vision or TinyFaceDetector loop
-    var landmarker = await getMediaPipeFaceLandmarker();
-    var fallbackLoop = async function() {
-      if (!kycStream || !kycLivenessActive || isKycCaptured) return;
-      if (!kycVideo || kycVideo.readyState < 2 || kycVideo.videoWidth === 0) {
-        setTimeout(fallbackLoop, 80);
-        return;
-      }
+    // 2. High-speed Fallback Loop: runs if MediaPipe hasn't delivered a frame within 1.2s
+    var fallbackRunning = false;
+    var startFallbackDetector = async function() {
+      if (fallbackRunning || !kycLivenessActive || isKycCaptured) return;
+      fallbackRunning = true;
 
-      var landmarks = null;
-      var blendshapes = null;
+      var landmarker = null;
+      try {
+        landmarker = await getMediaPipeFaceLandmarker();
+      } catch(e){}
 
-      if (landmarker) {
-        try {
-          var mpRes = landmarker.detectForVideo(kycVideo, performance.now());
-          if (mpRes && mpRes.faceLandmarks && mpRes.faceLandmarks.length > 0) {
-            landmarks = mpRes.faceLandmarks[0];
-            blendshapes = (mpRes.faceBlendshapes && mpRes.faceBlendshapes[0]) ? mpRes.faceBlendshapes[0].categories : null;
-          }
-        } catch(e){}
-      } else if (typeof faceapi !== 'undefined' && faceapi.nets.tinyFaceDetector.params) {
-        try {
-          var det = await faceapi.detectSingleFace(
-            kycVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 })
-          ).withFaceLandmarks(true);
-          if (det) {
-            landmarks = det.landmarks.positions;
-          }
-        } catch(e){}
-      }
-
-      if (!landmarks) {
-        if (kycCircle) kycCircle.style.borderColor = '#ef4444';
-        if (kycInstruction) {
-          kycInstruction.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ Center Face Inside Oval</div>' +
-            '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Hold phone steady in good light.</div>';
-        }
-        if (Date.now() - kycStartTime > 35000) {
-          kycLivenessActive = false;
-          if (kycInstruction) kycInstruction.innerHTML = '<span style="color:#ef4444;">⏱️ Verification timed out</span>';
-          if (kycRestartBtn) kycRestartBtn.style.display = 'block';
+      var fallbackLoop = async function() {
+        if (!kycStream || !kycLivenessActive || isKycCaptured) return;
+        // If FaceMesh is actively delivering frames, let FaceMesh handle it
+        if (hasReceivedMeshFrame) {
+          setTimeout(fallbackLoop, 400);
           return;
         }
-        setTimeout(fallbackLoop, 120);
-        return;
-      }
 
-      processFrameLandmarks(landmarks, blendshapes);
-      setTimeout(fallbackLoop, 80);
+        if (!kycVideo || kycVideo.readyState < 2 || kycVideo.videoWidth === 0) {
+          setTimeout(fallbackLoop, 80);
+          return;
+        }
+
+        var landmarks = null;
+        var blendshapes = null;
+
+        if (landmarker) {
+          try {
+            var mpRes = landmarker.detectForVideo(kycVideo, performance.now());
+            if (mpRes && mpRes.faceLandmarks && mpRes.faceLandmarks.length > 0) {
+              landmarks = mpRes.faceLandmarks[0];
+              blendshapes = (mpRes.faceBlendshapes && mpRes.faceBlendshapes[0]) ? mpRes.faceBlendshapes[0].categories : null;
+            }
+          } catch(e){}
+        }
+
+        if (!landmarks && typeof faceapi !== 'undefined' && faceapi.nets.tinyFaceDetector.params) {
+          try {
+            var det = await faceapi.detectSingleFace(
+              kycVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.30 })
+            ).withFaceLandmarks(true);
+            if (det && det.landmarks) {
+              landmarks = det.landmarks.positions;
+            }
+          } catch(e){}
+        }
+
+        if (!landmarks) {
+          if (kycCircle) kycCircle.style.borderColor = '#ef4444';
+          if (kycInstruction) {
+            kycInstruction.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ Center Face Inside Oval</div>' +
+              '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Hold phone steady in good light.</div>';
+          }
+          if (Date.now() - kycStartTime > 35000) {
+            kycLivenessActive = false;
+            if (kycInstruction) kycInstruction.innerHTML = '<span style="color:#ef4444;">⏱️ Verification timed out</span>';
+            if (kycRestartBtn) kycRestartBtn.style.display = 'block';
+            return;
+          }
+          setTimeout(fallbackLoop, 100);
+          return;
+        }
+
+        processFrameLandmarks(landmarks, blendshapes);
+        setTimeout(fallbackLoop, 70);
+      };
+
+      fallbackLoop();
     };
 
-    setTimeout(fallbackLoop, 150);
+    // Trigger fallback detector immediately or if FaceMesh doesn't fire within 1.2s
+    setTimeout(function() {
+      if (!hasReceivedMeshFrame && kycLivenessActive && !isKycCaptured) {
+        startFallbackDetector();
+      }
+    }, 1200);
   }
 
   if (kycFallbackBtn && kycFallbackInput) {
