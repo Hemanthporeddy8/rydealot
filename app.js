@@ -662,13 +662,13 @@
               thumbCtx.drawImage(faceVideo, 0, 0, 48, 48);
             }
 
-            // STEP A: Real Neural Face Detection + 68 Landmarks + 128-D Descriptor (Fast 224px, zero lag)
+            // STEP A: Real Neural Face Detection + 68 Landmarks (Fast 224px, zero lag)
             var detection = null;
             try {
               detection = await faceapi.detectSingleFace(
                 faceVideo,
                 new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.40 })
-              ).withFaceLandmarks(true).withFaceDescriptor();
+              ).withFaceLandmarks(true);
             } catch(e) {
               console.warn('Face detect loop tick note:', e);
             }
@@ -693,7 +693,7 @@
                 return;
               }
 
-              setTimeout(checkLoop, 150);
+              setTimeout(checkLoop, 120);
               return;
             }
 
@@ -719,7 +719,7 @@
                   livenessState = 'WAIT_BLINK';
                 }
 
-                setTimeout(checkLoop, 120);
+                setTimeout(checkLoop, 100);
                 return;
               }
 
@@ -747,7 +747,7 @@
                     if (faceRetryBtn) faceRetryBtn.style.display = 'block';
                     return;
                   }
-                  setTimeout(checkLoop, 120);
+                  setTimeout(checkLoop, 100);
                   return;
                 }
               }
@@ -759,7 +759,7 @@
                 if (closedFrames > 15) {
                   livenessState = 'WAIT_OPEN';
                   openFrames = 0;
-                  setTimeout(checkLoop, 120);
+                  setTimeout(checkLoop, 100);
                   return;
                 }
 
@@ -767,7 +767,7 @@
                   // SUCCESS: Full Open ➔ Closed ➔ Open landmark sequence verified!
                   livenessVerified = true;
                 } else {
-                  setTimeout(checkLoop, 100);
+                  setTimeout(checkLoop, 80);
                   return;
                 }
               }
@@ -779,7 +779,24 @@
             faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:800;">✅ Live Blink Confirmed!</div>' +
               '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Verifying 128-D facial fingerprint against KYC profile...</div>';
 
-            var distance = faceapi.euclideanDistance(refDescriptor, detection.descriptor);
+            // Calculate descriptor only ONCE right now!
+            var liveDescriptor = null;
+            try {
+              var descDetection = await faceapi.detectSingleFace(
+                faceVideo,
+                new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 })
+              ).withFaceLandmarks(true).withFaceDescriptor();
+              if (descDetection && descDetection.descriptor) {
+                liveDescriptor = descDetection.descriptor;
+              }
+            } catch(dErr){}
+
+            if (!liveDescriptor) {
+              setTimeout(checkLoop, 100);
+              return;
+            }
+
+            var distance = faceapi.euclideanDistance(refDescriptor, liveDescriptor);
             // In deep face recognition: same person <= 0.45, different person (mother/son) >= 0.65
             var matchPercent = Math.max(0, Math.min(100, Math.round((1 - (distance / 0.55)) * 100)));
 
@@ -2362,6 +2379,55 @@
     if (kycRestartBtn) kycRestartBtn.style.display = 'none';
   }
 
+  var mediaPipeFaceLandmarker = null;
+  var mediaPipeLoadingPromise = null;
+
+  async function getMediaPipeFaceLandmarker() {
+    if (mediaPipeFaceLandmarker) return mediaPipeFaceLandmarker;
+    if (mediaPipeLoadingPromise) return mediaPipeLoadingPromise;
+
+    mediaPipeLoadingPromise = (async function() {
+      try {
+        var vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm');
+        var FilesetResolver = vision.FilesetResolver;
+        var FaceLandmarker = vision.FaceLandmarker;
+
+        var filesetResolver = await FilesetResolver.forVisionTasks(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm'
+        );
+
+        try {
+          mediaPipeFaceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+            baseOptions: {
+              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+              delegate: 'GPU'
+            },
+            outputFaceBlendshapes: true,
+            runningMode: 'VIDEO',
+            numFaces: 1
+          });
+        } catch(gpuErr) {
+          console.warn('MediaPipe GPU fallback to CPU:', gpuErr);
+          mediaPipeFaceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+            baseOptions: {
+              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+              delegate: 'CPU'
+            },
+            outputFaceBlendshapes: true,
+            runningMode: 'VIDEO',
+            numFaces: 1
+          });
+        }
+        return mediaPipeFaceLandmarker;
+      } catch(err) {
+        console.warn('MediaPipe loader note, falling back to local detectors:', err);
+        return null;
+      }
+    })();
+
+    return mediaPipeLoadingPromise;
+  }
+
   async function start3DKycLiveness() {
     resetKycStepUI();
     kycLivenessActive = true;
@@ -2376,18 +2442,22 @@
         video: { facingMode: currentKycFacingMode, width: { ideal: 640 }, height: { ideal: 640 } }
       });
       kycVideo.srcObject = kycStream;
+      try { await kycVideo.play(); } catch(e){}
     } catch(err) {
       if (kycInstruction) {
-        kycInstruction.innerHTML = '<span style="color:#ef4444;">⚠️ Camera access error: ' + err.message + '</span>';
+        kycInstruction.innerHTML = '<span style="color:#ef4444;">⚠️ Camera access error: ' + (err.message || err) + '</span>';
       }
       return;
     }
 
-    // Ensure models are loaded
-    var ready = await loadFaceApiModels();
-    if (!ready) {
-      if (kycInstruction) kycInstruction.innerHTML = '<span style="color:#ef4444;">⚠️ Neural face models offline</span>';
-      return;
+    if (kycInstruction) {
+      kycInstruction.innerHTML = '<span style="color:#818cf8;">⚡ Initializing Google AI Vision...</span>';
+    }
+
+    // Pre-initialize MediaPipe Landmarker (Fast Wasm/GPU)
+    var landmarker = await getMediaPipeFaceLandmarker();
+    if (!landmarker) {
+      await loadFaceApiModels();
     }
 
     // Stages: 'BLINK' (1/3) -> 'TURN_LEFT' (2/3) -> 'TURN_RIGHT' (3/3) -> 'CAPTURE'
@@ -2402,52 +2472,92 @@
     var kycLoop = async function() {
       if (!kycStream || !kycLivenessActive) return;
 
-      var detection = null;
-      try {
-        detection = await faceapi.detectSingleFace(
-          kycVideo,
-          new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 })
-        ).withFaceLandmarks(true).withFaceDescriptor();
-      } catch(e){}
+      if (!kycVideo || kycVideo.readyState < 2 || kycVideo.videoWidth === 0) {
+        setTimeout(kycLoop, 80);
+        return;
+      }
 
-      if (!detection) {
+      var hasFace = false;
+      var blinkLeft = 0;
+      var blinkRight = 0;
+      var yawRatio = 0; // Normalized head yaw
+
+      if (landmarker) {
+        try {
+          var mpResult = landmarker.detectForVideo(kycVideo, performance.now());
+          if (mpResult && mpResult.faceLandmarks && mpResult.faceLandmarks.length > 0) {
+            hasFace = true;
+            var lm = mpResult.faceLandmarks[0];
+            // Blendshapes
+            if (mpResult.faceBlendshapes && mpResult.faceBlendshapes[0]) {
+              var cats = mpResult.faceBlendshapes[0].categories;
+              for (var c = 0; c < cats.length; c++) {
+                if (cats[c].categoryName === 'eyeBlinkLeft') blinkLeft = cats[c].score;
+                if (cats[c].categoryName === 'eyeBlinkRight') blinkRight = cats[c].score;
+              }
+            }
+            // 3D Yaw tracking using nose (1), left cheek (234), right cheek (454)
+            var noseX = lm[1].x;
+            var cLeftX = lm[234].x;
+            var cRightX = lm[454].x;
+            var faceW = Math.abs(cRightX - cLeftX);
+            var centerCheeks = (cLeftX + cRightX) / 2;
+            yawRatio = (noseX - centerCheeks) / (faceW / 2 || 1);
+          }
+        } catch(e) {
+          console.warn('MediaPipe frame tick note:', e);
+        }
+      } else if (typeof faceapi !== 'undefined' && faceapi.nets.tinyFaceDetector.params) {
+        // Fallback using lightweight TinyFaceDetector landmarks
+        try {
+          var det = await faceapi.detectSingleFace(
+            kycVideo,
+            new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 })
+          ).withFaceLandmarks(true);
+          if (det) {
+            hasFace = true;
+            var ear = calculateEyeAspectRatio(det.landmarks);
+            blinkLeft = (ear <= 0.175) ? 0.7 : 0.05;
+            blinkRight = blinkLeft;
+            var pts = det.landmarks.positions;
+            var d0 = Math.hypot(pts[30].x - pts[0].x, pts[30].y - pts[0].y);
+            var d16 = Math.hypot(pts[30].x - pts[16].x, pts[30].y - pts[16].y);
+            yawRatio = (d0 - d16) / (d0 + d16 || 1);
+          }
+        } catch(e){}
+      }
+
+      if (!hasFace) {
         if (kycCircle) kycCircle.style.borderColor = '#ef4444';
         if (kycInstruction) {
           kycInstruction.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ Center Face Inside Oval</div>' +
             '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Hold phone steady in good light.</div>';
         }
-        if (Date.now() - kycStartTime > 30000) {
+        if (Date.now() - kycStartTime > 35000) {
           kycLivenessActive = false;
           if (kycInstruction) kycInstruction.innerHTML = '<span style="color:#ef4444;">⏱️ Verification timed out</span>';
           if (kycRestartBtn) kycRestartBtn.style.display = 'block';
           return;
         }
-        setTimeout(kycLoop, 150);
+        setTimeout(kycLoop, 120);
         return;
       }
 
       if (kycCircle) kycCircle.style.borderColor = '#6366f1';
-      var pts = detection.landmarks.positions;
-      var ear = calculateEyeAspectRatio(detection.landmarks);
-
-      // Cheek-to-nose asymmetric yaw ratio:
-      var d0 = Math.hypot(pts[30].x - pts[0].x, pts[30].y - pts[0].y);
-      var d16 = Math.hypot(pts[30].x - pts[16].x, pts[30].y - pts[16].y);
-      var yawAsymmetry = (d0 - d16) / (d0 + d16 || 1);
 
       // ================= POSE 1: EYE BLINK =================
       if (stage === 'BLINK') {
         if (kycStep1) kycStep1.style.background = '#4f46e5';
 
         if (blinkStage === 'WAIT_OPEN') {
-          if (ear >= 0.22) openFrames++;
+          if (blinkLeft < 0.25 && blinkRight < 0.25) openFrames++;
           else openFrames = 0;
           if (kycInstruction) {
             kycInstruction.innerHTML = '<div style="color:#818cf8; font-size:13px; font-weight:900;">👁️ STEP 1/3: BLINK YOUR EYES</div>' +
               '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Hold steady and close eyelids clearly.</div>';
           }
           if (openFrames >= 2) blinkStage = 'WAIT_BLINK';
-          setTimeout(kycLoop, 110);
+          setTimeout(kycLoop, 80);
           return;
         }
 
@@ -2456,15 +2566,15 @@
             kycInstruction.innerHTML = '<div style="color:#38bdf8; font-size:13.5px; font-weight:900;">😉 BLINK NOW!</div>' +
               '<div style="font-size:10.5px; color:#bae6fd; margin-top:2px;">Close your eyelids firmly, then re-open.</div>';
           }
-          if (ear <= 0.175) {
+          if (blinkLeft >= 0.38 || blinkRight >= 0.38) {
             blinkStage = 'WAIT_REOPEN';
           }
-          setTimeout(kycLoop, 100);
+          setTimeout(kycLoop, 80);
           return;
         }
 
         if (blinkStage === 'WAIT_REOPEN') {
-          if (ear >= 0.22) {
+          if (blinkLeft < 0.25 && blinkRight < 0.25) {
             if (kycStep1) kycStep1.style.background = '#22c55e';
             if (navigator.vibrate) navigator.vibrate(60);
             stage = 'TURN_LEFT';
@@ -2472,10 +2582,10 @@
               kycInstruction.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:900;">✅ Blink Verified!</div>' +
                 '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Next: Turn head slightly to your left.</div>';
             }
-            setTimeout(kycLoop, 400);
+            setTimeout(kycLoop, 350);
             return;
           }
-          setTimeout(kycLoop, 90);
+          setTimeout(kycLoop, 80);
           return;
         }
       }
@@ -2485,10 +2595,11 @@
         if (kycStep2) kycStep2.style.background = '#4f46e5';
         if (kycInstruction) {
           kycInstruction.innerHTML = '<div style="color:#818cf8; font-size:13px; font-weight:900;">👈 STEP 2/3: TURN HEAD LEFT</div>' +
-            '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Slowly turn head slightly to the left.</div>';
+            '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Slowly turn head slightly to your left.</div>';
         }
 
-        if (Math.abs(yawAsymmetry) >= 0.20) {
+        var isTurnLeft = (Math.abs(yawRatio) >= 0.18);
+        if (isTurnLeft) {
           leftHoldFrames++;
           if (leftHoldFrames >= 2) {
             if (kycStep2) kycStep2.style.background = '#22c55e';
@@ -2498,13 +2609,13 @@
               kycInstruction.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:900;">✅ Left Verified!</div>' +
                 '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Next: Turn head slightly to your right.</div>';
             }
-            setTimeout(kycLoop, 400);
+            setTimeout(kycLoop, 350);
             return;
           }
         } else {
           leftHoldFrames = 0;
         }
-        setTimeout(kycLoop, 110);
+        setTimeout(kycLoop, 90);
         return;
       }
 
@@ -2513,10 +2624,11 @@
         if (kycStep3) kycStep3.style.background = '#4f46e5';
         if (kycInstruction) {
           kycInstruction.innerHTML = '<div style="color:#818cf8; font-size:13px; font-weight:900;">👉 STEP 3/3: TURN HEAD RIGHT</div>' +
-            '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Slowly turn head slightly to the right.</div>';
+            '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Slowly turn head slightly to your right.</div>';
         }
 
-        if (Math.abs(yawAsymmetry) >= 0.20) {
+        var isTurnRight = (Math.abs(yawRatio) >= 0.18);
+        if (isTurnRight) {
           rightHoldFrames++;
           if (rightHoldFrames >= 2) {
             if (kycStep3) kycStep3.style.background = '#22c55e';
@@ -2532,13 +2644,14 @@
         } else {
           rightHoldFrames = 0;
         }
-        setTimeout(kycLoop, 110);
+        setTimeout(kycLoop, 90);
         return;
       }
 
       // ================= POSE 4: AUTO-CAPTURE =================
       if (stage === 'CAPTURE') {
-        if (Math.abs(yawAsymmetry) < 0.14 && ear >= 0.22) {
+        var isCentered = (Math.abs(yawRatio) < 0.15) && (blinkLeft < 0.25 && blinkRight < 0.25);
+        if (isCentered) {
           straightHoldFrames++;
         } else {
           straightHoldFrames = 0;
@@ -2548,7 +2661,7 @@
           if (kycInstruction) {
             kycInstruction.innerHTML = '<div style="color:#38bdf8; font-size:13px; font-weight:900;">📸 Look straight & hold still...</div>';
           }
-          setTimeout(kycLoop, 90);
+          setTimeout(kycLoop, 80);
           return;
         }
 
@@ -2582,12 +2695,6 @@
         }
         if (kycVideo) kycVideo.style.display = 'none';
 
-        // Cache descriptor
-        if (detection && detection.descriptor) {
-          cachedKycDescriptor = detection.descriptor;
-          cachedKycUrl = finalSnapshot;
-        }
-
         var riderId = (typeof state !== 'undefined' && state.riderId) || localStorage.getItem('ridelot_rider_id');
         localStorage.setItem('rydealot_driver_live_face', finalSnapshot);
 
@@ -2614,6 +2721,21 @@
           localStorage.setItem('rydealot_driver_docs', JSON.stringify(allDocs));
         } catch(e){}
 
+        // Asynchronously compute and cache faceapi descriptor once on static canvas
+        try {
+          if (typeof faceapi !== 'undefined') {
+            faceapi.detectSingleFace(snapCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 }))
+              .withFaceLandmarks(true)
+              .withFaceDescriptor()
+              .then(function(d) {
+                if (d && d.descriptor) {
+                  cachedKycDescriptor = d.descriptor;
+                  cachedKycUrl = finalSnapshot;
+                }
+              }).catch(function(){});
+          }
+        } catch(e){}
+
         if (typeof uploadToCloudinary === 'function') {
           uploadToCloudinary(finalSnapshot, 'rydealot/drivers/selfies').then(function(cUrl) {
             if (cUrl && riderId) {
@@ -2637,7 +2759,7 @@
       }
     };
 
-    setTimeout(kycLoop, 300);
+    setTimeout(kycLoop, 150);
   }
 
   if (kycFallbackBtn && kycFallbackInput) {
