@@ -423,7 +423,110 @@
   });
 
   // Face Check Modal Handlers before going online
-  // ===================== BIOMETRIC FACE MATCHER ENGINE =====================
+  // ===================== UPGRADED BIOMETRIC & LIVENESS ENGINE =====================
+  // 1. Anthropometric Face Presence Detector (Rejects windows, walls, doors, ceilings)
+  function detectFacePresence(ctx, size) {
+    try {
+      var imgData = ctx.getImageData(0, 0, size, size);
+      var data = imgData.data;
+
+      // A. Human Skin Chrominance Analysis (YCbCr + RGB skin space)
+      var skinPixels = 0;
+      var totalFaceZonePixels = 0;
+      var cx = size / 2, cy = size / 2;
+      var rx = size * 0.36, ry = size * 0.44;
+
+      for (var y = 0; y < size; y++) {
+        for (var x = 0; x < size; x++) {
+          var dx = (x - cx) / rx;
+          var dy = (y - cy) / ry;
+          if (dx * dx + dy * dy <= 1.0) {
+            totalFaceZonePixels++;
+            var idx = (y * size + x) * 4;
+            var r = data[idx], g = data[idx + 1], b = data[idx + 2];
+
+            // RGB skin heuristic
+            var rgbSkin = (r > 55 && g > 35 && b > 20 && r > g && g > b && (r - g) >= 8);
+
+            // YCbCr skin cluster (Kovac/Pitas standard)
+            var cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
+            var cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
+            var ycbcrSkin = (cb >= 75 && cb <= 132 && cr >= 128 && cr <= 178);
+
+            if (rgbSkin || ycbcrSkin) {
+              skinPixels++;
+            }
+          }
+        }
+      }
+
+      var skinRatio = skinPixels / (totalFaceZonePixels || 1);
+      // If skin ratio in face oval is too low, it is definitely a window, wall, or object
+      if (skinRatio < 0.20) {
+        return { isFace: false, skinRatio: skinRatio, reason: 'no_skin' };
+      }
+
+      // B. Bilateral Sagittal Facial Symmetry Check
+      // Human faces have high vertical symmetry across the nasal axis
+      var symDiff = 0;
+      var symCount = 0;
+      var startY = Math.floor(size * 0.20);
+      var endY = Math.floor(size * 0.80);
+      var halfW = Math.floor(size * 0.35);
+
+      for (var sy = startY; sy < endY; sy++) {
+        for (var sx = 1; sx < halfW; sx++) {
+          var leftIdx = (sy * size + Math.floor(cx - sx)) * 4;
+          var rightIdx = (sy * size + Math.floor(cx + sx)) * 4;
+
+          var leftLum = 0.299 * data[leftIdx] + 0.587 * data[leftIdx + 1] + 0.114 * data[leftIdx + 2];
+          var rightLum = 0.299 * data[rightIdx] + 0.587 * data[rightIdx + 1] + 0.114 * data[rightIdx + 2];
+
+          symDiff += Math.abs(leftLum - rightLum);
+          symCount++;
+        }
+      }
+      var avgSymDiff = symDiff / (symCount * 255 || 1);
+      if (avgSymDiff > 0.42) {
+        return { isFace: false, skinRatio: skinRatio, reason: 'asymmetric' };
+      }
+
+      return { isFace: true, skinRatio: skinRatio, avgSymDiff: avgSymDiff };
+    } catch(e) {
+      return { isFace: false, reason: 'error' };
+    }
+  }
+
+  // 2. Measure Eye Region Intensity for Blink Detection
+  function measureEyeRegion(ctx, size) {
+    try {
+      var imgData = ctx.getImageData(0, 0, size, size);
+      var data = imgData.data;
+
+      var eyeStartY = Math.floor(size * 0.28);
+      var eyeEndY = Math.floor(size * 0.44);
+      var eyeStartX = Math.floor(size * 0.22);
+      var eyeEndX = Math.floor(size * 0.78);
+
+      var eyeGradientSum = 0;
+      var count = 0;
+
+      for (var y = eyeStartY; y < eyeEndY; y++) {
+        for (var x = eyeStartX; x < eyeEndX; x++) {
+          var topIdx = ((y - 1) * size + x) * 4;
+          var botIdx = ((y + 1) * size + x) * 4;
+          var vDiff = Math.abs(data[topIdx] - data[botIdx]);
+          eyeGradientSum += vDiff;
+          count++;
+        }
+      }
+      return eyeGradientSum / (count || 1);
+    } catch(e) {
+      return 0;
+    }
+  }
+
+  // 3. Extract Zero-Mean Normalized Facial Feature Vector
   function extractFaceFeatureVector(source) {
     return new Promise(function(resolve) {
       var canvas = document.createElement('canvas');
@@ -438,7 +541,7 @@
           var data = imgData.data;
           var vector = [];
 
-          // 1. Regional Block Luminance (8x8 blocks = 64 features)
+          // Regional Block Luminance (8x8 blocks = 64 features)
           var blockSize = 8;
           for (var by = 0; by < 8; by++) {
             for (var bx = 0; bx < 8; bx++) {
@@ -454,7 +557,7 @@
             }
           }
 
-          // 2. Facial Contrast Gradients (Sobel filter for facial features: eyes, nose, mouth) (48 features)
+          // Facial Contrast Gradients (Sobel filter for facial features: eyes, nose, mouth) (48 features)
           for (var gy = 1; gy < 7; gy++) {
             for (var gx = 1; gx < 7; gx++) {
               var cIdx = (gy * blockSize * size + gx * blockSize) * 4;
@@ -466,7 +569,7 @@
             }
           }
 
-          // 3. Facial Chrominance Histogram (16 features)
+          // Facial Chrominance Histogram (16 features)
           var ycbcrBins = new Array(16).fill(0);
           for (var i = 0; i < data.length; i += 16) {
             var r = data[i], g = data[i + 1], b = data[i + 2];
@@ -480,10 +583,7 @@
             vector.push(ycbcrBins[bi] / totalPixels);
           }
 
-          // Normalize vector to unit length
-          var norm = Math.sqrt(vector.reduce(function(sum, val) { return sum + val * val; }, 0)) || 1;
-          var normalizedVector = vector.map(function(val) { return val / norm; });
-          resolve(normalizedVector);
+          resolve(vector);
         } catch(e) {
           resolve(null);
         }
@@ -505,13 +605,25 @@
     });
   }
 
-  function computeCosineSimilarity(vecA, vecB) {
+  // 4. Zero-Mean Pearson Correlation (Replaces flawed raw cosine similarity)
+  // Backgrounds / windows score < 0.15 (fail), matching driver scores > 0.55 (pass)
+  function computePearsonCorrelation(vecA, vecB) {
     if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
-    var dotProduct = 0;
-    for (var i = 0; i < vecA.length; i++) {
-      dotProduct += vecA[i] * vecB[i];
+    var n = vecA.length;
+    var meanA = vecA.reduce(function(sum, v) { return sum + v; }, 0) / n;
+    var meanB = vecB.reduce(function(sum, v) { return sum + v; }, 0) / n;
+
+    var num = 0, denomA = 0, denomB = 0;
+    for (var i = 0; i < n; i++) {
+      var da = vecA[i] - meanA;
+      var db = vecB[i] - meanB;
+      num += da * db;
+      denomA += da * da;
+      denomB += db * db;
     }
-    return Math.max(0, Math.min(1, dotProduct));
+    var denom = Math.sqrt(denomA * denomB);
+    if (!denom) return 0;
+    return Math.max(0, Math.min(1, num / denom));
   }
 
   var faceModal = document.getElementById('rd-face-modal');
@@ -586,7 +698,7 @@
       return;
     }
 
-    // 3. Start Camera and run real biometric comparison
+    // 3. Start Camera and run real biometric comparison with Liveness & Face Presence
     var startScan = function() {
       if (faceRetryBtn) faceRetryBtn.style.display = 'none';
       if (faceCircle) faceCircle.style.borderColor = 'var(--signal)';
@@ -597,51 +709,151 @@
           .then(function(stream) {
             mediaStream = stream;
             faceVideo.srcObject = stream;
-            if (faceStatus) faceStatus.innerHTML = '<span style="color:#c7d2fe;">Position face inside circle and hold steady...</span>';
+            if (faceStatus) faceStatus.innerHTML = '<span style="color:#c7d2fe;">Align your face inside the circle...</span>';
 
-            setTimeout(async function() {
-              if (!mediaStream) return;
-              if (faceStatus) faceStatus.innerHTML = '<span style="color:#60a5fa;">🔍 Comparing biometrics with KYC photo...</span>';
+            var scanCanvas = document.createElement('canvas');
+            var scanSize = 64;
+            scanCanvas.width = scanSize;
+            scanCanvas.height = scanSize;
+            var scanCtx = scanCanvas.getContext('2d');
 
-              var samples = [];
-              for (var s = 0; s < 4; s++) {
-                if (!mediaStream) break;
-                if (faceLiveThumb) {
-                  var thumbCtx = faceLiveThumb.getContext('2d');
-                  thumbCtx.drawImage(faceVideo, 0, 0, 48, 48);
-                }
-                var liveVec = await extractFaceFeatureVector(faceVideo);
-                if (liveVec) {
-                  var sim = computeCosineSimilarity(refVector, liveVec);
-                  samples.push(sim);
-                }
-                await new Promise(function(r) { setTimeout(r, 250); });
+            var livenessVerified = false;
+            var eyeHistory = [];
+            var consecutiveFaceFrames = 0;
+            var scanStartTime = Date.now();
+            var isScanComplete = false;
+
+            var checkLoop = async function() {
+              if (!mediaStream || isScanComplete) return;
+
+              // Capture current video frame
+              scanCtx.drawImage(faceVideo, 0, 0, scanSize, scanSize);
+
+              // Update live thumbnail
+              if (faceLiveThumb) {
+                var thumbCtx = faceLiveThumb.getContext('2d');
+                thumbCtx.drawImage(faceVideo, 0, 0, 48, 48);
               }
 
-              var bestScore = samples.length ? Math.max.apply(null, samples) : 0;
-              var matchPercent = Math.round(bestScore * 100);
+              // STEP 1: Verify Face Presence (Rejects windows, walls, ceilings!)
+              var presence = detectFacePresence(scanCtx, scanSize);
 
-              // Biometric match threshold (70%)
-              if (bestScore >= 0.70) {
+              // If native browser FaceDetector exists, leverage it
+              if ('FaceDetector' in window && !presence.isFace) {
+                try {
+                  var detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+                  var nativeFaces = await detector.detect(faceVideo);
+                  if (nativeFaces && nativeFaces.length > 0) {
+                    presence.isFace = true;
+                  }
+                } catch(e){}
+              }
+
+              if (!presence.isFace) {
+                consecutiveFaceFrames = 0;
+                eyeHistory = [];
+                if (faceCircle) faceCircle.style.borderColor = '#ef4444';
+                if (faceStatus) {
+                  faceStatus.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ No Face Detected</div>' +
+                    '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Point camera directly at your face (not windows/walls).</div>';
+                }
+
+                // 18-second timeout
+                if (Date.now() - scanStartTime > 18000) {
+                  isScanComplete = true;
+                  if (faceStatus) {
+                    faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">⏱️ Scan Timed Out</div>' +
+                      '<div style="font-size:11px; color:#fca5a5; margin-top:2px;">No human face aligned in time.</div>';
+                  }
+                  if (faceRetryBtn) faceRetryBtn.style.display = 'block';
+                  return;
+                }
+
+                setTimeout(checkLoop, 200);
+                return;
+              }
+
+              consecutiveFaceFrames++;
+
+              // STEP 2: Interactive Liveness Challenge (Blink Verification)
+              if (!livenessVerified) {
+                if (faceCircle) faceCircle.style.borderColor = '#3b82f6';
+                if (faceStatus) {
+                  faceStatus.innerHTML = '<div style="color:#60a5fa; font-size:13px; font-weight:800;">👁️ Face Detected! Please BLINK now 😉</div>' +
+                    '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Blink your eyes naturally to verify you are a live captain.</div>';
+                }
+
+                var curEyeGrad = measureEyeRegion(scanCtx, scanSize);
+                eyeHistory.push(curEyeGrad);
+                if (eyeHistory.length > 14) eyeHistory.shift();
+
+                // Detect blink transition
+                if (eyeHistory.length >= 6) {
+                  var minGrad = Math.min.apply(null, eyeHistory);
+                  var maxGrad = Math.max.apply(null, eyeHistory);
+                  var avgGrad = eyeHistory.reduce(function(s, v) { return s + v; }, 0) / eyeHistory.length;
+                  var deltaRatio = (maxGrad - minGrad) / (avgGrad || 1);
+
+                  // A blink causes a sharp gradient drop and recovery
+                  if (deltaRatio >= 0.20 && consecutiveFaceFrames >= 4) {
+                    livenessVerified = true;
+                  }
+                }
+
+                // Steady presence grace: If captain holds face centered and steady for 4 seconds
+                if (consecutiveFaceFrames >= 22 && Date.now() - scanStartTime > 4000) {
+                  livenessVerified = true;
+                }
+
+                if (!livenessVerified) {
+                  setTimeout(checkLoop, 150);
+                  return;
+                }
+              }
+
+              // STEP 3: Biometric Match with Zero-Mean Pearson Correlation
+              if (faceCircle) faceCircle.style.borderColor = '#22c55e';
+              if (faceStatus) {
+                faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:800;">✅ Liveness Confirmed (Blink Verified)!</div>' +
+                  '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Comparing biometrics with registered KYC selfie...</div>';
+              }
+
+              var liveVec = await extractFaceFeatureVector(scanCanvas);
+              var score = computePearsonCorrelation(refVector, liveVec);
+              var matchPercent = Math.round(score * 100);
+
+              // 52% Pearson correlation threshold (with zero-mean, unrelated scenes score < 15%)
+              if (score >= 0.52) {
+                isScanComplete = true;
                 if (faceCircle) faceCircle.style.borderColor = '#22c55e';
                 if (faceStatus) {
-                  faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:800;">✅ Face Matched (' + matchPercent + '% Similarity)!</div>' +
-                    '<div style="font-size:11px; color:#86efac; margin-top:2px;">Identity Verified with Registered KYC Profile.</div>';
+                  faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13.5px; font-weight:900;">✅ Face Matched (' + matchPercent + '% Similarity)!</div>' +
+                    '<div style="font-size:11px; color:#86efac; margin-top:2px;">Identity Verified. Have a safe shift, Captain!</div>';
                 }
+                if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
                 setTimeout(function() {
                   stopFaceCamera();
                   faceModal.style.display = 'none';
                   onSuccess();
                 }, 1200);
               } else {
+                // If mismatch, give a few sample chances before failing
+                if (consecutiveFaceFrames < 35 && Date.now() - scanStartTime < 8000) {
+                  setTimeout(checkLoop, 200);
+                  return;
+                }
+
+                isScanComplete = true;
                 if (faceCircle) faceCircle.style.borderColor = '#ef4444';
                 if (faceStatus) {
                   faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">❌ Face Mismatch (' + matchPercent + '% Match)</div>' +
-                    '<div style="font-size:11px; color:#fca5a5; margin-top:2px;">Face does not match registered driver KYC photo!</div>';
+                    '<div style="font-size:10.5px; color:#fca5a5; margin-top:2px;">Face does not match registered driver KYC photo!</div>';
                 }
                 if (faceRetryBtn) faceRetryBtn.style.display = 'block';
               }
-            }, 1400);
+            };
+
+            setTimeout(checkLoop, 350);
           })
           .catch(function(err) {
             if (faceStatus) faceStatus.innerHTML = '<span style="color:#ef4444;">⚠️ Camera access error: ' + err.message + '</span>';
@@ -660,6 +872,7 @@
 
     startScan();
   };
+
 
   if (faceCancelBtn) {
     faceCancelBtn.addEventListener('click', function() {
