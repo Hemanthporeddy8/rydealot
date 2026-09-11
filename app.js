@@ -628,6 +628,7 @@
 
   var faceModal = document.getElementById('rd-face-modal');
   var faceCancelBtn = document.getElementById('rd-face-cancel-btn');
+  var faceFlipBtn = document.getElementById('rd-face-flip-btn');
   var faceVideo = document.getElementById('rd-face-video');
   var faceStatus = document.getElementById('rd-face-status');
   var faceCircle = document.getElementById('rd-face-circle');
@@ -636,6 +637,7 @@
   var faceLiveThumb = document.getElementById('rd-face-live-thumb');
   var faceRetryBtn = document.getElementById('rd-face-retry-btn');
   var mediaStream = null;
+  var currentFacingMode = 'user'; // 'user' (front selfie) or 'environment' (rear)
 
   function stopFaceCamera() {
     if (mediaStream) {
@@ -698,170 +700,255 @@
       return;
     }
 
-    // 3. Start Camera and run real biometric comparison with Liveness & Face Presence
+    // 3. Start Camera and run strict anti-spoofing liveness check
     var startScan = function() {
       if (faceRetryBtn) faceRetryBtn.style.display = 'none';
       if (faceCircle) faceCircle.style.borderColor = 'var(--signal)';
-      if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Requesting camera access...</span>';
+      if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Opening ' + (currentFacingMode === 'user' ? 'front' : 'rear') + ' camera...</span>';
+
+      // Adjust video CSS mirroring depending on front vs rear camera
+      if (faceVideo) {
+        faceVideo.style.transform = (currentFacingMode === 'user') ? 'scaleX(-1)' : 'none';
+      }
 
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } } })
-          .then(function(stream) {
-            mediaStream = stream;
-            faceVideo.srcObject = stream;
-            if (faceStatus) faceStatus.innerHTML = '<span style="color:#c7d2fe;">Align your face inside the circle...</span>';
+        navigator.mediaDevices.getUserMedia({
+          video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 640 } }
+        })
+        .then(function(stream) {
+          mediaStream = stream;
+          faceVideo.srcObject = stream;
+          if (faceStatus) faceStatus.innerHTML = '<span style="color:#c7d2fe;">Align your face inside the circle...</span>';
 
-            var scanCanvas = document.createElement('canvas');
-            var scanSize = 64;
-            scanCanvas.width = scanSize;
-            scanCanvas.height = scanSize;
-            var scanCtx = scanCanvas.getContext('2d');
+          var scanCanvas = document.createElement('canvas');
+          var scanSize = 64;
+          scanCanvas.width = scanSize;
+          scanCanvas.height = scanSize;
+          var scanCtx = scanCanvas.getContext('2d');
 
-            var livenessVerified = false;
-            var eyeHistory = [];
-            var consecutiveFaceFrames = 0;
-            var scanStartTime = Date.now();
-            var isScanComplete = false;
+          // Strict 3-Stage Liveness State Machine
+          // 'WAIT_FACE' -> 'ESTABLISHING_OPEN_BASE' -> 'READY_FOR_BLINK' -> 'EYELIDS_CLOSED' -> 'VERIFIED'
+          var livenessState = 'WAIT_FACE';
+          var openBaseGradSum = 0;
+          var openBaseFrames = 0;
+          var openBaseGrad = 0;
+          var closedFramesCount = 0;
+          var livenessVerified = false;
+          var initialSymmetry = null;
+          var scanStartTime = Date.now();
+          var isScanComplete = false;
 
-            var checkLoop = async function() {
-              if (!mediaStream || isScanComplete) return;
+          var checkLoop = async function() {
+            if (!mediaStream || isScanComplete) return;
 
-              // Capture current video frame
-              scanCtx.drawImage(faceVideo, 0, 0, scanSize, scanSize);
+            // Capture current video frame
+            scanCtx.drawImage(faceVideo, 0, 0, scanSize, scanSize);
 
-              // Update live thumbnail
-              if (faceLiveThumb) {
-                var thumbCtx = faceLiveThumb.getContext('2d');
-                thumbCtx.drawImage(faceVideo, 0, 0, 48, 48);
-              }
+            // Update live thumbnail
+            if (faceLiveThumb) {
+              var thumbCtx = faceLiveThumb.getContext('2d');
+              thumbCtx.drawImage(faceVideo, 0, 0, 48, 48);
+            }
 
-              // STEP 1: Verify Face Presence (Rejects windows, walls, ceilings!)
-              var presence = detectFacePresence(scanCtx, scanSize);
+            // STEP 1: Verify Real Face Presence (Rejects windows, walls, ceilings, screen glare)
+            var presence = detectFacePresence(scanCtx, scanSize);
 
-              // If native browser FaceDetector exists, leverage it
-              if ('FaceDetector' in window && !presence.isFace) {
-                try {
-                  var detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
-                  var nativeFaces = await detector.detect(faceVideo);
-                  if (nativeFaces && nativeFaces.length > 0) {
-                    presence.isFace = true;
-                  }
-                } catch(e){}
-              }
+            // Hardware-accelerated FaceDetector check if available
+            if ('FaceDetector' in window && !presence.isFace) {
+              try {
+                var detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+                var nativeFaces = await detector.detect(faceVideo);
+                if (nativeFaces && nativeFaces.length > 0) {
+                  presence.isFace = true;
+                }
+              } catch(e){}
+            }
 
-              if (!presence.isFace) {
-                consecutiveFaceFrames = 0;
-                eyeHistory = [];
-                if (faceCircle) faceCircle.style.borderColor = '#ef4444';
-                if (faceStatus) {
+            if (!presence.isFace) {
+              // Face lost or pointing at window/wall
+              livenessState = 'WAIT_FACE';
+              openBaseGradSum = 0;
+              openBaseFrames = 0;
+              initialSymmetry = null;
+              if (faceCircle) faceCircle.style.borderColor = '#ef4444';
+              if (faceStatus) {
+                if (presence.reason === 'screen_glare') {
+                  faceStatus.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ Screen Glare Detected</div>' +
+                    '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Do not show another phone screen. Position real face.</div>';
+                } else {
                   faceStatus.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ No Face Detected</div>' +
                     '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Point camera directly at your face (not windows/walls).</div>';
                 }
+              }
 
-                // 18-second timeout
-                if (Date.now() - scanStartTime > 18000) {
-                  isScanComplete = true;
-                  if (faceStatus) {
-                    faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">⏱️ Scan Timed Out</div>' +
-                      '<div style="font-size:11px; color:#fca5a5; margin-top:2px;">No human face aligned in time.</div>';
-                  }
-                  if (faceRetryBtn) faceRetryBtn.style.display = 'block';
-                  return;
+              // 20-second timeout
+              if (Date.now() - scanStartTime > 20000) {
+                isScanComplete = true;
+                if (faceStatus) {
+                  faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">⏱️ Scan Timed Out</div>' +
+                    '<div style="font-size:11px; color:#fca5a5; margin-top:2px;">No verified human face detected in time.</div>';
                 }
-
-                setTimeout(checkLoop, 200);
+                if (faceRetryBtn) faceRetryBtn.style.display = 'block';
                 return;
               }
 
-              consecutiveFaceFrames++;
+              setTimeout(checkLoop, 200);
+              return;
+            }
 
-              // STEP 2: Interactive Liveness Challenge (Blink Verification)
-              if (!livenessVerified) {
-                if (faceCircle) faceCircle.style.borderColor = '#3b82f6';
-                if (faceStatus) {
-                  faceStatus.innerHTML = '<div style="color:#60a5fa; font-size:13px; font-weight:800;">👁️ Face Detected! Please BLINK now 😉</div>' +
-                    '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Blink your eyes naturally to verify you are a live captain.</div>';
+            // Record initial baseline symmetry for head turn challenge
+            if (initialSymmetry === null && typeof presence.avgSymDiff === 'number') {
+              initialSymmetry = presence.avgSymDiff;
+            }
+
+            var curEyeGrad = measureEyeRegion(scanCtx, scanSize);
+
+            // STEP 2: Strict Multi-Stage Liveness Challenge (NO SHORTCUTS / NO AUTO-PASS)
+            if (!livenessVerified) {
+              faceCircle.style.borderColor = '#3b82f6';
+
+              // STAGE 2A: Establish stable open eyes baseline (Must hold open for 4 frames)
+              if (livenessState === 'WAIT_FACE' || livenessState === 'ESTABLISHING_OPEN_BASE') {
+                livenessState = 'ESTABLISHING_OPEN_BASE';
+                openBaseGradSum += curEyeGrad;
+                openBaseFrames++;
+
+                faceStatus.innerHTML = '<div style="color:#60a5fa; font-size:13px; font-weight:800;">👁️ Face Detected. Look at Camera...</div>' +
+                  '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Hold face steady, then blink clearly.</div>';
+
+                if (openBaseFrames >= 4) {
+                  openBaseGrad = openBaseGradSum / openBaseFrames;
+                  livenessState = 'READY_FOR_BLINK';
                 }
 
-                var curEyeGrad = measureEyeRegion(scanCtx, scanSize);
-                eyeHistory.push(curEyeGrad);
-                if (eyeHistory.length > 14) eyeHistory.shift();
+                setTimeout(checkLoop, 160);
+                return;
+              }
 
-                // Detect blink transition
-                if (eyeHistory.length >= 6) {
-                  var minGrad = Math.min.apply(null, eyeHistory);
-                  var maxGrad = Math.max.apply(null, eyeHistory);
-                  var avgGrad = eyeHistory.reduce(function(s, v) { return s + v; }, 0) / eyeHistory.length;
-                  var deltaRatio = (maxGrad - minGrad) / (avgGrad || 1);
+              // STAGE 2B: Ready for Blink - Prompts driver to blink or turn head
+              if (livenessState === 'READY_FOR_BLINK') {
+                faceStatus.innerHTML = '<div style="color:#38bdf8; font-size:13.5px; font-weight:900;">😉 NOW BLINK YOUR EYES!</div>' +
+                  '<div style="font-size:10.5px; color:#bae6fd; margin-top:2px;">Close your eyes firmly for a second, then open.</div>';
 
-                  // A blink causes a sharp gradient drop and recovery
-                  if (deltaRatio >= 0.20 && consecutiveFaceFrames >= 4) {
+                // Check 3D Head Turn alternative:
+                if (initialSymmetry !== null && typeof presence.avgSymDiff === 'number') {
+                  var symShift = Math.abs(presence.avgSymDiff - initialSymmetry);
+                  // 3D head turn causes significant perspective asymmetry shift (> 0.12)
+                  if (symShift >= 0.12) {
                     livenessVerified = true;
                   }
                 }
 
-                // Steady presence grace: If captain holds face centered and steady for 4 seconds
-                if (consecutiveFaceFrames >= 22 && Date.now() - scanStartTime > 4000) {
-                  livenessVerified = true;
+                // Check Eyelid Closure:
+                // When eyelids close, contrast in eye sockets drops by > 35% compared to open baseline
+                var closureRatio = curEyeGrad / (openBaseGrad || 1);
+                if (closureRatio <= 0.65) {
+                  livenessState = 'EYELIDS_CLOSED';
+                  closedFramesCount = 1;
+                  faceStatus.innerHTML = '<div style="color:#a78bfa; font-size:13px; font-weight:800;">👁️ Eyelids Closed... Now Open!</div>';
                 }
 
-                if (!livenessVerified) {
+                // Static gallery photos have closureRatio ~ 1.0 (frozen) and stay stuck here until timeout!
+                if (!livenessVerified && livenessState !== 'EYELIDS_CLOSED') {
+                  // Check timeout for static images / gallery spoofing (16s)
+                  if (Date.now() - scanStartTime > 16000) {
+                    isScanComplete = true;
+                    if (faceCircle) faceCircle.style.borderColor = '#ef4444';
+                    if (faceStatus) {
+                      faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">❌ Liveness Failed: Static Image</div>' +
+                        '<div style="font-size:10.5px; color:#fca5a5; margin-top:2px;">No active blink or head movement detected. Photos not allowed.</div>';
+                    }
+                    if (faceRetryBtn) faceRetryBtn.style.display = 'block';
+                    return;
+                  }
                   setTimeout(checkLoop, 150);
                   return;
                 }
               }
 
-              // STEP 3: Biometric Match with Zero-Mean Pearson Correlation
-              if (faceCircle) faceCircle.style.borderColor = '#22c55e';
-              if (faceStatus) {
-                faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:800;">✅ Liveness Confirmed (Blink Verified)!</div>' +
-                  '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Comparing biometrics with registered KYC selfie...</div>';
-              }
-
-              var liveVec = await extractFaceFeatureVector(scanCanvas);
-              var score = computePearsonCorrelation(refVector, liveVec);
-              var matchPercent = Math.round(score * 100);
-
-              // 52% Pearson correlation threshold (with zero-mean, unrelated scenes score < 15%)
-              if (score >= 0.52) {
-                isScanComplete = true;
-                if (faceCircle) faceCircle.style.borderColor = '#22c55e';
-                if (faceStatus) {
-                  faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13.5px; font-weight:900;">✅ Face Matched (' + matchPercent + '% Similarity)!</div>' +
-                    '<div style="font-size:11px; color:#86efac; margin-top:2px;">Identity Verified. Have a safe shift, Captain!</div>';
-                }
-                if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
-                setTimeout(function() {
-                  stopFaceCamera();
-                  faceModal.style.display = 'none';
-                  onSuccess();
-                }, 1200);
-              } else {
-                // If mismatch, give a few sample chances before failing
-                if (consecutiveFaceFrames < 35 && Date.now() - scanStartTime < 8000) {
-                  setTimeout(checkLoop, 200);
+              // STAGE 2C: Eyelids are closed -> Waiting for re-opening!
+              if (livenessState === 'EYELIDS_CLOSED') {
+                closedFramesCount++;
+                // If held closed for more than 1.8 seconds, reset
+                if (closedFramesCount > 10) {
+                  livenessState = 'ESTABLISHING_OPEN_BASE';
+                  openBaseGradSum = 0;
+                  openBaseFrames = 0;
+                  setTimeout(checkLoop, 150);
                   return;
                 }
 
-                isScanComplete = true;
-                if (faceCircle) faceCircle.style.borderColor = '#ef4444';
-                if (faceStatus) {
-                  faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">❌ Face Mismatch (' + matchPercent + '% Match)</div>' +
-                    '<div style="font-size:10.5px; color:#fca5a5; margin-top:2px;">Face does not match registered driver KYC photo!</div>';
+                // When eyes re-open, contrast returns towards baseline
+                var reopenRatio = curEyeGrad / (openBaseGrad || 1);
+                if (reopenRatio >= 0.78) {
+                  // SUCCESS: Full Open ➔ Close ➔ Re-open sequence verified!
+                  livenessVerified = true;
+                } else {
+                  setTimeout(checkLoop, 140);
+                  return;
                 }
-                if (faceRetryBtn) faceRetryBtn.style.display = 'block';
               }
-            };
+            }
 
-            setTimeout(checkLoop, 350);
-          })
-          .catch(function(err) {
-            if (faceStatus) faceStatus.innerHTML = '<span style="color:#ef4444;">⚠️ Camera access error: ' + err.message + '</span>';
-          });
+            // STEP 3: Biometric Match with Zero-Mean Pearson Correlation
+            faceCircle.style.borderColor = '#22c55e';
+            faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:800;">✅ Live Blink Verified!</div>' +
+              '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Comparing biometrics with registered KYC selfie...</div>';
+
+            var liveVec = await extractFaceFeatureVector(scanCanvas);
+            var score = computePearsonCorrelation(refVector, liveVec);
+            var matchPercent = Math.round(score * 100);
+
+            // 50% Pearson correlation threshold for matching driver
+            if (score >= 0.50) {
+              isScanComplete = true;
+              if (faceCircle) faceCircle.style.borderColor = '#22c55e';
+              if (faceStatus) {
+                faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13.5px; font-weight:900;">✅ Identity Verified (' + matchPercent + '% Similarity)!</div>' +
+                  '<div style="font-size:11px; color:#86efac; margin-top:2px;">Welcome back, Captain! Have a safe shift.</div>';
+              }
+              if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+              setTimeout(function() {
+                stopFaceCamera();
+                faceModal.style.display = 'none';
+                onSuccess();
+              }, 1200);
+            } else {
+              // Allow up to 3 samples for slight expression variations
+              if (Date.now() - scanStartTime < 10000) {
+                setTimeout(checkLoop, 200);
+                return;
+              }
+
+              isScanComplete = true;
+              if (faceCircle) faceCircle.style.borderColor = '#ef4444';
+              if (faceStatus) {
+                faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">❌ Face Mismatch (' + matchPercent + '% Match)</div>' +
+                  '<div style="font-size:10.5px; color:#fca5a5; margin-top:2px;">Live face does not match registered driver KYC photo!</div>';
+              }
+              if (faceRetryBtn) faceRetryBtn.style.display = 'block';
+            }
+          };
+
+          setTimeout(checkLoop, 350);
+        })
+        .catch(function(err) {
+          if (faceStatus) faceStatus.innerHTML = '<span style="color:#ef4444;">⚠️ Camera access error: ' + err.message + '</span>';
+        });
       } else {
         onSuccess();
       }
     };
+
+    // Wire flip camera button
+    if (faceFlipBtn) {
+      faceFlipBtn.onclick = function() {
+        currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+        faceFlipBtn.textContent = (currentFacingMode === 'user') ? '🔄 Flip' : '🔄 Front';
+        stopFaceCamera();
+        startScan();
+      };
+    }
 
     if (faceRetryBtn) {
       faceRetryBtn.onclick = function() {

@@ -741,7 +741,10 @@
 <!-- BIOMETRIC FACE CHECK MODAL OVERLAY -->
 <div id="rd-face-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:20px; color:#fff; text-align:center; box-sizing:border-box;">
   <div style="background:#1e2229; border-radius:20px; padding:20px; max-width:340px; width:100%; display:flex; flex-direction:column; align-items:center; gap:12px; border:1px solid #333; box-sizing:border-box;">
-    <h3 style="font-size:16px; font-weight:800; margin:0; color:#fff;">📸 Driver Biometric Face Check</h3>
+    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+      <h3 style="font-size:15px; font-weight:800; margin:0; color:#fff;">📸 Driver Biometric Face Check</h3>
+      <button type="button" id="rd-face-flip-btn" style="background:#334155; border:1px solid #475569; color:#cbd5e1; font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:4px;" title="Switch between front and rear camera">🔄 Flip</button>
+    </div>
     <p style="font-size:11px; color:#94a3b8; margin:0;">Real-time biometric match against your registered KYC profile photo.</p>
     
     <!-- Comparison strip -->
