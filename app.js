@@ -508,16 +508,14 @@
     return null;
   }
 
-  // Extract 128-D Deep Neural Descriptor from KYC Photo
+  // Extract 128-D Deep Neural Descriptor from KYC Photo (Fallback helper with 4s timeout)
   async function extractKycNeuralDescriptor(url) {
     if (!url) return null;
 
-    // 1. In-memory cache
     if (cachedKycDescriptor && cachedKycUrl === url) {
       return cachedKycDescriptor;
     }
 
-    // 2. Check localStorage persisted KYC descriptor (Instant 0ms)
     try {
       var storedDesc = localStorage.getItem('rydealot_driver_kyc_descriptor');
       if (storedDesc) {
@@ -530,7 +528,6 @@
       }
     } catch(e){}
 
-    // 3. Robust HTMLImageElement loader with timeout safeguard and CORS fix
     try {
       var isDataUri = typeof url === 'string' && url.indexOf('data:') === 0;
       var img = new Image();
@@ -558,7 +555,11 @@
         }
       });
 
-      var det = await detectFaceWithMultipleOptions(img);
+      var det = await Promise.race([
+        detectFaceWithMultipleOptions(img),
+        new Promise(function(_, reject) { setTimeout(function(){ reject(new Error('Detection timeout')); }, 3500); })
+      ]);
+
       if (det && det.descriptor) {
         cachedKycDescriptor = det.descriptor;
         cachedKycUrl = url;
@@ -571,12 +572,11 @@
       console.warn('Image element KYC extraction note:', e);
     }
 
-    // 4. Fallback using fetchImage if remote URL
     if (typeof url === 'string' && url.indexOf('http') === 0) {
       try {
         var fetched = await Promise.race([
           faceapi.fetchImage(url),
-          new Promise(function(_, reject) { setTimeout(function(){ reject(new Error('fetchImage timeout')); }, 4000); })
+          new Promise(function(_, reject) { setTimeout(function(){ reject(new Error('fetchImage timeout')); }, 3500); })
         ]);
         if (fetched) {
           var det2 = await detectFaceWithMultipleOptions(fetched);
@@ -594,6 +594,51 @@
       }
     }
 
+    return null;
+  }
+
+  // Fast biometric baseline retriever: LocalStorage (0ms) -> Supabase face_profiles (100ms) -> Photo extraction
+  async function getDriverBaselineDescriptor(riderId, kycUrl) {
+    if (cachedKycDescriptor) return cachedKycDescriptor;
+
+    // 1. Instant local storage cache
+    try {
+      var localD = localStorage.getItem('rydealot_driver_kyc_descriptor');
+      if (localD) {
+        var arr = JSON.parse(localD);
+        if (Array.isArray(arr) && arr.length === 128) {
+          cachedKycDescriptor = new Float32Array(arr);
+          return cachedKycDescriptor;
+        }
+      }
+    } catch(e){}
+
+    // 2. Query Supabase face_profiles database table
+    if (riderId) {
+      try {
+        var rows = await sbFetch('face_profiles?rider_id=eq.' + riderId + '&limit=1');
+        if (rows && rows[0] && rows[0].descriptor) {
+          var dbDesc = rows[0].descriptor;
+          if (typeof dbDesc === 'string') {
+            try { dbDesc = JSON.parse(dbDesc); } catch(pe){}
+          }
+          if (Array.isArray(dbDesc) && dbDesc.length === 128) {
+            cachedKycDescriptor = new Float32Array(dbDesc);
+            try {
+              localStorage.setItem('rydealot_driver_kyc_descriptor', JSON.stringify(dbDesc));
+            } catch(e){}
+            return cachedKycDescriptor;
+          }
+        }
+      } catch(dbErr){
+        console.warn('face_profiles query note:', dbErr);
+      }
+    }
+
+    // 3. Fallback: extract from saved photo
+    if (kycUrl) {
+      return await extractKycNeuralDescriptor(kycUrl);
+    }
     return null;
   }
 
@@ -627,20 +672,9 @@
     if (faceRetryBtn) faceRetryBtn.style.display = 'none';
     if (facePortalBtn) facePortalBtn.style.display = 'none';
     if (faceCircle) faceCircle.style.borderColor = 'var(--signal)';
-    if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">⚡ Initializing Neural AI Face Models...</span>';
+    if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Starting camera...</span>';
 
-    // 1. Ensure Face-API models are loaded
-    var modelsReady = await loadFaceApiModels();
-    if (!modelsReady) {
-      if (faceStatus) {
-        faceStatus.innerHTML = '<div style="color:#ef4444; font-weight:800;">⚠️ Neural Face Models Offline</div>' +
-          '<div style="font-size:11px; color:#cbd5e1; margin-top:2px;">Please check internet connection and retry.</div>';
-      }
-      if (faceRetryBtn) faceRetryBtn.style.display = 'block';
-      return;
-    }
-
-    // 2. Retrieve registered KYC profile photo
+    // Retrieve registered KYC profile photo
     var riderId = (typeof state !== 'undefined' && state.riderId) || localStorage.getItem('ridelot_rider_id');
     var kycPhotoUrl = null;
 
@@ -674,15 +708,18 @@
       if (faceRefPlaceholder) faceRefPlaceholder.style.display = 'none';
     }
 
-    // Reference descriptor container
-    var refDescriptor = null;
+    // Start background baseline retrieval in parallel (Non-blocking!)
+    var refDescriptorPromise = getDriverBaselineDescriptor(riderId, kycPhotoUrl);
+
+    // Ensure models are warming up
+    loadFaceApiModels();
 
     // 3. Real Neural Detection + 3D Landmark EAR Blink Check Pipeline
     var startScan = function() {
       if (faceRetryBtn) faceRetryBtn.style.display = 'none';
       if (faceRetakeKycBtn) faceRetakeKycBtn.style.display = 'none';
       if (faceCircle) faceCircle.style.borderColor = 'var(--signal)';
-      if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Starting ' + (currentFacingMode === 'user' ? 'front' : 'rear') + ' camera...</span>';
+      if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Starting camera...</span>';
 
       if (faceVideo) {
         faceVideo.style.transform = (currentFacingMode === 'user') ? 'scaleX(-1)' : 'none';
@@ -695,6 +732,7 @@
         .then(function(stream) {
           mediaStream = stream;
           faceVideo.srcObject = stream;
+          try { faceVideo.play(); } catch(pErr){}
           if (faceStatus) faceStatus.innerHTML = '<span style="color:#c7d2fe;">Align your face inside the circle...</span>';
 
           var livenessState = 'WAIT_OPEN'; // 'WAIT_OPEN' -> 'WAIT_BLINK' -> 'WAIT_REOPEN' -> 'VERIFIED'
@@ -725,17 +763,17 @@
               console.warn('Face detect loop tick note:', e);
             }
 
-            // If no face in frame (pointing at window, wall, ceiling, floor)
+            // If no face in frame
             if (!detection) {
               livenessState = 'WAIT_OPEN';
               openFrames = 0;
               if (faceCircle) faceCircle.style.borderColor = '#ef4444';
               if (faceStatus) {
                 faceStatus.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ No Face Detected</div>' +
-                  '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Position face inside circle (not walls/windows).</div>';
+                  '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Position face inside circle.</div>';
               }
 
-              if (Date.now() - scanStartTime > 22000) {
+              if (Date.now() - scanStartTime > 25000) {
                 isScanComplete = true;
                 if (faceStatus) {
                   faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">⏱️ Scan Timed Out</div>' +
@@ -749,20 +787,17 @@
               return;
             }
 
-            // STEP B: True 3D Landmark Eye Aspect Ratio (EAR)
+            // STEP B: 3D Landmark Eye Aspect Ratio (EAR)
             var ear = calculateEyeAspectRatio(detection.landmarks);
 
             // STEP C: Scale-Invariant Blink Liveness State Machine
             if (!livenessVerified) {
               faceCircle.style.borderColor = '#3b82f6';
 
-              // STAGE 1: Confirm stable open eyes (EAR >= 0.22 for at least 3 frames)
+              // STAGE 1: Confirm stable open eyes
               if (livenessState === 'WAIT_OPEN') {
-                if (ear >= 0.22) {
-                  openFrames++;
-                } else {
-                  openFrames = 0;
-                }
+                if (ear >= 0.22) openFrames++;
+                else openFrames = 0;
 
                 faceStatus.innerHTML = '<div style="color:#60a5fa; font-size:13px; font-weight:800;">👁️ Face Detected. Look at Camera...</div>' +
                   '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Hold steady, then blink clearly.</div>';
@@ -775,21 +810,19 @@
                 return;
               }
 
-              // STAGE 2: Waiting for Eyelids to Close (EAR drops <= 0.175)
+              // STAGE 2: Waiting for Eyelids to Close
               if (livenessState === 'WAIT_BLINK') {
                 faceStatus.innerHTML = '<div style="color:#38bdf8; font-size:13.5px; font-weight:900;">😉 NOW BLINK YOUR EYES!</div>' +
                   '<div style="font-size:10.5px; color:#bae6fd; margin-top:2px;">Close eyelids firmly, then re-open.</div>';
 
-                // Physical eyelid closure
                 if (ear <= 0.175) {
                   livenessState = 'WAIT_REOPEN';
                   closedFrames = 1;
                   faceStatus.innerHTML = '<div style="color:#a78bfa; font-size:13px; font-weight:800;">👁️ Eyelids Closed... Now Open!</div>';
                 }
 
-                // Static mobile gallery photos will NEVER close eyelids: they stay frozen here and timeout!
                 if (livenessState !== 'WAIT_REOPEN') {
-                  if (Date.now() - scanStartTime > 18000) {
+                  if (Date.now() - scanStartTime > 20000) {
                     isScanComplete = true;
                     if (faceCircle) faceCircle.style.borderColor = '#ef4444';
                     if (faceStatus) {
@@ -804,10 +837,9 @@
                 }
               }
 
-              // STAGE 3: Eyelids are closed -> Waiting for Re-opening (EAR returns >= 0.22)
+              // STAGE 3: Eyelids closed -> Re-opening
               if (livenessState === 'WAIT_REOPEN') {
                 closedFrames++;
-                // If held closed for more than 2 seconds, reset
                 if (closedFrames > 15) {
                   livenessState = 'WAIT_OPEN';
                   openFrames = 0;
@@ -816,7 +848,6 @@
                 }
 
                 if (ear >= 0.22) {
-                  // SUCCESS: Full Open ➔ Closed ➔ Open landmark sequence verified!
                   livenessVerified = true;
                 } else {
                   setTimeout(checkLoop, 80);
@@ -825,13 +856,31 @@
               }
             }
 
-            // STEP D: Deep Neural Biometric 1:1 Identity Match (Euclidean Distance)
-            // Distinguishes mother, son, brother, friends with deep neural embeddings!
+            // STEP D: Deep Neural Biometric 1:1 Identity Match
             faceCircle.style.borderColor = '#22c55e';
             faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:800;">✅ Live Blink Confirmed!</div>' +
-              '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Verifying 128-D facial fingerprint against KYC profile...</div>';
+              '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Verifying facial fingerprint against KYC profile...</div>';
 
-            // Calculate descriptor only ONCE right now!
+            var refDescriptor = await refDescriptorPromise;
+            if (!refDescriptor) {
+              isScanComplete = true;
+              if (faceCircle) faceCircle.style.borderColor = '#f59e0b';
+              if (faceStatus) {
+                faceStatus.innerHTML = '<div style="color:#f59e0b; font-weight:800; font-size:13px;">⚠️ KYC Photo Required</div>' +
+                  '<div style="font-size:11px; color:#cbd5e1; margin-top:3px;">Please complete your 3D Live KYC Selfie in Driver Documents.</div>';
+              }
+              if (facePortalBtn) {
+                facePortalBtn.style.display = 'block';
+                facePortalBtn.onclick = function() {
+                  stopFaceCamera();
+                  faceModal.style.display = 'none';
+                  if (verifUpdateBtn) verifUpdateBtn.click();
+                };
+              }
+              return;
+            }
+
+            // Calculate live descriptor on current live video frame
             var liveDescriptor = null;
             try {
               var descDetection = await faceapi.detectSingleFace(
@@ -848,11 +897,16 @@
               return;
             }
 
-            var distance = faceapi.euclideanDistance(refDescriptor, liveDescriptor);
-            // In deep face recognition: same person <= 0.45, different person (mother/son) >= 0.65
+            // Plain Euclidean distance math (instant 0.001ms)
+            var distance = 0;
+            for (var di = 0; di < 128; di++) {
+              var diff = (refDescriptor[di] || 0) - (liveDescriptor[di] || 0);
+              distance += diff * diff;
+            }
+            distance = Math.sqrt(distance);
+
             var matchPercent = Math.max(0, Math.min(100, Math.round((1 - (distance / 0.55)) * 100)));
 
-            // Strict threshold: 0.46
             if (distance <= 0.46) {
               isScanComplete = true;
               if (faceCircle) faceCircle.style.borderColor = '#22c55e';
@@ -867,28 +921,22 @@
                 onSuccess();
               }, 1200);
             } else {
-              // Different person (mother, brother, stranger) - Distance > 0.46!
               mismatchFrames++;
-              var maxMismatchFrames = (distance > 0.55) ? 2 : 6;
-
-              if (mismatchFrames < maxMismatchFrames) {
-                faceStatus.innerHTML = '<div style="color:#f59e0b; font-size:13px; font-weight:800;">🔍 Matching Face Fingerprint...</div>' +
-                  '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Hold face steady inside circle...</div>';
-                setTimeout(checkLoop, 150);
+              if (mismatchFrames < 3) {
+                setTimeout(checkLoop, 120);
                 return;
               }
-
               isScanComplete = true;
               if (faceCircle) faceCircle.style.borderColor = '#ef4444';
               if (faceStatus) {
                 faceStatus.innerHTML = '<div style="color:#ef4444; font-size:13px; font-weight:800;">❌ Face Mismatch: ' + matchPercent + '% Match (Denied)</div>' +
-                  '<div style="font-size:10.5px; color:#fca5a5; margin-top:2px;">Face does not match registered driver KYC photo! (Different Person)</div>';
+                  '<div style="font-size:10.5px; color:#fca5a5; margin-top:2px;">Face does not match registered driver KYC photo!</div>';
               }
               if (faceRetryBtn) faceRetryBtn.style.display = 'block';
             }
           };
 
-          setTimeout(checkLoop, 250);
+          setTimeout(checkLoop, 200);
         })
         .catch(function(err) {
           if (faceStatus) faceStatus.innerHTML = '<span style="color:#ef4444;">⚠️ Camera access error: ' + err.message + '</span>';
@@ -915,56 +963,7 @@
       };
     }
 
-    if (!kycPhotoUrl) {
-      if (faceStatus) {
-        faceStatus.innerHTML = '<div style="color:#ef4444; font-weight:800; font-size:12.5px;">⚠️ Registered KYC Photo Required</div>' +
-          '<div style="font-size:11px; color:#cbd5e1; margin-top:3px;">Please complete your 3D Live KYC Selfie in Driver Documents before starting shift.</div>';
-      }
-      if (facePortalBtn) {
-        facePortalBtn.style.display = 'block';
-        facePortalBtn.onclick = function() {
-          stopFaceCamera();
-          faceModal.style.display = 'none';
-          if (verifUpdateBtn) {
-            verifUpdateBtn.click();
-          } else {
-            var setupS = document.getElementById('rd-setup-section');
-            var mainS = document.getElementById('rd-main-section');
-            if (mainS) mainS.style.display = 'none';
-            if (setupS) setupS.style.display = 'block';
-          }
-        };
-      }
-      return;
-    }
-
-    // 4. Extract 128-D Neural Descriptor from registered KYC baseline photo
-    if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Verifying KYC baseline photo...</span>';
-    refDescriptor = await extractKycNeuralDescriptor(kycPhotoUrl);
-
-    if (!refDescriptor) {
-      if (faceStatus) {
-        faceStatus.innerHTML = '<div style="color:#ef4444; font-weight:800; font-size:12.5px;">⚠️ KYC Photo Face Unreadable</div>' +
-          '<div style="font-size:11px; color:#cbd5e1; margin-top:3px;">Please update your profile photo using 3D Live KYC in Driver Documents.</div>';
-      }
-      if (facePortalBtn) {
-        facePortalBtn.style.display = 'block';
-        facePortalBtn.onclick = function() {
-          stopFaceCamera();
-          faceModal.style.display = 'none';
-          if (verifUpdateBtn) {
-            verifUpdateBtn.click();
-          } else {
-            var setupS = document.getElementById('rd-setup-section');
-            var mainS = document.getElementById('rd-main-section');
-            if (mainS) mainS.style.display = 'none';
-            if (setupS) setupS.style.display = 'block';
-          }
-        };
-      }
-      return;
-    }
-
+    // Launch camera immediately!
     startScan();
   };
 
@@ -2431,6 +2430,27 @@
     if (kycRestartBtn) kycRestartBtn.style.display = 'none';
   }
 
+  // Standard MediaPipe FaceMesh Landmark Indices for 3D Liveness
+  var MP_LEFT_EYE  = [362, 385, 387, 263, 373, 380];
+  var MP_RIGHT_EYE = [33, 160, 158, 133, 153, 144];
+  var MP_FACE_EDGE_A = 234;
+  var MP_FACE_EDGE_B = 454;
+  var MP_NOSE_TIP    = 1;
+
+  function eyeAspectRatioFaceMesh(landmarks, idx) {
+    var p = idx.map(function(i) { return landmarks[i]; });
+    var vertical = (Math.hypot(p[1].x - p[5].x, p[1].y - p[5].y) + Math.hypot(p[2].x - p[4].x, p[2].y - p[4].y)) / 2;
+    var horizontal = Math.hypot(p[0].x - p[3].x, p[0].y - p[3].y) || 1;
+    return vertical / horizontal;
+  }
+
+  function noseRatioFaceMesh(landmarks) {
+    var edgeA = landmarks[MP_FACE_EDGE_A].x;
+    var edgeB = landmarks[MP_FACE_EDGE_B].x;
+    var nose  = landmarks[MP_NOSE_TIP].x;
+    return (nose - edgeA) / (edgeB - edgeA || 1);
+  }
+
   var mediaPipeFaceLandmarker = null;
   var mediaPipeLoadingPromise = null;
 
@@ -2506,11 +2526,8 @@
       kycInstruction.innerHTML = '<span style="color:#818cf8;">⚡ Starting biometric camera...</span>';
     }
 
-    // Pre-initialize MediaPipe Landmarker (Fast Wasm/GPU)
-    var landmarker = await getMediaPipeFaceLandmarker();
-    if (!landmarker) {
-      await loadFaceApiModels();
-    }
+    // Warm up faceapi in background so it is ready for the single final capture
+    loadFaceApiModels();
 
     // Stages: 'BLINK' (1/3) -> 'TURN_LEFT' (2/3) -> 'TURN_RIGHT' (3/3) -> 'CAPTURE'
     var stage = 'BLINK';
@@ -2519,97 +2536,160 @@
     var leftHoldFrames = 0;
     var rightHoldFrames = 0;
     var straightHoldFrames = 0;
+    var earHistory = [];
     var kycStartTime = Date.now();
+    var isKycCaptured = false;
 
-    var kycLoop = async function() {
-      if (!kycStream || !kycLivenessActive) return;
+    // The single capture execution handler
+    var executeKycCapture = async function() {
+      if (isKycCaptured) return;
+      isKycCaptured = true;
+      kycLivenessActive = false;
 
-      if (!kycVideo || kycVideo.readyState < 2 || kycVideo.videoWidth === 0) {
-        setTimeout(kycLoop, 80);
-        return;
+      if (kycCircle) kycCircle.style.borderColor = '#22c55e';
+      if (kycInstruction) {
+        kycInstruction.innerHTML = '<div style="color:#22c55e; font-size:13.5px; font-weight:900;">✅ 3D Biometric Liveness Verified!</div>' +
+          '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Saving official KYC photo...</div>';
       }
 
-      var hasFace = false;
-      var blinkLeft = 0;
-      var blinkRight = 0;
-      var yawRatio = 0; // Normalized head yaw
+      var snapCanvas = document.createElement('canvas');
+      snapCanvas.width = 480;
+      snapCanvas.height = 480;
+      var sCtx = snapCanvas.getContext('2d');
+      var vw = kycVideo.videoWidth || 640;
+      var vh = kycVideo.videoHeight || 480;
+      var minDim = Math.min(vw, vh);
+      var sx = (vw - minDim) / 2;
+      var sy = (vh - minDim) / 2;
 
-      if (landmarker) {
+      if (currentKycFacingMode === 'user') {
+        sCtx.translate(480, 0);
+        sCtx.scale(-1, 1);
+      }
+      sCtx.drawImage(kycVideo, sx, sy, minDim, minDim, 0, 0, 480, 480);
+      var finalSnapshot = snapCanvas.toDataURL('image/jpeg', 0.88);
+
+      if (kycSnapPreview) {
+        kycSnapPreview.src = finalSnapshot;
+        kycSnapPreview.style.display = 'block';
+      }
+      if (kycVideo) kycVideo.style.display = 'none';
+
+      var riderId = (typeof state !== 'undefined' && state.riderId) || localStorage.getItem('ridelot_rider_id');
+      localStorage.setItem('rydealot_driver_live_face', finalSnapshot);
+
+      var hiddenInput = document.getElementById('rd-doc-selfie-data');
+      if (hiddenInput) hiddenInput.value = finalSnapshot;
+
+      var previewImg = document.getElementById('rd-kyc-preview-img');
+      var previewIcon = document.getElementById('rd-kyc-preview-icon');
+      if (previewImg) {
+        previewImg.src = finalSnapshot;
+        previewImg.style.display = 'block';
+      }
+      if (previewIcon) previewIcon.style.display = 'none';
+
+      var statusEl = document.getElementById('rd-doc-selfie-status');
+      if (statusEl) {
+        statusEl.innerHTML = '<span style="color:#16a34a; font-weight:800;">🛡️ 3D Liveness Verified & Captured! (Click Save below)</span>';
+      }
+
+      try {
+        var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+        if (!allDocs[riderId]) allDocs[riderId] = {};
+        allDocs[riderId].selfie = { url: finalSnapshot, status: 'approved', updated_at: new Date().toISOString() };
+        localStorage.setItem('rydealot_driver_docs', JSON.stringify(allDocs));
+      } catch(e){}
+
+      // 1. Single one-shot descriptor extraction on the final static frame (Takes ~50ms once, 0% video lag)
+      var descriptor = null;
+      try {
+        await loadFaceApiModels();
+        var det = await faceapi.detectSingleFace(snapCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.20 }))
+          .withFaceLandmarks(true)
+          .withFaceDescriptor();
+        if (det && det.descriptor) {
+          descriptor = Array.from(det.descriptor);
+          cachedKycDescriptor = det.descriptor;
+          cachedKycUrl = finalSnapshot;
+          try {
+            localStorage.setItem('rydealot_driver_kyc_descriptor', JSON.stringify(descriptor));
+          } catch(e){}
+        }
+      } catch(dErr){
+        console.warn('Single capture KYC descriptor note:', dErr);
+      }
+
+      // 2. Sync directly to Supabase face_profiles table
+      if (riderId && descriptor) {
         try {
-          var mpResult = landmarker.detectForVideo(kycVideo, performance.now());
-          if (mpResult && mpResult.faceLandmarks && mpResult.faceLandmarks.length > 0) {
-            hasFace = true;
-            var lm = mpResult.faceLandmarks[0];
-            // Blendshapes
-            if (mpResult.faceBlendshapes && mpResult.faceBlendshapes[0]) {
-              var cats = mpResult.faceBlendshapes[0].categories;
-              for (var c = 0; c < cats.length; c++) {
-                if (cats[c].categoryName === 'eyeBlinkLeft') blinkLeft = cats[c].score;
-                if (cats[c].categoryName === 'eyeBlinkRight') blinkRight = cats[c].score;
+          sbFetch('face_profiles?rider_id=eq.' + riderId, { method: 'DELETE' }).catch(function(){});
+          sbFetch('face_profiles', {
+            method: 'POST',
+            body: { rider_id: riderId, descriptor: descriptor, photo_url: finalSnapshot }
+          }).catch(function(err){ console.warn('face_profiles sync note:', err); });
+        } catch(sbErr){}
+      }
+
+      // 3. Upload to Cloudinary and update Supabase records
+      if (typeof uploadToCloudinary === 'function') {
+        uploadToCloudinary(finalSnapshot, 'rydealot/drivers/selfies').then(function(cUrl) {
+          if (cUrl && riderId) {
+            try {
+              var sDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+              if (sDocs[riderId] && sDocs[riderId].selfie) {
+                sDocs[riderId].selfie.url = cUrl;
+                localStorage.setItem('rydealot_driver_docs', JSON.stringify(sDocs));
               }
-            }
-            // 3D Yaw tracking using nose (1), left cheek (234), right cheek (454)
-            var noseX = lm[1].x;
-            var cLeftX = lm[234].x;
-            var cRightX = lm[454].x;
-            var faceW = Math.abs(cRightX - cLeftX);
-            var centerCheeks = (cLeftX + cRightX) / 2;
-            yawRatio = (noseX - centerCheeks) / (faceW / 2 || 1);
+              sbFetch('driver_documents', { method:'POST', body:{ rider_id: riderId, doc_type: 'selfie', file_url: cUrl, status: 'approved' } });
+              sbFetch('face_profiles?rider_id=eq.' + riderId, { method: 'PATCH', body: { photo_url: cUrl } });
+            } catch(e){}
           }
-        } catch(e) {
-          console.warn('MediaPipe frame tick note:', e);
-        }
-      } else if (typeof faceapi !== 'undefined' && faceapi.nets.tinyFaceDetector.params) {
-        // Fallback using lightweight TinyFaceDetector landmarks
-        try {
-          var det = await faceapi.detectSingleFace(
-            kycVideo,
-            new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 })
-          ).withFaceLandmarks(true);
-          if (det) {
-            hasFace = true;
-            var ear = calculateEyeAspectRatio(det.landmarks);
-            blinkLeft = (ear <= 0.175) ? 0.7 : 0.05;
-            blinkRight = blinkLeft;
-            var pts = det.landmarks.positions;
-            var d0 = Math.hypot(pts[30].x - pts[0].x, pts[30].y - pts[0].y);
-            var d16 = Math.hypot(pts[30].x - pts[16].x, pts[30].y - pts[16].y);
-            yawRatio = (d0 - d16) / (d0 + d16 || 1);
-          }
-        } catch(e){}
+        }).catch(function(){});
       }
 
-      if (!hasFace) {
-        if (kycCircle) kycCircle.style.borderColor = '#ef4444';
-        if (kycInstruction) {
-          kycInstruction.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ Center Face Inside Oval</div>' +
-            '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Hold phone steady in good light.</div>';
-        }
-        if (Date.now() - kycStartTime > 35000) {
-          kycLivenessActive = false;
-          if (kycInstruction) kycInstruction.innerHTML = '<span style="color:#ef4444;">⏱️ Verification timed out</span>';
-          if (kycRestartBtn) kycRestartBtn.style.display = 'block';
-          return;
-        }
-        setTimeout(kycLoop, 120);
-        return;
-      }
+      setTimeout(function() {
+        stopKycCamera();
+        if (kycCamModal) kycCamModal.style.display = 'none';
+        toast('✅ 3D Biometric Liveness Verified! Live KYC photo saved.');
+      }, 1300);
+    };
+
+    // Live frame processor called by MediaPipe or fallback loop
+    var processFrameLandmarks = function(landmarks, blendshapes) {
+      if (!landmarks || landmarks.length === 0 || isKycCaptured) return;
 
       if (kycCircle) kycCircle.style.borderColor = '#6366f1';
+
+      var ear = 0.30;
+      if (landmarks.length >= 400) {
+        ear = (eyeAspectRatioFaceMesh(landmarks, MP_LEFT_EYE) + eyeAspectRatioFaceMesh(landmarks, MP_RIGHT_EYE)) / 2;
+      }
+
+      var blinkLeft = 0;
+      var blinkRight = 0;
+      if (blendshapes && blendshapes.length) {
+        for (var c = 0; c < blendshapes.length; c++) {
+          if (blendshapes[c].categoryName === 'eyeBlinkLeft') blinkLeft = blendshapes[c].score;
+          if (blendshapes[c].categoryName === 'eyeBlinkRight') blinkRight = blendshapes[c].score;
+        }
+      }
+
+      var ratio = (landmarks.length >= 455) ? noseRatioFaceMesh(landmarks) : 0.5;
 
       // ================= POSE 1: EYE BLINK =================
       if (stage === 'BLINK') {
         if (kycStep1) kycStep1.style.background = '#4f46e5';
 
         if (blinkStage === 'WAIT_OPEN') {
-          if (blinkLeft < 0.25 && blinkRight < 0.25) openFrames++;
+          var eyesOpen = (blinkLeft < 0.25 && blinkRight < 0.25) || ear >= 0.22;
+          if (eyesOpen) openFrames++;
           else openFrames = 0;
           if (kycInstruction) {
             kycInstruction.innerHTML = '<div style="color:#818cf8; font-size:13px; font-weight:900;">👁️ STEP 1/3: BLINK YOUR EYES</div>' +
               '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Hold steady and close eyelids clearly.</div>';
           }
           if (openFrames >= 2) blinkStage = 'WAIT_BLINK';
-          setTimeout(kycLoop, 80);
           return;
         }
 
@@ -2618,15 +2698,16 @@
             kycInstruction.innerHTML = '<div style="color:#38bdf8; font-size:13.5px; font-weight:900;">😉 BLINK NOW!</div>' +
               '<div style="font-size:10.5px; color:#bae6fd; margin-top:2px;">Close your eyelids firmly, then re-open.</div>';
           }
-          if (blinkLeft >= 0.38 || blinkRight >= 0.38) {
+          var eyesClosed = (blinkLeft >= 0.38 || blinkRight >= 0.38) || (ear <= 0.175);
+          if (eyesClosed) {
             blinkStage = 'WAIT_REOPEN';
           }
-          setTimeout(kycLoop, 80);
           return;
         }
 
         if (blinkStage === 'WAIT_REOPEN') {
-          if (blinkLeft < 0.25 && blinkRight < 0.25) {
+          var eyesReopened = (blinkLeft < 0.25 && blinkRight < 0.25) || ear >= 0.22;
+          if (eyesReopened) {
             if (kycStep1) kycStep1.style.background = '#22c55e';
             if (navigator.vibrate) navigator.vibrate(60);
             stage = 'TURN_LEFT';
@@ -2634,10 +2715,7 @@
               kycInstruction.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:900;">✅ Blink Verified!</div>' +
                 '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Next: Turn head slightly to your left.</div>';
             }
-            setTimeout(kycLoop, 350);
-            return;
           }
-          setTimeout(kycLoop, 80);
           return;
         }
       }
@@ -2650,8 +2728,8 @@
             '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Slowly turn head slightly to your left.</div>';
         }
 
-        var isTurnLeft = (Math.abs(yawRatio) >= 0.18);
-        if (isTurnLeft) {
+        var isTurnedLeft = (ratio < 0.38) || (ratio > 0.62);
+        if (isTurnedLeft) {
           leftHoldFrames++;
           if (leftHoldFrames >= 2) {
             if (kycStep2) kycStep2.style.background = '#22c55e';
@@ -2661,13 +2739,10 @@
               kycInstruction.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:900;">✅ Left Verified!</div>' +
                 '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Next: Turn head slightly to your right.</div>';
             }
-            setTimeout(kycLoop, 350);
-            return;
           }
         } else {
           leftHoldFrames = 0;
         }
-        setTimeout(kycLoop, 90);
         return;
       }
 
@@ -2679,8 +2754,8 @@
             '<div style="font-size:10.5px; color:#c7d2fe; margin-top:2px;">Slowly turn head slightly to your right.</div>';
         }
 
-        var isTurnRight = (Math.abs(yawRatio) >= 0.18);
-        if (isTurnRight) {
+        var isTurnedRight = (ratio > 0.60) || (ratio < 0.40);
+        if (isTurnedRight) {
           rightHoldFrames++;
           if (rightHoldFrames >= 2) {
             if (kycStep3) kycStep3.style.background = '#22c55e';
@@ -2690,19 +2765,16 @@
               kycInstruction.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:900;">✅ Poses Complete!</div>' +
                 '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Look straight into camera for auto-capture...</div>';
             }
-            setTimeout(kycLoop, 300);
-            return;
           }
         } else {
           rightHoldFrames = 0;
         }
-        setTimeout(kycLoop, 90);
         return;
       }
 
       // ================= POSE 4: AUTO-CAPTURE =================
       if (stage === 'CAPTURE') {
-        var isCentered = (Math.abs(yawRatio) < 0.15) && (blinkLeft < 0.25 && blinkRight < 0.25);
+        var isCentered = (ratio >= 0.40 && ratio <= 0.60) && (blinkLeft < 0.25 && blinkRight < 0.25);
         if (isCentered) {
           straightHoldFrames++;
         } else {
@@ -2713,110 +2785,116 @@
           if (kycInstruction) {
             kycInstruction.innerHTML = '<div style="color:#38bdf8; font-size:13px; font-weight:900;">📸 Look straight & hold still...</div>';
           }
-          setTimeout(kycLoop, 80);
           return;
         }
 
-        kycLivenessActive = false;
-        if (kycCircle) kycCircle.style.borderColor = '#22c55e';
-        if (kycInstruction) {
-          kycInstruction.innerHTML = '<div style="color:#22c55e; font-size:13.5px; font-weight:900;">✅ 3D Biometric Liveness Verified!</div>' +
-            '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Saving official KYC photo...</div>';
-        }
-
-        var snapCanvas = document.createElement('canvas');
-        snapCanvas.width = 480;
-        snapCanvas.height = 480;
-        var sCtx = snapCanvas.getContext('2d');
-        var vw = kycVideo.videoWidth || 640;
-        var vh = kycVideo.videoHeight || 480;
-        var minDim = Math.min(vw, vh);
-        var sx = (vw - minDim) / 2;
-        var sy = (vh - minDim) / 2;
-
-        if (currentKycFacingMode === 'user') {
-          sCtx.translate(480, 0);
-          sCtx.scale(-1, 1);
-        }
-        sCtx.drawImage(kycVideo, sx, sy, minDim, minDim, 0, 0, 480, 480);
-        var finalSnapshot = snapCanvas.toDataURL('image/jpeg', 0.90);
-
-        if (kycSnapPreview) {
-          kycSnapPreview.src = finalSnapshot;
-          kycSnapPreview.style.display = 'block';
-        }
-        if (kycVideo) kycVideo.style.display = 'none';
-
-        var riderId = (typeof state !== 'undefined' && state.riderId) || localStorage.getItem('ridelot_rider_id');
-        localStorage.setItem('rydealot_driver_live_face', finalSnapshot);
-
-        var hiddenInput = document.getElementById('rd-doc-selfie-data');
-        if (hiddenInput) hiddenInput.value = finalSnapshot;
-
-        var previewImg = document.getElementById('rd-kyc-preview-img');
-        var previewIcon = document.getElementById('rd-kyc-preview-icon');
-        if (previewImg) {
-          previewImg.src = finalSnapshot;
-          previewImg.style.display = 'block';
-        }
-        if (previewIcon) previewIcon.style.display = 'none';
-
-        var statusEl = document.getElementById('rd-doc-selfie-status');
-        if (statusEl) {
-          statusEl.innerHTML = '<span style="color:#16a34a; font-weight:800;">🛡️ 3D Liveness Verified & Captured! (Click Save below)</span>';
-        }
-
-        try {
-          var allDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
-          if (!allDocs[riderId]) allDocs[riderId] = {};
-          allDocs[riderId].selfie = { url: finalSnapshot, status: 'approved', updated_at: new Date().toISOString() };
-          localStorage.setItem('rydealot_driver_docs', JSON.stringify(allDocs));
-        } catch(e){}
-
-        // Asynchronously compute and cache faceapi descriptor once on static canvas
-        try {
-          if (typeof faceapi !== 'undefined') {
-            loadFaceApiModels().then(function() {
-              faceapi.detectSingleFace(snapCanvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.20 }))
-                .withFaceLandmarks(true)
-                .withFaceDescriptor()
-                .then(function(d) {
-                  if (d && d.descriptor) {
-                    cachedKycDescriptor = d.descriptor;
-                    cachedKycUrl = finalSnapshot;
-                    try {
-                      localStorage.setItem('rydealot_driver_kyc_descriptor', JSON.stringify(Array.from(d.descriptor)));
-                    } catch(e){}
-                  }
-                }).catch(function(){});
-            }).catch(function(){});
-          }
-        } catch(e){}
-
-        if (typeof uploadToCloudinary === 'function') {
-          uploadToCloudinary(finalSnapshot, 'rydealot/drivers/selfies').then(function(cUrl) {
-            if (cUrl && riderId) {
-              try {
-                var sDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
-                if (sDocs[riderId] && sDocs[riderId].selfie) {
-                  sDocs[riderId].selfie.url = cUrl;
-                  localStorage.setItem('rydealot_driver_docs', JSON.stringify(sDocs));
-                }
-                sbFetch('driver_documents', { method:'POST', body:{ rider_id: riderId, doc_type: 'selfie', file_url: cUrl, status: 'approved' } });
-              } catch(e){}
-            }
-          }).catch(function(){});
-        }
-
-        setTimeout(function() {
-          stopKycCamera();
-          if (kycCamModal) kycCamModal.style.display = 'none';
-          toast('✅ 3D Biometric Liveness Verified! Live KYC photo saved.');
-        }, 1300);
+        executeKycCapture();
       }
     };
 
-    setTimeout(kycLoop, 150);
+    // 1. Primary: MediaPipe FaceMesh engine from face kyc
+    if (typeof FaceMesh !== 'undefined') {
+      try {
+        var faceMesh = new FaceMesh({
+          locateFile: function(file) {
+            return 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/' + file;
+          }
+        });
+        faceMesh.setOptions({
+          maxNumFaces: 1,
+          refineLandmarks: false,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+
+        faceMesh.onResults(function(results) {
+          if (!kycLivenessActive || isKycCaptured) return;
+          var faces = results.multiFaceLandmarks;
+          if (!faces || faces.length === 0) {
+            if (kycCircle) kycCircle.style.borderColor = '#ef4444';
+            if (kycInstruction) {
+              kycInstruction.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ Center Face Inside Oval</div>' +
+                '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Hold phone steady in good light.</div>';
+            }
+            if (Date.now() - kycStartTime > 35000) {
+              kycLivenessActive = false;
+              if (kycInstruction) kycInstruction.innerHTML = '<span style="color:#ef4444;">⏱️ Verification timed out</span>';
+              if (kycRestartBtn) kycRestartBtn.style.display = 'block';
+            }
+            return;
+          }
+          processFrameLandmarks(faces[0], null);
+        });
+
+        if (typeof Camera !== 'undefined') {
+          var mpCam = new Camera(kycVideo, {
+            onFrame: async function() {
+              if (kycLivenessActive && !isKycCaptured) {
+                await faceMesh.send({ image: kycVideo });
+              }
+            },
+            width: 320, height: 240
+          });
+          mpCam.start();
+          return;
+        }
+      } catch(fmErr){
+        console.warn('FaceMesh global init note:', fmErr);
+      }
+    }
+
+    // 2. Fallback: MediaPipe Tasks Vision or TinyFaceDetector loop
+    var landmarker = await getMediaPipeFaceLandmarker();
+    var fallbackLoop = async function() {
+      if (!kycStream || !kycLivenessActive || isKycCaptured) return;
+      if (!kycVideo || kycVideo.readyState < 2 || kycVideo.videoWidth === 0) {
+        setTimeout(fallbackLoop, 80);
+        return;
+      }
+
+      var landmarks = null;
+      var blendshapes = null;
+
+      if (landmarker) {
+        try {
+          var mpRes = landmarker.detectForVideo(kycVideo, performance.now());
+          if (mpRes && mpRes.faceLandmarks && mpRes.faceLandmarks.length > 0) {
+            landmarks = mpRes.faceLandmarks[0];
+            blendshapes = (mpRes.faceBlendshapes && mpRes.faceBlendshapes[0]) ? mpRes.faceBlendshapes[0].categories : null;
+          }
+        } catch(e){}
+      } else if (typeof faceapi !== 'undefined' && faceapi.nets.tinyFaceDetector.params) {
+        try {
+          var det = await faceapi.detectSingleFace(
+            kycVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 })
+          ).withFaceLandmarks(true);
+          if (det) {
+            landmarks = det.landmarks.positions;
+          }
+        } catch(e){}
+      }
+
+      if (!landmarks) {
+        if (kycCircle) kycCircle.style.borderColor = '#ef4444';
+        if (kycInstruction) {
+          kycInstruction.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ Center Face Inside Oval</div>' +
+            '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Hold phone steady in good light.</div>';
+        }
+        if (Date.now() - kycStartTime > 35000) {
+          kycLivenessActive = false;
+          if (kycInstruction) kycInstruction.innerHTML = '<span style="color:#ef4444;">⏱️ Verification timed out</span>';
+          if (kycRestartBtn) kycRestartBtn.style.display = 'block';
+          return;
+        }
+        setTimeout(fallbackLoop, 120);
+        return;
+      }
+
+      processFrameLandmarks(landmarks, blendshapes);
+      setTimeout(fallbackLoop, 80);
+    };
+
+    setTimeout(fallbackLoop, 150);
   }
 
   if (kycFallbackBtn && kycFallbackInput) {
