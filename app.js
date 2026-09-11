@@ -491,13 +491,11 @@
   var cachedKycDescriptor = null;
   var cachedKycUrl = null;
 
-  // Multi-scale detector for baseline KYC photos (handles glasses, backlight, shadows)
+  // Lightweight, instant detector for KYC photos (zero CPU lag)
   async function detectFaceWithMultipleOptions(source) {
     var configs = [
-      { inputSize: 320, scoreThreshold: 0.18 },
-      { inputSize: 416, scoreThreshold: 0.15 },
-      { inputSize: 512, scoreThreshold: 0.15 },
-      { inputSize: 224, scoreThreshold: 0.18 }
+      { inputSize: 224, scoreThreshold: 0.20 },
+      { inputSize: 320, scoreThreshold: 0.15 }
     ];
     for (var i = 0; i < configs.length; i++) {
       try {
@@ -627,162 +625,10 @@
     // Reference descriptor container
     var refDescriptor = null;
 
-    // Helper: In-Modal Live KYC Selfie Capture Flow
-    var startKycCaptureMode = function() {
-      stopFaceCamera();
-      if (faceRetryBtn) faceRetryBtn.style.display = 'none';
-      if (faceCircle) faceCircle.style.borderColor = '#38bdf8';
-      if (faceStatus) {
-        faceStatus.innerHTML = '<div style="color:#38bdf8; font-size:13px; font-weight:800;">📸 Live KYC Selfie Mode</div>' +
-          '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Look directly at camera in good lighting, then tap button below.</div>';
-      }
-
-      if (faceRetakeKycBtn) {
-        faceRetakeKycBtn.style.display = 'block';
-        faceRetakeKycBtn.textContent = '📸 Snap & Save Photo';
-        faceRetakeKycBtn.style.background = '#22c55e';
-        faceRetakeKycBtn.disabled = false;
-      }
-
-      if (faceVideo) {
-        faceVideo.style.transform = (currentFacingMode === 'user') ? 'scaleX(-1)' : 'none';
-      }
-
-      var handleSnapClick = async function() {
-        if (!faceVideo || !faceVideo.videoWidth) return;
-        if (faceRetakeKycBtn) {
-          faceRetakeKycBtn.disabled = true;
-          faceRetakeKycBtn.textContent = '⏳ Analyzing...';
-        }
-        if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Analyzing live face quality...</span>';
-
-        var snapCanvas = document.createElement('canvas');
-        snapCanvas.width = faceVideo.videoWidth || 640;
-        snapCanvas.height = faceVideo.videoHeight || 480;
-        var sCtx = snapCanvas.getContext('2d');
-        if (currentFacingMode === 'user') {
-          sCtx.translate(snapCanvas.width, 0);
-          sCtx.scale(-1, 1);
-        }
-        sCtx.drawImage(faceVideo, 0, 0, snapCanvas.width, snapCanvas.height);
-        var capturedDataUrl = snapCanvas.toDataURL('image/jpeg', 0.88);
-
-        var det = await detectFaceWithMultipleOptions(snapCanvas);
-        if (!det || !det.descriptor) {
-          if (faceStatus) {
-            faceStatus.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ Face Not Detected</div>' +
-              '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Face not clearly visible. Keep light on your face and retry.</div>';
-          }
-          if (faceRetakeKycBtn) {
-            faceRetakeKycBtn.disabled = false;
-            faceRetakeKycBtn.textContent = '📸 Try Snap Again';
-          }
-          return;
-        }
-
-        // Live photo validated!
-        refDescriptor = det.descriptor;
-        cachedKycDescriptor = det.descriptor;
-        cachedKycUrl = capturedDataUrl;
-
-        if (faceStatus) {
-          faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:800;">✅ Live KYC Profile Photo Saved!</div>' +
-            '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Starting shift biometric check...</div>';
-        }
-
-        // Save to driver profile storage
-        localStorage.setItem('rydealot_driver_live_face', capturedDataUrl);
-        try {
-          var dDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
-          if (!dDocs[riderId]) dDocs[riderId] = {};
-          dDocs[riderId].selfie = { url: capturedDataUrl, status: 'approved', updated_at: new Date().toISOString() };
-          localStorage.setItem('rydealot_driver_docs', JSON.stringify(dDocs));
-        } catch(e){}
-
-        if (faceRefImg) {
-          faceRefImg.src = capturedDataUrl;
-          faceRefImg.style.display = 'block';
-          if (faceRefPlaceholder) faceRefPlaceholder.style.display = 'none';
-        }
-
-        // Upload to Cloudinary in background
-        if (typeof uploadToCloudinary === 'function') {
-          uploadToCloudinary(capturedDataUrl, 'rydealot/drivers/selfies').then(function(cUrl) {
-            if (cUrl && riderId) {
-              try {
-                var sDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
-                if (sDocs[riderId] && sDocs[riderId].selfie) {
-                  sDocs[riderId].selfie.url = cUrl;
-                  localStorage.setItem('rydealot_driver_docs', JSON.stringify(sDocs));
-                }
-                sbFetch('driver_documents', { method:'POST', body:{ rider_id: riderId, doc_type: 'selfie', file_url: cUrl, status: 'approved' } });
-              } catch(e){}
-            }
-          }).catch(function(){});
-        }
-
-        if (faceRetakeKycBtn) {
-          faceRetakeKycBtn.style.display = 'none';
-          faceRetakeKycBtn.disabled = false;
-        }
-
-        setTimeout(function() {
-          stopFaceCamera();
-          startScan();
-        }, 900);
-      };
-
-      if (faceRetakeKycBtn) {
-        faceRetakeKycBtn.onclick = handleSnapClick;
-      }
-
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({
-          video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 640 } }
-        }).then(function(stream) {
-          mediaStream = stream;
-          faceVideo.srcObject = stream;
-        }).catch(function(err) {
-          if (faceStatus) faceStatus.innerHTML = '<span style="color:#ef4444;">⚠️ Camera error: ' + err.message + '</span>';
-        });
-      }
-    };
-
-    if (!kycPhotoUrl) {
-      if (faceStatus) {
-        faceStatus.innerHTML = '<div style="color:#ef4444; font-weight:800; font-size:12px;">⚠️ No Registered KYC Photo Found!</div>' +
-          '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">Snap a live KYC selfie below to proceed online.</div>';
-      }
-      if (faceRetakeKycBtn) {
-        faceRetakeKycBtn.style.display = 'block';
-        faceRetakeKycBtn.textContent = '📸 Take Live KYC Photo';
-        faceRetakeKycBtn.style.background = '#4f46e5';
-        faceRetakeKycBtn.onclick = startKycCaptureMode;
-      }
-      return;
-    }
-
-    // 3. Extract 128-D Neural Descriptor from registered KYC baseline photo
-    if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Extracting KYC facial fingerprint...</span>';
-    refDescriptor = await extractKycNeuralDescriptor(kycPhotoUrl);
-
-    if (!refDescriptor) {
-      if (faceStatus) {
-        faceStatus.innerHTML = '<div style="color:#ef4444; font-weight:800; font-size:12px;">⚠️ KYC Photo Face Not Detected</div>' +
-          '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">Your profile selfie is blurry or unreadable. Snap a live photo now.</div>';
-      }
-      if (faceRetakeKycBtn) {
-        faceRetakeKycBtn.style.display = 'block';
-        faceRetakeKycBtn.textContent = '📸 Retake Live Photo';
-        faceRetakeKycBtn.style.background = '#4f46e5';
-        faceRetakeKycBtn.onclick = startKycCaptureMode;
-      }
-      return;
-    }
-
-    // 4. Start Camera and run real Neural Detection + 3D Landmark EAR Blink Check
+    // 3. Real Neural Detection + 3D Landmark EAR Blink Check Pipeline
     var startScan = function() {
       if (faceRetryBtn) faceRetryBtn.style.display = 'none';
+      if (faceRetakeKycBtn) faceRetakeKycBtn.style.display = 'none';
       if (faceCircle) faceCircle.style.borderColor = 'var(--signal)';
       if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Starting ' + (currentFacingMode === 'user' ? 'front' : 'rear') + ' camera...</span>';
 
@@ -816,12 +662,12 @@
               thumbCtx.drawImage(faceVideo, 0, 0, 48, 48);
             }
 
-            // STEP A: Real Neural Face Detection + 68 Landmarks + 128-D Descriptor
+            // STEP A: Real Neural Face Detection + 68 Landmarks + 128-D Descriptor (Fast 224px, zero lag)
             var detection = null;
             try {
               detection = await faceapi.detectSingleFace(
                 faceVideo,
-                new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 })
+                new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.40 })
               ).withFaceLandmarks(true).withFaceDescriptor();
             } catch(e) {
               console.warn('Face detect loop tick note:', e);
@@ -847,7 +693,7 @@
                 return;
               }
 
-              setTimeout(checkLoop, 180);
+              setTimeout(checkLoop, 150);
               return;
             }
 
@@ -959,7 +805,7 @@
               if (mismatchFrames < maxMismatchFrames) {
                 faceStatus.innerHTML = '<div style="color:#f59e0b; font-size:13px; font-weight:800;">🔍 Matching Face Fingerprint...</div>' +
                   '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Hold face steady inside circle...</div>';
-                setTimeout(checkLoop, 160);
+                setTimeout(checkLoop, 150);
                 return;
               }
 
@@ -973,7 +819,7 @@
             }
           };
 
-          setTimeout(checkLoop, 300);
+          setTimeout(checkLoop, 250);
         })
         .catch(function(err) {
           if (faceStatus) faceStatus.innerHTML = '<span style="color:#ef4444;">⚠️ Camera access error: ' + err.message + '</span>';
@@ -982,6 +828,160 @@
         onSuccess();
       }
     };
+
+    // Helper: In-Modal Live KYC Selfie Capture Flow
+    var startKycCaptureMode = function() {
+      stopFaceCamera();
+      if (faceRetryBtn) faceRetryBtn.style.display = 'none';
+      if (faceCircle) faceCircle.style.borderColor = '#38bdf8';
+      if (faceStatus) {
+        faceStatus.innerHTML = '<div style="color:#38bdf8; font-size:13px; font-weight:800;">📸 Live KYC Selfie Mode</div>' +
+          '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Look directly at camera in good lighting, then tap button below.</div>';
+      }
+
+      if (faceRetakeKycBtn) {
+        faceRetakeKycBtn.style.display = 'block';
+        faceRetakeKycBtn.textContent = '📸 Snap & Save Photo';
+        faceRetakeKycBtn.style.background = '#22c55e';
+        faceRetakeKycBtn.disabled = false;
+      }
+
+      if (faceVideo) {
+        faceVideo.style.transform = (currentFacingMode === 'user') ? 'scaleX(-1)' : 'none';
+      }
+
+      var handleSnapClick = async function() {
+        if (!faceVideo || !faceVideo.videoWidth) return;
+        if (faceRetakeKycBtn) {
+          faceRetakeKycBtn.disabled = true;
+          faceRetakeKycBtn.textContent = '⏳ Analyzing...';
+        }
+        if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Analyzing live face quality...</span>';
+
+        var snapCanvas = document.createElement('canvas');
+        snapCanvas.width = faceVideo.videoWidth || 640;
+        snapCanvas.height = faceVideo.videoHeight || 480;
+        var sCtx = snapCanvas.getContext('2d');
+        if (currentFacingMode === 'user') {
+          sCtx.translate(snapCanvas.width, 0);
+          sCtx.scale(-1, 1);
+        }
+        sCtx.drawImage(faceVideo, 0, 0, snapCanvas.width, snapCanvas.height);
+        var capturedDataUrl = snapCanvas.toDataURL('image/jpeg', 0.88);
+
+        var det = await detectFaceWithMultipleOptions(snapCanvas);
+        if (!det || !det.descriptor) {
+          if (faceStatus) {
+            faceStatus.innerHTML = '<div style="color:#ef4444; font-size:12.5px; font-weight:800;">⚠️ Face Not Detected</div>' +
+              '<div style="font-size:10.5px; color:#cbd5e1; margin-top:2px;">Face not clearly visible. Keep light on your face and retry.</div>';
+          }
+          if (faceRetakeKycBtn) {
+            faceRetakeKycBtn.disabled = false;
+            faceRetakeKycBtn.textContent = '📸 Try Snap Again';
+          }
+          return;
+        }
+
+        // Live photo validated!
+        refDescriptor = det.descriptor;
+        cachedKycDescriptor = det.descriptor;
+        cachedKycUrl = capturedDataUrl;
+
+        if (faceStatus) {
+          faceStatus.innerHTML = '<div style="color:#22c55e; font-size:13px; font-weight:800;">✅ Live KYC Profile Photo Saved!</div>' +
+            '<div style="font-size:10.5px; color:#86efac; margin-top:2px;">Starting shift biometric check...</div>';
+        }
+
+        // Save to driver profile storage
+        localStorage.setItem('rydealot_driver_live_face', capturedDataUrl);
+        try {
+          var dDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+          if (!dDocs[riderId]) dDocs[riderId] = {};
+          dDocs[riderId].selfie = { url: capturedDataUrl, status: 'approved', updated_at: new Date().toISOString() };
+          localStorage.setItem('rydealot_driver_docs', JSON.stringify(dDocs));
+        } catch(e){}
+
+        if (faceRefImg) {
+          faceRefImg.src = capturedDataUrl;
+          faceRefImg.style.display = 'block';
+          if (faceRefPlaceholder) faceRefPlaceholder.style.display = 'none';
+        }
+
+        // Upload to Cloudinary in background
+        if (typeof uploadToCloudinary === 'function') {
+          uploadToCloudinary(capturedDataUrl, 'rydealot/drivers/selfies').then(function(cUrl) {
+            if (cUrl && riderId) {
+              try {
+                var sDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
+                if (sDocs[riderId] && sDocs[riderId].selfie) {
+                  sDocs[riderId].selfie.url = cUrl;
+                  localStorage.setItem('rydealot_driver_docs', JSON.stringify(sDocs));
+                }
+                sbFetch('driver_documents', { method:'POST', body:{ rider_id: riderId, doc_type: 'selfie', file_url: cUrl, status: 'approved' } });
+              } catch(e){}
+            }
+          }).catch(function(){});
+        }
+
+        if (faceRetakeKycBtn) {
+          faceRetakeKycBtn.style.display = 'none';
+          faceRetakeKycBtn.disabled = false;
+        }
+
+        // Stop preview camera, then start real scan pipeline cleanly
+        stopFaceCamera();
+        setTimeout(function() {
+          startScan();
+        }, 300);
+      };
+
+      if (faceRetakeKycBtn) {
+        faceRetakeKycBtn.onclick = handleSnapClick;
+      }
+
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({
+          video: { facingMode: currentFacingMode, width: { ideal: 640 }, height: { ideal: 640 } }
+        }).then(function(stream) {
+          mediaStream = stream;
+          faceVideo.srcObject = stream;
+        }).catch(function(err) {
+          if (faceStatus) faceStatus.innerHTML = '<span style="color:#ef4444;">⚠️ Camera error: ' + err.message + '</span>';
+        });
+      }
+    };
+
+    if (!kycPhotoUrl) {
+      if (faceStatus) {
+        faceStatus.innerHTML = '<div style="color:#ef4444; font-weight:800; font-size:12px;">⚠️ No Registered KYC Photo Found!</div>' +
+          '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">Snap a live KYC selfie below to proceed online.</div>';
+      }
+      if (faceRetakeKycBtn) {
+        faceRetakeKycBtn.style.display = 'block';
+        faceRetakeKycBtn.textContent = '📸 Take Live KYC Photo';
+        faceRetakeKycBtn.style.background = '#4f46e5';
+        faceRetakeKycBtn.onclick = startKycCaptureMode;
+      }
+      return;
+    }
+
+    // 4. Extract 128-D Neural Descriptor from registered KYC baseline photo
+    if (faceStatus) faceStatus.innerHTML = '<span style="color:var(--signal);">Extracting KYC facial fingerprint...</span>';
+    refDescriptor = await extractKycNeuralDescriptor(kycPhotoUrl);
+
+    if (!refDescriptor) {
+      if (faceStatus) {
+        faceStatus.innerHTML = '<div style="color:#ef4444; font-weight:800; font-size:12px;">⚠️ KYC Photo Face Not Detected</div>' +
+          '<div style="font-size:11px; color:#cbd5e1; margin-top:4px;">Your profile selfie is blurry or unreadable. Snap a live photo now.</div>';
+      }
+      if (faceRetakeKycBtn) {
+        faceRetakeKycBtn.style.display = 'block';
+        faceRetakeKycBtn.textContent = '📸 Retake Live Photo';
+        faceRetakeKycBtn.style.background = '#4f46e5';
+        faceRetakeKycBtn.onclick = startKycCaptureMode;
+      }
+      return;
+    }
 
     // Wire flip camera button
     if (faceFlipBtn) {
