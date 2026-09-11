@@ -713,32 +713,36 @@
   </div>
 </div>
 
-<!-- LIVE KYC CAMERA CAPTURE MODAL -->
+<!-- LIVE KYC CAMERA CAPTURE MODAL (3D MULTI-POSE LIVENESS) -->
 <div id="rd-kyc-cam-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); z-index:99999; flex-direction:column; align-items:center; justify-content:center; padding:16px; color:#fff; box-sizing:border-box;">
   <div style="background:#1e2229; border-radius:20px; padding:20px; max-width:340px; width:100%; display:flex; flex-direction:column; align-items:center; gap:12px; border:1.5px solid #6366f1; text-align:center; box-sizing:border-box;">
-    <h3 style="font-size:15px; font-weight:900; margin:0; color:#fff;">📸 Live KYC Selfie Verification</h3>
-    <p style="font-size:11px; color:#94a3b8; margin:0;">Position your face in the oval with good lighting. Look straight into the camera.</p>
+    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+      <h3 style="font-size:15px; font-weight:900; margin:0; color:#fff;">🛡️ 3D KYC Biometric Liveness</h3>
+      <button type="button" id="rd-kyc-flip-btn" style="background:#334155; border:1px solid #475569; color:#cbd5e1; font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px; cursor:pointer;">🔄 Flip</button>
+    </div>
+    <p style="font-size:11px; color:#94a3b8; margin:0;">Complete 3 live poses to verify your real identity and secure your driver profile.</p>
+
+    <!-- 3-Pose Progress Stepper -->
+    <div style="display:flex; gap:6px; width:100%; justify-content:center; margin:2px 0;">
+      <div id="rd-kyc-step-1" style="flex:1; height:4px; border-radius:2px; background:#4f46e5; transition:background 0.3s;" title="Pose 1: Blink"></div>
+      <div id="rd-kyc-step-2" style="flex:1; height:4px; border-radius:2px; background:#334155; transition:background 0.3s;" title="Pose 2: Turn Left"></div>
+      <div id="rd-kyc-step-3" style="flex:1; height:4px; border-radius:2px; background:#334155; transition:background 0.3s;" title="Pose 3: Turn Right"></div>
+    </div>
     
-    <div style="position:relative; width:210px; height:250px; border-radius:105px; overflow:hidden; border:3px solid #6366f1; background:#000; box-shadow:0 0 25px rgba(99,102,241,0.3);">
+    <div id="rd-kyc-circle" style="position:relative; width:210px; height:250px; border-radius:105px; overflow:hidden; border:3px solid #6366f1; background:#000; box-shadow:0 0 25px rgba(99,102,241,0.3); transition:border-color 0.3s;">
       <video id="rd-kyc-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1);"></video>
       <img id="rd-kyc-snapshot-preview" style="display:none; width:100%; height:100%; object-fit:cover;">
+      <div id="rd-kyc-guide-ring" style="position:absolute; inset:14px; border:2px dashed rgba(255,255,255,0.4); border-radius:95px; pointer-events:none;"></div>
     </div>
 
-    <div id="rd-kyc-instruction" style="font-size:12px; font-weight:700; color:#c7d2fe;">Center your face inside the oval</div>
+    <div id="rd-kyc-instruction" style="font-size:12.5px; font-weight:800; color:#c7d2fe; min-height:36px; display:flex; align-items:center; justify-content:center;">Initializing 3D neural biometrics...</div>
 
-    <!-- Action buttons before capture -->
-    <div id="rd-kyc-pre-capture" style="display:flex; flex-direction:column; gap:8px; width:100%;">
+    <!-- Action buttons -->
+    <div id="rd-kyc-actions" style="display:flex; flex-direction:column; gap:8px; width:100%;">
       <div style="display:flex; gap:8px; width:100%;">
         <button type="button" id="rd-kyc-cam-cancel-btn" style="flex:1; padding:10px; background:transparent; border:1px solid #555; color:#fff; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">Cancel</button>
-        <button type="button" id="rd-kyc-snap-btn" style="flex:1.8; padding:10px; background:#4f46e5; color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">📸 Capture Selfie</button>
+        <button type="button" id="rd-kyc-cam-restart-btn" style="display:none; flex:1.5; padding:10px; background:#ef4444; color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">🔄 Restart Verification</button>
       </div>
-      <button type="button" id="rd-modal-fallback-btn" style="width:100%; padding:8px; background:#334155; border:1px solid #475569; color:#f8fafc; border-radius:8px; font-size:11px; font-weight:700; cursor:pointer;">📱 Camera not loading? Tap to Use Phone Camera</button>
-    </div>
-
-    <!-- Action buttons after capture -->
-    <div id="rd-kyc-post-capture" style="display:none; gap:8px; width:100%;">
-      <button type="button" id="rd-kyc-retake-btn" style="flex:1; padding:10px; background:#334155; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">🔄 Retake</button>
-      <button type="button" id="rd-kyc-confirm-btn" style="flex:1.8; padding:10px; background:#16a34a; color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">✅ Use This Photo</button>
     </div>
   </div>
 </div>
@@ -748,7 +752,7 @@
   <div style="background:#1e2229; border-radius:20px; padding:20px; max-width:340px; width:100%; display:flex; flex-direction:column; align-items:center; gap:12px; border:1px solid #333; box-sizing:border-box;">
     <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
       <h3 style="font-size:15px; font-weight:800; margin:0; color:#fff;">📸 Driver Biometric Face Check</h3>
-      <button type="button" id="rd-face-flip-btn" style="background:#334155; border:1px solid #475569; color:#cbd5e1; font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:4px;" title="Switch between front and rear camera">🔄 Flip</button>
+      <button type="button" id="rd-face-flip-btn" style="background:#334155; border:1px solid #475569; color:#cbd5e1; font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px; cursor:pointer;" title="Switch between front and rear camera">🔄 Flip</button>
     </div>
     <p style="font-size:11px; color:#94a3b8; margin:0;">Real-time biometric match against your registered KYC profile photo.</p>
     
@@ -781,7 +785,7 @@
     <div id="rd-face-actions" style="display:flex; gap:8px; width:100%; margin-top:2px;">
       <button type="button" id="rd-face-cancel-btn" style="flex:1; padding:9px; background:#334155; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">Cancel</button>
       <button type="button" id="rd-face-retry-btn" style="display:none; flex:1.5; padding:9px; background:#ef4444; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">🔄 Retry Scan</button>
-      <button type="button" id="rd-face-retake-kyc-btn" style="display:none; flex:2; padding:9px; background:#4f46e5; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">📸 Retake Live Photo</button>
+      <button type="button" id="rd-face-portal-btn" style="display:none; flex:2; padding:9px; background:#4f46e5; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">📄 Open Document Portal</button>
     </div>
   </div>
 </div>
@@ -866,6 +870,6 @@
 
 <script src="driver-compliance.js?v=3.4"></script>
 <script src="animations.js?v=3.4"></script>
-<script src="app.js?v=4.2"></script>
+<script src="app.js?v=4.3"></script>
 </body>
 </html>
