@@ -4247,6 +4247,13 @@
   })();
 
   document.getElementById('login-btn').addEventListener('click', async function(){
+    if (typeof PLATFORM_SERVICES !== 'undefined' && !PLATFORM_SERVICES.rides) {
+      toast('📦 Passenger rides are paused. Redirecting to Parcels & Trucks...');
+      setTimeout(function() {
+        window.location.href = 'alongwith.html';
+      }, 700);
+      return;
+    }
     var name = document.getElementById('login-name').value.trim() || (authState.currentUser && authState.currentUser.name) || 'Rider';
     var pickup = document.getElementById('pickup-input').value.trim();
     var drop = document.getElementById('drop-input').value.trim();
@@ -5265,6 +5272,95 @@
     return Object.keys(present).filter(function(k){ return present[k]; }).length;
   }
 
+  // ===== PLATFORM SERVICES MASTER CONFIG =====
+  var PLATFORM_SERVICES = {
+    rides: true,
+    parcels: true,
+    trucks: true
+  };
+
+  async function loadPlatformServicesConfig() {
+    try {
+      var saved = localStorage.getItem('rydealot_services_config');
+      if (saved) {
+        var parsed = JSON.parse(saved);
+        if (typeof parsed.rides === 'boolean') PLATFORM_SERVICES.rides = parsed.rides;
+        if (typeof parsed.parcels === 'boolean') PLATFORM_SERVICES.parcels = parsed.parcels;
+        if (typeof parsed.trucks === 'boolean') PLATFORM_SERVICES.trucks = parsed.trucks;
+      }
+      var rows = await sbFetch('platform_services?id=eq.default');
+      if (rows && rows.length > 0) {
+        if (typeof rows[0].rides_enabled === 'boolean') PLATFORM_SERVICES.rides = rows[0].rides_enabled;
+        if (typeof rows[0].parcels_enabled === 'boolean') PLATFORM_SERVICES.parcels = rows[0].parcels_enabled;
+        if (typeof rows[0].trucks_enabled === 'boolean') PLATFORM_SERVICES.trucks = rows[0].trucks_enabled;
+        localStorage.setItem('rydealot_services_config', JSON.stringify(PLATFORM_SERVICES));
+      }
+    } catch(e) {}
+    applyServiceRestrictionsUI();
+  }
+
+  function applyServiceRestrictionsUI() {
+    // Rider App (index.html) gatekeeping
+    var banner = document.getElementById('rd-service-alert-banner');
+    var loginBtn = document.getElementById('login-btn');
+    var simpleView = document.getElementById('simple-view-container');
+    var rideTypeRow = document.getElementById('ride-type-row');
+
+    if (!PLATFORM_SERVICES.rides) {
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'rd-service-alert-banner';
+        banner.style.cssText = 'background:linear-gradient(135deg,#1e293b,#0f172a); border:1.5px solid #38bdf8; border-radius:14px; padding:12px 14px; margin:12px 0; color:#fff; display:flex; align-items:center; gap:10px; box-shadow:0 4px 14px rgba(56,189,248,0.15);';
+        banner.innerHTML = '<span style="font-size:24px;">🧙‍♂️</span>' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:12px; font-weight:800; color:#38bdf8;">Sage Notice: Passenger Rides in Maintenance</div>' +
+            '<div style="font-size:11px; color:#cbd5e1; margin-top:2px;">Bike &amp; Auto taxi are temporarily paused. <strong>📦 Parcels</strong> &amp; <strong>🚚 Along With Trucks</strong> are 100% active!</div>' +
+          '</div>' +
+          '<a href="alongwith.html" style="background:#38bdf8; color:#0f172a; font-size:11px; font-weight:800; padding:6px 10px; border-radius:8px; text-decoration:none; white-space:nowrap;">Send Parcel &rarr;</a>';
+        var screenLogin = document.getElementById('screen-login');
+        if (screenLogin) {
+          var fieldWrap = screenLogin.querySelector('.fields-wrap') || screenLogin;
+          fieldWrap.insertBefore(banner, fieldWrap.firstChild);
+        }
+      } else {
+        banner.style.display = 'flex';
+      }
+
+      if (loginBtn) {
+        loginBtn.dataset.originalText = loginBtn.dataset.originalText || loginBtn.textContent;
+        loginBtn.textContent = '📦 Send Parcel / Cargo Instead';
+        loginBtn.style.background = '#0284c7';
+      }
+    } else {
+      if (banner) banner.style.display = 'none';
+      if (loginBtn && loginBtn.dataset.originalText) {
+        loginBtn.textContent = loginBtn.dataset.originalText;
+        loginBtn.style.background = '';
+      }
+    }
+
+    // Driver App (driver.html) gatekeeping
+    var drvPassengerTab = document.getElementById('rd-tab-passenger');
+    var drvPassengerPanel = document.getElementById('rd-passenger-panel');
+    var drvSageTab = document.getElementById('rd-tab-sage');
+
+    if (!PLATFORM_SERVICES.rides) {
+      if (drvPassengerTab) {
+        drvPassengerTab.style.opacity = '0.45';
+        drvPassengerTab.title = 'Passenger rides paused by admin';
+      }
+      if (drvPassengerPanel && drvSageTab) {
+        // Auto-switch to Sage Parcels
+        drvSageTab.click();
+      }
+    } else {
+      if (drvPassengerTab) {
+        drvPassengerTab.style.opacity = '1';
+        drvPassengerTab.title = '';
+      }
+    }
+  }
+
   // ===== DYNAMIC ADMIN FARE ENGINE =====
   var FARE_CONFIG = {
     bike: { base: 25, perKm: 7 },
@@ -5304,6 +5400,7 @@
     } catch(e){
       console.log('Fare config sync note:', e.message);
     }
+    loadPlatformServicesConfig();
   }
 
   function getEstimatedTripDistanceKm(){

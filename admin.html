@@ -449,9 +449,63 @@
 
 <!-- ===== FARE SETTINGS PANEL ===== -->
 <div class="panel" id="panel-fares">
-  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:850px;">
-    <h2 style="font-size:1.2rem; font-weight:800; margin-bottom:6px; color:var(--amber);">💰 Dynamic Admin Fare Engine</h2>
-    <p style="font-size:0.85rem; color:var(--mute); margin-bottom:20px;">Configure Base Fares, Per-KM Rates, Scarcity Surge & Night Shift Multipliers.</p>
+    <!-- PLATFORM SERVICE MASTER SWITCHES (EMERGENCY KILL SWITCH) -->
+    <div style="background:var(--bg); border:1.5px solid var(--border); border-radius:14px; padding:18px; margin-bottom:24px; box-shadow:0 4px 16px rgba(0,0,0,0.04);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div>
+          <h3 style="font-size:1rem; font-weight:800; margin:0; color:var(--text); display:flex; align-items:center; gap:8px;">
+            <span>🎛️ Platform Service Master Switches</span>
+            <span style="font-size:0.7rem; background:#10b981; color:#fff; padding:2px 8px; border-radius:99px; font-weight:800;" id="admin-services-status-badge">ALL ACTIVE</span>
+          </h3>
+          <p style="font-size:0.8rem; color:var(--mute); margin:4px 0 0;">Instantly pause or resume individual services across Rider &amp; Driver apps without downtime.</p>
+        </div>
+        <button type="button" class="btn btn-amber" style="padding:6px 14px; font-size:0.8rem;" onclick="savePlatformServices()">💾 Save Switches</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">
+        <!-- 1. Passenger Bike/Auto Rides -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>🛵 Passenger Rides</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="svc-rides-desc">Active in Rider &amp; Driver apps</div>
+          </div>
+          <select id="svc-toggle-rides" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+            <option value="true">🟢 ACTIVE</option>
+            <option value="false">🔴 PAUSED</option>
+          </select>
+        </div>
+
+        <!-- 2. Sage Parcels -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>📦 Sage Parcels</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;">Hyperlocal courier &amp; packages</div>
+          </div>
+          <select id="svc-toggle-parcels" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+            <option value="true">🟢 ACTIVE</option>
+            <option value="false">🔴 PAUSED</option>
+          </select>
+        </div>
+
+        <!-- 3. Along With Freight & Trucks -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>🚚 Trucks / Freight</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;">Along With cargo &amp; mini-trucks</div>
+          </div>
+          <select id="svc-toggle-trucks" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+            <option value="true">🟢 ACTIVE</option>
+            <option value="false">🔴 PAUSED</option>
+          </select>
+        </div>
+      </div>
+    </div>
 
     <!-- Fares Table Grid -->
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:14px; margin-bottom:24px;">
@@ -1383,6 +1437,7 @@
       loadReferralSettings();
       loadMainBonuses();
       loadCommissionEngineSettings();
+      loadPlatformServices();
     } catch (e) {
       console.log('Load fare settings note:', e);
       loadMainCoupons();
@@ -1390,6 +1445,7 @@
       loadReferralSettings();
       loadMainBonuses();
       loadCommissionEngineSettings();
+      loadPlatformServices();
     }
   }
 
@@ -1435,6 +1491,99 @@
         toast('✅ Fare settings saved to Supabase!');
       } catch(err) {
         toast('Saved locally in browser!');
+      }
+    }
+  }
+
+  function updateServiceBadge() {
+    var rides = document.getElementById('svc-toggle-rides').value === 'true';
+    var parcels = document.getElementById('svc-toggle-parcels').value === 'true';
+    var trucks = document.getElementById('svc-toggle-trucks').value === 'true';
+    var badge = document.getElementById('admin-services-status-badge');
+    var ridesDesc = document.getElementById('svc-rides-desc');
+
+    if (ridesDesc) {
+      ridesDesc.textContent = rides ? 'Active in Rider & Driver apps' : '⚠️ PAUSED (Rider redirected to Parcels)';
+      ridesDesc.style.color = rides ? 'var(--mute)' : '#ef4444';
+    }
+
+    if (!badge) return;
+    if (rides && parcels && trucks) {
+      badge.textContent = 'ALL ACTIVE';
+      badge.style.background = '#10b981';
+    } else if (!rides && !parcels && !trucks) {
+      badge.textContent = 'ALL PAUSED';
+      badge.style.background = '#ef4444';
+    } else {
+      badge.textContent = (!rides ? 'RIDES PAUSED' : 'PARTIAL ACTIVE');
+      badge.style.background = '#f59e0b';
+    }
+  }
+
+  async function loadPlatformServices() {
+    var def = { rides: true, parcels: true, trucks: true };
+    try {
+      var saved = localStorage.getItem('rydealot_services_config');
+      if (saved) {
+        var p = JSON.parse(saved);
+        if (typeof p.rides === 'boolean') def.rides = p.rides;
+        if (typeof p.parcels === 'boolean') def.parcels = p.parcels;
+        if (typeof p.trucks === 'boolean') def.trucks = p.trucks;
+      }
+      try {
+        var rows = await sb('platform_services?id=eq.default');
+        if (rows && rows.length > 0) {
+          if (typeof rows[0].rides_enabled === 'boolean') def.rides = rows[0].rides_enabled;
+          if (typeof rows[0].parcels_enabled === 'boolean') def.parcels = rows[0].parcels_enabled;
+          if (typeof rows[0].trucks_enabled === 'boolean') def.trucks = rows[0].trucks_enabled;
+          localStorage.setItem('rydealot_services_config', JSON.stringify(def));
+        }
+      } catch(e){}
+
+      if (document.getElementById('svc-toggle-rides')) {
+        document.getElementById('svc-toggle-rides').value = def.rides ? 'true' : 'false';
+        document.getElementById('svc-toggle-parcels').value = def.parcels ? 'true' : 'false';
+        document.getElementById('svc-toggle-trucks').value = def.trucks ? 'true' : 'false';
+        updateServiceBadge();
+      }
+    } catch(err){}
+  }
+
+  async function savePlatformServices() {
+    var cfg = {
+      rides: document.getElementById('svc-toggle-rides').value === 'true',
+      parcels: document.getElementById('svc-toggle-parcels').value === 'true',
+      trucks: document.getElementById('svc-toggle-trucks').value === 'true'
+    };
+
+    localStorage.setItem('rydealot_services_config', JSON.stringify(cfg));
+    updateServiceBadge();
+
+    try {
+      await sb('platform_services?id=eq.default', {
+        method: 'PATCH',
+        body: {
+          rides_enabled: cfg.rides,
+          parcels_enabled: cfg.parcels,
+          trucks_enabled: cfg.trucks,
+          updated_at: new Date().toISOString()
+        }
+      });
+      toast('✅ Platform service switches saved & synced live across network!');
+    } catch(e) {
+      try {
+        await sb('platform_services', {
+          method: 'POST',
+          body: {
+            id: 'default',
+            rides_enabled: cfg.rides,
+            parcels_enabled: cfg.parcels,
+            trucks_enabled: cfg.trucks
+          }
+        });
+        toast('✅ Service switches initialized in cloud!');
+      } catch(err) {
+        toast('✅ Service switches saved locally in browser!');
       }
     }
   }
