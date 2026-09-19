@@ -11,6 +11,9 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- Facebook JavaScript SDK -->
 <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+<!-- Firebase SDK (Phone OTP Auth) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
   :root {
     --ink: #0F172A;
@@ -146,8 +149,8 @@
     background: var(--line);
   }
 
-  /* Email/Password Form */
-  .email-form {
+  /* Phone OTP Form */
+  .phone-form {
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -184,11 +187,46 @@
     color: #94A3B8;
     font-weight: 400;
   }
-  .field-username {
-    display: none;
-  }
-  .field-username.show {
+
+  /* Phone input row */
+  .phone-row {
     display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .phone-prefix {
+    width: 68px;
+    min-width: 68px;
+    padding: 12px 8px;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    font-size: 14.5px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--bg-page);
+    text-align: center;
+    outline: none;
+    cursor: default;
+  }
+  .phone-row input[type="tel"] {
+    flex: 1;
+  }
+
+  /* OTP input row */
+  .otp-row {
+    display: none;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .otp-row.show { display: flex; }
+  .otp-row input {
+    flex: 1;
+    letter-spacing: 6px;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
   }
 
   .btn-submit {
@@ -211,6 +249,61 @@
     opacity: 0.55;
     cursor: not-allowed;
   }
+
+  /* Resend timer */
+  .otp-meta {
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .otp-meta.show { display: flex; }
+  .otp-meta .resend-link {
+    color: var(--accent);
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .otp-meta .resend-link.disabled {
+    color: #94A3B8;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .otp-meta .change-num {
+    color: var(--ink-soft);
+    cursor: pointer;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+
+  /* Method toggle link */
+  .method-toggle {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+  .method-toggle a {
+    color: var(--accent);
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .method-toggle a:hover { text-decoration: underline; }
+
+  /* Email form (hidden by default) */
+  .email-section { display: none; }
+  .email-section.show { display: block; }
+  .email-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .field-username { display: none; }
+  .field-username.show { display: flex; }
 
   .auth-toggle {
     text-align: center;
@@ -337,26 +430,9 @@
   }
   .username-modal .btn-continue:hover { background: var(--accent-hover); }
 
-  /* Trust & Security Notes */
-  .trust-footer {
-    margin-top: 26px;
-    padding-top: 20px;
-    border-top: 1px solid var(--line);
-    text-align: center;
-    font-size: 12px;
-    color: var(--ink-soft);
-    line-height: 1.6;
-  }
-  .trust-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 700;
-    color: #10B981;
-    background: #ECFDF5;
-    padding: 4px 12px;
-    border-radius: 20px;
-    margin-bottom: 8px;
+  /* reCAPTCHA container — invisible, just needs to exist */
+  #recaptcha-container {
+    margin-top: 8px;
   }
 </style>
 </head>
@@ -369,7 +445,7 @@
      data-auto_prompt="true">
 </div>
 
-<!-- Username Step Modal (for new Google/Facebook users) -->
+<!-- Username Step Modal (for new users — Google/Facebook/Phone) -->
 <div class="username-overlay" id="username-overlay">
   <div class="username-modal">
     <div class="modal-emoji">👋</div>
@@ -393,7 +469,6 @@
 
   <!-- Social 1-Tap Stack -->
   <div class="social-stack">
-    <!-- Google 1-Tap / Sign-In Button -->
     <div class="google-wrap">
       <div class="g_id_signin"
            data-type="standard"
@@ -405,8 +480,6 @@
            data-width="344">
       </div>
     </div>
-
-    <!-- Facebook Login Button -->
     <button type="button" class="btn-facebook" id="btn-facebook" onclick="loginWithFacebook()">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
       <span>Continue with Facebook</span>
@@ -414,30 +487,78 @@
   </div>
 
   <!-- Divider -->
-  <div class="auth-divider">or</div>
+  <div class="auth-divider">or sign in with phone</div>
 
-  <!-- Email/Password Form -->
-  <form class="email-form" id="email-form" autocomplete="off">
-    <div class="form-field">
-      <label for="auth-email">📧 Email</label>
-      <input type="email" id="auth-email" placeholder="you@example.com" required>
+  <!-- ═══════════════════════════════════════════════════════
+       PHONE OTP SECTION (Primary manual auth)
+       ═══════════════════════════════════════════════════════ -->
+  <div id="phone-section">
+    <div class="phone-form" id="phone-form">
+      <div class="form-field">
+        <label>📱 Phone Number</label>
+        <div class="phone-row">
+          <input type="text" class="phone-prefix" value="+91" readonly>
+          <input type="tel" id="phone-input" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric" pattern="[0-9]*">
+        </div>
+      </div>
+
+      <!-- OTP Input (hidden until OTP is sent) -->
+      <div class="form-field">
+        <div class="otp-row" id="otp-row">
+          <input type="tel" id="otp-input" placeholder="● ● ● ● ● ●" maxlength="6" inputmode="numeric" pattern="[0-9]*">
+        </div>
+      </div>
+
+      <!-- OTP Meta: resend timer + change number -->
+      <div class="otp-meta" id="otp-meta">
+        <span class="change-num" id="btn-change-num">← Change number</span>
+        <span>
+          <a class="resend-link disabled" id="btn-resend">Resend OTP</a>
+          <span id="resend-timer"></span>
+        </span>
+      </div>
+
+      <button type="button" class="btn-submit" id="btn-phone-submit">Send OTP</button>
+
+      <!-- Firebase invisible reCAPTCHA container -->
+      <div id="recaptcha-container"></div>
     </div>
 
-    <div class="form-field field-username" id="field-username">
-      <label for="auth-username">👤 Username</label>
-      <input type="text" id="auth-username" placeholder="What should we call you?" maxlength="40">
+    <div class="method-toggle">
+      <a id="btn-use-email">Use email & password instead</a>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       EMAIL/PASSWORD SECTION (Secondary — hidden by default)
+       ═══════════════════════════════════════════════════════ -->
+  <div class="email-section" id="email-section">
+    <form class="email-form" id="email-form" autocomplete="off">
+      <div class="form-field">
+        <label for="auth-email">📧 Email</label>
+        <input type="email" id="auth-email" placeholder="you@example.com" required>
+      </div>
+
+      <div class="form-field field-username" id="field-username">
+        <label for="auth-username">👤 Username</label>
+        <input type="text" id="auth-username" placeholder="What should we call you?" maxlength="40">
+      </div>
+
+      <div class="form-field">
+        <label for="auth-password">🔒 Password</label>
+        <input type="password" id="auth-password" placeholder="Min. 6 characters" required minlength="6">
+      </div>
+
+      <button type="submit" class="btn-submit" id="btn-auth-submit">Sign In</button>
+    </form>
+
+    <div class="auth-toggle" id="auth-toggle">
+      Don't have an account? <a id="toggle-mode">Sign Up</a>
     </div>
 
-    <div class="form-field">
-      <label for="auth-password">🔒 Password</label>
-      <input type="password" id="auth-password" placeholder="Min. 6 characters" required minlength="6">
+    <div class="method-toggle" style="margin-top:8px;">
+      <a id="btn-use-phone">← Back to phone sign in</a>
     </div>
-
-    <button type="submit" class="btn-submit" id="btn-auth-submit">Sign In</button>
-  </form>
-
-  <div class="auth-toggle" id="auth-toggle">
-    Don't have an account? <a id="toggle-mode">Sign Up</a>
   </div>
 
   <!-- Status Alert Banner -->
@@ -446,20 +567,40 @@
 
 <script>
 /* =========================================================================
-   RYDEALOT UNIFIED AUTH ENGINE (Google + Facebook + Email/Password)
+   RYDEALOT UNIFIED AUTH ENGINE
+   Google 1-Tap + Facebook + Phone OTP (Firebase) + Email/Password
    ========================================================================= */
 const SUPABASE_URL = "https://wupndimumeugfjxzejlj.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y";
 
+// ══════════════════════════════════════════════════════════════
+//  🔥 FIREBASE CONFIG — Replace with your Firebase project values
+//  Go to: Firebase Console → Project Settings → Your apps → Config
+// ══════════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_FIREBASE_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+firebase.initializeApp(FIREBASE_CONFIG);
+const firebaseAuth = firebase.auth();
+
+// ── State ──
 const urlParams = new URLSearchParams(window.location.search);
 const redirectTarget = urlParams.get('redirect') || 'index.html';
-
 const statusBox = document.getElementById('status-box');
 let isSignUpMode = false;
-
-// ── Pending social user (waiting for username modal) ──
 let pendingSocialUser = null;
+let confirmationResult = null;  // Firebase OTP confirmation object
+let resendCountdown = 0;
+let resendTimer = null;
 
+// ── UI Helpers ──
 function showStatus(msg, isSuccess) {
   statusBox.textContent = msg;
   statusBox.className = 'status-box ' + (isSuccess ? 'success' : 'error');
@@ -469,68 +610,80 @@ function hideStatus() {
   statusBox.style.display = 'none';
 }
 
-// ── SHA-256 Password Hashing (Web Crypto API — portable, no backend needed) ──
+// ── SHA-256 Password Hashing (for email/password auth) ──
 async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  var encoder = new TextEncoder();
+  var data = encoder.encode(password);
+  var hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  var hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
 }
 
 // ── Supabase REST helpers ──
 async function sbFetch(endpoint, options) {
-  const method = (options && options.method) || 'GET';
-  const headers = {
+  var method = (options && options.method) || 'GET';
+  var headers = {
     'apikey': SUPABASE_ANON_KEY,
     'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
     'Content-Type': 'application/json'
   };
   if (options && options.prefer) headers['Prefer'] = options.prefer;
-  const config = { method, headers };
+  var config = { method: method, headers: headers };
   if (options && options.body) config.body = JSON.stringify(options.body);
-  const res = await fetch(SUPABASE_URL + '/rest/v1/' + endpoint, config);
+  var res = await fetch(SUPABASE_URL + '/rest/v1/' + endpoint, config);
   if (method === 'GET' || (options && options.prefer && options.prefer.includes('return=representation'))) {
     return res.json();
   }
   return res;
 }
 
-// ── Check if user exists by email ──
+// ── Find user by email ──
 async function findUserByEmail(email) {
   try {
-    const rows = await sbFetch('riders?email=eq.' + encodeURIComponent(email) + '&select=*&limit=1');
+    var rows = await sbFetch('riders?email=eq.' + encodeURIComponent(email) + '&select=*&limit=1');
     if (Array.isArray(rows) && rows.length > 0) return rows[0];
-  } catch (e) {
-    console.warn('findUserByEmail error:', e);
-  }
+  } catch (e) { console.warn('findUserByEmail:', e); }
   return null;
 }
 
-// ── Sync user to Supabase (INSERT for new, PATCH for existing) ──
+// ── Find user by phone ──
+async function findUserByPhone(phone) {
+  try {
+    var rows = await sbFetch('riders?phone=eq.' + encodeURIComponent(phone) + '&select=*&limit=1');
+    if (Array.isArray(rows) && rows.length > 0) return rows[0];
+  } catch (e) { console.warn('findUserByPhone:', e); }
+  return null;
+}
+
+// ── Sync user to Supabase ──
 async function syncUserToDatabase(user) {
   try {
-    const existing = await findUserByEmail(user.email);
-    if (existing) {
-      // Update existing user's name/avatar
-      await sbFetch('riders?email=eq.' + encodeURIComponent(user.email), {
+    var findBy = user.email ? await findUserByEmail(user.email) : null;
+    if (!findBy && user.phone) findBy = await findUserByPhone(user.phone);
+
+    if (findBy) {
+      // Update existing user
+      var patchField = user.email ? 'email=eq.' + encodeURIComponent(user.email) : 'phone=eq.' + encodeURIComponent(user.phone);
+      await sbFetch('riders?' + patchField, {
         method: 'PATCH',
         body: {
           name: user.name,
+          phone: user.phone || findBy.phone,
+          email: user.email || findBy.email,
           avatar_url: user.avatar || null
         }
       });
     } else {
       // Insert new user
-      const payload = {
+      var payload = {
         name: user.name || 'Rydealot Rider',
         email: user.email || '',
+        phone: user.phone || '',
         vehicle_type: 'bike',
-        vehicle_label: user.email ? ('User: ' + user.email) : 'Customer',
+        vehicle_label: user.email ? ('User: ' + user.email) : ('User: ' + user.phone),
         plate: 'CUST-' + (user.id ? String(user.id).replace(/\D/g, '').slice(-4) || '1001' : '1001'),
-        phone: user.phone || '9999988888',
         status: 'offline',
-        auth_provider: user.provider || 'email'
+        auth_provider: user.provider || 'phone'
       };
       if (user.password_hash) payload.password_hash = user.password_hash;
       await sbFetch('riders', {
@@ -540,26 +693,23 @@ async function syncUserToDatabase(user) {
       });
     }
   } catch (err) {
-    console.warn("Supabase sync note:", err);
+    console.warn("Supabase sync:", err);
   }
 }
 
-// ── Complete Login Session and Redirect ──
+// ── Complete Auth Session & Redirect ──
 async function completeAuth(user) {
   showStatus('Welcome, ' + user.name + '! Redirecting…', true);
-
-  // Sync to Supabase in background
   syncUserToDatabase(user);
 
-  // Save active session
-  const session = {
+  var session = {
     id: user.id,
     name: user.name,
     email: user.email || '',
     phone: user.phone || '',
     avatar: user.avatar || '',
     role: 'customer',
-    auth_provider: user.provider || 'email'
+    auth_provider: user.provider || 'phone'
   };
   localStorage.setItem('rydealot_user_session', JSON.stringify(session));
 
@@ -568,7 +718,7 @@ async function completeAuth(user) {
   }, 800);
 }
 
-// ── Show Username Modal (for social auth new users) ──
+// ── Username Modal ──
 function showUsernameModal(user) {
   pendingSocialUser = user;
   var overlay = document.getElementById('username-overlay');
@@ -578,7 +728,6 @@ function showUsernameModal(user) {
   setTimeout(function() { input.focus(); input.select(); }, 200);
 }
 
-// ── Username Modal: Continue button ──
 document.getElementById('btn-modal-continue').addEventListener('click', async function() {
   var input = document.getElementById('modal-username');
   var name = input.value.trim();
@@ -588,14 +737,12 @@ document.getElementById('btn-modal-continue').addEventListener('click', async fu
     return;
   }
   if (!pendingSocialUser) return;
-
   pendingSocialUser.name = name;
   document.getElementById('username-overlay').classList.remove('active');
   await completeAuth(pendingSocialUser);
   pendingSocialUser = null;
 });
 
-// Also allow Enter key in the modal
 document.getElementById('modal-username').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') {
     e.preventDefault();
@@ -603,7 +750,255 @@ document.getElementById('modal-username').addEventListener('keydown', function(e
   }
 });
 
-// ── 1. Google 1-Tap / Sign-In Handler ──
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 1: PHONE OTP AUTH (Firebase)
+   ═══════════════════════════════════════════════════════════════ */
+
+var phoneInput = document.getElementById('phone-input');
+var otpInput = document.getElementById('otp-input');
+var otpRow = document.getElementById('otp-row');
+var otpMeta = document.getElementById('otp-meta');
+var btnPhoneSubmit = document.getElementById('btn-phone-submit');
+var btnResend = document.getElementById('btn-resend');
+var resendTimerEl = document.getElementById('resend-timer');
+var btnChangeNum = document.getElementById('btn-change-num');
+var otpSent = false;
+
+// ── Setup invisible reCAPTCHA ──
+var recaptchaVerifier = null;
+function setupRecaptcha() {
+  if (recaptchaVerifier) return;
+  try {
+    recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'invisible',
+      callback: function() {
+        // reCAPTCHA solved — will proceed with sendOTP
+      },
+      'expired-callback': function() {
+        showStatus("Security check expired. Please try again.", false);
+        recaptchaVerifier = null;
+      }
+    });
+    recaptchaVerifier.render();
+  } catch (err) {
+    console.warn('reCAPTCHA setup:', err);
+  }
+}
+
+// Allow only digits in phone input
+phoneInput.addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '').slice(0, 10);
+});
+otpInput.addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '').slice(0, 6);
+});
+
+// ── Send OTP ──
+async function sendOTP() {
+  hideStatus();
+  var phone = phoneInput.value.trim();
+
+  if (phone.length !== 10) {
+    showStatus("Please enter a valid 10-digit mobile number.", false);
+    return;
+  }
+
+  btnPhoneSubmit.disabled = true;
+  btnPhoneSubmit.textContent = 'Sending OTP…';
+
+  try {
+    setupRecaptcha();
+    var fullPhone = '+91' + phone;
+    confirmationResult = await firebaseAuth.signInWithPhoneNumber(fullPhone, recaptchaVerifier);
+
+    // OTP sent successfully — show OTP input
+    otpSent = true;
+    otpRow.classList.add('show');
+    otpMeta.classList.add('show');
+    phoneInput.readOnly = true;
+    phoneInput.style.opacity = '0.6';
+    btnPhoneSubmit.textContent = 'Verify OTP';
+    btnPhoneSubmit.disabled = false;
+    otpInput.focus();
+
+    showStatus("OTP sent to +91 " + phone, true);
+    startResendTimer(30);
+
+  } catch (err) {
+    console.error('sendOTP error:', err);
+    btnPhoneSubmit.disabled = false;
+    btnPhoneSubmit.textContent = 'Send OTP';
+
+    // Reset reCAPTCHA on error so user can retry
+    recaptchaVerifier = null;
+    var container = document.getElementById('recaptcha-container');
+    container.innerHTML = '';
+
+    if (err.code === 'auth/too-many-requests') {
+      showStatus("Too many attempts. Please try again after some time.", false);
+    } else if (err.code === 'auth/invalid-phone-number') {
+      showStatus("Invalid phone number. Please check and try again.", false);
+    } else if (err.code === 'auth/quota-exceeded') {
+      showStatus("SMS quota exceeded. Please try email sign-in instead.", false);
+    } else {
+      showStatus("Failed to send OTP. Please check your number and try again.", false);
+    }
+  }
+}
+
+// ── Verify OTP ──
+async function verifyOTP() {
+  hideStatus();
+  var otp = otpInput.value.trim();
+
+  if (otp.length !== 6) {
+    showStatus("Please enter the 6-digit OTP.", false);
+    return;
+  }
+
+  btnPhoneSubmit.disabled = true;
+  btnPhoneSubmit.textContent = 'Verifying…';
+
+  try {
+    var result = await confirmationResult.confirm(otp);
+    // OTP verified! result.user has the Firebase user
+    var firebaseUser = result.user;
+    var phone = phoneInput.value.trim();
+
+    // Check if returning user in our DB
+    var existing = await findUserByPhone(phone);
+    if (existing) {
+      // Returning user — log in directly
+      var user = {
+        id: existing.id || ('p_' + Date.now()),
+        name: existing.name || 'Rider',
+        email: existing.email || '',
+        phone: phone,
+        avatar: existing.avatar_url || '',
+        provider: 'phone'
+      };
+      await completeAuth(user);
+    } else {
+      // New user — show username modal
+      var user = {
+        id: 'p_' + (firebaseUser.uid || Date.now()),
+        name: '',
+        email: '',
+        phone: phone,
+        avatar: '',
+        provider: 'phone'
+      };
+      showUsernameModal(user);
+    }
+
+  } catch (err) {
+    console.error('verifyOTP error:', err);
+    btnPhoneSubmit.disabled = false;
+    btnPhoneSubmit.textContent = 'Verify OTP';
+
+    if (err.code === 'auth/invalid-verification-code') {
+      showStatus("Wrong OTP. Please check and try again.", false);
+    } else if (err.code === 'auth/code-expired') {
+      showStatus("OTP expired. Please resend.", false);
+    } else {
+      showStatus("Verification failed. Please try again.", false);
+    }
+  }
+}
+
+// ── Phone Submit Button (Send or Verify) ──
+btnPhoneSubmit.addEventListener('click', function() {
+  if (otpSent) {
+    verifyOTP();
+  } else {
+    sendOTP();
+  }
+});
+
+// ── Resend OTP Timer ──
+function startResendTimer(seconds) {
+  resendCountdown = seconds;
+  btnResend.classList.add('disabled');
+  resendTimerEl.textContent = ' (' + resendCountdown + 's)';
+
+  if (resendTimer) clearInterval(resendTimer);
+  resendTimer = setInterval(function() {
+    resendCountdown--;
+    if (resendCountdown <= 0) {
+      clearInterval(resendTimer);
+      resendTimerEl.textContent = '';
+      btnResend.classList.remove('disabled');
+    } else {
+      resendTimerEl.textContent = ' (' + resendCountdown + 's)';
+    }
+  }, 1000);
+}
+
+// ── Resend OTP ──
+btnResend.addEventListener('click', function() {
+  if (resendCountdown > 0) return;
+  // Reset reCAPTCHA for resend
+  recaptchaVerifier = null;
+  var container = document.getElementById('recaptcha-container');
+  container.innerHTML = '';
+  otpInput.value = '';
+  sendOTP();
+});
+
+// ── Change Number ──
+btnChangeNum.addEventListener('click', function() {
+  otpSent = false;
+  confirmationResult = null;
+  otpRow.classList.remove('show');
+  otpMeta.classList.remove('show');
+  phoneInput.readOnly = false;
+  phoneInput.style.opacity = '1';
+  phoneInput.value = '';
+  otpInput.value = '';
+  btnPhoneSubmit.textContent = 'Send OTP';
+  btnPhoneSubmit.disabled = false;
+  hideStatus();
+  if (resendTimer) clearInterval(resendTimer);
+
+  // Reset reCAPTCHA
+  recaptchaVerifier = null;
+  var container = document.getElementById('recaptcha-container');
+  container.innerHTML = '';
+
+  phoneInput.focus();
+});
+
+// Allow Enter key to submit phone/OTP
+phoneInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); btnPhoneSubmit.click(); }
+});
+otpInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); btnPhoneSubmit.click(); }
+});
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 2: PHONE ↔ EMAIL TOGGLE
+   ═══════════════════════════════════════════════════════════════ */
+
+document.getElementById('btn-use-email').addEventListener('click', function() {
+  document.getElementById('phone-section').style.display = 'none';
+  document.getElementById('email-section').classList.add('show');
+  hideStatus();
+});
+
+document.getElementById('btn-use-phone').addEventListener('click', function() {
+  document.getElementById('phone-section').style.display = 'block';
+  document.getElementById('email-section').classList.remove('show');
+  hideStatus();
+});
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 3: GOOGLE 1-TAP HANDLER
+   ═══════════════════════════════════════════════════════════════ */
+
 function parseJwt(token) {
   try {
     var base64Url = token.split('.')[1];
@@ -612,9 +1007,7 @@ function parseJwt(token) {
       return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
     }).join(''));
     return JSON.parse(jsonPayload);
-  } catch (e) {
-    return null;
-  }
+  } catch (e) { return null; }
 }
 
 window.handleGoogleResponse = async function(response) {
@@ -628,7 +1021,6 @@ window.handleGoogleResponse = async function(response) {
     showStatus("Could not read Google profile information.", false);
     return;
   }
-
   var user = {
     id: 'g_' + (payload.sub || Date.now()),
     name: payload.name || payload.email.split('@')[0],
@@ -636,22 +1028,22 @@ window.handleGoogleResponse = async function(response) {
     avatar: payload.picture || '',
     provider: 'google'
   };
-
-  // Check if returning user
   var existing = await findUserByEmail(user.email);
   if (existing) {
-    // Returning user — use their saved name, skip username modal
     user.name = existing.name || user.name;
     user.id = existing.id || user.id;
     await completeAuth(user);
   } else {
-    // New user — show username modal
     showUsernameModal(user);
   }
 };
 
-// ── 2. Facebook SDK Login ──
-window.fbAsyncInit = function () {
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 4: FACEBOOK LOGIN HANDLER
+   ═══════════════════════════════════════════════════════════════ */
+
+window.fbAsyncInit = function() {
   FB.init({
     appId: '4530763897154260',
     cookie: true,
@@ -666,7 +1058,7 @@ function loginWithFacebook() {
     showStatus("Facebook service is still loading. Please try in a moment.", false);
     return;
   }
-  FB.login(function (response) {
+  FB.login(function(response) {
     if (response.authResponse) {
       FB.api('/me', { fields: 'id,name,email,picture' }, async function(profile) {
         if (!profile || !profile.name) {
@@ -677,11 +1069,9 @@ function loginWithFacebook() {
           id: 'fb_' + profile.id,
           name: profile.name,
           email: profile.email || '',
-          avatar: profile.picture?.data?.url || '',
+          avatar: profile.picture && profile.picture.data ? profile.picture.data.url : '',
           provider: 'facebook'
         };
-
-        // Check if returning user
         if (user.email) {
           var existing = await findUserByEmail(user.email);
           if (existing) {
@@ -691,7 +1081,6 @@ function loginWithFacebook() {
             return;
           }
         }
-        // New user — show username modal
         showUsernameModal(user);
       });
     } else {
@@ -700,7 +1089,11 @@ function loginWithFacebook() {
   }, { scope: 'public_profile,email' });
 }
 
-// ── 3. Email/Password Auth ──
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 5: EMAIL/PASSWORD AUTH
+   ═══════════════════════════════════════════════════════════════ */
+
 var toggleLink = document.getElementById('toggle-mode');
 var usernameField = document.getElementById('field-username');
 var submitBtn = document.getElementById('btn-auth-submit');
@@ -713,18 +1106,13 @@ function setMode(signUp) {
   if (signUp) {
     usernameField.classList.add('show');
     submitBtn.textContent = 'Create Account';
-    authTitle.textContent = 'Create your account';
-    authSubtitle.textContent = 'Join Rydealot — zero-commission rides, parcels & freight.';
     toggleText.innerHTML = 'Already have an account? <a id="toggle-mode">Sign In</a>';
   } else {
     usernameField.classList.remove('show');
     submitBtn.textContent = 'Sign In';
-    authTitle.textContent = 'Welcome to Rydealot';
-    authSubtitle.textContent = 'Fast, zero-commission bike taxi & instant parcel network.';
     toggleText.innerHTML = 'Don\'t have an account? <a id="toggle-mode">Sign Up</a>';
   }
   hideStatus();
-  // Re-attach toggle listener
   document.getElementById('toggle-mode').addEventListener('click', function() {
     setMode(!isSignUpMode);
   });
@@ -748,7 +1136,7 @@ document.getElementById('auth-username').addEventListener('input', function() {
   this._userEdited = true;
 });
 
-// Form submit
+// Email form submit
 document.getElementById('email-form').addEventListener('submit', async function(e) {
   e.preventDefault();
   hideStatus();
@@ -773,12 +1161,7 @@ document.getElementById('email-form').addEventListener('submit', async function(
     var hash = await hashPassword(password);
 
     if (isSignUpMode) {
-      // ── SIGN UP ──
-      if (!username) {
-        username = email.split('@')[0];
-      }
-
-      // Check if email already exists
+      if (!username) username = email.split('@')[0];
       var existing = await findUserByEmail(email);
       if (existing) {
         showStatus("An account with this email already exists. Sign in instead.", false);
@@ -786,7 +1169,6 @@ document.getElementById('email-form').addEventListener('submit', async function(
         submitBtn.textContent = 'Create Account';
         return;
       }
-
       var user = {
         id: 'e_' + Date.now(),
         name: username,
@@ -796,9 +1178,7 @@ document.getElementById('email-form').addEventListener('submit', async function(
         password_hash: hash
       };
       await completeAuth(user);
-
     } else {
-      // ── SIGN IN ──
       var existing = await findUserByEmail(email);
       if (!existing) {
         showStatus("No account found with this email. Sign up first.", false);
@@ -806,8 +1186,6 @@ document.getElementById('email-form').addEventListener('submit', async function(
         submitBtn.textContent = 'Sign In';
         return;
       }
-
-      // Check if this is a social-auth user (no password_hash)
       if (!existing.password_hash) {
         var provider = existing.auth_provider || 'Google/Facebook';
         showStatus("This account uses " + provider + " sign-in. Use the button above.", false);
@@ -815,16 +1193,12 @@ document.getElementById('email-form').addEventListener('submit', async function(
         submitBtn.textContent = 'Sign In';
         return;
       }
-
-      // Verify password
       if (existing.password_hash !== hash) {
         showStatus("Incorrect password. Please try again.", false);
         submitBtn.disabled = false;
         submitBtn.textContent = 'Sign In';
         return;
       }
-
-      // Password matches — log in
       var user = {
         id: existing.id || ('e_' + Date.now()),
         name: existing.name || email.split('@')[0],
