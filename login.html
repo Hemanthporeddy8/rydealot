@@ -99,7 +99,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 0;
   }
   .google-wrap {
     width: 100%;
@@ -126,6 +126,106 @@
   }
   .btn-facebook:hover { background: #166FE5; }
   .btn-facebook:active { transform: scale(0.99); }
+
+  /* Divider */
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 22px 0;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .auth-divider::before, .auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* Email/Password Form */
+  .email-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .form-field label {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+  .form-field input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    font-size: 14.5px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--bg-page);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .form-field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+  .form-field input::placeholder {
+    color: #94A3B8;
+    font-weight: 400;
+  }
+  .field-username {
+    display: none;
+  }
+  .field-username.show {
+    display: flex;
+  }
+
+  .btn-submit {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 800;
+    font-family: 'Manrope', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+    letter-spacing: -0.01em;
+  }
+  .btn-submit:hover { background: var(--accent-hover); }
+  .btn-submit:active { transform: scale(0.99); }
+  .btn-submit:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .auth-toggle {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-weight: 500;
+  }
+  .auth-toggle a {
+    color: var(--accent);
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .auth-toggle a:hover { text-decoration: underline; }
 
   /* Status message banner */
   .status-box {
@@ -155,6 +255,87 @@
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  /* Username Step Modal Overlay */
+  .username-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .username-overlay.active {
+    display: flex;
+  }
+  .username-modal {
+    width: 100%;
+    max-width: 370px;
+    background: #fff;
+    border-radius: 24px;
+    padding: 34px 28px 28px;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+    animation: modalSlideUp 0.3s ease;
+    text-align: center;
+  }
+  @keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .username-modal .modal-emoji {
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+  .username-modal h2 {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 900;
+    font-size: 20px;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .username-modal p {
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-weight: 500;
+    margin-bottom: 20px;
+    line-height: 1.45;
+  }
+  .username-modal input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    font-size: 16px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    margin-bottom: 16px;
+  }
+  .username-modal input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+  .username-modal .btn-continue {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 800;
+    font-family: 'Manrope', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .username-modal .btn-continue:hover { background: var(--accent-hover); }
 
   /* Trust & Security Notes */
   .trust-footer {
@@ -188,6 +369,17 @@
      data-auto_prompt="true">
 </div>
 
+<!-- Username Step Modal (for new Google/Facebook users) -->
+<div class="username-overlay" id="username-overlay">
+  <div class="username-modal">
+    <div class="modal-emoji">👋</div>
+    <h2>One last thing!</h2>
+    <p>What should we call you? You can keep your name or choose something different.</p>
+    <input type="text" id="modal-username" placeholder="Your name" maxlength="40" autocomplete="off">
+    <button type="button" class="btn-continue" id="btn-modal-continue">Continue →</button>
+  </div>
+</div>
+
 <div class="auth-shell">
   <!-- Brand Header -->
   <div class="brand-header">
@@ -195,8 +387,8 @@
       <img src="logo.png" alt="Rydealot" class="brand-logo">
       <img src="assets/mascot-waving.png" alt="Rydo" class="brand-mascot">
     </div>
-    <h1 class="brand-title">Welcome to Rydealot</h1>
-    <p class="brand-subtitle">Fast, zero-commission bike taxi & instant parcel network. Sign in with 1-Tap to continue.</p>
+    <h1 class="brand-title" id="auth-title">Welcome to Rydealot</h1>
+    <p class="brand-subtitle" id="auth-subtitle">Fast, zero-commission bike taxi & instant parcel network.</p>
   </div>
 
   <!-- Social 1-Tap Stack -->
@@ -221,15 +413,40 @@
     </button>
   </div>
 
+  <!-- Divider -->
+  <div class="auth-divider">or</div>
+
+  <!-- Email/Password Form -->
+  <form class="email-form" id="email-form" autocomplete="off">
+    <div class="form-field">
+      <label for="auth-email">📧 Email</label>
+      <input type="email" id="auth-email" placeholder="you@example.com" required>
+    </div>
+
+    <div class="form-field field-username" id="field-username">
+      <label for="auth-username">👤 Username</label>
+      <input type="text" id="auth-username" placeholder="What should we call you?" maxlength="40">
+    </div>
+
+    <div class="form-field">
+      <label for="auth-password">🔒 Password</label>
+      <input type="password" id="auth-password" placeholder="Min. 6 characters" required minlength="6">
+    </div>
+
+    <button type="submit" class="btn-submit" id="btn-auth-submit">Sign In</button>
+  </form>
+
+  <div class="auth-toggle" id="auth-toggle">
+    Don't have an account? <a id="toggle-mode">Sign Up</a>
+  </div>
+
   <!-- Status Alert Banner -->
   <div id="status-box" class="status-box" style="display:none;"></div>
-
-
 </div>
 
 <script>
 /* =========================================================================
-   RYDEALOT 1-TAP AUTH ENGINE
+   RYDEALOT UNIFIED AUTH ENGINE (Google + Facebook + Email/Password)
    ========================================================================= */
 const SUPABASE_URL = "https://wupndimumeugfjxzejlj.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y";
@@ -238,6 +455,10 @@ const urlParams = new URLSearchParams(window.location.search);
 const redirectTarget = urlParams.get('redirect') || 'index.html';
 
 const statusBox = document.getElementById('status-box');
+let isSignUpMode = false;
+
+// ── Pending social user (waiting for username modal) ──
+let pendingSocialUser = null;
 
 function showStatus(msg, isSuccess) {
   statusBox.textContent = msg;
@@ -248,40 +469,89 @@ function hideStatus() {
   statusBox.style.display = 'none';
 }
 
-// ── Sync User Record to Supabase ──
+// ── SHA-256 Password Hashing (Web Crypto API — portable, no backend needed) ──
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ── Supabase REST helpers ──
+async function sbFetch(endpoint, options) {
+  const method = (options && options.method) || 'GET';
+  const headers = {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json'
+  };
+  if (options && options.prefer) headers['Prefer'] = options.prefer;
+  const config = { method, headers };
+  if (options && options.body) config.body = JSON.stringify(options.body);
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + endpoint, config);
+  if (method === 'GET' || (options && options.prefer && options.prefer.includes('return=representation'))) {
+    return res.json();
+  }
+  return res;
+}
+
+// ── Check if user exists by email ──
+async function findUserByEmail(email) {
+  try {
+    const rows = await sbFetch('riders?email=eq.' + encodeURIComponent(email) + '&select=*&limit=1');
+    if (Array.isArray(rows) && rows.length > 0) return rows[0];
+  } catch (e) {
+    console.warn('findUserByEmail error:', e);
+  }
+  return null;
+}
+
+// ── Sync user to Supabase (INSERT for new, PATCH for existing) ──
 async function syncUserToDatabase(user) {
   try {
-    const payload = {
-      name: user.name || 'Rydealot Rider',
-      vehicle_type: 'bike',
-      vehicle_label: user.email ? ('User: ' + user.email) : 'Customer',
-      plate: 'CUST-' + (user.id ? String(user.id).replace(/\D/g, '').slice(-4) || '1001' : '1001'),
-      phone: user.phone || '9999988888',
-      status: 'offline'
-    };
-    await fetch(`${SUPABASE_URL}/rest/v1/riders`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(payload)
-    });
+    const existing = await findUserByEmail(user.email);
+    if (existing) {
+      // Update existing user's name/avatar
+      await sbFetch('riders?email=eq.' + encodeURIComponent(user.email), {
+        method: 'PATCH',
+        body: {
+          name: user.name,
+          avatar_url: user.avatar || null
+        }
+      });
+    } else {
+      // Insert new user
+      const payload = {
+        name: user.name || 'Rydealot Rider',
+        email: user.email || '',
+        vehicle_type: 'bike',
+        vehicle_label: user.email ? ('User: ' + user.email) : 'Customer',
+        plate: 'CUST-' + (user.id ? String(user.id).replace(/\D/g, '').slice(-4) || '1001' : '1001'),
+        phone: user.phone || '9999988888',
+        status: 'offline',
+        auth_provider: user.provider || 'email'
+      };
+      if (user.password_hash) payload.password_hash = user.password_hash;
+      await sbFetch('riders', {
+        method: 'POST',
+        prefer: 'return=minimal',
+        body: payload
+      });
+    }
   } catch (err) {
-    console.warn("Supabase database sync note:", err);
+    console.warn("Supabase sync note:", err);
   }
 }
 
 // ── Complete Login Session and Redirect ──
 async function completeAuth(user) {
-  showStatus(`Welcome, ${user.name}! Redirecting…`, true);
-  
-  // 1. Sync to Supabase in background
+  showStatus('Welcome, ' + user.name + '! Redirecting…', true);
+
+  // Sync to Supabase in background
   syncUserToDatabase(user);
 
-  // 2. Save active session
+  // Save active session
   const session = {
     id: user.id,
     name: user.name,
@@ -289,21 +559,56 @@ async function completeAuth(user) {
     phone: user.phone || '',
     avatar: user.avatar || '',
     role: 'customer',
-    auth_provider: user.provider || 'google'
+    auth_provider: user.provider || 'email'
   };
   localStorage.setItem('rydealot_user_session', JSON.stringify(session));
 
-  setTimeout(() => {
+  setTimeout(function() {
     window.location.href = redirectTarget;
   }, 800);
 }
 
+// ── Show Username Modal (for social auth new users) ──
+function showUsernameModal(user) {
+  pendingSocialUser = user;
+  var overlay = document.getElementById('username-overlay');
+  var input = document.getElementById('modal-username');
+  input.value = user.name || '';
+  overlay.classList.add('active');
+  setTimeout(function() { input.focus(); input.select(); }, 200);
+}
+
+// ── Username Modal: Continue button ──
+document.getElementById('btn-modal-continue').addEventListener('click', async function() {
+  var input = document.getElementById('modal-username');
+  var name = input.value.trim();
+  if (!name) {
+    input.style.borderColor = 'var(--error)';
+    input.focus();
+    return;
+  }
+  if (!pendingSocialUser) return;
+
+  pendingSocialUser.name = name;
+  document.getElementById('username-overlay').classList.remove('active');
+  await completeAuth(pendingSocialUser);
+  pendingSocialUser = null;
+});
+
+// Also allow Enter key in the modal
+document.getElementById('modal-username').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    document.getElementById('btn-modal-continue').click();
+  }
+});
+
 // ── 1. Google 1-Tap / Sign-In Handler ──
 function parseJwt(token) {
   try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+    var base64Url = token.split('.')[1];
+    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
       return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
     }).join(''));
     return JSON.parse(jsonPayload);
@@ -318,20 +623,31 @@ window.handleGoogleResponse = async function(response) {
     showStatus("Google sign-in failed. Please try again.", false);
     return;
   }
-  const payload = parseJwt(response.credential);
+  var payload = parseJwt(response.credential);
   if (!payload || !payload.email) {
     showStatus("Could not read Google profile information.", false);
     return;
   }
 
-  const user = {
+  var user = {
     id: 'g_' + (payload.sub || Date.now()),
     name: payload.name || payload.email.split('@')[0],
     email: payload.email,
     avatar: payload.picture || '',
     provider: 'google'
   };
-  await completeAuth(user);
+
+  // Check if returning user
+  var existing = await findUserByEmail(user.email);
+  if (existing) {
+    // Returning user — use their saved name, skip username modal
+    user.name = existing.name || user.name;
+    user.id = existing.id || user.id;
+    await completeAuth(user);
+  } else {
+    // New user — show username modal
+    showUsernameModal(user);
+  }
 };
 
 // ── 2. Facebook SDK Login ──
@@ -357,19 +673,178 @@ function loginWithFacebook() {
           showStatus("Could not fetch Facebook profile details.", false);
           return;
         }
-        const user = {
+        var user = {
           id: 'fb_' + profile.id,
           name: profile.name,
           email: profile.email || '',
           avatar: profile.picture?.data?.url || '',
           provider: 'facebook'
         };
-        await completeAuth(user);
+
+        // Check if returning user
+        if (user.email) {
+          var existing = await findUserByEmail(user.email);
+          if (existing) {
+            user.name = existing.name || user.name;
+            user.id = existing.id || user.id;
+            await completeAuth(user);
+            return;
+          }
+        }
+        // New user — show username modal
+        showUsernameModal(user);
       });
     } else {
       showStatus("Facebook sign-in was cancelled.", false);
     }
   }, { scope: 'public_profile,email' });
+}
+
+// ── 3. Email/Password Auth ──
+var toggleLink = document.getElementById('toggle-mode');
+var usernameField = document.getElementById('field-username');
+var submitBtn = document.getElementById('btn-auth-submit');
+var authTitle = document.getElementById('auth-title');
+var authSubtitle = document.getElementById('auth-subtitle');
+var toggleText = document.getElementById('auth-toggle');
+
+function setMode(signUp) {
+  isSignUpMode = signUp;
+  if (signUp) {
+    usernameField.classList.add('show');
+    submitBtn.textContent = 'Create Account';
+    authTitle.textContent = 'Create your account';
+    authSubtitle.textContent = 'Join Rydealot — zero-commission rides, parcels & freight.';
+    toggleText.innerHTML = 'Already have an account? <a id="toggle-mode">Sign In</a>';
+  } else {
+    usernameField.classList.remove('show');
+    submitBtn.textContent = 'Sign In';
+    authTitle.textContent = 'Welcome to Rydealot';
+    authSubtitle.textContent = 'Fast, zero-commission bike taxi & instant parcel network.';
+    toggleText.innerHTML = 'Don\'t have an account? <a id="toggle-mode">Sign Up</a>';
+  }
+  hideStatus();
+  // Re-attach toggle listener
+  document.getElementById('toggle-mode').addEventListener('click', function() {
+    setMode(!isSignUpMode);
+  });
+}
+
+toggleLink.addEventListener('click', function() {
+  setMode(!isSignUpMode);
+});
+
+// Auto-fill username from email
+document.getElementById('auth-email').addEventListener('input', function() {
+  if (isSignUpMode) {
+    var email = this.value.trim();
+    var usernameInput = document.getElementById('auth-username');
+    if (email.includes('@') && !usernameInput._userEdited) {
+      usernameInput.value = email.split('@')[0];
+    }
+  }
+});
+document.getElementById('auth-username').addEventListener('input', function() {
+  this._userEdited = true;
+});
+
+// Form submit
+document.getElementById('email-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  hideStatus();
+
+  var email = document.getElementById('auth-email').value.trim().toLowerCase();
+  var password = document.getElementById('auth-password').value;
+  var username = document.getElementById('auth-username').value.trim();
+
+  if (!email || !password) {
+    showStatus("Please fill in email and password.", false);
+    return;
+  }
+  if (password.length < 6) {
+    showStatus("Password must be at least 6 characters.", false);
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = isSignUpMode ? 'Creating account…' : 'Signing in…';
+
+  try {
+    var hash = await hashPassword(password);
+
+    if (isSignUpMode) {
+      // ── SIGN UP ──
+      if (!username) {
+        username = email.split('@')[0];
+      }
+
+      // Check if email already exists
+      var existing = await findUserByEmail(email);
+      if (existing) {
+        showStatus("An account with this email already exists. Sign in instead.", false);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+        return;
+      }
+
+      var user = {
+        id: 'e_' + Date.now(),
+        name: username,
+        email: email,
+        avatar: '',
+        provider: 'email',
+        password_hash: hash
+      };
+      await completeAuth(user);
+
+    } else {
+      // ── SIGN IN ──
+      var existing = await findUserByEmail(email);
+      if (!existing) {
+        showStatus("No account found with this email. Sign up first.", false);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
+        return;
+      }
+
+      // Check if this is a social-auth user (no password_hash)
+      if (!existing.password_hash) {
+        var provider = existing.auth_provider || 'Google/Facebook';
+        showStatus("This account uses " + provider + " sign-in. Use the button above.", false);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
+        return;
+      }
+
+      // Verify password
+      if (existing.password_hash !== hash) {
+        showStatus("Incorrect password. Please try again.", false);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
+        return;
+      }
+
+      // Password matches — log in
+      var user = {
+        id: existing.id || ('e_' + Date.now()),
+        name: existing.name || email.split('@')[0],
+        email: email,
+        avatar: existing.avatar_url || '',
+        provider: 'email'
+      };
+      await completeAuth(user);
+    }
+  } catch (err) {
+    console.error('Auth error:', err);
+    showStatus("Something went wrong. Please try again.", false);
+    submitBtn.disabled = false;
+    submitBtn.textContent = isSignUpMode ? 'Create Account' : 'Sign In';
+  }
+});
+
+// Check URL for ?mode=signup
+if (urlParams.get('mode') === 'signup') {
+  setMode(true);
 }
 </script>
 </body>
