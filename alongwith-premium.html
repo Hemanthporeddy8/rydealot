@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Along With Premium • 3-Leg Relay Pilot (Private Founder Window)</title>
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --bg: #0B0F19;
+      --card: #131B2E;
+      --card-border: #1E293B;
+      --ink: #F8FAFC;
+      --ink-soft: #94A3B8;
+      --accent: #2563EB;
+      --accent-glow: rgba(37,99,235,0.3);
+      --gold: #F59E0B;
+      --gold-glow: rgba(245,158,11,0.25);
+      --green: #22C55E;
+      --green-glow: rgba(34,197,94,0.2);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding-bottom: 30px;
+    }
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Nav */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(11, 15, 25, 0.94);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(37,99,235,0.2));
+      border: 1px solid rgba(245,158,11,0.5);
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 900;
+      color: #FCD34D;
+      letter-spacing: 0.5px;
+    }
+
+    /* Security Gate Modal */
+    #gatekeeper-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: rgba(11, 15, 25, 0.98);
+      backdrop-filter: blur(20px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .gate-box {
+      background: #111827;
+      border: 1.5px solid #374151;
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    }
+    .gate-input {
+      width: 100%;
+      background: #0B0F19;
+      border: 1.5px solid #374151;
+      border-radius: 12px;
+      color: #fff;
+      padding: 12px;
+      font-size: 18px;
+      font-family: 'IBM Plex Mono', monospace;
+      text-align: center;
+      letter-spacing: 6px;
+      margin: 16px 0;
+      outline: none;
+    }
+    .gate-input:focus {
+      border-color: #38BDF8;
+      box-shadow: 0 0 12px rgba(56,189,248,0.4);
+    }
+    .gate-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #2563EB, #1D4ED8);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* Relay Progress Ribbon */
+    .relay-ribbon {
+      background: var(--card);
+      border-bottom: 1px solid var(--card-border);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .relay-node {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      opacity: 0.45;
+      transition: all 0.3s ease;
+    }
+    .relay-node.active {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    .relay-node-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #1E293B;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      border: 1.5px solid #334155;
+    }
+    .relay-node.active .relay-node-icon {
+      background: var(--accent);
+      border-color: #60A5FA;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+    .relay-node.done .relay-node-icon {
+      background: var(--green);
+      border-color: #4ADE80;
+    }
+    .relay-node-title {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #E2E8F0;
+    }
+    .relay-arrow {
+      color: #475569;
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+
+    /* Map Wrap */
+    .map-wrap {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      background: #0d131f;
+      border-bottom: 1px solid var(--card-border);
+    }
+    #relay-map {
+      width: 100%;
+      height: 100%;
+    }
+    .leaflet-control-attribution { display: none !important; }
+    .leaflet-tile-pane {
+      filter: brightness(0.85) invert(1) contrast(3) hue-rotate(200deg) saturate(0.35);
+    }
+
+    /* Highway In-Words Banner (Leg 2) */
+    .highway-words-banner {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 999;
+      background: radial-gradient(circle at center, #1E293B 0%, #0B0F19 100%);
+      padding: 24px 20px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .highway-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245,158,11,0.2);
+      border: 1px solid #F59E0B;
+      color: #FCD34D;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 900;
+      margin-bottom: 10px;
+    }
+    .highway-status-title {
+      font-size: 17px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .highway-milestone-pill {
+      background: #111827;
+      border: 1px solid #374151;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: #38BDF8;
+      font-weight: 700;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Content */
+    .content {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    /* Founder Test Controller */
+    .test-controls {
+      background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(17,24,39,0.5));
+      border: 1.5px solid #3B82F6;
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+    .control-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: transform 0.1s ease;
+    }
+    .control-btn:active { transform: scale(0.98); }
+    .btn-leg1 { background: #0284C7; }
+    .btn-leg2 { background: #D97706; }
+    .btn-leg3 { background: #16A34A; }
+
+    /* Landmark Rendezvous Card */
+    .meetup-box {
+      background: #0B0F19;
+      border: 1px dashed #334155;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 12px;
+      color: #CBD5E1;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 🔒 FOUNDER PRIVATE GATEKEEPER MODAL -->
+<div id="gatekeeper-modal">
+  <div class="gate-box">
+    <div style="font-size:36px; margin-bottom:8px;">🔐</div>
+    <h2 style="font-size:17px; font-weight:900; color:#fff; margin-bottom:4px;">Along With Premium</h2>
+    <p style="font-size:12px; color:var(--ink-soft); line-height:1.4;">
+      Private Founder Window (V2 Prototype).<br>Enter your Founder PIN to unlock this testing dashboard.
+    </p>
+    <input type="password" id="gatekeeper-pin" class="gate-input" placeholder="••••" maxlength="4" autofocus>
+    <button type="button" class="gate-btn" onclick="verifyFounderPin()">Unlock Testing Window →</button>
+    <div style="margin-top:12px;">
+      <a href="index.html" style="font-size:11px; color:#64748B; text-decoration:none;">← Return to Main Rydealot</a>
+    </div>
+  </div>
+</div>
+
+<div class="container" id="main-app" style="display:none;">
+
+  <!-- Header -->
+  <div class="top-nav">
+    <a href="alongwith.html" style="text-decoration:none; color:var(--ink); font-weight:700; font-size:12.5px; display:flex; align-items:center; gap:4px;">
+      <i class="ti ti-arrow-left"></i> Along With
+    </a>
+    <div class="brand-tag">
+      <span>👑</span> ALONG WITH PREMIUM
+    </div>
+    <div style="font-size:10px; font-weight:800; color:#4ADE80; background:rgba(34,197,94,0.15); border:1px solid #22c55e; padding:3px 8px; border-radius:8px;">
+      INTERNAL PILOT
+    </div>
+  </div>
+
+  <!-- 3-Leg Relay Visual Ribbon -->
+  <div class="relay-ribbon">
+    <div class="relay-node active" id="node-leg1">
+      <div class="relay-node-icon">🛵</div>
+      <div class="relay-node-title">1. Pickup Bike</div>
+      <div style="font-size:9.5px; color:#38BDF8; font-weight:700;">Live GPS Map</div>
+    </div>
+    <div class="relay-arrow">➔</div>
+    <div class="relay-node" id="node-leg2">
+      <div class="relay-node-icon">🛻</div>
+      <div class="relay-node-title">2. Auto Truck</div>
+      <div style="font-size:9.5px; color:#FCD34D; font-weight:700;">Highway Words</div>
+    </div>
+    <div class="relay-arrow">➔</div>
+    <div class="relay-node" id="node-leg3">
+      <div class="relay-node-icon">🛵</div>
+      <div class="relay-node-title">3. Drop Bike</div>
+      <div style="font-size:9.5px; color:#4ADE80; font-weight:700;">Live GPS Map</div>
+    </div>
+  </div>
+
+  <!-- Map Display & Highway Words Overlay -->
+  <div class="map-wrap">
+    <div id="relay-map"></div>
+
+    <!-- Highway In-Words Banner (Leg 2 Overlay) -->
+    <div class="highway-words-banner" id="highway-words-box">
+      <div class="highway-badge">
+        <span>🛣️</span> HIGHWAY LINEHAUL IN TRANSIT
+      </div>
+      <div class="highway-status-title" id="hw-title">
+        Cruising on NH163 Highway (Warangal ➔ Hyderabad)
+      </div>
+      <div style="font-size:12px; color:#94A3B8; max-width:320px; margin:0 auto;" id="hw-sub">
+        Carried on Tata Ace #TS03UB9210 • Driver: Mahesh
+      </div>
+
+      <div class="highway-milestone-pill" id="hw-milestone">
+        <span>📍</span> Passed Jangaon Bypass • Est. Arrival at Uppal: 2:30 PM
+      </div>
+
+      <div style="margin-top:14px; font-size:11px; color:#64748B;">
+        🔋 Zero battery drain tracking • Driver focused on highway safety
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- FOUNDER TEST CONTROLLER (For Testing All 3 Stages) -->
+    <div class="test-controls">
+      <div style="font-size:11px; font-weight:800; color:#93C5FD; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; display:flex; justify-content:space-between;">
+        <span>🎮 Founder Pilot Controller</span>
+        <span style="color:#FCD34D;">Test Mode</span>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="control-btn btn-leg1" onclick="switchLeg(1)">
+          1. Pickup Bike (GPS)
+        </button>
+        <button type="button" class="control-btn btn-leg2" onclick="switchLeg(2)">
+          2. Auto Truck (Words)
+        </button>
+        <button type="button" class="control-btn btn-leg3" onclick="switchLeg(3)">
+          3. Drop Bike (GPS)
+        </button>
+      </div>
+    </div>
+
+    <!-- Current Stage Summary Card -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-size:11.5px; font-weight:800; text-transform:uppercase; color:var(--ink-soft);" id="stage-badge-label">
+          STAGE 1: FIRST-MILE PICKUP
+        </span>
+        <span id="stage-eta" style="font-size:11.5px; font-family:'IBM Plex Mono',monospace; color:#38BDF8; font-weight:700;">
+          ETA: ~6 mins
+        </span>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+        <div style="font-size:28px; width:48px; height:48px; border-radius:50%; background:#1E293B; display:flex; align-items:center; justify-content:center; border:1px solid #334155;" id="stage-icon">
+          🛵
+        </div>
+        <div>
+          <div style="font-size:14px; font-weight:800; color:#fff;" id="stage-driver-name">Captain Ramesh (Hero Splendor)</div>
+          <div style="font-size:12px; color:var(--ink-soft);" id="stage-driver-sub">Heading to Sender Doorstep in Warangal</div>
+        </div>
+      </div>
+
+      <!-- Landmark Rendezvous Box -->
+      <div class="meetup-box" id="meetup-box">
+        <strong style="color:#FCD34D; display:block; margin-bottom:3px;">☕ Highway Rendezvous Landmark:</strong>
+        <span id="meetup-text">Madikonda IOCL Petrol Bunk (Warangal Highway Entrance) • 15-min tea break meeting window.</span>
+      </div>
+    </div>
+
+    <!-- Active Package Details -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-size:11px; font-weight:800; color:var(--ink-soft); text-transform:uppercase;">📦 Shipment Specs</span>
+        <span style="font-size:11.5px; font-weight:800; color:#4ADE80;">Paid: ₹240</span>
+      </div>
+      <div style="font-size:13px; font-weight:800; color:#fff; margin-bottom:4px;">
+        Box of Toys (4.5 KG) • Fragile
+      </div>
+      <div style="font-size:11.5px; color:var(--ink-soft);">
+        Pickup: Hanamkonda Main Road ➔ Drop: Kukatpally Housing Board, Hyderabad
+      </div>
+
+      <div style="margin-top:12px; padding-top:10px; border-top:1px solid #1E293B; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:11px; color:#94A3B8;">Delivery Verification PIN:</span>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:16px; font-weight:900; color:#38BDF8; letter-spacing:2px;">4928</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── 🔒 FOUNDER ACCESS GATEKEEPER ──
+  // Default PIN: 8598 or 6309 (Can be changed anytime)
+  var VALID_PINS = ['8598', '6309', '2026'];
+
+  function checkAccess() {
+    var unlocked = sessionStorage.getItem('rydealot_premium_pilot_unlocked');
+    var pinParam = new URLSearchParams(window.location.search).get('pin');
+
+    if (unlocked === 'true' || VALID_PINS.indexOf(pinParam) !== -1) {
+      document.getElementById('gatekeeper-modal').style.display = 'none';
+      document.getElementById('main-app').style.display = 'flex';
+      initRelayMap();
+    } else {
+      document.getElementById('gatekeeper-modal').style.display = 'flex';
+      document.getElementById('main-app').style.display = 'none';
+    }
+  }
+
+  function verifyFounderPin() {
+    var entered = document.getElementById('gatekeeper-pin').value.trim();
+    if (VALID_PINS.indexOf(entered) !== -1) {
+      sessionStorage.setItem('rydealot_premium_pilot_unlocked', 'true');
+      document.getElementById('gatekeeper-modal').style.display = 'none';
+      document.getElementById('main-app').style.display = 'flex';
+      initRelayMap();
+    } else {
+      alert('❌ Incorrect Founder PIN. Access restricted to authorized Rydealot developers.');
+      document.getElementById('gatekeeper-pin').value = '';
+    }
+  }
+
+  // ── MAP & RELAY ENGINE ──
+  var map = null;
+  var currentMarker = null;
+  var routeLine = null;
+  var currentLeg = 1;
+
+  function initRelayMap() {
+    if (map) return;
+    map = L.map('relay-map', {
+      zoomControl: false,
+      attributionControl: false
+    }).setView([17.9961, 79.5509], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    switchLeg(1);
+  }
+
+  function switchLeg(legNum) {
+    currentLeg = legNum;
+
+    // Reset ribbons
+    document.getElementById('node-leg1').className = legNum === 1 ? 'relay-node active' : (legNum > 1 ? 'relay-node done' : 'relay-node');
+    document.getElementById('node-leg2').className = legNum === 2 ? 'relay-node active' : (legNum > 2 ? 'relay-node done' : 'relay-node');
+    document.getElementById('node-leg3').className = legNum === 3 ? 'relay-node active' : 'relay-node';
+
+    var hwBox = document.getElementById('highway-words-box');
+
+    if (legNum === 1) {
+      // 🛵 LEG 1: Pickup Bike (Warangal Local GPS)
+      hwBox.style.display = 'none';
+      document.getElementById('stage-badge-label').textContent = 'STAGE 1: FIRST-MILE PICKUP BIKE (WARANGAL)';
+      document.getElementById('stage-eta').textContent = 'ETA: ~5 mins';
+      document.getElementById('stage-icon').textContent = '🛵';
+      document.getElementById('stage-driver-name').textContent = 'Captain Ramesh (Hero Splendor)';
+      document.getElementById('stage-driver-sub').textContent = 'Approaching your doorstep to collect parcel';
+      document.getElementById('meetup-text').textContent = 'Madikonda IOCL Petrol Bunk (Warangal Highway Entrance) • 15-min tea break meeting window with Auto Truck.';
+
+      renderMapMarker(18.0073, 79.5583, '🛵', 'Warangal Pickup Bike');
+      map.setView([18.0073, 79.5583], 14);
+
+    } else if (legNum === 2) {
+      // 🛻 LEG 2: Auto Truck Linehaul (Highway - In Words Banner)
+      hwBox.style.display = 'flex';
+      document.getElementById('stage-badge-label').textContent = 'STAGE 2: HIGHWAY AUTO TRUCK LINEHAUL';
+      document.getElementById('stage-eta').textContent = 'Est: 2:30 PM';
+      document.getElementById('stage-icon').textContent = '🛻';
+      document.getElementById('stage-driver-name').textContent = 'Mahesh (Tata Ace #TS03 UB 9210)';
+      document.getElementById('stage-driver-sub').textContent = 'Cruising on NH163 Highway towards Hyderabad';
+      document.getElementById('meetup-text').textContent = 'Uppal Ring Road Junction (Hyderabad Entry) • Destination handover meeting point.';
+
+    } else if (legNum === 3) {
+      // 🛵 LEG 3: Drop Bike (Hyderabad Local GPS)
+      hwBox.style.display = 'none';
+      document.getElementById('stage-badge-label').textContent = 'STAGE 3: LAST-MILE DROP BIKE (HYDERABAD)';
+      document.getElementById('stage-eta').textContent = 'ETA: ~12 mins';
+      document.getElementById('stage-icon').textContent = '🛵';
+      document.getElementById('stage-driver-name').textContent = 'Captain Syed (Bajaj Pulsar)';
+      document.getElementById('stage-driver-sub').textContent = 'Out for doorstep delivery in Hyderabad (Kukatpally)';
+      document.getElementById('meetup-text').textContent = 'Parcel cleared from Highway Hub • Safe doorstep delivery in progress.';
+
+      renderMapMarker(17.4947, 78.3996, '🛵', 'Hyderabad Delivery Bike');
+      map.setView([17.4947, 78.3996], 14);
+    }
+  }
+
+  function renderMapMarker(lat, lng, emoji, label) {
+    if (currentMarker) map.removeLayer(currentMarker);
+
+    var icon = L.divIcon({
+      html: '<div style="background:#2563EB; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:2.5px solid #fff; box-shadow:0 4px 12px rgba(0,0,0,0.4); transform:translate(-18px,-18px);">' + emoji + '</div>',
+      iconSize: [36,36], iconAnchor: [0,0]
+    });
+
+    currentMarker = L.marker([lat, lng], { icon: icon }).addTo(map);
+  }
+
+  window.onload = function() {
+    checkAccess();
+  };
+</script>
+</body>
+</html>
