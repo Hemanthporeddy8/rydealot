@@ -185,9 +185,8 @@
         <div class="rd-pulse-ring"></div>
         <div class="rd-pulse-ring"></div>
         <div class="rd-mascot-circle">
-          <video autoplay loop muted playsinline poster="assets/mascot-offline.png" class="rd-mascot-media">
-            <source src="assets/video/mascot-offline.mp4" type="video/mp4">
-            <img src="assets/mascot-offline.png" class="rd-mascot-media" alt="Rydo Searching For Signal">
+          <video autoplay loop muted playsinline webkit-playsinline class="rd-mascot-media" id="rd-offline-video" src="assets/video/mascot-offline.mp4">
+            <img src="assets/mascot-offline.webp" class="rd-mascot-media" alt="Rydo Searching For Signal">
           </video>
         </div>
       </div>
@@ -238,8 +237,33 @@
       var txt = document.getElementById('rd-offline-status-text');
       if (txt) txt.textContent = 'Signal Disconnected';
       var vid = overlay.querySelector('video');
-      if (vid && vid.paused) {
-        vid.play().catch(function() {});
+      if (vid) {
+        vid.muted = true;
+        vid.playsInline = true;
+        if (!vid._errBound) {
+          vid._errBound = true;
+          vid.addEventListener('error', function() {
+            var img = document.createElement('img');
+            img.src = 'assets/mascot-offline.webp';
+            img.className = 'rd-mascot-media';
+            img.alt = 'Rydo Searching For Signal';
+            if (vid.parentNode) vid.parentNode.replaceChild(img, vid);
+          });
+        }
+        var p = vid.play();
+        if (p !== undefined) {
+          p.catch(function() {
+            // Autoplay rejected - fallback to animated webp clip immediately
+            if (!vid.dataset.fallback) {
+              vid.dataset.fallback = 'true';
+              var img = document.createElement('img');
+              img.src = 'assets/mascot-offline.webp';
+              img.className = 'rd-mascot-media';
+              img.alt = 'Rydo Searching For Signal';
+              if (vid.parentNode) vid.parentNode.replaceChild(img, vid);
+            }
+          });
+        }
       }
     }
   }

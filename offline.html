@@ -183,9 +183,8 @@
     <div class="pulse-ring"></div>
     <div class="pulse-ring"></div>
     <div class="mascot-circle">
-      <video autoplay loop muted playsinline poster="assets/mascot-offline.png" class="mascot-media">
-        <source src="assets/video/mascot-offline.mp4" type="video/mp4">
-        <img src="assets/mascot-offline.png" class="mascot-media" alt="Rydo Searching For Signal">
+      <video autoplay loop muted playsinline webkit-playsinline class="mascot-media" id="offline-mascot-video" src="assets/video/mascot-offline.mp4">
+        <img src="assets/mascot-offline.webp" class="mascot-media" alt="Rydo Searching For Signal">
       </video>
     </div>
   </div>
@@ -211,6 +210,32 @@
 </div>
 
 <script>
+  var vid = document.getElementById('offline-mascot-video');
+  if (vid) {
+    vid.muted = true;
+    vid.playsInline = true;
+    if (!vid._errBound) {
+      vid._errBound = true;
+      vid.addEventListener('error', function() {
+        var img = document.createElement('img');
+        img.src = 'assets/mascot-offline.webp';
+        img.className = 'mascot-media';
+        img.alt = 'Rydo Searching For Signal';
+        if (vid.parentNode) vid.parentNode.replaceChild(img, vid);
+      });
+    }
+    var p = vid.play();
+    if (p !== undefined) {
+      p.catch(function() {
+        var img = document.createElement('img');
+        img.src = 'assets/mascot-offline.webp';
+        img.className = 'mascot-media';
+        img.alt = 'Rydo Searching For Signal';
+        if (vid.parentNode) vid.parentNode.replaceChild(img, vid);
+      });
+    }
+  }
+
   var isChecking = false;
   function checkConnection() {
     var pill = document.getElementById('status-pill');
