@@ -14,13 +14,13 @@
     --line: #1E293B;
     --ink: #FFFFFF;
     --ink-soft: #94A3B8;
-    --accent: #3B82F6;
+    --amber: #FFB020;
+    --amber-deep: #F59E0B;
     --green: #22C55E;
-    --amber: #F59E0B;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg);
     color: var(--ink);
     min-height: 100vh;
@@ -33,13 +33,13 @@
   }
 
   .offline-card {
-    max-width: 400px;
+    max-width: 390px;
     width: 100%;
     background: var(--card);
     border: 1.5px solid var(--line);
     border-radius: 28px;
-    padding: 36px 28px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    padding: 36px 26px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 176, 32, 0.15);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -47,8 +47,8 @@
 
   /* Mascot Animation Container */
   .mascot-container {
-    width: 170px;
-    height: 190px;
+    width: 150px;
+    height: 150px;
     position: relative;
     margin-bottom: 20px;
     display: flex;
@@ -61,40 +61,52 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    margin-top: -70px;
-    margin-left: -70px;
-    width: 140px;
-    height: 140px;
+    margin-top: -65px;
+    margin-left: -65px;
+    width: 130px;
+    height: 130px;
     border-radius: 50%;
-    border: 2px dashed rgba(245, 158, 11, 0.4);
+    border: 2px dashed rgba(245, 158, 11, 0.55);
     animation: radarPulse 2.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+    pointer-events: none;
   }
   .pulse-ring:nth-child(2) {
     animation-delay: 1.4s;
   }
   @keyframes radarPulse {
-    0% { transform: scale(0.6); opacity: 0.9; }
-    100% { transform: scale(1.5); opacity: 0; }
+    0% { transform: scale(0.65); opacity: 0.95; }
+    100% { transform: scale(1.45); opacity: 0; }
   }
 
-  .mascot-img {
-    width: 135px;
-    height: auto;
-    max-height: 180px;
-    object-fit: contain;
+  /* Circular Mascot Portal - Crops video into a perfect radar sphere */
+  .mascot-circle {
+    width: 124px;
+    height: 124px;
+    border-radius: 50%;
+    overflow: hidden;
     position: relative;
     z-index: 2;
-    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.55));
-    animation: mascotBob 3.5s ease-in-out infinite;
+    border: 3px solid var(--amber);
+    box-shadow: 0 0 24px rgba(255, 176, 32, 0.38), inset 0 0 16px rgba(0, 0, 0, 0.6);
+    background: #0B132B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  @keyframes mascotBob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
+
+  .mascot-media {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 50%;
+    display: block;
+    pointer-events: none;
   }
 
   .offline-title {
     font-family: 'Manrope', sans-serif;
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 800;
     color: #fff;
     margin-bottom: 8px;
@@ -102,10 +114,10 @@
   }
 
   .offline-desc {
-    font-size: 14px;
+    font-size: 13.5px;
     line-height: 1.55;
     color: var(--ink-soft);
-    margin-bottom: 24px;
+    margin-bottom: 22px;
   }
 
   /* Connection status pill */
@@ -115,18 +127,18 @@
     gap: 8px;
     background: rgba(245, 158, 11, 0.12);
     border: 1px solid rgba(245, 158, 11, 0.3);
-    color: var(--amber);
+    color: var(--amber-deep);
     font-size: 12px;
     font-weight: 700;
     padding: 6px 14px;
     border-radius: 99px;
-    margin-bottom: 24px;
+    margin-bottom: 22px;
   }
   .status-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--amber);
+    background: var(--amber-deep);
     animation: blink 1.2s ease-in-out infinite alternate;
   }
   @keyframes blink {
@@ -136,9 +148,9 @@
 
   .btn-retry {
     width: 100%;
-    padding: 14px 20px;
-    background: var(--accent);
-    color: #fff;
+    padding: 13.5px 20px;
+    background: var(--amber);
+    color: #0F172A;
     border: none;
     border-radius: 14px;
     font-size: 14px;
@@ -148,16 +160,17 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s;
-    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+    transition: transform 0.15s ease, background 0.15s ease;
+    box-shadow: 0 4px 16px rgba(255, 176, 32, 0.35);
   }
-  .btn-retry:hover { background: #2563EB; transform: translateY(-1px); }
+  .btn-retry:hover { background: var(--amber-deep); transform: translateY(-1px); }
   .btn-retry:active { transform: translateY(0); }
 
   .auto-retry-text {
     font-size: 11.5px;
     color: #64748B;
     margin-top: 14px;
+    font-weight: 500;
   }
 </style>
 </head>
@@ -165,11 +178,16 @@
 
 <div class="offline-card">
 
-  <!-- Mascot Stage -->
+  <!-- Mascot Stage with Circular Frame -->
   <div class="mascot-container">
     <div class="pulse-ring"></div>
     <div class="pulse-ring"></div>
-    <img src="assets/mascot-offline.png" class="mascot-img" alt="Rydo Searching For Signal">
+    <div class="mascot-circle">
+      <video autoplay loop muted playsinline poster="assets/mascot-offline.png" class="mascot-media">
+        <source src="assets/video/mascot-offline.mp4" type="video/mp4">
+        <img src="assets/mascot-offline.png" class="mascot-media" alt="Rydo Searching For Signal">
+      </video>
+    </div>
   </div>
 
   <h2 class="offline-title">No Internet Connection</h2>
@@ -193,25 +211,41 @@
 </div>
 
 <script>
+  var isChecking = false;
   function checkConnection() {
     var pill = document.getElementById('status-pill');
     var text = document.getElementById('status-text');
+    var dot = document.querySelector('.status-dot');
     text.textContent = 'Checking network…';
 
-    if (navigator.onLine) {
-      text.textContent = 'Connected! Reloading…';
-      pill.style.background = 'rgba(34, 197, 94, 0.15)';
-      pill.style.borderColor = 'rgba(34, 197, 94, 0.3)';
-      pill.style.color = '#22C55E';
-      document.querySelector('.status-dot').style.background = '#22C55E';
-      setTimeout(function() {
-        window.location.reload();
-      }, 400);
-    } else {
-      setTimeout(function() {
-        text.textContent = 'Still Offline • Check Wi-Fi';
-      }, 500);
-    }
+    if (isChecking) return;
+    isChecking = true;
+
+    // Active ping test
+    fetch('./icon.svg?rd_probe=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+      .then(function(res) {
+        isChecking = false;
+        if (res && res.ok) {
+          text.textContent = '🟢 Connected! Loading Rydealot…';
+          pill.style.background = 'rgba(34, 197, 94, 0.15)';
+          pill.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+          pill.style.color = '#22C55E';
+          if (dot) dot.style.background = '#22C55E';
+          setTimeout(function() {
+            window.location.href = './index.html';
+          }, 350);
+        } else {
+          throw new Error('Offline');
+        }
+      })
+      .catch(function() {
+        isChecking = false;
+        text.textContent = 'Still Offline • Check Wi-Fi / Data';
+        pill.style.background = 'rgba(245, 158, 11, 0.12)';
+        pill.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+        pill.style.color = '#F59E0B';
+        if (dot) dot.style.background = '#F59E0B';
+      });
   }
 
   // Auto-resume app the moment internet is restored
@@ -222,7 +256,7 @@
   // Periodic heartbeat retry every 4 seconds
   setInterval(function() {
     if (navigator.onLine) {
-      window.location.reload();
+      checkConnection();
     }
   }, 4000);
 </script>

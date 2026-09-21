@@ -11,6 +11,18 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Instant Offline Guard: Prevents page flash when offline -->
+<script>
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    document.documentElement.classList.add('app-is-offline');
+  }
+</script>
+<style>
+  html.app-is-offline body > *:not(#rydealot-offline-overlay) {
+    display: none !important;
+  }
+</style>
+<script src="offline-detector.js"></script>
 <style>
   :root {
     --bg: #F5F7FB;
@@ -1563,6 +1575,5 @@
     checkActiveParcelOnLoad();
   };
 </script>
-<script src="offline-detector.js"></script>
 </body>
 </html>

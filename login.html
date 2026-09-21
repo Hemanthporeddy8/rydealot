@@ -14,6 +14,18 @@
 <!-- Firebase SDK (Phone OTP Auth) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<!-- Instant Offline Guard: Prevents page flash when offline -->
+<script>
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    document.documentElement.classList.add('app-is-offline');
+  }
+</script>
+<style>
+  html.app-is-offline body > *:not(#rydealot-offline-overlay) {
+    display: none !important;
+  }
+</style>
+<script src="offline-detector.js"></script>
 <style>
   :root {
     --ink: #0F172A;
@@ -1223,6 +1235,5 @@ if (urlParams.get('mode') === 'signup') {
   setMode(true);
 }
 </script>
-<script src="offline-detector.js"></script>
 </body>
 </html>

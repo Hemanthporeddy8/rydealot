@@ -23,6 +23,18 @@
 <link rel="manifest" href="manifest.json">
 <link rel="shortcut icon" href="logo.png" type="image/png">
 <link rel="apple-touch-icon" href="logo.png">
+<!-- Instant Offline Guard: Prevents index.html from flashing when opened offline -->
+<script>
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    document.documentElement.classList.add('app-is-offline');
+  }
+</script>
+<style>
+  html.app-is-offline body > *:not(#rydealot-offline-overlay) {
+    display: none !important;
+  }
+</style>
+<script src="offline-detector.js"></script>
 </head>
 <body>
 
@@ -521,7 +533,6 @@
 <!-- Driver UI has been moved to driver.html for clean separation -->
 
 <script src="animations.js?v=3.4"></script>
-<script src="offline-detector.js"></script>
 <script src="app.js?v=5.4"></script>
 </body>
 </html>

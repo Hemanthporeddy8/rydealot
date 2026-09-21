@@ -9,6 +9,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<!-- Instant Offline Guard: Prevents page flash when offline -->
+<script>
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    document.documentElement.classList.add('app-is-offline');
+  }
+</script>
+<style>
+  html.app-is-offline body > *:not(#rydealot-offline-overlay) {
+    display: none !important;
+  }
+</style>
+<script src="offline-detector.js"></script>
 <style>
   :root {
     --bg: #F5F7FB;
@@ -644,6 +656,5 @@
     loadUserProfile();
   };
 </script>
-<script src="offline-detector.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-var CACHE_NAME = 'rydealot-v22';
+var CACHE_NAME = 'rydealot-v23';
 var urlsToCache = [
   './',
   './index.html',
@@ -25,7 +25,8 @@ var urlsToCache = [
   './assets/mascot-sage.webp',
   './assets/mascot-waving.webp',
   './assets/mascot-success.webp',
-  './assets/mascot-moving.webp'
+  './assets/mascot-moving.webp',
+  './assets/video/mascot-offline.mp4'
 ];
 
 // Install: cache essential assets and offline fallback page
@@ -52,7 +53,7 @@ self.addEventListener('activate', function(event) {
   );
 });
 
-// Fetch: Network-first with automatic offline fallback to offline.html
+// Fetch: Network-first with immediate offline fallback to offline.html for navigation
 self.addEventListener('fetch', function(event) {
   // Bypass API and non-GET calls
   if (event.request.method !== 'GET' || event.request.url.indexOf('supabase.co') !== -1 || event.request.url.indexOf('/api/') !== -1) {
@@ -71,13 +72,13 @@ self.addEventListener('fetch', function(event) {
         return response;
       })
       .catch(function() {
-        return caches.match(event.request).then(function(cachedResp) {
-          if (cachedResp) return cachedResp;
-          // If HTML page request fails and is not cached, return custom offline mascot page
-          if (event.request.mode === 'navigate' || (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
-            return caches.match('./offline.html');
-          }
-        });
+        // If navigation request fails while offline, serve offline mascot screen directly
+        var isHtmlNav = event.request.mode === 'navigate' ||
+          (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'));
+        if (isHtmlNav) {
+          return caches.match('./offline.html');
+        }
+        return caches.match(event.request);
       })
   );
 });

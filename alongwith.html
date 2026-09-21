@@ -13,6 +13,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <!-- Instant Offline Guard: Prevents page flash when offline -->
+  <script>
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      document.documentElement.classList.add('app-is-offline');
+    }
+  </script>
+  <style>
+    html.app-is-offline body > *:not(#rydealot-offline-overlay) {
+      display: none !important;
+    }
+  </style>
+  <script src="offline-detector.js"></script>
   <style>
     :root {
       --bg: #EEF0F2;
@@ -3839,6 +3851,5 @@
     }
   }, 5000);
 </script>
-<script src="offline-detector.js"></script>
 </body>
 </html>
