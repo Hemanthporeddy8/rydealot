@@ -9,11 +9,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0B0F19;
-    --card: #131B2E;
-    --line: #1E293B;
-    --ink: #FFFFFF;
-    --ink-soft: #94A3B8;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --line: #E2E8F0;
+    --ink: #0F172A;
+    --ink-soft: #64748B;
     --amber: #FFB020;
     --amber-deep: #F59E0B;
     --green: #22C55E;
@@ -39,7 +39,7 @@
     border: 1.5px solid var(--line);
     border-radius: 28px;
     padding: 36px 26px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 176, 32, 0.15);
+    box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.12), 0 0 24px rgba(255, 176, 32, 0.12);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -66,7 +66,7 @@
     width: 130px;
     height: 130px;
     border-radius: 50%;
-    border: 2px dashed rgba(245, 158, 11, 0.55);
+    border: 2px dashed rgba(245, 158, 11, 0.5);
     animation: radarPulse 2.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
     pointer-events: none;
   }
@@ -86,8 +86,8 @@
     overflow: hidden;
     position: relative;
     z-index: 2;
-    border: 3px solid var(--amber);
-    box-shadow: 0 0 24px rgba(255, 176, 32, 0.38), inset 0 0 16px rgba(0, 0, 0, 0.6);
+    border: 3.5px solid var(--amber);
+    box-shadow: 0 0 24px rgba(255, 176, 32, 0.35);
     background: #0B132B;
     display: flex;
     align-items: center;
@@ -108,7 +108,7 @@
     font-family: 'Manrope', sans-serif;
     font-size: 21px;
     font-weight: 800;
-    color: #fff;
+    color: var(--ink);
     margin-bottom: 8px;
     letter-spacing: -0.3px;
   }
@@ -125,11 +125,11 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: rgba(245, 158, 11, 0.12);
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    color: var(--amber-deep);
+    background: #FFFBEB;
+    border: 1.5px solid #FDE68A;
+    color: #B45309;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 800;
     padding: 6px 14px;
     border-radius: 99px;
     margin-bottom: 22px;
@@ -138,7 +138,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--amber-deep);
+    background: #D97706;
     animation: blink 1.2s ease-in-out infinite alternate;
   }
   @keyframes blink {
@@ -149,7 +149,7 @@
   .btn-retry {
     width: 100%;
     padding: 13.5px 20px;
-    background: var(--amber);
+    background: linear-gradient(135deg, #FFB020, #F59E0B);
     color: #0F172A;
     border: none;
     border-radius: 14px;
@@ -266,10 +266,10 @@
       .catch(function() {
         isChecking = false;
         text.textContent = 'Still Offline • Check Wi-Fi / Data';
-        pill.style.background = 'rgba(245, 158, 11, 0.12)';
-        pill.style.borderColor = 'rgba(245, 158, 11, 0.3)';
-        pill.style.color = '#F59E0B';
-        if (dot) dot.style.background = '#F59E0B';
+        pill.style.background = '#FFFBEB';
+        pill.style.borderColor = '#FDE68A';
+        pill.style.color = '#B45309';
+        if (dot) dot.style.background = '#D97706';
       });
   }
 

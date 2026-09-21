@@ -16,9 +16,9 @@
       position: fixed;
       inset: 0;
       z-index: 999999;
-      background: rgba(11, 15, 25, 0.92);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       display: none;
       align-items: center;
       justify-content: center;
@@ -33,11 +33,11 @@
     .rd-offline-card {
       max-width: 380px;
       width: 100%;
-      background: #131B2E;
-      border: 1.5px solid #1E293B;
+      background: #FFFFFF;
+      border: 1.5px solid #E2E8F0;
       border-radius: 26px;
       padding: 32px 24px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 176, 32, 0.15);
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.18), 0 0 24px rgba(255, 176, 32, 0.12);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -62,7 +62,7 @@
       width: 130px;
       height: 130px;
       border-radius: 50%;
-      border: 2px dashed rgba(245, 158, 11, 0.55);
+      border: 2px dashed rgba(245, 158, 11, 0.5);
       animation: rdRadarPulse 2.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
       pointer-events: none;
     }
@@ -80,8 +80,8 @@
       overflow: hidden;
       position: relative;
       z-index: 2;
-      border: 3px solid #FFB020;
-      box-shadow: 0 0 24px rgba(255, 176, 32, 0.38), inset 0 0 16px rgba(0, 0, 0, 0.6);
+      border: 3.5px solid #FFB020;
+      box-shadow: 0 0 24px rgba(255, 176, 32, 0.35);
       background: #0B132B;
       display: flex;
       align-items: center;
@@ -100,25 +100,25 @@
       font-family: 'Manrope', 'Inter', sans-serif;
       font-size: 20px;
       font-weight: 800;
-      color: #FFFFFF;
+      color: #0F172A;
       margin-bottom: 8px;
       letter-spacing: -0.3px;
     }
     .rd-offline-desc {
       font-size: 13.5px;
       line-height: 1.55;
-      color: #94A3B8;
+      color: #64748B;
       margin-bottom: 20px;
     }
     .rd-status-pill {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: rgba(245, 158, 11, 0.12);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      color: #F59E0B;
+      background: #FFFBEB;
+      border: 1.5px solid #FDE68A;
+      color: #B45309;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
       padding: 6px 14px;
       border-radius: 99px;
       margin-bottom: 20px;
@@ -127,7 +127,7 @@
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #F59E0B;
+      background: #D97706;
       animation: rdPulseBlink 1.2s infinite alternate;
     }
     @keyframes rdPulseBlink {
@@ -137,7 +137,7 @@
     .rd-btn-retry {
       width: 100%;
       padding: 13.5px 20px;
-      background: #FFB020;
+      background: linear-gradient(135deg, #FFB020, #F59E0B);
       color: #0F172A;
       border: none;
       border-radius: 14px;
@@ -160,9 +160,9 @@
     }
     .rd-auto-detect-note {
       font-size: 11.5px;
-      color: #64748B;
+      color: #94A3B8;
       margin-top: 14px;
-      font-weight: 500;
+      font-weight: 600;
     }
     html.app-is-offline body > *:not(#rydealot-offline-overlay) {
       display: none !important;
