@@ -1,7 +1,9 @@
-var CACHE_NAME = 'rydealot-v20';
+var CACHE_NAME = 'rydealot-v21';
 var urlsToCache = [
   './',
   './index.html',
+  './alongwith.html',
+  './track.html',
   './sage.html',
   './login.html',
   './signup.html',
@@ -10,6 +12,7 @@ var urlsToCache = [
   './sandbox.html',
   './style.css',
   './app.js',
+  './offline-detector.js',
   './icon.svg',
   './manifest.json',
   './logo.png',

@@ -19,15 +19,15 @@
       --surface: #0f131f;
       --card-bg: #141926;
       --card-border: #232c3f;
-      --accent: #2563eb;
-      --accent-hover: #1d4ed8;
-      --accent-glow: rgba(37, 99, 235, 0.35);
+      --accent: #FFB020;
+      --accent-hover: #F59E0B;
+      --accent-glow: rgba(255, 176, 32, 0.35);
       --signal: #22c55e;
       --signal-bg: rgba(34, 197, 94, 0.15);
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --text-faint: #64748b;
-      --gold: #f59e0b;
+      --gold: #FFB020;
       --asphalt: #181d2a;
       --lane-line: #334155;
     }
@@ -70,7 +70,7 @@
       text-decoration: none;
     }
     .header-logo span {
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      background: linear-gradient(135deg, #FFB020, #F59E0B);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -113,7 +113,8 @@
     }
     .mode-tab.active {
       background: var(--accent);
-      color: #fff;
+      color: #0F172A;
+      font-weight: 900;
       border-color: var(--accent);
       box-shadow: 0 4px 14px var(--accent-glow);
     }
@@ -144,7 +145,7 @@
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: #38bdf8;
+      color: #FFB020;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -313,7 +314,7 @@
       left: 10px;
       top: 6px;
       width: 2.5px;
-      background: linear-gradient(180deg, #22c55e, #38bdf8);
+      background: linear-gradient(180deg, #22c55e, #FFB020);
       transition: height 0.4s ease;
     }
     .timeline-step-item {
@@ -344,9 +345,9 @@
       box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
     }
     .timeline-step-item.current .timeline-dot {
-      background: #38bdf8;
-      border-color: #7dd3fc;
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.8);
+      background: #FFB020;
+      border-color: #FDE68A;
+      box-shadow: 0 0 12px rgba(255, 176, 32, 0.8);
       animation: pulseDot 1.5s infinite;
     }
     @keyframes pulseDot {
@@ -373,9 +374,9 @@
       width: 100%;
       padding: 13px;
       background: var(--accent);
-      color: #fff;
+      color: #0F172A;
       font-size: 13.5px;
-      font-weight: 800;
+      font-weight: 900;
       border: none;
       border-radius: 12px;
       cursor: pointer;
@@ -400,8 +401,8 @@
       transition: all 0.2s;
     }
     .bay-card:hover {
-      border-color: #38bdf8;
-      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.1);
+      border-color: #FFB020;
+      box-shadow: 0 6px 20px rgba(255, 176, 32, 0.15);
     }
     .bay-tag {
       position: absolute;
@@ -413,7 +414,7 @@
       border: 1px solid var(--card-border);
       padding: 3px 8px;
       border-radius: 6px;
-      color: #38bdf8;
+      color: #FFB020;
       font-family: 'IBM Plex Mono', monospace;
     }
     .capacity-bar {
@@ -426,7 +427,7 @@
     }
     .capacity-fill {
       height: 100%;
-      background: linear-gradient(90deg, #22c55e, #3b82f6);
+      background: linear-gradient(90deg, #22c55e, #FFB020);
       border-radius: 99px;
     }
 
@@ -492,13 +493,16 @@
 <div class="app-frame">
   <!-- Top Navigation Header -->
   <div class="header">
-    <a href="alongwith.html" class="header-logo" style="display:flex; align-items:center; gap:8px; text-decoration:none;">
-      <img src="logo.png" alt="Rydealot" style="width:28px; height:28px; object-fit:contain; border-radius:6px;">
-      <span>RYDEALOT</span> Along With
-    </a>
     <div style="display:flex; align-items:center; gap:8px;">
-      <a href="login.html?redirect=alongwith.html" class="back-to-rides-btn" style="color:#38bdf8; font-weight:800;">🔐 Login</a>
-      <button id="header-profile-btn" onclick="openUnifiedProfileModal()" style="background:#141b2d; border:1px solid var(--card-border); color:#38bdf8; border-radius:20px; padding:5px 12px; font-size:11px; font-weight:800; display:flex; align-items:center; gap:5px; cursor:pointer;">
+      <a href="alongwith.html" class="header-logo" style="display:flex; align-items:center; gap:8px; text-decoration:none;">
+        <img src="logo.png" alt="Rydealot" style="width:28px; height:28px; object-fit:contain; border-radius:6px;">
+        <span>RYDEALOT</span> Along With
+      </a>
+      <img src="assets/mascot-moving.webp" onerror="this.src='assets/mascot-moving.png'" alt="Rydo Freight" style="width:36px; height:auto; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4));" title="Rydo — Along With Mascot">
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <a href="login.html?redirect=alongwith.html" class="back-to-rides-btn" style="color:#FFB020; font-weight:800;">🔐 Login</a>
+      <button id="header-profile-btn" onclick="openUnifiedProfileModal()" style="background:#141b2d; border:1px solid var(--card-border); color:#FFB020; border-radius:20px; padding:5px 12px; font-size:11px; font-weight:800; display:flex; align-items:center; gap:5px; cursor:pointer;">
         👤 <span id="header-profile-name">Profile</span>
       </button>
       <a href="index.html" class="back-to-rides-btn">← Rides</a>
@@ -525,6 +529,15 @@
   <!-- ==================== SENDER VIEW (Shopkeepers / Cargo Booking / Truck Parking Lot) ==================== -->
   <div class="content-view active" id="view-sender">
     
+    <!-- Rydo Freight Terminal Welcome Banner -->
+    <div style="background: linear-gradient(135deg, rgba(255,176,32,0.12), rgba(245,158,11,0.04)); border: 1.5px solid rgba(255,176,32,0.3); border-radius: 16px; padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px;">
+      <img src="assets/mascot-moving.webp" onerror="this.src='assets/mascot-moving.png'" alt="Rydo Freight" style="width: 46px; height: auto; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));">
+      <div style="flex: 1;">
+        <div style="font-size: 13px; font-weight: 900; color: #FFB020; letter-spacing: -0.2px;">Rydo Freight Terminal</div>
+        <div style="font-size: 11px; color: #94A3B8; margin-top: 2px;">Share intercity truck space at fraction of full load cost, or leave packages at virtual warehouses for quick transport.</div>
+      </div>
+    </div>
+
     <!-- Visual Truck Parking Lot View (Same as Main App!) -->
     <div class="lot-container">
       <div class="lot-header">
@@ -622,9 +635,9 @@
     <!-- Customer Active Cargo Bookings / Tracking & History Section -->
     <div style="margin-top: 28px; border-top: 1.5px solid var(--card-border); padding-top: 16px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.5px;">📦 My Cargo Shipments</h3>
+        <h3 style="font-size: 13px; font-weight: 800; text-transform: uppercase; color: #FFB020; letter-spacing: 0.5px;">📦 My Cargo Shipments</h3>
         <div style="display:flex; gap:4px; background:#0d131f; padding:3px; border-radius:8px; border:1px solid var(--card-border);">
-          <button id="sender-toggle-active" onclick="setSenderBookingTab('active')" style="background:var(--accent); color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">Live Active</button>
+          <button id="sender-toggle-active" onclick="setSenderBookingTab('active')" style="background:var(--accent); color:#0F172A; font-weight:900; border:none; padding:4px 10px; border-radius:6px; font-size:11px; cursor:pointer;">Live Active</button>
           <button id="sender-toggle-history" onclick="setSenderBookingTab('history')" style="background:none; color:var(--text-muted); border:none; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer;">📜 History</button>
         </div>
       </div>
@@ -780,12 +793,12 @@
         <div>
           <h3 style="font-size: 16px; font-weight: 900; color: #fff;">🏬 Open Cargo Warehouse</h3>
           <p style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px; line-height: 1.4;">
-            Open load board for <strong style="color:#38bdf8;">Full-Time Drivers, Return Truckers & Bike Couriers</strong> to claim available packages!
+            Open load board for <strong style="color:#FFB020;">Full-Time Drivers, Return Truckers & Bike Couriers</strong> to claim available packages!
           </p>
         </div>
         <span class="badge badge-open" id="wh-packages-count-badge">0 Open Loads</span>
       </div>
-      <button class="btn-action" style="background: linear-gradient(135deg, #2563eb, #3b82f6); font-size: 12.5px; padding: 10px; margin-top: 8px;" onclick="openPostWarehouseModal()">
+      <button class="btn-action" style="background: linear-gradient(135deg, #FFB020, #F59E0B); color:#0F172A; font-weight:900; font-size: 12.5px; padding: 10px; margin-top: 8px;" onclick="openPostWarehouseModal()">
         ➕ Shopkeeper: Drop Package in Warehouse
       </button>
     </div>
@@ -794,7 +807,7 @@
     <div class="lot-container">
       <div class="lot-header">
         <span class="lot-title">🏬 Warehouse Storage Racks</span>
-        <span id="wh-rack-package-count" style="font-size: 11px; font-weight: 700; color: #38bdf8;">0 Parcels on Stand</span>
+        <span id="wh-rack-package-count" style="font-size: 11px; font-weight: 700; color: #FFB020;">0 Parcels on Stand</span>
       </div>
       
       <!-- Interactive SVG Warehouse Rack Stand -->
@@ -872,7 +885,7 @@
   <div class="content-view" id="view-profile">
     <!-- User Profile Header Card -->
     <div style="background: linear-gradient(135deg, #141926, #0d121f); border: 1.5px solid var(--accent); border-radius: 18px; padding: 18px; margin-bottom: 16px; display:flex; align-items:center; gap:16px;">
-      <div id="aw-prof-avatar" style="width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg,#2563eb,#38bdf8); color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:900; box-shadow:0 4px 15px rgba(37,99,235,0.4); flex-shrink:0;">
+      <div id="aw-prof-avatar" style="width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg,#FFB020,#F59E0B); color:#0F172A; display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:900; box-shadow:0 4px 15px rgba(255,176,32,0.4); flex-shrink:0;">
         👤
       </div>
       <div style="flex:1; overflow:hidden;">
@@ -905,7 +918,7 @@
     <div style="background:var(--card-bg); border:1.5px solid var(--card-border); border-radius:16px; padding:16px; margin-bottom:18px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <h4 style="font-size:13px; font-weight:800; color:#fff; text-transform:uppercase; letter-spacing:0.5px; margin:0;">⚙️ Account Settings</h4>
-        <span style="font-size:10.5px; color:#38bdf8; font-weight:700;">Synced with Rydealot</span>
+        <span style="font-size:10.5px; color:#FFB020; font-weight:700;">Synced with Rydealot</span>
       </div>
 
       <div class="form-group">
@@ -976,7 +989,7 @@
     <div style="margin-bottom:18px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <h4 style="font-size:13px; font-weight:800; color:#fff; text-transform:uppercase; letter-spacing:0.5px; margin:0;">📦 My Cargo Shipments</h4>
-        <button type="button" onclick="loadMyProfileShipments()" style="background:none; border:none; color:#38bdf8; font-size:11px; font-weight:700; cursor:pointer;">↻ Refresh</button>
+        <button type="button" onclick="loadMyProfileShipments()" style="background:none; border:none; color:#FFB020; font-size:11px; font-weight:700; cursor:pointer;">↻ Refresh</button>
       </div>
       <div id="aw-my-shipments-list">
         <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;">No shipments booked yet.</div>
@@ -987,7 +1000,7 @@
     <div style="margin-bottom:18px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <h4 style="font-size:13px; font-weight:800; color:#fff; text-transform:uppercase; letter-spacing:0.5px; margin:0;">🚛 My Posted Return Trips</h4>
-        <button type="button" onclick="loadMyProfileTrips()" style="background:none; border:none; color:#38bdf8; font-size:11px; font-weight:700; cursor:pointer;">↻ Refresh</button>
+        <button type="button" onclick="loadMyProfileTrips()" style="background:none; border:none; color:#FFB020; font-size:11px; font-weight:700; cursor:pointer;">↻ Refresh</button>
       </div>
       <div id="aw-my-trips-ledger">
         <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;">No return trips posted yet.</div>
@@ -1185,7 +1198,7 @@
         </div>
       </div>
       
-      <button type="button" onclick="addMultiItemRow('wh-multi-items-container')" style="background:#1e293b; border:1px dashed #38bdf8; color:#38bdf8; border-radius:8px; padding:6px 12px; font-size:11.5px; font-weight:700; cursor:pointer; width:100%;">
+      <button type="button" onclick="addMultiItemRow('wh-multi-items-container')" style="background:#1e293b; border:1px dashed #FFB020; color:#FFB020; border-radius:8px; padding:6px 12px; font-size:11.5px; font-weight:700; cursor:pointer; width:100%;">
         ➕ Add Another Item to Truck (Plates, Glasses, Sacks, Bottles)
       </button>
     </div>
@@ -1207,7 +1220,7 @@
     <div class="form-group">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
         <label class="form-label" style="margin-bottom:0;">Pickup Location / Shop Address</label>
-        <button type="button" onclick="getSenderLocation('pickup')" style="background:none; border:none; color:#38bdf8; font-size:10.5px; font-weight:800; cursor:pointer;">📍 Use Current GPS</button>
+        <button type="button" onclick="getSenderLocation('pickup')" style="background:none; border:none; color:#FFB020; font-size:10.5px; font-weight:800; cursor:pointer;">📍 Use Current GPS</button>
       </div>
       <input type="text" id="wh-post-pickup" class="form-input" placeholder="e.g. Shop 12, Begum Bazar, Hyderabad">
     </div>
@@ -1215,7 +1228,7 @@
     <div class="form-group">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
         <label class="form-label" style="margin-bottom:0;">Drop Destination Address</label>
-        <button type="button" onclick="getSenderLocation('drop')" style="background:none; border:none; color:#38bdf8; font-size:10.5px; font-weight:800; cursor:pointer;">📍 Use Current GPS</button>
+        <button type="button" onclick="getSenderLocation('drop')" style="background:none; border:none; color:#FFB020; font-size:10.5px; font-weight:800; cursor:pointer;">📍 Use Current GPS</button>
       </div>
       <input type="text" id="wh-post-drop" class="form-input" placeholder="e.g. Hanamkonda Main Road, Warangal">
     </div>
@@ -1232,7 +1245,7 @@
       </div>
     </div>
 
-    <button class="btn-action" id="btn-confirm-warehouse-post" style="background:linear-gradient(135deg,#0284c7,#2563eb); font-weight:900;" onclick="submitWarehousePackage()">
+    <button class="btn-action" id="btn-confirm-warehouse-post" style="background:linear-gradient(135deg,#FFB020,#F59E0B); color:#0F172A; font-weight:900;" onclick="submitWarehousePackage()">
       💳 Pay Token & Post to Warehouse
     </button>
   </div>
@@ -1377,7 +1390,7 @@
     <div class="form-group">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
         <label class="form-label" style="margin-bottom:0;">Pickup Address / Landmark</label>
-        <button type="button" onclick="getSenderLocation('pickup')" style="background:#0f172a; border:1px solid #38bdf8; color:#38bdf8; padding:3px 8px; border-radius:6px; font-size:10.5px; font-weight:700; cursor:pointer;">📍 Use Current GPS</button>
+        <button type="button" onclick="getSenderLocation('pickup')" style="background:#0f172a; border:1px solid #FFB020; color:#FFB020; padding:3px 8px; border-radius:6px; font-size:10.5px; font-weight:700; cursor:pointer;">📍 Use Current GPS</button>
       </div>
       <input type="text" id="book-pickup-addr" class="form-input" placeholder="Shop / Warehouse address or tap GPS">
     </div>
@@ -1385,7 +1398,7 @@
     <div class="form-group">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
         <label class="form-label" style="margin-bottom:0;">Delivery Address / Destination</label>
-        <button type="button" onclick="getSenderLocation('drop')" style="background:#0f172a; border:1px solid #38bdf8; color:#38bdf8; padding:3px 8px; border-radius:6px; font-size:10.5px; font-weight:700; cursor:pointer;">📍 Use Current GPS</button>
+        <button type="button" onclick="getSenderLocation('drop')" style="background:#0f172a; border:1px solid #FFB020; color:#FFB020; padding:3px 8px; border-radius:6px; font-size:10.5px; font-weight:700; cursor:pointer;">📍 Use Current GPS</button>
       </div>
       <input type="text" id="book-drop-addr" class="form-input" placeholder="Drop destination address or tap GPS">
     </div>
@@ -1402,12 +1415,12 @@
     </div>
 
       <div style="font-size:10.5px; color:var(--text-muted); text-align:center; margin-bottom:10px;">
-        By booking, you agree to <a href="terms.html" target="_blank" style="color:#38bdf8; text-decoration:underline;">Along With Terms</a> (No prohibited cargo &bull; Non-refundable token).
+        By booking, you agree to <a href="terms.html" target="_blank" style="color:#FFB020; text-decoration:underline;">Along With Terms</a> (No prohibited cargo &bull; Non-refundable token).
       </div>
 
       <div style="display: flex; gap: 10px;">
         <button class="btn-action" style="background: transparent; border: 1.5px solid var(--card-border); color: var(--text-muted); flex:0.7;" onclick="closeModal('modal-book-cargo')">Cancel</button>
-        <button class="btn-action" id="btn-confirm-booking" style="background:linear-gradient(135deg,#0284c7,#2563eb); font-weight:900;" onclick="confirmCargoBooking()">💳 Pay Token & Confirm Booking</button>
+        <button class="btn-action" id="btn-confirm-booking" style="background:linear-gradient(135deg,#FFB020,#F59E0B); color:#0F172A; font-weight:900;" onclick="confirmCargoBooking()">💳 Pay Token & Confirm Booking</button>
       </div>
   </div>
 </div>
@@ -1721,7 +1734,7 @@
 
     if (noticeMsg) {
       container.innerHTML = '<div style="text-align:center; padding:36px 20px; color:var(--text-muted); font-size:12.5px; background:var(--card-bg); border-radius:16px; border:1.5px solid var(--card-border);">' +
-        '<div style="font-size:32px; margin-bottom:10px;">🗺️</div>' +
+        '<img src="assets/mascot-waving.webp" onerror="this.src=\'assets/mascot-waving.png\'" style="width:68px; height:auto; margin-bottom:12px; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.4));"><br>' +
         '<strong style="color:#fff; font-size:14px; display:block; margin-bottom:4px;">Select Your Route</strong>' +
         noticeMsg +
       '</div>';
@@ -1732,10 +1745,10 @@
 
     if (!count) {
       container.innerHTML = '<div style="text-align:center; padding:36px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:16px; border:1.5px solid var(--card-border);">' +
-        '<div style="font-size:32px; margin-bottom:10px;">🅿️</div>' +
+        '<img src="assets/mascot-moving.webp" onerror="this.src=\'assets/mascot-moving.png\'" style="width:72px; height:auto; margin-bottom:12px; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.4));"><br>' +
         '<strong style="color:#fff; font-size:14px; display:block; margin-bottom:4px;">No Trucks Parked on this Route Yet</strong>' +
         'Need to send goods now? Drop your package in the open Cargo Warehouse so nearby drivers & couriers can pick it up!<br>' +
-        '<button class="btn-action" style="width:auto; display:inline-flex; margin-top:14px; font-size:12px; padding:9px 18px; background:linear-gradient(135deg,#2563eb,#3b82f6);" onclick="openPostWarehouseModal()">🏬 Drop Cargo in Virtual Warehouse</button>' +
+        '<button class="btn-action" style="width:auto; display:inline-flex; margin-top:14px; font-size:12px; padding:9px 18px; background:linear-gradient(135deg,#FFB020,#F59E0B); color:#0F172A; font-weight:900;" onclick="openPostWarehouseModal()">🏬 Drop Cargo in Virtual Warehouse</button>' +
       '</div>';
       return;
     }
@@ -2857,13 +2870,13 @@
     if (!displayList.length) {
       if (senderBookingTab === 'active') {
         container.innerHTML = '<div style="text-align:center; padding:24px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:14px; border:1px solid var(--card-border);">' +
-          '<div style="font-size:24px; margin-bottom:6px;">📦</div>' +
+          '<img src="assets/mascot-moving.webp" onerror="this.src=\'assets/mascot-moving.png\'" style="width:60px; height:auto; margin-bottom:10px; filter:drop-shadow(0 3px 8px rgba(0,0,0,0.4));"><br>' +
           '<strong style="color:#fff; display:block; margin-bottom:4px;">No Active Ongoing Shipments</strong>' +
           'Book a truck in the freight parking lot above or switch to <strong>📜 History</strong> to view your past deliveries.' +
         '</div>';
       } else {
         container.innerHTML = '<div style="text-align:center; padding:24px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:14px; border:1px solid var(--card-border);">' +
-          '<div style="font-size:24px; margin-bottom:6px;">📜</div>' +
+          '<img src="assets/mascot-success.webp" onerror="this.src=\'assets/mascot-success.png\'" style="width:60px; height:auto; margin-bottom:10px; filter:drop-shadow(0 3px 8px rgba(0,0,0,0.4));"><br>' +
           '<strong style="color:#fff; display:block; margin-bottom:4px;">No Past Booking History</strong>' +
           'All your completed deliveries and past shipment receipts will be saved here.' +
         '</div>';
@@ -2877,14 +2890,14 @@
     if (senderBookingTab === 'history') {
       var totalDelivered = historyList.filter(function(b) { return b.status === 'delivered'; }).length;
       var totalFreightSpent = historyList.filter(function(b) { return b.status === 'delivered'; }).reduce(function(sum, b) { return sum + (parseFloat(b.total_price) || 0); }, 0);
-      html += '<div style="background:linear-gradient(135deg, rgba(56,189,248,0.15), rgba(30,58,138,0.05)); border:1.5px solid #38bdf8; border-radius:14px; padding:12px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">' +
+      html += '<div style="background:linear-gradient(135deg, rgba(255,176,32,0.15), rgba(245,158,11,0.05)); border:1.5px solid #FFB020; border-radius:14px; padding:12px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">' +
         '<div>' +
-          '<div style="font-size:11px; color:#38bdf8; font-weight:800; text-transform:uppercase;">📜 Past Deliveries</div>' +
+          '<div style="font-size:11px; color:#FFB020; font-weight:800; text-transform:uppercase;">📜 Past Deliveries</div>' +
           '<div style="font-size:13px; font-weight:900; color:#fff; margin-top:2px;">' + totalDelivered + ' Shipments Completed</div>' +
         '</div>' +
         '<div style="text-align:right;">' +
           '<div style="font-size:10.5px; color:var(--text-muted); font-weight:700;">Total Freight Paid</div>' +
-          '<div style="font-size:17px; font-weight:900; color:#38bdf8;">₹' + totalFreightSpent + '</div>' +
+          '<div style="font-size:17px; font-weight:900; color:#FFB020;">₹' + totalFreightSpent + '</div>' +
         '</div>' +
       '</div>';
     }
@@ -2903,7 +2916,7 @@
       } else if (b.status === 'arrived_drop') {
         statusBadge = '<span style="font-size:10px; font-weight:900; color:#c084fc; background:rgba(168,85,247,0.25); padding:3px 10px; border-radius:12px; border:1px solid #a855f7;">🏁 AT DESTINATION</span>';
       } else if (b.status === 'delivered') {
-        statusBadge = '<span style="font-size:10px; font-weight:900; color:#38bdf8; background:rgba(56,189,248,0.2); padding:3px 10px; border-radius:12px; border:1px solid #0284c7;">🎉 DELIVERED</span>';
+        statusBadge = '<span style="font-size:10px; font-weight:900; color:#22c55e; background:rgba(34,197,94,0.2); padding:3px 10px; border-radius:12px; border:1px solid #22c55e;">🎉 DELIVERED</span>';
       } else if (b.status === 'pending') {
         statusBadge = '<span style="font-size:10px; font-weight:900; color:#facc15; background:rgba(250,204,21,0.2); padding:3px 10px; border-radius:12px; border:1px solid #eab308;">⏳ WAITING FOR DRIVER</span>';
       } else {
@@ -2917,7 +2930,7 @@
         var isLiveTrackable = (b.status !== 'pending' && b.status !== 'rejected' && b.status !== 'declined_full');
         var radarBtnHtml = isLiveTrackable
           ? '<div style="margin-top:10px; display:flex; justify-content:flex-end;">' +
-              '<a href="track.html?type=cargo&booking_id=' + encodeURIComponent(b.id) + '&driver_phone=' + encodeURIComponent(t.driver_phone || '') + '" target="_blank" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#0284c7,#2563eb); color:#fff; padding:7px 14px; border-radius:10px; font-size:11.5px; font-weight:800; text-decoration:none; box-shadow:0 2px 8px rgba(37,99,235,0.3);">' +
+              '<a href="track.html?type=cargo&booking_id=' + encodeURIComponent(b.id) + '&driver_phone=' + encodeURIComponent(t.driver_phone || '') + '" target="_blank" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#FFB020,#F59E0B); color:#0F172A; padding:7px 14px; border-radius:10px; font-size:11.5px; font-weight:900; text-decoration:none; box-shadow:0 2px 8px rgba(255,176,32,0.35);">' +
                 '📡 Open Live GPS Radar →' +
               '</a>' +
             '</div>'
@@ -3268,10 +3281,10 @@
 
     if (!packages.length) {
       container.innerHTML = '<div style="text-align:center; padding:36px 20px; color:var(--text-faint); font-size:12.5px; background:var(--card-bg); border-radius:16px; border:1px solid var(--card-border);">' +
-        '<div style="font-size:32px; margin-bottom:8px;">🏬</div>' +
-        '<strong style="color:#fff; font-size:14px; display:block; margin-bottom:4px;">Warehouse is Empty</strong>' +
+        '<img src="assets/mascot-waving.webp" onerror="this.src=\'assets/mascot-waving.png\'" style="width:68px; height:auto; margin-bottom:12px; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.4));"><br>' +
+        '<strong style="color:#fff; font-size:14px; display:block; margin-bottom:4px;">Warehouse Rack is Clear</strong>' +
         'No open packages currently waiting for pickup on this route.<br>' +
-        '<button class="btn-action" style="width:auto; display:inline-flex; margin-top:12px; font-size:11.5px; padding:8px 16px;" onclick="openPostWarehouseModal()">➕ Drop Your Cargo Here</button>' +
+        '<button class="btn-action" style="width:auto; display:inline-flex; margin-top:12px; font-size:11.5px; padding:8px 16px; background:linear-gradient(135deg,#FFB020,#F59E0B); color:#0F172A; font-weight:900;" onclick="openPostWarehouseModal()">➕ Drop Your Cargo Here</button>' +
       '</div>';
       return;
     }
@@ -3680,7 +3693,10 @@
         if (statW) statW.textContent = totalW + ' KG';
 
         if (!bookings.length) {
-          listEl.innerHTML = '<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;">No shipments placed with phone ' + phone + ' yet. Book a truck in "Send Cargo" tab!</div>';
+          listEl.innerHTML = '<div style="text-align:center; padding:24px 18px; color:var(--text-muted); font-size:12px; background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px;">' +
+            '<img src="assets/mascot-waving.webp" onerror="this.src=\'assets/mascot-waving.png\'" style="width:54px; height:auto; margin-bottom:8px; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4));"><br>' +
+            'No shipments placed with phone ' + phone + ' yet. Book a truck in "Send Cargo" tab!' +
+          '</div>';
           return;
         }
 
@@ -3806,6 +3822,6 @@
     }
   }, 5000);
 </script>
-
+<script src="offline-detector.js"></script>
 </body>
 </html>
