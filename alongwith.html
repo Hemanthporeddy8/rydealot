@@ -2181,6 +2181,24 @@
       });
   }
 
+  var truckGpsWatchId = null;
+  function startTruckGpsBroadcasting(phone) {
+    if (!navigator.geolocation) return;
+    if (truckGpsWatchId !== null) return; // already running
+    var cleanPhone = (phone || '').replace(/\D/g, '').slice(-10);
+    if (!cleanPhone) return;
+
+    truckGpsWatchId = navigator.geolocation.watchPosition(function(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      sbRequest('PATCH', 'riders?phone=ilike.*' + encodeURIComponent(cleanPhone) + '*', {
+        lat: lat,
+        lng: lng,
+        updated_at: new Date().toISOString()
+      }).catch(function(){});
+    }, function(err){}, { enableHighAccuracy: true, maximumAge: 15000, timeout: 12000 });
+  }
+
   function loadMyDriverTrips() {
     var phone = (document.getElementById('drv-phone').value || '').trim();
     if (!phone) {
@@ -2190,6 +2208,9 @@
       } catch(e) {}
     }
     if (!phone) return;
+
+    // Start background GPS broadcasting so customers can track truck
+    startTruckGpsBroadcasting(phone);
 
     // Fetch driver trips along with all associated cargo bookings and claimed warehouse packages
     sbRequest('GET', 'cargo_trips?driver_phone=eq.' + encodeURIComponent(phone) + '&status=neq.cancelled&order=created_at.desc&limit=10')
@@ -2893,8 +2914,16 @@
       var journeyTrackerHtml = '';
 
       if (senderBookingTab === 'active') {
-        journeyTrackerHtml = (b.status !== 'pending' && b.status !== 'rejected' && b.status !== 'declined_full') 
-          ? renderLiveTruckJourneyTimeline(b.status, b, t)
+        var isLiveTrackable = (b.status !== 'pending' && b.status !== 'rejected' && b.status !== 'declined_full');
+        var radarBtnHtml = isLiveTrackable
+          ? '<div style="margin-top:10px; display:flex; justify-content:flex-end;">' +
+              '<a href="track.html?type=cargo&booking_id=' + encodeURIComponent(b.id) + '&driver_phone=' + encodeURIComponent(t.driver_phone || '') + '" target="_blank" style="display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg,#0284c7,#2563eb); color:#fff; padding:7px 14px; border-radius:10px; font-size:11.5px; font-weight:800; text-decoration:none; box-shadow:0 2px 8px rgba(37,99,235,0.3);">' +
+                '📡 Open Live GPS Radar →' +
+              '</a>' +
+            '</div>'
+          : '';
+        journeyTrackerHtml = isLiveTrackable 
+          ? (renderLiveTruckJourneyTimeline(b.status, b, t) + radarBtnHtml)
           : '<div style="background:rgba(234,179,8,0.1); border:1px solid #ca8a04; border-radius:8px; padding:8px 10px; margin:8px 0; color:#fde047; font-size:11.5px;">⏳ Request sent to Driver. Waiting for confirmation.</div>';
       } else {
         // History Receipt summary card

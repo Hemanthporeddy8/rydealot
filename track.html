@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Track Rydealot Sage Parcel • Live Delivery Radar</title>
+  <title>Track Rydealot Delivery • Live GPS Radar</title>
   <link rel="icon" href="logo.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,16 +13,17 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     :root {
-      --bg: #F5F7FB;
-      --card: #FFFFFF;
-      --ink: #0F172A;
-      --ink-soft: #64748B;
-      --line: #E2E8F0;
+      --bg: #0B0F19;
+      --card: #131B2E;
+      --ink: #F8FAFC;
+      --ink-soft: #94A3B8;
+      --line: #1E293B;
       --accent: #2563EB;
-      --accent-light: #EFF6FF;
-      --green: #16A34A;
-      --green-light: #DCFCE7;
-      --amber: #D97706;
+      --accent-light: rgba(37,99,235,0.15);
+      --green: #22C55E;
+      --green-light: rgba(34,197,94,0.15);
+      --amber: #F59E0B;
+      --amber-light: rgba(245,158,11,0.15);
       --radius: 18px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -47,7 +48,7 @@
       position: sticky;
       top: 0;
       z-index: 1000;
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(11, 15, 25, 0.92);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--line);
       padding: 14px 18px;
@@ -59,28 +60,35 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      background: #0F172A;
+      background: #1E293B;
       color: #fff;
-      padding: 4px 12px;
+      padding: 5px 12px;
       border-radius: 99px;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 800;
       font-family: 'Manrope', sans-serif;
+      border: 1px solid rgba(255,255,255,0.08);
     }
     .brand-pill span { color: #38BDF8; }
 
-    /* Map Card */
+    /* Map Wrap */
     .map-wrap {
       position: relative;
       width: 100%;
-      height: 300px;
+      height: 320px;
       border-bottom: 1px solid var(--line);
+      background: #0d131f;
     }
     #track-map {
       width: 100%;
       height: 100%;
     }
     .leaflet-control-attribution { display: none !important; }
+
+    /* Dark Mode Map Filter */
+    .leaflet-tile-pane {
+      filter: brightness(0.85) invert(1) contrast(3) hue-rotate(200deg) saturate(0.35);
+    }
 
     /* Floating Status Badge */
     .floating-status-pill {
@@ -89,17 +97,18 @@
       left: 14px;
       right: 14px;
       z-index: 999;
-      background: rgba(15, 23, 42, 0.9);
+      background: rgba(15, 23, 42, 0.92);
       backdrop-filter: blur(8px);
       color: #fff;
-      padding: 8px 14px;
+      padding: 10px 14px;
       border-radius: 99px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       font-size: 12px;
       font-weight: 800;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.12);
     }
     .pulse-dot {
       width: 8px;
@@ -110,13 +119,22 @@
       box-shadow: 0 0 8px #4ADE80;
       animation: pulse 1.5s infinite;
     }
+    .pulse-dot.amber {
+      background: #FBBF24;
+      box-shadow: 0 0 8px #FBBF24;
+    }
+    .pulse-dot.gray {
+      background: #94A3B8;
+      box-shadow: none;
+      animation: none;
+    }
     @keyframes pulse {
       0% { transform: scale(0.9); opacity: 0.8; }
       50% { transform: scale(1.3); opacity: 1; }
       100% { transform: scale(0.9); opacity: 0.8; }
     }
 
-    /* Content Cards */
+    /* Content */
     .content {
       padding: 16px;
       display: flex;
@@ -128,7 +146,7 @@
       border: 1px solid var(--line);
       border-radius: var(--radius);
       padding: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
 
     /* Receiver PIN Box */
@@ -142,6 +160,7 @@
       flex-direction: column;
       align-items: center;
       gap: 4px;
+      border: 1.5px solid rgba(56,189,248,0.25);
     }
     .pin-number {
       font-family: 'IBM Plex Mono', monospace;
@@ -152,7 +171,7 @@
       margin: 4px 0;
     }
 
-    /* Captain Card */
+    /* Driver Row */
     .captain-row {
       display: flex;
       align-items: center;
@@ -168,7 +187,7 @@
       align-items: center;
       justify-content: center;
       font-size: 22px;
-      border: 1.5px solid #BFDBFE;
+      border: 1.5px solid rgba(56,189,248,0.4);
     }
 
     /* Call Button */
@@ -183,7 +202,9 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      transition: opacity 0.15s ease;
     }
+    .btn-call:hover { opacity: 0.9; }
 
     /* Route Steps */
     .route-step {
@@ -193,6 +214,19 @@
       margin-bottom: 10px;
     }
     .route-step:last-child { margin-bottom: 0; }
+
+    /* Polling Pulse Toast */
+    .gps-toast {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0b0f19;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 11.5px;
+      color: var(--ink-soft);
+    }
   </style>
 </head>
 <body>
@@ -204,11 +238,11 @@
     <a href="index.html" style="text-decoration:none; color:var(--ink); font-weight:700; font-size:13px; display:flex; align-items:center; gap:4px;">
       <i class="ti ti-arrow-left"></i> Home
     </a>
-    <div class="brand-pill">
-      <span>📦 SAGE</span> LIVE RADAR
+    <div class="brand-pill" id="header-brand-pill">
+      <span id="header-brand-icon">📦</span> <span id="header-brand-name">RYDEALOT</span> RADAR
     </div>
-    <div style="font-size:12px; font-weight:800; color:var(--green);" id="live-indicator">
-      ● LIVE
+    <div style="font-size:11.5px; font-weight:800; color:var(--green); display:flex; align-items:center; gap:5px;" id="live-indicator">
+      <span class="pulse-dot" id="header-pulse"></span> <span id="header-pulse-text">LIVE</span>
     </div>
   </div>
 
@@ -218,75 +252,85 @@
 
     <div class="floating-status-pill">
       <div style="display:flex; align-items:center; gap:8px;">
-        <span class="pulse-dot"></span>
-        <span id="floating-status-text">Captain Suresh is on the way</span>
+        <span class="pulse-dot" id="status-pulse-dot"></span>
+        <span id="floating-status-text">Connecting to Live GPS Radar…</span>
       </div>
-      <span style="color:#38BDF8;" id="floating-eta">~8 mins</span>
+      <span style="color:#38BDF8; font-family:'IBM Plex Mono',monospace;" id="floating-eta">--</span>
     </div>
   </div>
 
   <div class="content">
 
+    <!-- Polling & Signal Status Toast -->
+    <div class="gps-toast">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span>📡</span>
+        <span id="gps-sync-status">Syncing location every 10s…</span>
+      </div>
+      <span id="gps-last-ping" style="font-size:10.5px; color:#38BDF8; font-weight:700;">Just now</span>
+    </div>
+
     <!-- Receiver Delivery PIN Card -->
     <div class="pin-box" id="recv-pin-card">
       <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:#94A3B8; letter-spacing:0.5px;">
-        🔐 Your Drop Verification PIN
+        🔐 Your Delivery Verification PIN
       </div>
       <div class="pin-number" id="track-pin-display">
         ----
       </div>
       <div style="font-size:11px; color:#CBD5E1;">
-        Tell this PIN to the bike captain to safely receive your parcel
+        Tell this PIN to the delivery captain to securely verify handover
       </div>
     </div>
 
-    <!-- Assigned Bike Captain Card -->
+    <!-- Assigned Driver / Captain Card -->
     <div class="card">
       <div class="captain-row">
         <div style="display:flex; align-items:center; gap:12px;">
-          <div class="captain-avatar">🛵</div>
+          <div class="captain-avatar" id="capt-avatar">🛵</div>
           <div>
-            <div style="font-weight:800; font-size:14.5px;" id="capt-name">Captain Suresh</div>
-            <div style="font-size:12px; color:var(--ink-soft);" id="capt-vehicle">Hero Splendor • TS03 AB 1234</div>
-            <div style="font-size:11px; color:var(--green); font-weight:700; margin-top:2px;">⭐ 4.9 (420+ safe deliveries)</div>
+            <div style="font-weight:800; font-size:14.5px; color:#fff;" id="capt-name">Searching for Driver…</div>
+            <div style="font-size:12px; color:var(--ink-soft);" id="capt-vehicle">Verified Vehicle</div>
+            <div style="font-size:11px; color:var(--green); font-weight:700; margin-top:2px;">⭐ 4.9 • Zero-Commission Verified</div>
           </div>
         </div>
-        <a href="tel:9876543210" id="capt-call-btn" class="btn-call">
+        <a href="tel:" id="capt-call-btn" class="btn-call">
           📞 Call
         </a>
       </div>
     </div>
 
-    <!-- Parcel Details & Route -->
+    <!-- Shipment Route Card -->
     <div class="card">
-      <div style="font-size:11.5px; font-weight:800; text-transform:uppercase; color:var(--ink-soft); margin-bottom:12px;">
-        📦 Parcel Route
+      <div style="font-size:11.5px; font-weight:800; text-transform:uppercase; color:var(--ink-soft); margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+        <span>📍 Route Overview</span>
+        <span id="shipment-type-badge" style="font-size:10px; padding:2px 8px; border-radius:10px; background:rgba(56,189,248,0.2); color:#38BDF8; border:1px solid rgba(56,189,248,0.3);">PARCEL</span>
       </div>
 
       <div class="route-step">
         <span style="font-size:16px;">🟢</span>
         <div>
-          <div style="font-size:11px; color:var(--ink-soft); font-weight:700;">FROM (SENDER)</div>
-          <div style="font-size:13px; font-weight:700;" id="sender-display">-</div>
-          <div style="font-size:11px; color:var(--ink-soft);" id="pickup-addr-display">-</div>
+          <div style="font-size:11px; color:var(--ink-soft); font-weight:700;">PICKUP LOCATION</div>
+          <div style="font-size:13px; font-weight:700; color:#fff;" id="pickup-addr-display">-</div>
+          <div style="font-size:11px; color:var(--ink-soft);" id="sender-display">-</div>
         </div>
       </div>
 
-      <div style="border-left:2px dashed #CBD5E1; height:16px; margin-left:8px;"></div>
+      <div style="border-left:2px dashed #334155; height:18px; margin-left:8px;"></div>
 
       <div class="route-step">
         <span style="font-size:16px;">🔴</span>
         <div>
-          <div style="font-size:11px; color:var(--ink-soft); font-weight:700;">TO (YOU / RECEIVER)</div>
-          <div style="font-size:13px; font-weight:700;" id="receiver-display">-</div>
-          <div style="font-size:11px; color:var(--ink-soft);" id="drop-addr-display">-</div>
+          <div style="font-size:11px; color:var(--ink-soft); font-weight:700;">DELIVERY DESTINATION</div>
+          <div style="font-size:13px; font-weight:700; color:#fff;" id="drop-addr-display">-</div>
+          <div style="font-size:11px; color:var(--ink-soft);" id="receiver-display">-</div>
         </div>
       </div>
     </div>
 
-    <!-- Share WhatsApp Button for Receiver -->
-    <button type="button" onclick="shareSelfTracking()" style="padding:14px; background:#16A34A; color:#fff; border:none; border-radius:14px; font-size:13.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-      📲 Share Tracking with Family on WhatsApp
+    <!-- Share WhatsApp Button -->
+    <button type="button" onclick="shareSelfTracking()" style="padding:14px; background:#16A34A; color:#fff; border:none; border-radius:14px; font-size:13.5px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(22,163,74,0.3);">
+      📲 Share Live Tracking on WhatsApp
     </button>
 
   </div>
@@ -297,15 +341,42 @@
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
 
   var map = null;
-  var bikeMarker = null;
+  var vehicleMarker = null;
   var dropMarker = null;
   var pickupMarker = null;
   var routeLine = null;
-  var parcelData = null;
+  var activeTrackingType = 'sage'; // 'sage' or 'cargo'
+  var activeDriverPhone = '';
+  var activeDropLat = 17.9784;
+  var activeDropLng = 79.5080;
+  var activePickupLat = 18.0073;
+  var activePickupLng = 79.5583;
+  var pollTimer = null;
+  var driverName = 'Driver';
 
   function getQueryParam(param) {
     var params = new URLSearchParams(window.location.search);
     return params.get(param);
+  }
+
+  // ── Haversine Distance in Kilometers ──
+  function computeHaversineKm(lat1, lon1, lat2, lon2) {
+    var R = 6371;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  function formatTimeAgo(isoString) {
+    if (!isoString) return 'Just now';
+    var diffSec = Math.max(0, Math.floor((new Date() - new Date(isoString)) / 1000));
+    if (diffSec < 45) return diffSec + 's ago';
+    if (diffSec < 3600) return Math.floor(diffSec / 60) + 'm ago';
+    return Math.floor(diffSec / 3600) + 'h ago';
   }
 
   function initMap() {
@@ -318,11 +389,97 @@
       maxZoom: 19
     }).addTo(map);
 
-    loadParcelDetails();
+    loadShipmentData();
   }
 
-  async function loadParcelDetails() {
-    var parcelId = getQueryParam('id');
+  async function loadShipmentData() {
+    var trackId = getQueryParam('id') || getQueryParam('booking_id');
+    var typeParam = getQueryParam('type'); // 'cargo' or 'sage'
+    var phoneParam = getQueryParam('driver_phone') || '';
+
+    if (phoneParam) activeDriverPhone = phoneParam;
+
+    if (typeParam === 'cargo' || getQueryParam('booking_id')) {
+      activeTrackingType = 'cargo';
+      document.getElementById('header-brand-icon').textContent = '🚛';
+      document.getElementById('header-brand-name').textContent = 'ALONG WITH';
+      document.getElementById('capt-avatar').textContent = '🚛';
+      document.getElementById('shipment-type-badge').textContent = 'TRUCK CARGO';
+      await loadCargoBookingDetails(trackId);
+    } else {
+      activeTrackingType = 'sage';
+      document.getElementById('header-brand-icon').textContent = '🛵';
+      document.getElementById('header-brand-name').textContent = 'SAGE PARCEL';
+      document.getElementById('capt-avatar').textContent = '🛵';
+      document.getElementById('shipment-type-badge').textContent = 'BIKE PARCEL';
+      await loadSageParcelDetails(trackId);
+    }
+  }
+
+  // ── Load Cargo Booking (Along With Freight) ──
+  async function loadCargoBookingDetails(bookingId) {
+    var queryUrl = SUPABASE_URL + '/rest/v1/cargo_bookings?order=created_at.desc&limit=1';
+    if (bookingId && bookingId !== 'latest') {
+      queryUrl = SUPABASE_URL + '/rest/v1/cargo_bookings?id=eq.' + bookingId;
+    }
+
+    try {
+      var res = await fetch(queryUrl, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+        }
+      });
+      var data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        var b = data[0];
+        document.getElementById('sender-display').textContent = 'Sender: ' + (b.sender_name || 'Sender') + ' (' + (b.sender_phone || '') + ')';
+        document.getElementById('pickup-addr-display').textContent = b.pickup_address || 'Pickup Point';
+        document.getElementById('receiver-display').textContent = 'Receiver: ' + (b.receiver_name || b.receiver_phone || 'Receiver');
+        document.getElementById('drop-addr-display').textContent = b.drop_address || 'Drop Point';
+        document.getElementById('track-pin-display').textContent = b.permanent_pin || (String(b.id || '').replace(/\D/g, '').slice(-4)) || '2026';
+
+        // Fetch driver info from cargo_trips
+        if (b.trip_id) {
+          try {
+            var tripRes = await fetch(SUPABASE_URL + '/rest/v1/cargo_trips?id=eq.' + b.trip_id, {
+              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+            });
+            var tData = await tripRes.json();
+            if (Array.isArray(tData) && tData.length > 0) {
+              var t = tData[0];
+              driverName = t.driver_name || 'Truck Captain';
+              activeDriverPhone = t.driver_phone || activeDriverPhone;
+              document.getElementById('capt-name').textContent = driverName;
+              document.getElementById('capt-vehicle').textContent = (t.vehicle_type || 'Truck') + ' • ' + (t.vehicle_number || 'Commercial');
+              if (activeDriverPhone) {
+                document.getElementById('capt-call-btn').href = 'tel:' + activeDriverPhone;
+              }
+            }
+          } catch(e) {}
+        } else {
+          // Parse driver from description if warehouse load
+          var matchDriver = (b.cargo_description || '').match(/\[DRIVER:([^|]+)\|([^|]+)\|([^\]]+)\]/);
+          if (matchDriver) {
+            driverName = matchDriver[1];
+            activeDriverPhone = matchDriver[2] || activeDriverPhone;
+            document.getElementById('capt-name').textContent = driverName;
+            document.getElementById('capt-vehicle').textContent = matchDriver[3];
+            if (activeDriverPhone) document.getElementById('capt-call-btn').href = 'tel:' + activeDriverPhone;
+          }
+        }
+
+        setupMapPinsAndStartPolling(18.0073, 79.5583, 17.9784, 79.5080);
+      } else {
+        renderFallbackDemo('cargo');
+      }
+    } catch(e) {
+      renderFallbackDemo('cargo');
+    }
+  }
+
+  // ── Load Sage Parcel Details ──
+  async function loadSageParcelDetails(parcelId) {
     var queryUrl = SUPABASE_URL + '/rest/v1/sage_parcels?order=created_at.desc&limit=1';
     if (parcelId && parcelId !== 'latest') {
       queryUrl = SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + parcelId;
@@ -336,118 +493,207 @@
         }
       });
       var data = await res.json();
-      if (data && data.length > 0) {
-        parcelData = data[0];
-        renderParcelUI(parcelData);
+      if (Array.isArray(data) && data.length > 0) {
+        var p = data[0];
+        document.getElementById('sender-display').textContent = 'Sender: ' + (p.sender_name || 'Sender');
+        document.getElementById('pickup-addr-display').textContent = p.pickup_address || '-';
+        document.getElementById('receiver-display').textContent = 'Receiver: ' + (p.receiver_name || 'Receiver');
+        document.getElementById('drop-addr-display').textContent = p.drop_address || '-';
+
+        var pinMatch = (p.notes || '').match(/Receiver Drop PIN:\s*(\d+)/i);
+        var displayPin = pinMatch ? pinMatch[1] : (p.permanent_ride_pin || '8598');
+        document.getElementById('track-pin-display').textContent = displayPin;
+
+        if (p.driver_name) {
+          driverName = p.driver_name;
+          document.getElementById('capt-name').textContent = driverName;
+          document.getElementById('capt-vehicle').textContent = p.driver_vehicle || 'Verified Bike';
+          if (p.driver_phone) {
+            activeDriverPhone = p.driver_phone;
+            document.getElementById('capt-call-btn').href = 'tel:' + p.driver_phone;
+          }
+        }
+
+        var pLat = p.pickup_lat || 18.0073;
+        var pLng = p.pickup_lng || 79.5583;
+        var dLat = p.drop_lat || 17.9784;
+        var dLng = p.drop_lng || 79.5080;
+        setupMapPinsAndStartPolling(pLat, pLng, dLat, dLng);
       } else {
-        renderFallbackDemo();
+        renderFallbackDemo('sage');
       }
     } catch(e) {
-      renderFallbackDemo();
+      renderFallbackDemo('sage');
     }
   }
 
-  function renderParcelUI(p) {
-    document.getElementById('sender-display').textContent = p.sender_name || 'Sender';
-    document.getElementById('pickup-addr-display').textContent = p.pickup_address || '-';
-    document.getElementById('receiver-display').textContent = p.receiver_name || 'Receiver';
-    document.getElementById('drop-addr-display').textContent = p.drop_address || '-';
-
-    // Extract Receiver PIN from notes or permanent PIN
-    var pinMatch = (p.notes || '').match(/Receiver Drop PIN:\s*(\d+)/i);
-    var displayPin = pinMatch ? pinMatch[1] : (p.permanent_ride_pin || '8598');
-    document.getElementById('track-pin-display').textContent = displayPin;
-
-    if (p.driver_name) {
-      document.getElementById('capt-name').textContent = p.driver_name;
-      document.getElementById('capt-vehicle').textContent = p.driver_vehicle || 'Verified Bike';
-      if (p.driver_phone) {
-        document.getElementById('capt-call-btn').href = 'tel:' + p.driver_phone;
-      }
-    }
-
-    // Plot Pickup, Drop and Moving Bike
-    var pLat = p.pickup_lat || 18.0073;
-    var pLng = p.pickup_lng || 79.5583;
-    var dLat = p.drop_lat || 17.9784;
-    var dLng = p.drop_lng || 79.5080;
+  function setupMapPinsAndStartPolling(pLat, pLng, dLat, dLng) {
+    activePickupLat = pLat; activePickupLng = pLng;
+    activeDropLat = dLat; activeDropLng = dLng;
 
     // Green Pickup Pin
-    L.marker([pLat, pLng], {
+    if (pickupMarker) map.removeLayer(pickupMarker);
+    pickupMarker = L.marker([pLat, pLng], {
       icon: L.divIcon({
-        html: '<div style="background:#16A34A; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 6px rgba(0,0,0,0.4);"></div>',
+        html: '<div style="background:#16A34A; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 8px rgba(0,0,0,0.5);"></div>',
         iconSize: [16,16], iconAnchor: [8,8]
       })
     }).addTo(map);
 
     // Red Drop Pin
+    if (dropMarker) map.removeLayer(dropMarker);
     dropMarker = L.marker([dLat, dLng], {
       icon: L.divIcon({
-        html: '<div style="background:#EF4444; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 6px rgba(0,0,0,0.4);"></div>',
+        html: '<div style="background:#EF4444; width:16px; height:16px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 8px rgba(0,0,0,0.5);"></div>',
         iconSize: [16,16], iconAnchor: [8,8]
       })
     }).addTo(map);
 
-    // Moving Bike Captain Icon
-    var bikeIcon = L.divIcon({
-      html: '<div style="background:#2563EB; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:2.5px solid #fff; box-shadow:0 4px 10px rgba(0,0,0,0.3); transform:translate(-17px,-17px);">🛵</div>',
-      iconSize: [34,34], iconAnchor: [0,0]
+    // Vehicle Marker Icon
+    var vehicleEmoji = activeTrackingType === 'cargo' ? '🚛' : '🛵';
+    var vIcon = L.divIcon({
+      html: '<div style="background:#2563EB; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:19px; border:2.5px solid #fff; box-shadow:0 4px 12px rgba(0,0,0,0.4); transform:translate(-18px,-18px);">' + vehicleEmoji + '</div>',
+      iconSize: [36,36], iconAnchor: [0,0]
     });
 
-    // Start bike at midpoint moving towards drop
-    var currentBikeLat = (pLat * 0.4) + (dLat * 0.6);
-    var currentBikeLng = (pLng * 0.4) + (dLng * 0.6);
-    bikeMarker = L.marker([currentBikeLat, currentBikeLng], { icon: bikeIcon }).addTo(map);
+    var startLat = (pLat * 0.4) + (dLat * 0.6);
+    var startLng = (pLng * 0.4) + (dLng * 0.6);
+    if (vehicleMarker) map.removeLayer(vehicleMarker);
+    vehicleMarker = L.marker([startLat, startLng], { icon: vIcon }).addTo(map);
 
-    map.fitBounds(L.latLngBounds([[pLat, pLng], [dLat, dLng]]), { padding: [40, 40] });
+    map.fitBounds(L.latLngBounds([[pLat, pLng], [dLat, dLng]]), { padding: [50, 50] });
 
-    // Draw route
+    // Draw OSRM route line
     var routeUrl = 'https://router.project-osrm.org/route/v1/driving/' + pLng + ',' + pLat + ';' + dLng + ',' + dLat + '?overview=full&geometries=geojson';
     fetch(routeUrl)
       .then(function(r){ return r.json(); })
       .then(function(d){
         if (d.routes && d.routes.length > 0) {
           var pts = d.routes[0].geometry.coordinates.map(function(c){ return [c[1], c[0]]; });
-          L.polyline(pts, { color: '#2563EB', weight: 4, opacity: 0.8 }).addTo(map);
+          if (routeLine) map.removeLayer(routeLine);
+          routeLine = L.polyline(pts, { color: '#38BDF8', weight: 4, opacity: 0.85 }).addTo(map);
         }
       }).catch(function(){});
 
-    // Animate bike moving smoothly
-    startLiveBikeSimulation(currentBikeLat, currentBikeLng, dLat, dLng);
+    // ── START REAL 10-SECOND POLLING ──
+    startLiveLocationPolling();
   }
 
-  function renderFallbackDemo() {
-    renderParcelUI({
-      sender_name: 'Rydealot Sender',
-      pickup_address: 'Hanamkonda Main Chowrasta',
-      receiver_name: 'Receiver Door',
-      drop_address: 'Kazipet Station Road',
-      notes: 'Receiver Drop PIN: 4829',
-      driver_name: 'Captain Suresh',
-      driver_vehicle: 'Hero Splendor (TS03 AB 1234)',
-      pickup_lat: 18.0073, pickup_lng: 79.5583,
-      drop_lat: 17.9784, drop_lng: 79.5080
-    });
-  }
+  // ── REAL POLLING ENGINE: Fetches Driver Location Every 10 Seconds ──
+  function startLiveLocationPolling() {
+    if (pollTimer) clearInterval(pollTimer);
 
-  function startLiveBikeSimulation(startLat, startLng, destLat, destLng) {
-    var steps = 0;
-    var maxSteps = 100;
-    setInterval(function() {
-      if (steps < maxSteps) {
-        steps++;
-        var progress = steps / maxSteps;
-        var curLat = startLat + (destLat - startLat) * (progress * 0.3); // moves towards destination
-        var curLng = startLng + (destLng - startLng) * (progress * 0.3);
-        if (bikeMarker) bikeMarker.setLatLng([curLat, curLng]);
+    async function pollDriverGps() {
+      var syncStatusEl = document.getElementById('gps-sync-status');
+      var lastPingEl = document.getElementById('gps-last-ping');
+      var statusTextEl = document.getElementById('floating-status-text');
+      var etaEl = document.getElementById('floating-eta');
+      var pulseDot = document.getElementById('status-pulse-dot');
+      var headerPulse = document.getElementById('header-pulse');
+
+      if (!activeDriverPhone) {
+        statusTextEl.textContent = driverName + ' assigned • Awaiting live GPS broadcast';
+        syncStatusEl.textContent = 'Waiting for driver to share live GPS…';
+        return;
       }
-    }, 4000);
+
+      var cleanPhone = activeDriverPhone.replace(/\D/g, '').slice(-10);
+
+      try {
+        // Query riders table for driver's live GPS
+        var res = await fetch(SUPABASE_URL + '/rest/v1/riders?phone=ilike.*' + encodeURIComponent(cleanPhone) + '*&select=lat,lng,updated_at,name,status&limit=1', {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+          }
+        });
+        var riders = await res.json();
+
+        var foundLat = null;
+        var foundLng = null;
+        var updatedAt = null;
+
+        if (Array.isArray(riders) && riders.length > 0 && riders[0].lat && riders[0].lng) {
+          foundLat = parseFloat(riders[0].lat);
+          foundLng = parseFloat(riders[0].lng);
+          updatedAt = riders[0].updated_at;
+          if (riders[0].name) driverName = riders[0].name;
+        } else {
+          // Check cargo_trips table fallback
+          var tripCheck = await fetch(SUPABASE_URL + '/rest/v1/cargo_trips?driver_phone=ilike.*' + encodeURIComponent(cleanPhone) + '*&select=driver_lat,driver_lng,updated_at&limit=1', {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+          });
+          var cTrips = await tripCheck.json();
+          if (Array.isArray(cTrips) && cTrips.length > 0 && cTrips[0].driver_lat && cTrips[0].driver_lng) {
+            foundLat = parseFloat(cTrips[0].driver_lat);
+            foundLng = parseFloat(cTrips[0].driver_lng);
+            updatedAt = cTrips[0].updated_at;
+          }
+        }
+
+        if (foundLat && foundLng) {
+          // Move vehicle marker smoothly
+          vehicleMarker.setLatLng([foundLat, foundLng]);
+
+          var diffSec = updatedAt ? Math.max(0, Math.floor((new Date() - new Date(updatedAt)) / 1000)) : 0;
+          lastPingEl.textContent = formatTimeAgo(updatedAt);
+
+          var distKm = computeHaversineKm(foundLat, foundLng, activeDropLat, activeDropLng);
+          var avgSpeedKmH = activeTrackingType === 'cargo' ? 35 : 25; // 35 km/h for trucks, 25 km/h for bikes
+          var etaMins = Math.max(1, Math.round((distKm / avgSpeedKmH) * 60));
+
+          etaEl.textContent = '~' + etaMins + ' mins';
+
+          if (diffSec < 45) {
+            // Signal strong and fresh
+            pulseDot.className = 'pulse-dot';
+            headerPulse.className = 'pulse-dot';
+            statusTextEl.textContent = driverName + ' is ' + distKm.toFixed(1) + ' km away';
+            syncStatusEl.textContent = '🟢 Live GPS Active • Realtime updates';
+          } else if (diffSec < 180) {
+            // Weak signal area (delay 1-3 mins)
+            pulseDot.className = 'pulse-dot amber';
+            headerPulse.className = 'pulse-dot amber';
+            statusTextEl.textContent = driverName + ' moving • Low signal highway area';
+            syncStatusEl.textContent = '🟡 Weak network area • Last ping ' + formatTimeAgo(updatedAt);
+          } else {
+            // Offline buffer zone (> 3 mins)
+            pulseDot.className = 'pulse-dot gray';
+            headerPulse.className = 'pulse-dot gray';
+            statusTextEl.textContent = driverName + ' in dead zone • Route buffered on phone';
+            syncStatusEl.textContent = '📡 Offline buffer • Retrying connection…';
+          }
+        } else {
+          syncStatusEl.textContent = 'Driver GPS initializing…';
+          lastPingEl.textContent = 'Awaiting ping';
+        }
+      } catch(err) {
+        console.warn('GPS Polling Error:', err);
+        syncStatusEl.textContent = 'Retrying GPS sync in 10s…';
+      }
+    }
+
+    // Run poll immediately, then repeatedly every 10 seconds
+    pollDriverGps();
+    pollTimer = setInterval(pollDriverGps, 10000);
+  }
+
+  function renderFallbackDemo(type) {
+    document.getElementById('sender-display').textContent = 'Sender: Warangal Hub';
+    document.getElementById('pickup-addr-display').textContent = 'Hanamkonda Main Chowrasta';
+    document.getElementById('receiver-display').textContent = 'Receiver: Kazipet Office';
+    document.getElementById('drop-addr-display').textContent = 'Kazipet Station Road';
+    document.getElementById('track-pin-display').textContent = '4829';
+    document.getElementById('capt-name').textContent = type === 'cargo' ? 'Driver Rajesh' : 'Captain Suresh';
+    document.getElementById('capt-vehicle').textContent = type === 'cargo' ? 'Tata Ace (TS03 XY 4567)' : 'Hero Splendor (TS03 AB 1234)';
+    activeDriverPhone = '6309155124';
+    setupMapPinsAndStartPolling(18.0073, 79.5583, 17.9784, 79.5080);
   }
 
   function shareSelfTracking() {
     var url = window.location.href;
     var pin = document.getElementById('track-pin-display').textContent.trim();
-    var text = '📦 Track my parcel delivery live on Rydealot: ' + url + ' (PIN: ' + pin + ')';
+    var text = '📦 Track my ' + (activeTrackingType === 'cargo' ? 'truck freight' : 'parcel') + ' live on Rydealot Radar: ' + url + ' (PIN: ' + pin + ')';
     window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
   }
 
