@@ -654,7 +654,7 @@
 
         <div class="input-group">
           <label class="input-label" id="pickup-address-label">Pickup Address (Doorstep/Shop in Warangal)</label>
-          <input type="text" class="input-field" id="pickup-address" placeholder="e.g. Shop #12, Subedari Main Road, Hanamkonda" value="Shop #12, Subedari Main Road, Hanamkonda">
+          <input type="text" class="input-field" id="pickup-address" placeholder="e.g. Street, Colony, Shop or House #">
         </div>
 
         <!-- Delivery Mode Choice -->
@@ -678,7 +678,7 @@
         <!-- Conditional Input: Receiver Doorstep Address OR Bus Office Select -->
         <div class="input-group" id="group-drop-address" style="margin-top: 10px;">
           <label class="input-label" id="drop-doorstep-label">Receiver Doorstep Address (Hyderabad)</label>
-          <input type="text" class="input-field" id="drop-doorstep-address" placeholder="e.g. Flat 302, Sri Sai Enclave, Ramanthapur, Uppal" value="Flat 302, Sri Sai Enclave, Ramanthapur, Uppal">
+          <input type="text" class="input-field" id="drop-doorstep-address" placeholder="e.g. Flat, Colony, Landmark, Area">
         </div>
 
         <div class="input-group hidden" id="group-bus-office" style="margin-top: 10px;">
@@ -725,12 +725,12 @@
 
         <div class="input-group">
           <label class="input-label">Receiver Full Name</label>
-          <input type="text" class="input-field" id="receiver-name" placeholder="Receiver full name" value="Venkatesh Rao">
+          <input type="text" class="input-field" id="receiver-name" placeholder="Enter receiver's name">
         </div>
 
         <div class="input-group">
           <label class="input-label">Receiver Phone Number (For SMS OTP & PIN)</label>
-          <input type="tel" class="input-field" id="receiver-phone" placeholder="10-digit mobile number" value="9848022334">
+          <input type="tel" class="input-field" id="receiver-phone" placeholder="Enter 10-digit mobile number" maxlength="10">
           <div style="font-size: 10.5px; color: #16A34A; font-weight: 700; margin-top: 3px;">
             🔒 Receiver will get a secret 4-digit PIN via SMS required for handover.
           </div>
@@ -1181,6 +1181,37 @@
     var routeConfig = ROUTES_DATABASE[routeKey];
     if (!routeConfig || !routeConfig.active) {
       alert('⏳ This corridor is launching in Phase 2! Express 3-leg bus relays are currently live between Warangal ⇄ Hyderabad.');
+      return;
+    }
+
+    var pickupAddr = document.getElementById('pickup-address').value.trim();
+    if (!pickupAddr) {
+      alert('Please enter your pickup address (doorstep or shop).');
+      document.getElementById('pickup-address').focus();
+      return;
+    }
+
+    if (currentDeliveryMode === 'doorstep') {
+      var dropAddr = document.getElementById('drop-doorstep-address').value.trim();
+      if (!dropAddr) {
+        alert('Please enter the receiver doorstep address.');
+        document.getElementById('drop-doorstep-address').focus();
+        return;
+      }
+    }
+
+    var rName = document.getElementById('receiver-name').value.trim();
+    if (!rName) {
+      alert('Please enter the receiver\'s name.');
+      document.getElementById('receiver-name').focus();
+      return;
+    }
+
+    var rPhone = document.getElementById('receiver-phone').value.trim();
+    var cleanPhone = rPhone.replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      alert('Please enter a valid 10-digit mobile number for the receiver.');
+      document.getElementById('receiver-phone').focus();
       return;
     }
 
