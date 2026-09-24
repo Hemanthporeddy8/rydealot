@@ -230,22 +230,23 @@
       position: absolute;
       inset: 0;
       z-index: 999;
-      background: radial-gradient(circle at center, #1E1B4B 0%, #0F172A 100%);
+      background: linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 100%);
+      border: 1.5px solid #BFDBFE;
       padding: 24px 20px;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
-      color: #fff;
+      color: #0F172A;
     }
     .highway-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(245, 158, 11, 0.2);
-      border: 1px solid #FFB020;
-      color: #FCD34D;
-      padding: 4px 12px;
+      background: #FEF3C7;
+      border: 1.5px solid #FDE68A;
+      color: #92400E;
+      padding: 5px 14px;
       border-radius: 99px;
       font-size: 11px;
       font-weight: 900;
@@ -254,21 +255,22 @@
     .highway-status-title {
       font-size: 17px;
       font-weight: 900;
-      color: #FFFFFF;
+      color: #0F172A;
       margin-bottom: 6px;
     }
     .highway-milestone-pill {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.18);
+      background: #FFFFFF;
+      border: 1.5px solid #BFDBFE;
       padding: 8px 14px;
       border-radius: 12px;
       font-size: 12px;
-      color: #38BDF8;
+      color: #1D4ED8;
       font-weight: 700;
       margin-top: 8px;
       display: flex;
       align-items: center;
       gap: 6px;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.06);
     }
 
     /* Content Section */
@@ -408,10 +410,10 @@
   <!-- Top Header -->
   <div class="top-nav">
     <div class="brand-wrap">
-      <img src="assets/goodz-z-logo.svg" alt="Along With Goodz Logo" style="width:36px; height:36px; border-radius:10px; box-shadow:0 2px 8px rgba(15,23,42,0.18); object-fit:contain;">
+      <img src="assets/goodz-concept-art.png" alt="Along With Goodz Logo" style="width:38px; height:38px; border-radius:10px; box-shadow:0 2px 8px rgba(15,23,42,0.08); object-fit:contain; background:#FFFFFF;">
       <div>
         <div class="brand-text-title">Along With Goodz</div>
-        <div class="brand-text-sub">Intercity 3-Leg Relay</div>
+        <div class="brand-text-sub">Intercity 3-Leg Bus Relay</div>
       </div>
     </div>
     <a href="alongwith.html" class="back-btn">← Along With</a>
@@ -419,14 +421,14 @@
 
   <!-- The "Z" Story Explainer Card -->
   <div class="z-story-card">
-    <div class="z-visual-diagram">
-      <img src="assets/goodz-z-logo.svg" alt="The Z 3-Leg Concept Logo">
+    <div class="z-visual-diagram" style="background:#FFFFFF; border:1px solid #FDE68A;">
+      <img src="assets/goodz-concept-art.png" alt="The Z 3-Leg Concept Logo" style="object-fit:contain; padding:2px;">
     </div>
     <div class="z-story-desc">
       <strong style="color:#92400E; font-size:12px;">Concept of "Z" in Goodz:</strong><br>
-      • <span style="color:#B45309; font-weight:800;">Top Bar (🏍️):</span> Leg 1 Doorstep Pickup Bike<br>
-      • <span style="color:#1D4ED8; font-weight:800;">Diagonal Slash (🚌):</span> Leg 2 Highway Bus (NH 163)<br>
-      • <span style="color:#047857; font-weight:800;">Bottom Bar (🛵):</span> Leg 3 Destination Doorstep Drop!
+      • <span style="color:#B45309; font-weight:800;">Top Bar:</span> Leg 1 Doorstep Pickup Bike (Warangal)<br>
+      • <span style="color:#1D4ED8; font-weight:800;">Diagonal Slash:</span> Leg 2 Highway Express Bus (NH 163)<br>
+      • <span style="color:#047857; font-weight:800;">Bottom Bar:</span> Leg 3 Destination Doorstep Drop (Hyderabad)!
     </div>
   </div>
 
@@ -452,17 +454,17 @@
   <div class="map-wrap">
     <div id="relay-map"></div>
 
-    <!-- Highway In-Words Banner for Stage 2 -->
+    <!-- Highway In-Words Banner for Stage 2 (Light Themed) -->
     <div class="highway-words-banner" id="highway-words-box">
       <div class="highway-badge">🚌 STAGE 2: HIGHWAY TRANSIT ON NH 163</div>
       <div class="highway-status-title">Warangal ➔ Hyderabad Intercity</div>
-      <p style="font-size:12px; color:#CBD5E1; max-width:320px;">
+      <p style="font-size:12.5px; color:#475569; max-width:320px; line-height:1.45;">
         Scheduled Express Travel Bus. Package traveling safely in official cargo hold.
       </p>
       <div class="highway-milestone-pill">
         📍 Current Milestone: Passed Jangaon • Approaching Aler Toll
       </div>
-      <div style="font-size:11px; color:#FCD34D; margin-top:12px; font-weight:700;">
+      <div style="font-size:11.5px; color:#B45309; margin-top:12px; font-weight:800;">
         Est. Arrival at Uppal Meeting Point: 2:45 PM
       </div>
     </div>
@@ -470,6 +472,52 @@
 
   <!-- Content Section -->
   <div class="content">
+
+    <!-- Dedicated Intercity Feature Explainer Card -->
+    <div style="background:#FFFFFF; border:1.5px solid var(--card-border); border-radius:18px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,0.03);">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:18px;">🏙️⇄🌆</span>
+          <div>
+            <div style="font-size:14px; font-weight:900; color:#0F172A;">Dedicated Intercity Feature</div>
+            <div style="font-size:10.5px; font-weight:700; color:#1D4ED8; text-transform:uppercase; letter-spacing:0.5px;">Warangal ⇄ Hyderabad Corridor</div>
+          </div>
+        </div>
+        <span style="background:#ECFDF5; color:#047857; border:1px solid #A7F3D0; font-size:10px; font-weight:800; padding:2px 8px; border-radius:99px;">Same Day • 4-5 Hrs</span>
+      </div>
+      
+      <p style="font-size:12px; color:#475569; line-height:1.5; margin-bottom:12px;">
+        This feature is built exclusively for <strong>intercity parcel delivery</strong> between different cities (starting with Warangal ⇄ Hyderabad along NH 163).
+      </p>
+
+      <div style="display:flex; flex-direction:column; gap:8px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:14px; padding:12px;">
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <div style="width:24px; height:24px; border-radius:50%; background:#FEF3C7; color:#92400E; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; flex-shrink:0;">1</div>
+          <div style="font-size:11.5px; color:#334155; line-height:1.4;">
+            <strong style="color:#0F172A;">Leg 1 (Doorstep Pickup):</strong> A verified Rydealot Bike Captain in Warangal collects your parcel directly from your home/shop and transports it to the bus terminal/office.
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <div style="width:24px; height:24px; border-radius:50%; background:#EFF6FF; color:#1D4ED8; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; flex-shrink:0;">2</div>
+          <div style="font-size:11.5px; color:#334155; line-height:1.4;">
+            <strong style="color:#0F172A;">Leg 2 (Highway Transit):</strong> The parcel travels securely in the dedicated cargo hold of scheduled express highway travel buses (e.g. TSRTC / Private travels) on NH 163, saving huge truck rental costs.
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <div style="width:24px; height:24px; border-radius:50%; background:#ECFDF5; color:#047857; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; flex-shrink:0;">3</div>
+          <div style="font-size:11.5px; color:#334155; line-height:1.4;">
+            <strong style="color:#0F172A;">Leg 3 (Destination Drop or Counter Pickup):</strong> Local Hyderabad Bike Captain delivers straight to the receiver's doorstep (₹499), or the receiver can choose <strong>Bus Office Self-Pickup (₹349)</strong> to save ₹150 with a secure 4-digit PIN!
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid #F1F5F9; font-size:11.5px;">
+        <span style="color:#64748B;">⚡ Why not direct truck?</span>
+        <span style="color:#0F172A; font-weight:800;">Saves 70% cost (₹349 vs ₹2,500+)</span>
+      </div>
+    </div>
 
     <!-- Active Stage Card -->
     <div class="status-card">
