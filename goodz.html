@@ -603,40 +603,57 @@
   <div class="corridor-bar">
     <div class="corridor-route">
       <span>📍</span>
-      <span id="corridor-title-text">Warangal Urban ⇄ Hyderabad Twin Cities</span>
+      <span id="corridor-title-text">Warangal ⇄ Hyderabad</span>
     </div>
-    <span class="corridor-pill">NH 163 • 145 KM</span>
+    <span class="corridor-pill" id="corridor-highway-pill">NH 163 • 145 KM</span>
   </div>
 
   <!-- ==================== VIEW 1: INTERACTIVE BOOKING FLOW ==================== -->
   <div class="view-container" id="view-booking">
     <div class="booking-content">
 
-      <!-- Corridor Direction Switcher -->
-      <div class="form-card" style="padding: 10px;">
-        <div class="direction-switcher">
-          <button class="direction-btn active" id="dir-wgl-hyd" onclick="setCorridorDirection('wgl-hyd')">
-            <span>🏢 Warangal</span> ➔ <span>🏙️ Hyderabad</span>
+      <!-- Dynamic Intercity Route Dropdowns Card -->
+      <div class="form-card" style="padding: 12px 14px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:0.5px;">Select Intercity Route</span>
+          <span id="route-status-pill" style="font-size:10px; font-weight:800; background:#DCFCE7; color:#15803D; padding:2px 8px; border-radius:99px; border:1px solid #BBF7D0;">🟢 ACTIVE ROUTE</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr auto 1fr; gap:8px; align-items:flex-end;">
+          <!-- Pickup City Select -->
+          <div class="input-group" style="margin:0;">
+            <label class="input-label" style="font-size:10.5px;">Pickup City (Origin)</label>
+            <select id="select-pickup-city" class="input-field" onchange="onCitySelectionChange()" style="font-weight:700; padding:8px 10px; font-size:12.5px;">
+            </select>
+          </div>
+
+          <!-- Swap Button -->
+          <button type="button" onclick="swapCities()" style="width:34px; height:34px; border-radius:50%; background:#F8FAFC; border:1.5px solid var(--card-border); color:#0F172A; font-size:15px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; margin-bottom:2px; transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Swap Route Direction">
+            ⇄
           </button>
-          <button class="direction-btn" id="dir-hyd-wgl" onclick="setCorridorDirection('hyd-wgl')">
-            <span>🏙️ Hyderabad</span> ➔ <span>🏢 Warangal</span>
-          </button>
+
+          <!-- Destination City Select -->
+          <div class="input-group" style="margin:0;">
+            <label class="input-label" style="font-size:10.5px;">Destination City</label>
+            <select id="select-drop-city" class="input-field" onchange="onCitySelectionChange()" style="font-weight:700; padding:8px 10px; font-size:12.5px;">
+            </select>
+          </div>
+        </div>
+
+        <!-- Coming Soon Route Notice -->
+        <div id="route-coming-soon-box" style="display:none; margin-top:10px; background:#FFFBEB; border:1.5px solid #FDE68A; border-radius:12px; padding:10px 12px; font-size:11.5px; color:#92400E; line-height:1.45;">
+          ⏳ <strong id="coming-soon-corridor-name">This route</strong> is expanding in Phase 2! Express 3-leg bus relays are currently live between <strong>Warangal ⇄ Hyderabad</strong>.
         </div>
       </div>
 
       <!-- Route Addresses Form Card -->
       <div class="form-card">
         <div class="form-card-title">
-          <span>📍</span> Route & Addresses
+          <span>📍</span> Detailed Addresses
         </div>
 
         <div class="input-group">
-          <label class="input-label" id="pickup-city-label">Pickup City (Origin)</label>
-          <input type="text" class="input-field input-field-readonly" id="pickup-city-name" value="Warangal / Hanamkonda" readonly>
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">Detailed Pickup Address (Doorstep/Shop)</label>
+          <label class="input-label" id="pickup-address-label">Pickup Address (Doorstep/Shop in Warangal)</label>
           <input type="text" class="input-field" id="pickup-address" placeholder="e.g. Shop #12, Subedari Main Road, Hanamkonda" value="Shop #12, Subedari Main Road, Hanamkonda">
         </div>
 
@@ -647,30 +664,26 @@
             <div class="mode-choice-card active" id="card-mode-doorstep" onclick="selectDeliveryMode('doorstep')">
               <div class="mode-choice-title">🛵 Full Doorstep</div>
               <div class="mode-choice-sub">Captain delivers right to receiver's house</div>
-              <div class="mode-choice-price">₹499 Total</div>
+              <div class="mode-choice-price" id="price-badge-doorstep">₹499 Total</div>
             </div>
 
             <div class="mode-choice-card" id="card-mode-office" onclick="selectDeliveryMode('office')">
               <div class="mode-choice-title">🏬 Bus Office Pickup</div>
               <div class="mode-choice-sub">Receiver collects at terminal counter</div>
-              <div class="mode-choice-price">₹349 (Save ₹150!)</div>
+              <div class="mode-choice-price" id="price-badge-office">₹349 (Save ₹150!)</div>
             </div>
           </div>
         </div>
 
         <!-- Conditional Input: Receiver Doorstep Address OR Bus Office Select -->
         <div class="input-group" id="group-drop-address" style="margin-top: 10px;">
-          <label class="input-label">Receiver Doorstep Address (Hyderabad)</label>
+          <label class="input-label" id="drop-doorstep-label">Receiver Doorstep Address (Hyderabad)</label>
           <input type="text" class="input-field" id="drop-doorstep-address" placeholder="e.g. Flat 302, Sri Sai Enclave, Ramanthapur, Uppal" value="Flat 302, Sri Sai Enclave, Ramanthapur, Uppal">
         </div>
 
         <div class="input-group hidden" id="group-bus-office" style="margin-top: 10px;">
-          <label class="input-label">Select Destination Bus Office Counter</label>
+          <label class="input-label" id="drop-office-label">Select Destination Bus Office Counter</label>
           <select class="input-field" id="select-bus-office" style="font-weight: 700;">
-            <option value="Uppal">Uppal Bus Terminal — Partner Counter #4 (TSRTC / Orange Hub)</option>
-            <option value="MGBS">MGBS Imlibun Terminal — Platform 12 Cargo Desk</option>
-            <option value="Secunderabad">Secunderabad Jubilee Station — Parcel Counter #2</option>
-            <option value="LBNagar">LB Nagar Highway Ring Road — Travel Counter #1</option>
           </select>
         </div>
       </div>
@@ -884,39 +897,221 @@
 </div>
 
 <script>
-  var currentCorridor = 'wgl-hyd'; // 'wgl-hyd' or 'hyd-wgl'
+  // Dynamic Cities Database (Extensible for all future cities)
+  var CITIES_DATABASE = {
+    'wgl': {
+      id: 'wgl',
+      name: 'Warangal / Hanamkonda',
+      shortName: 'Warangal',
+      state: 'Telangana',
+      status: 'active',
+      defaultAddress: 'Shop #12, Subedari Main Road, Hanamkonda',
+      counters: [
+        { id: 'subedari', name: 'Hanamkonda Bus Station — Subedari Travel Desk' },
+        { id: 'madikonda', name: 'Madikonda Highway Junction (IOCL Point)' },
+        { id: 'kazipet', name: 'Kazipet Station Road — Official Cargo Desk' }
+      ],
+      coords: [17.9784, 79.5941]
+    },
+    'hyd': {
+      id: 'hyd',
+      name: 'Hyderabad Twin Cities',
+      shortName: 'Hyderabad',
+      state: 'Telangana',
+      status: 'active',
+      defaultAddress: 'Flat 302, Sri Sai Enclave, Ramanthapur, Uppal',
+      counters: [
+        { id: 'uppal', name: 'Uppal Bus Terminal — Partner Counter #4 (TSRTC / Orange Hub)' },
+        { id: 'mgbs', name: 'MGBS Imlibun Terminal — Platform 12 Cargo Desk' },
+        { id: 'secunderabad', name: 'Secunderabad Jubilee Station — Parcel Counter #2' },
+        { id: 'lbnagar', name: 'LB Nagar Highway Ring Road — Travel Counter #1' }
+      ],
+      coords: [17.3984, 78.5583]
+    },
+    'krm': {
+      id: 'krm',
+      name: 'Karimnagar',
+      shortName: 'Karimnagar',
+      state: 'Telangana',
+      status: 'coming_soon',
+      defaultAddress: 'Collectorate Road, Karimnagar',
+      counters: [
+        { id: 'krm_bs', name: 'Karimnagar Main Bus Stand — Counter #1' }
+      ],
+      coords: [18.4386, 79.1288]
+    },
+    'kmm': {
+      id: 'kmm',
+      name: 'Khammam',
+      shortName: 'Khammam',
+      state: 'Telangana',
+      status: 'coming_soon',
+      defaultAddress: 'Wyra Road, Khammam',
+      counters: [
+        { id: 'kmm_bs', name: 'Khammam Old Bus Depot Counter' }
+      ],
+      coords: [17.2473, 80.1514]
+    },
+    'nzb': {
+      id: 'nzb',
+      name: 'Nizamabad',
+      shortName: 'Nizamabad',
+      state: 'Telangana',
+      status: 'coming_soon',
+      defaultAddress: 'Khaleelwadi, Nizamabad',
+      counters: [
+        { id: 'nzb_bs', name: 'Nizamabad Central Bus Stand Counter' }
+      ],
+      coords: [18.6725, 78.0941]
+    },
+    'mbnr': {
+      id: 'mbnr',
+      name: 'Mahabubnagar',
+      shortName: 'Mahabubnagar',
+      state: 'Telangana',
+      status: 'coming_soon',
+      defaultAddress: 'Raichur Road, Mahabubnagar',
+      counters: [
+        { id: 'mbnr_bs', name: 'MBNR Bus Station Counter' }
+      ],
+      coords: [16.7488, 77.9942]
+    },
+    'vja': {
+      id: 'vja',
+      name: 'Vijayawada',
+      shortName: 'Vijayawada',
+      state: 'Andhra Pradesh',
+      status: 'coming_soon',
+      defaultAddress: 'Benz Circle, Vijayawada',
+      counters: [
+        { id: 'pnbs', name: 'Pandit Nehru Bus Station (PNBS) Counter #5' }
+      ],
+      coords: [16.5062, 80.6480]
+    }
+  };
+
+  // Highway Routes Matrix
+  var ROUTES_DATABASE = {
+    'wgl-hyd': { active: true, highway: 'NH 163', distance: '145 KM', duration: '2h 30m', baseDoorstep: 499, baseOffice: 349, milestone: 'Passed Jangaon • Approaching Aler Toll' },
+    'hyd-wgl': { active: true, highway: 'NH 163', distance: '145 KM', duration: '2h 30m', baseDoorstep: 499, baseOffice: 349, milestone: 'Passed Bhongir • Approaching Aler' }
+  };
+
+  var selectedPickupCity = 'wgl';
+  var selectedDropCity = 'hyd';
   var currentDeliveryMode = 'doorstep'; // 'doorstep' or 'office'
   var selectedWeightSurcharge = 0;
   var currentStage = 1;
   var map = null;
   var currentMarker = null;
 
-  // Set Corridor Direction
-  function setCorridorDirection(dir) {
-    currentCorridor = dir;
-    var btnWglHyd = document.getElementById('dir-wgl-hyd');
-    var btnHydWgl = document.getElementById('dir-hyd-wgl');
-    var pickupCityName = document.getElementById('pickup-city-name');
-    var pickupCityLabel = document.getElementById('pickup-city-label');
-    var corridorTitle = document.getElementById('corridor-title-text');
-    var trackHighwayCorridor = document.getElementById('track-highway-corridor');
+  // Populate Dropdown Menus
+  function populateCityDropdowns() {
+    var pickSelect = document.getElementById('select-pickup-city');
+    var dropSelect = document.getElementById('select-drop-city');
+    if (!pickSelect || !dropSelect) return;
 
-    if (dir === 'wgl-hyd') {
-      btnWglHyd.classList.add('active');
-      btnHydWgl.classList.remove('active');
-      pickupCityName.value = 'Warangal / Hanamkonda (Tri-City)';
-      pickupCityLabel.textContent = 'Pickup City (Warangal)';
-      corridorTitle.textContent = 'Warangal Urban ➔ Hyderabad Twin Cities';
-      trackHighwayCorridor.textContent = 'Warangal ➔ Hyderabad Intercity';
-    } else {
-      btnHydWgl.classList.add('active');
-      btnWglHyd.classList.remove('active');
-      pickupCityName.value = 'Hyderabad (Uppal / Secunderabad / MGBS)';
-      pickupCityLabel.textContent = 'Pickup City (Hyderabad)';
-      corridorTitle.textContent = 'Hyderabad Twin Cities ➔ Warangal Urban';
-      trackHighwayCorridor.textContent = 'Hyderabad ➔ Warangal Intercity';
+    pickSelect.innerHTML = '';
+    dropSelect.innerHTML = '';
+
+    for (var key in CITIES_DATABASE) {
+      var c = CITIES_DATABASE[key];
+      var isComingSoon = (c.status === 'coming_soon');
+      var label = c.name + (isComingSoon ? ' (Coming Soon ⏳)' : ' 🟢');
+
+      var optPick = document.createElement('option');
+      optPick.value = c.id;
+      optPick.textContent = label;
+      pickSelect.appendChild(optPick);
+
+      var optDrop = document.createElement('option');
+      optDrop.value = c.id;
+      optDrop.textContent = label;
+      dropSelect.appendChild(optDrop);
     }
+
+    pickSelect.value = selectedPickupCity;
+    dropSelect.value = selectedDropCity;
+
+    onCitySelectionChange();
+  }
+
+  // Handle City Change
+  function onCitySelectionChange() {
+    selectedPickupCity = document.getElementById('select-pickup-city').value;
+    selectedDropCity = document.getElementById('select-drop-city').value;
+
+    var pCity = CITIES_DATABASE[selectedPickupCity] || { name: 'Origin', shortName: 'Origin' };
+    var dCity = CITIES_DATABASE[selectedDropCity] || { name: 'Destination', shortName: 'Destination' };
+
+    var routeKey = selectedPickupCity + '-' + selectedDropCity;
+    var routeConfig = ROUTES_DATABASE[routeKey];
+    var isRouteActive = (routeConfig && routeConfig.active);
+
+    var corridorTitle = document.getElementById('corridor-title-text');
+    var highwayPill = document.getElementById('corridor-highway-pill');
+    var statusPill = document.getElementById('route-status-pill');
+    var comingSoonBox = document.getElementById('route-coming-soon-box');
+    var comingSoonName = document.getElementById('coming-soon-corridor-name');
+    var btnSubmit = document.getElementById('btn-submit-booking');
+
+    if (isRouteActive) {
+      corridorTitle.textContent = pCity.shortName + ' ⇄ ' + dCity.shortName;
+      highwayPill.textContent = routeConfig.highway + ' • ' + routeConfig.distance;
+      statusPill.textContent = '🟢 ACTIVE ROUTE';
+      statusPill.style.background = '#DCFCE7';
+      statusPill.style.color = '#15803D';
+      statusPill.style.borderColor = '#BBF7D0';
+      comingSoonBox.style.display = 'none';
+      btnSubmit.disabled = false;
+      btnSubmit.style.opacity = '1';
+    } else {
+      corridorTitle.textContent = pCity.shortName + ' ➔ ' + dCity.shortName;
+      highwayPill.textContent = 'Launching Phase 2';
+      statusPill.textContent = '⏳ COMING SOON';
+      statusPill.style.background = '#FEF3C7';
+      statusPill.style.color = '#92400E';
+      statusPill.style.borderColor = '#FDE68A';
+      comingSoonBox.style.display = 'block';
+      comingSoonName.textContent = pCity.shortName + ' ➔ ' + dCity.shortName + ' Route';
+      btnSubmit.disabled = false; // allow clicking to show waitlist note
+    }
+
+    // Update Input Labels
+    document.getElementById('pickup-address-label').textContent = 'Pickup Address (Doorstep/Shop in ' + pCity.shortName + ')';
+    document.getElementById('drop-doorstep-label').textContent = 'Receiver Doorstep Address (' + dCity.shortName + ')';
+    document.getElementById('drop-office-label').textContent = 'Select Bus Office Counter in ' + dCity.shortName;
+    document.getElementById('fare-leg1-label').textContent = 'Leg 1: Pickup Bike (' + pCity.shortName + ')';
+    document.getElementById('fare-leg3-label').textContent = 'Leg 3: Destination Bike Delivery (' + dCity.shortName + ')';
+
+    // Populate Destination Bus Counters
+    var officeSelect = document.getElementById('select-bus-office');
+    officeSelect.innerHTML = '';
+    var counters = dCity.counters || [];
+    if (counters.length > 0) {
+      counters.forEach(function(ctr) {
+        var opt = document.createElement('option');
+        opt.value = ctr.id;
+        opt.textContent = ctr.name;
+        officeSelect.appendChild(opt);
+      });
+    } else {
+      var opt = document.createElement('option');
+      opt.value = 'default';
+      opt.textContent = dCity.shortName + ' Central Bus Terminal Parcel Counter';
+      officeSelect.appendChild(opt);
+    }
+
     updateFareDisplay();
+  }
+
+  // Swap Cities
+  function swapCities() {
+    var pickSelect = document.getElementById('select-pickup-city');
+    var dropSelect = document.getElementById('select-drop-city');
+    var temp = pickSelect.value;
+    pickSelect.value = dropSelect.value;
+    dropSelect.value = temp;
+    onCitySelectionChange();
   }
 
   // Set Delivery Mode (Doorstep vs Office)
@@ -976,10 +1171,19 @@
 
     document.getElementById('fare-total-display').textContent = '₹' + total;
     document.getElementById('btn-fare-text').textContent = '₹' + total;
+    document.getElementById('price-badge-doorstep').textContent = '₹' + (499 + selectedWeightSurcharge) + ' Total';
+    document.getElementById('price-badge-office').textContent = '₹' + (349 + selectedWeightSurcharge) + ' (Save ₹150!)';
   }
 
   // Transition to Live Tracking
   function startLiveRelay() {
+    var routeKey = selectedPickupCity + '-' + selectedDropCity;
+    var routeConfig = ROUTES_DATABASE[routeKey];
+    if (!routeConfig || !routeConfig.active) {
+      alert('⏳ This corridor is launching in Phase 2! Express 3-leg bus relays are currently live between Warangal ⇄ Hyderabad.');
+      return;
+    }
+
     document.getElementById('view-booking').classList.add('hidden');
     document.getElementById('view-tracking').classList.remove('hidden');
     
@@ -1010,7 +1214,8 @@
   function initMap() {
     var mapEl = document.getElementById('relay-map');
     if (!mapEl) return;
-    map = L.map('relay-map', { zoomControl: false }).setView([17.9784, 79.5941], 13);
+    var pCity = CITIES_DATABASE[selectedPickupCity] || { coords: [17.9784, 79.5941] };
+    map = L.map('relay-map', { zoomControl: false }).setView(pCity.coords, 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
     switchStage(1);
   }
@@ -1025,6 +1230,10 @@
       }
     }
 
+    var pCity = CITIES_DATABASE[selectedPickupCity] || { name: 'Warangal', shortName: 'Warangal', coords: [17.9784, 79.5941] };
+    var dCity = CITIES_DATABASE[selectedDropCity] || { name: 'Hyderabad', shortName: 'Hyderabad', coords: [17.3984, 78.5583] };
+    var routeConfig = ROUTES_DATABASE[selectedPickupCity + '-' + selectedDropCity] || { highway: 'NH 163', milestone: 'Passed Jangaon • Approaching Aler Toll' };
+
     var badge = document.getElementById('stage-badge-label');
     var icon = document.getElementById('stage-icon');
     var name = document.getElementById('stage-driver-name');
@@ -1032,50 +1241,52 @@
     var eta = document.getElementById('stage-eta');
     var meetup = document.getElementById('meetup-text');
     var highwayBox = document.getElementById('highway-words-box');
+    var trackHighwayCorridor = document.getElementById('track-highway-corridor');
 
     if (stageNum === 1) {
       highwayBox.style.display = 'none';
-      badge.textContent = 'STAGE 1: FIRST-MILE PICKUP BIKE (' + (currentCorridor === 'wgl-hyd' ? 'WARANGAL' : 'HYDERABAD') + ')';
+      badge.textContent = 'STAGE 1: FIRST-MILE PICKUP BIKE (' + pCity.shortName.toUpperCase() + ')';
       icon.textContent = '🛵';
       name.textContent = 'Captain Ramesh (Hero Splendor)';
       sub.textContent = 'Approaching pickup address with tamper-proof bag';
       eta.textContent = 'ETA: ~5 mins';
-      meetup.textContent = 'Handover to Captain Ramesh • He delivers parcel to Bus Cargo Counter.';
+      meetup.textContent = 'Handover to Captain Ramesh • He delivers parcel to ' + pCity.shortName + ' Bus Cargo Counter.';
       if (map) {
-        map.setView([17.9784, 79.5941], 14);
-        renderMapMarker(17.9784, 79.5941, '🏍️', 'Captain Ramesh');
+        map.setView(pCity.coords, 14);
+        renderMapMarker(pCity.coords[0], pCity.coords[1], '🏍️', 'Captain Ramesh');
       }
     } else if (stageNum === 2) {
       highwayBox.style.display = 'flex';
-      badge.textContent = 'STAGE 2: HIGHWAY EXPRESS BUS LINEHAUL (NH 163)';
+      badge.textContent = 'STAGE 2: HIGHWAY EXPRESS BUS LINEHAUL (' + routeConfig.highway + ')';
+      trackHighwayCorridor.textContent = pCity.shortName + ' ➔ ' + dCity.shortName + ' Intercity';
       icon.textContent = '🚌';
       name.textContent = 'Express Bus TS-09-UB-4821 (Orange / TSRTC)';
-      sub.textContent = 'Luggage Compartment Tag #WGL-HYD-8824';
+      sub.textContent = 'Luggage Tag #' + pCity.shortName.substring(0,3).toUpperCase() + '-' + dCity.shortName.substring(0,3).toUpperCase() + '-8824';
       eta.textContent = 'ETA: 2h 15m';
-      meetup.textContent = 'Transit via Jangaon & Aler • Live highway milestone tracking in words.';
+      meetup.textContent = 'Transit on ' + routeConfig.highway + ' • ' + routeConfig.milestone;
     } else if (stageNum === 3) {
       highwayBox.style.display = 'none';
       if (currentDeliveryMode === 'doorstep') {
-        badge.textContent = 'STAGE 3: DESTINATION DOORSTEP BIKE DELIVERY';
+        badge.textContent = 'STAGE 3: DESTINATION DOORSTEP BIKE DELIVERY (' + dCity.shortName.toUpperCase() + ')';
         icon.textContent = '🛵';
         name.textContent = 'Captain Syed (Honda Activa)';
-        sub.textContent = 'Collected from Uppal Bus Hub • Heading to receiver doorstep';
+        sub.textContent = 'Collected from ' + dCity.shortName + ' Terminal • Heading to receiver doorstep';
         eta.textContent = 'ETA: ~18 mins';
         meetup.textContent = 'Receiver must provide secret 4-digit PIN upon arrival.';
         if (map) {
-          map.setView([17.3984, 78.5583], 14);
-          renderMapMarker(17.3984, 78.5583, '🛵', 'Captain Syed');
+          map.setView(dCity.coords, 14);
+          renderMapMarker(dCity.coords[0], dCity.coords[1], '🛵', 'Captain Syed');
         }
       } else {
-        badge.textContent = 'STAGE 3: BUS OFFICE COUNTER SELF-PICKUP';
+        badge.textContent = 'STAGE 3: BUS OFFICE COUNTER SELF-PICKUP (' + dCity.shortName.toUpperCase() + ')';
         icon.textContent = '🏬';
-        name.textContent = 'Terminal Counter #4 (Uppal Hub)';
+        name.textContent = 'Terminal Counter #4 (' + dCity.shortName + ' Hub)';
         sub.textContent = 'Package arrived and safely shelved';
         eta.textContent = 'READY FOR PICKUP';
         meetup.textContent = 'Show secret PIN 4921 to desk staff to claim your parcel.';
         if (map) {
-          map.setView([17.3984, 78.5583], 15);
-          renderMapMarker(17.3984, 78.5583, '🏬', 'Counter #4');
+          map.setView(dCity.coords, 15);
+          renderMapMarker(dCity.coords[0], dCity.coords[1], '🏬', 'Counter #4');
         }
       }
     }
@@ -1100,7 +1311,7 @@
   }
 
   window.onload = function() {
-    updateFareDisplay();
+    populateCityDropdowns();
   };
 </script>
 </body>
