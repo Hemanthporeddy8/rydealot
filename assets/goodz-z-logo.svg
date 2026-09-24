@@ -1,0 +1,72 @@
+<svg viewBox="0 0 160 160" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="zBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+
+    <!-- Leg 1 Gradient: Amber / Gold Pickup -->
+    <linearGradient id="leg1Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+
+    <!-- Leg 2 Gradient: Highway Express Blue -->
+    <linearGradient id="leg2Grad" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+
+    <!-- Leg 3 Gradient: Emerald Delivery Green -->
+    <linearGradient id="leg3Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="zGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Container Shield -->
+  <rect width="160" height="160" rx="36" fill="url(#zBgGrad)"/>
+  <rect x="2" y="2" width="156" height="156" rx="34" fill="none" stroke="#F59E0B" stroke-width="2" stroke-opacity="0.5"/>
+
+  <!-- ==================== STROKE 2 (DIAGONAL BUS HIGHWAY) ==================== -->
+  <!-- Rendered first so horizontal strokes neatly cap it or blend -->
+  <!-- Highway Road Bed -->
+  <line x1="126" y1="36" x2="34" y2="124" stroke="url(#leg2Grad)" stroke-width="18" stroke-linecap="round"/>
+  <!-- Highway Dashed Center Line -->
+  <line x1="116" y1="45" x2="44" y2="115" stroke="#FEF08A" stroke-width="2.5" stroke-dasharray="7,5" stroke-linecap="round"/>
+  
+  <!-- Leg 2 Bus Motif in Center of Diagonal -->
+  <g transform="translate(80, 80)" filter="url(#zGlow)">
+    <circle cx="0" cy="0" r="17" fill="#FFFFFF" stroke="#2563EB" stroke-width="2.5"/>
+    <text x="0" y="1" font-size="16" text-anchor="middle" dominant-baseline="central">🚌</text>
+  </g>
+
+  <!-- ==================== STROKE 1 (TOP LINE: PICKUP BIKE) ==================== -->
+  <line x1="28" y1="36" x2="132" y2="36" stroke="url(#leg1Grad)" stroke-width="15" stroke-linecap="round"/>
+  <!-- Arrow Head pointing Right (Pickup moving to Bus station) -->
+  <path d="M 120 29 L 128 36 L 120 43" fill="none" stroke="#0F172A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Leg 1 Bike Motif -->
+  <g transform="translate(48, 36)" filter="url(#zGlow)">
+    <circle cx="0" cy="0" r="14" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2"/>
+    <text x="0" y="1" font-size="13" text-anchor="middle" dominant-baseline="central">🏍️</text>
+  </g>
+
+  <!-- ==================== STROKE 3 (BOTTOM LINE: DROP BIKE) ==================== -->
+  <line x1="28" y1="124" x2="132" y2="124" stroke="url(#leg3Grad)" stroke-width="15" stroke-linecap="round"/>
+  <!-- Arrow Head pointing Right (Delivering to Doorstep) -->
+  <path d="M 120 117 L 128 124 L 120 131" fill="none" stroke="#0F172A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Leg 3 Scooter Motif -->
+  <g transform="translate(104, 124)" filter="url(#zGlow)">
+    <circle cx="0" cy="0" r="14" fill="#FFFFFF" stroke="#059669" stroke-width="2"/>
+    <text x="0" y="1" font-size="13" text-anchor="middle" dominant-baseline="central">🛵</text>
+  </g>
+</svg>
