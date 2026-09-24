@@ -9,7 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <!-- Instant Offline Guard: Prevents page flash when offline -->
+  
+  <!-- Instant Offline Guard -->
   <script>
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       document.documentElement.classList.add('app-is-offline');
@@ -23,6 +24,7 @@
   <script src="offline-detector.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <style>
     :root {
       --bg: #F8FAFC;
@@ -32,6 +34,8 @@
       --text-muted: #64748B;
       --accent: #FFB020;
       --accent-deep: #F59E0B;
+      --amber-bg: #FFFBEB;
+      --amber-border: #FDE68A;
       --indigo: #4338CA;
       --green: #16A34A;
       --radius: 18px;
@@ -59,7 +63,7 @@
       z-index: 1000;
       background: #FFFFFF;
       border-bottom: 1.5px solid var(--card-border);
-      padding: 12px 16px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -69,87 +73,307 @@
       align-items: center;
       gap: 10px;
     }
-    .logo-z-box {
-      width: 34px;
-      height: 34px;
+    .brand-logo-img {
+      width: 36px;
+      height: 36px;
       border-radius: 10px;
-      background: linear-gradient(135deg, #FFB020, #F59E0B);
-      color: #0F172A;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      font-weight: 900;
-      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+      object-fit: contain;
+      border: 1.5px solid var(--amber-border);
+      background: var(--amber-bg);
+      flex-shrink: 0;
     }
     .brand-text-title {
-      font-size: 15px;
+      font-size: 14.5px;
       font-weight: 900;
       color: #0F172A;
       line-height: 1.1;
     }
     .brand-text-sub {
-      font-size: 10.5px;
-      font-weight: 700;
+      font-size: 10px;
+      font-weight: 800;
       color: #D97706;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-help-info {
+      font-size: 11px;
+      font-weight: 800;
+      color: #92400E;
+      background: var(--amber-bg);
+      border: 1.5px solid var(--amber-border);
+      padding: 5px 10px;
+      border-radius: 99px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+    .btn-help-info:hover { background: #FEF3C7; }
     .back-btn {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       color: var(--text-muted);
       background: #F1F5F9;
       border: 1px solid var(--card-border);
-      padding: 6px 12px;
+      padding: 5px 10px;
       border-radius: 99px;
       text-decoration: none;
       transition: all 0.15s;
     }
     .back-btn:hover { background: #E2E8F0; color: #0F172A; }
 
-    /* The "Z" Story Explainer Card */
-    .z-story-card {
-      margin: 14px 16px 8px;
+    /* Active Corridor Bar */
+    .corridor-bar {
       background: linear-gradient(135deg, #FFFBEB, #FEF3C7);
-      border: 1.5px solid #FDE68A;
-      border-radius: 16px;
-      padding: 12px 14px;
+      border-bottom: 1.5px solid var(--amber-border);
+      padding: 8px 14px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
+      justify-content: space-between;
+      font-size: 11.5px;
     }
-    .z-visual-diagram {
-      width: 54px;
-      height: 54px;
-      border-radius: 14px;
-      flex-shrink: 0;
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+    .corridor-route {
+      font-weight: 800;
+      color: #92400E;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .corridor-pill {
+      background: #FFFFFF;
+      border: 1px solid var(--amber-border);
+      color: #B45309;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    /* Views */
+    .view-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .hidden { display: none !important; }
+
+    /* Form Styles */
+    .booking-content {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .form-card {
+      background: #FFFFFF;
+      border: 1.5px solid var(--card-border);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+    .form-card-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0F172A;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Direction Switcher */
+    .direction-switcher {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: #F1F5F9;
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+    .direction-btn {
+      padding: 8px 10px;
+      font-size: 11.5px;
+      font-weight: 800;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
     }
-    .z-visual-diagram img {
-      width: 100%;
-      height: 100%;
-      border-radius: 14px;
-      object-fit: contain;
-    }
-    .z-story-desc {
-      font-size: 11.5px;
-      color: #78350F;
-      line-height: 1.4;
-    }
-    .z-story-desc strong {
-      color: #92400E;
+    .direction-btn.active {
+      background: #FFFFFF;
+      color: #0F172A;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     }
 
-    /* Relay Progress Ribbon */
+    /* Text Inputs */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+    .input-group:last-child { margin-bottom: 0; }
+    .input-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+    }
+    .input-field {
+      width: 100%;
+      background: #F8FAFC;
+      border: 1.5px solid var(--card-border);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #0F172A;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .input-field:focus {
+      border-color: var(--accent-deep);
+      background: #FFFFFF;
+    }
+    .input-field-readonly {
+      background: #F1F5F9;
+      color: #334155;
+      font-weight: 700;
+      cursor: not-allowed;
+    }
+
+    /* Delivery Mode Toggle (Doorstep vs Office) */
+    .mode-cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .mode-choice-card {
+      background: #F8FAFC;
+      border: 2px solid var(--card-border);
+      border-radius: 12px;
+      padding: 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+    .mode-choice-card.active {
+      background: var(--amber-bg);
+      border-color: var(--accent-deep);
+      box-shadow: 0 2px 10px rgba(245,158,11,0.15);
+    }
+    .mode-choice-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0F172A;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .mode-choice-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+    .mode-choice-price {
+      font-size: 13px;
+      font-weight: 900;
+      color: #D97706;
+      margin-top: 4px;
+    }
+
+    /* Category & Weight Pills */
+    .pill-options-wrap {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .pill-btn {
+      padding: 6px 12px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1.5px solid var(--card-border);
+      background: #F8FAFC;
+      color: #475569;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+    .pill-btn.active {
+      background: #0F172A;
+      color: #FFFFFF;
+      border-color: #0F172A;
+    }
+
+    /* Fare Summary Bar */
+    .fare-card {
+      background: #FFFFFF;
+      border: 1.5px solid var(--card-border);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+    .fare-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .fare-row.total {
+      border-top: 1.5px dashed var(--card-border);
+      padding-top: 8px;
+      margin-top: 6px;
+      margin-bottom: 0;
+      font-size: 14px;
+      font-weight: 900;
+      color: #0F172A;
+    }
+
+    /* Big Action Button */
+    .btn-book-primary {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #FFB020, #F59E0B);
+      color: #0F172A;
+      border: none;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(255, 176, 32, 0.35);
+      transition: transform 0.15s;
+    }
+    .btn-book-primary:hover { transform: translateY(-1px); }
+
+    /* ==================== TRACKING VIEW ==================== */
     .relay-ribbon {
       background: #FFFFFF;
       border-bottom: 1.5px solid var(--card-border);
-      padding: 12px 16px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -170,30 +394,25 @@
       transform: scale(1.05);
     }
     .relay-node-icon {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       background: #F1F5F9;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 15px;
       border: 2px solid #CBD5E1;
       transition: all 0.2s;
     }
     .relay-node.active .relay-node-icon {
       background: #FFB020;
       border-color: #D97706;
-      box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
       color: #0F172A;
     }
-    .relay-node.done .relay-node-icon {
-      background: #DCFCE7;
-      border-color: #16A34A;
-      color: #16A34A;
-    }
     .relay-node-title {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.3px;
@@ -205,16 +424,16 @@
     }
     .relay-arrow {
       color: #94A3B8;
-      font-size: 13px;
-      margin-bottom: 14px;
+      font-size: 12px;
+      margin-bottom: 12px;
       font-weight: 800;
     }
 
-    /* Map & Highway View Container */
+    /* Map Wrap */
     .map-wrap {
       position: relative;
       width: 100%;
-      height: 260px;
+      height: 250px;
       background: #E2E8F0;
       border-bottom: 1.5px solid var(--card-border);
     }
@@ -230,64 +449,61 @@
       position: absolute;
       inset: 0;
       z-index: 999;
-      background: linear-gradient(135deg, #F0FDF4 0%, #EFF6FF 100%);
-      border: 1.5px solid #BFDBFE;
-      padding: 24px 20px;
+      background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+      padding: 20px;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
       color: #0F172A;
+      border-bottom: 1.5px solid #BAE6FD;
     }
     .highway-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       background: #FEF3C7;
-      border: 1.5px solid #FDE68A;
+      border: 1.5px solid #F59E0B;
       color: #92400E;
-      padding: 5px 14px;
+      padding: 4px 12px;
       border-radius: 99px;
       font-size: 11px;
       font-weight: 900;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .highway-status-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 900;
       color: #0F172A;
       margin-bottom: 6px;
     }
     .highway-milestone-pill {
       background: #FFFFFF;
-      border: 1.5px solid #BFDBFE;
+      border: 1.5px solid #93C5FD;
       padding: 8px 14px;
       border-radius: 12px;
       font-size: 12px;
-      color: #1D4ED8;
-      font-weight: 700;
+      color: #0369A1;
+      font-weight: 800;
       margin-top: 8px;
       display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 2px 8px rgba(37,99,235,0.06);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
     }
 
-    /* Content Section */
-    .content {
-      padding: 16px;
+    /* Live Tracking Content */
+    .tracking-content {
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
-
-    /* Status Card */
     .status-card {
       background: #FFFFFF;
       border: 1.5px solid var(--card-border);
-      border-radius: 18px;
-      padding: 16px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+      border-radius: 16px;
+      padding: 14px;
     }
     .status-badge {
       display: inline-flex;
@@ -296,111 +512,70 @@
       background: #FFFBEB;
       border: 1.5px solid #FDE68A;
       color: #B45309;
-      padding: 4px 10px;
+      padding: 3px 10px;
       border-radius: 99px;
-      font-size: 10.5px;
+      font-size: 10px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 8px;
     }
 
-    /* Self-Pickup vs Doorstep Delivery Toggle */
-    .delivery-toggle-box {
-      background: #F8FAFC;
-      border: 1.5px solid var(--card-border);
-      border-radius: 16px;
-      padding: 14px;
+    /* ==================== HOW IT WORKS MODAL ==================== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      align-items: flex-end;
+      justify-content: center;
     }
-    .toggle-title {
-      font-size: 12px;
-      font-weight: 800;
-      color: #0F172A;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .toggle-options {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .toggle-btn {
+    .modal-overlay.open { display: flex; }
+    .modal-sheet {
+      width: 100%;
+      max-width: 480px;
       background: #FFFFFF;
-      border: 1.5px solid var(--card-border);
-      border-radius: 12px;
-      padding: 10px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      padding: 20px 18px 24px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 -8px 30px rgba(0,0,0,0.15);
+      animation: slideUp 0.2s ease-out;
     }
-    .toggle-btn.active {
-      border-color: #FFB020;
-      background: #FFFBEB;
-      box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
     }
-    .toggle-btn-title {
-      font-size: 12px;
-      font-weight: 900;
-      color: #0F172A;
-    }
-    .toggle-btn-sub {
-      font-size: 10.5px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-    .toggle-btn-price {
-      font-size: 13px;
-      font-weight: 900;
-      color: #D97706;
-      margin-top: 4px;
-    }
-
-    /* Fare Breakdown */
-    .fare-card {
-      background: #F8FAFC;
-      border: 1.5px solid var(--card-border);
-      border-radius: 16px;
-      padding: 14px 16px;
-    }
-    .fare-row {
+    .modal-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-bottom: 8px;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1.5px solid var(--card-border);
     }
-    .fare-row.total {
-      border-top: 1.5px dashed var(--card-border);
-      padding-top: 10px;
-      margin-top: 10px;
-      margin-bottom: 0;
+    .modal-title {
       font-size: 15px;
       font-weight: 900;
       color: #0F172A;
-    }
-
-    /* Action Button */
-    .btn-action {
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, #FFB020, #F59E0B);
-      color: #0F172A;
-      border: none;
-      border-radius: 14px;
-      font-size: 14px;
-      font-weight: 900;
-      cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      box-shadow: 0 4px 16px rgba(255, 176, 32, 0.35);
-      transition: transform 0.15s;
+      gap: 6px;
     }
-    .btn-action:hover { transform: translateY(-1px); }
+    .modal-close-btn {
+      background: #F1F5F9;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 14px;
+      font-weight: 800;
+      color: #64748B;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -410,296 +585,522 @@
   <!-- Top Header -->
   <div class="top-nav">
     <div class="brand-wrap">
-      <img src="assets/goodz-concept-art.png" alt="Along With Goodz Logo" style="width:38px; height:38px; border-radius:10px; box-shadow:0 2px 8px rgba(15,23,42,0.08); object-fit:contain; background:#FFFFFF;">
+      <img src="assets/goodz-z-icon.png" alt="Along With Goodz Logo" class="brand-logo-img">
       <div>
         <div class="brand-text-title">Along With Goodz</div>
         <div class="brand-text-sub">Intercity 3-Leg Bus Relay</div>
       </div>
     </div>
-    <a href="alongwith.html" class="back-btn">← Along With</a>
-  </div>
-
-  <!-- The "Z" Story Explainer Card -->
-  <div class="z-story-card">
-    <div class="z-visual-diagram" style="background:#FFFFFF; border:1px solid #FDE68A;">
-      <img src="assets/goodz-concept-art.png" alt="The Z 3-Leg Concept Logo" style="object-fit:contain; padding:2px;">
-    </div>
-    <div class="z-story-desc">
-      <strong style="color:#92400E; font-size:12px;">Concept of "Z" in Goodz:</strong><br>
-      • <span style="color:#B45309; font-weight:800;">Top Bar:</span> Leg 1 Doorstep Pickup Bike (Warangal)<br>
-      • <span style="color:#1D4ED8; font-weight:800;">Diagonal Slash:</span> Leg 2 Highway Express Bus (NH 163)<br>
-      • <span style="color:#047857; font-weight:800;">Bottom Bar:</span> Leg 3 Destination Doorstep Drop (Hyderabad)!
+    <div class="header-actions">
+      <button class="btn-help-info" onclick="openHowItWorksModal()">
+        <span>❓</span> How it Works
+      </button>
+      <a href="alongwith.html" class="back-btn">← Along With</a>
     </div>
   </div>
 
-  <!-- Relay Progress Ribbon (3 Interactive Stages) -->
-  <div class="relay-ribbon">
-    <div class="relay-node active" id="node-leg1" onclick="switchStage(1)">
-      <div class="relay-node-icon">🛵</div>
-      <span class="relay-node-title">1. Pickup Bike</span>
+  <!-- Active Corridor Banner -->
+  <div class="corridor-bar">
+    <div class="corridor-route">
+      <span>📍</span>
+      <span id="corridor-title-text">Warangal Urban ⇄ Hyderabad Twin Cities</span>
     </div>
-    <span class="relay-arrow">➔</span>
-    <div class="relay-node" id="node-leg2" onclick="switchStage(2)">
-      <div class="relay-node-icon">🚌</div>
-      <span class="relay-node-title">2. Highway Bus</span>
-    </div>
-    <span class="relay-arrow">➔</span>
-    <div class="relay-node" id="node-leg3" onclick="switchStage(3)">
-      <div class="relay-node-icon" id="leg3-icon">🛵</div>
-      <span class="relay-node-title" id="leg3-title">3. Drop Bike</span>
+    <span class="corridor-pill">NH 163 • 145 KM</span>
+  </div>
+
+  <!-- ==================== VIEW 1: INTERACTIVE BOOKING FLOW ==================== -->
+  <div class="view-container" id="view-booking">
+    <div class="booking-content">
+
+      <!-- Corridor Direction Switcher -->
+      <div class="form-card" style="padding: 10px;">
+        <div class="direction-switcher">
+          <button class="direction-btn active" id="dir-wgl-hyd" onclick="setCorridorDirection('wgl-hyd')">
+            <span>🏢 Warangal</span> ➔ <span>🏙️ Hyderabad</span>
+          </button>
+          <button class="direction-btn" id="dir-hyd-wgl" onclick="setCorridorDirection('hyd-wgl')">
+            <span>🏙️ Hyderabad</span> ➔ <span>🏢 Warangal</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Route Addresses Form Card -->
+      <div class="form-card">
+        <div class="form-card-title">
+          <span>📍</span> Route & Addresses
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" id="pickup-city-label">Pickup City (Origin)</label>
+          <input type="text" class="input-field input-field-readonly" id="pickup-city-name" value="Warangal / Hanamkonda" readonly>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Detailed Pickup Address (Doorstep/Shop)</label>
+          <input type="text" class="input-field" id="pickup-address" placeholder="e.g. Shop #12, Subedari Main Road, Hanamkonda" value="Shop #12, Subedari Main Road, Hanamkonda">
+        </div>
+
+        <!-- Delivery Mode Choice -->
+        <div style="margin-top: 10px;">
+          <label class="input-label" style="margin-bottom: 6px; display: block;">Destination Delivery Mode</label>
+          <div class="mode-cards-grid">
+            <div class="mode-choice-card active" id="card-mode-doorstep" onclick="selectDeliveryMode('doorstep')">
+              <div class="mode-choice-title">🛵 Full Doorstep</div>
+              <div class="mode-choice-sub">Captain delivers right to receiver's house</div>
+              <div class="mode-choice-price">₹499 Total</div>
+            </div>
+
+            <div class="mode-choice-card" id="card-mode-office" onclick="selectDeliveryMode('office')">
+              <div class="mode-choice-title">🏬 Bus Office Pickup</div>
+              <div class="mode-choice-sub">Receiver collects at terminal counter</div>
+              <div class="mode-choice-price">₹349 (Save ₹150!)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conditional Input: Receiver Doorstep Address OR Bus Office Select -->
+        <div class="input-group" id="group-drop-address" style="margin-top: 10px;">
+          <label class="input-label">Receiver Doorstep Address (Hyderabad)</label>
+          <input type="text" class="input-field" id="drop-doorstep-address" placeholder="e.g. Flat 302, Sri Sai Enclave, Ramanthapur, Uppal" value="Flat 302, Sri Sai Enclave, Ramanthapur, Uppal">
+        </div>
+
+        <div class="input-group hidden" id="group-bus-office" style="margin-top: 10px;">
+          <label class="input-label">Select Destination Bus Office Counter</label>
+          <select class="input-field" id="select-bus-office" style="font-weight: 700;">
+            <option value="Uppal">Uppal Bus Terminal — Partner Counter #4 (TSRTC / Orange Hub)</option>
+            <option value="MGBS">MGBS Imlibun Terminal — Platform 12 Cargo Desk</option>
+            <option value="Secunderabad">Secunderabad Jubilee Station — Parcel Counter #2</option>
+            <option value="LBNagar">LB Nagar Highway Ring Road — Travel Counter #1</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Parcel Details Card -->
+      <div class="form-card">
+        <div class="form-card-title">
+          <span>📦</span> Parcel Details (Bike Safe • Max 15 KG)
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Parcel Category</label>
+          <div class="pill-options-wrap" id="category-pills">
+            <button class="pill-btn active" onclick="selectCategory(this, 'Box/Package')">📦 Package Box</button>
+            <button class="pill-btn" onclick="selectCategory(this, 'Documents')">📄 Documents</button>
+            <button class="pill-btn" onclick="selectCategory(this, 'Textiles')">👕 Apparel/Textiles</button>
+            <button class="pill-btn" onclick="selectCategory(this, 'Medicines')">💊 Medicines</button>
+          </div>
+        </div>
+
+        <div class="input-group" style="margin-top: 8px;">
+          <label class="input-label">Weight Tier</label>
+          <div class="pill-options-wrap" id="weight-pills">
+            <button class="pill-btn active" onclick="selectWeight(this, 0)">Up to 3 KG (₹0)</button>
+            <button class="pill-btn" onclick="selectWeight(this, 50)">3 - 7 KG (+₹50)</button>
+            <button class="pill-btn" onclick="selectWeight(this, 100)">7 - 15 KG (+₹100)</button>
+          </div>
+          <div style="font-size: 10.5px; color: #64748B; margin-top: 4px;">
+            ⚠️ Strictly max 15 KG for Captain bike safety. For full load or heavy goods, use <a href="alongwith.html" style="color: #D97706; font-weight: 700;">Along With Trucks</a>.
+          </div>
+        </div>
+      </div>
+
+      <!-- Receiver Contact Card -->
+      <div class="form-card">
+        <div class="form-card-title">
+          <span>👤</span> Receiver Contact & PIN Security
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Receiver Full Name</label>
+          <input type="text" class="input-field" id="receiver-name" placeholder="Receiver full name" value="Venkatesh Rao">
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Receiver Phone Number (For SMS OTP & PIN)</label>
+          <input type="tel" class="input-field" id="receiver-phone" placeholder="10-digit mobile number" value="9848022334">
+          <div style="font-size: 10.5px; color: #16A34A; font-weight: 700; margin-top: 3px;">
+            🔒 Receiver will get a secret 4-digit PIN via SMS required for handover.
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Fare Breakdown Card -->
+      <div class="fare-card">
+        <div class="fare-row">
+          <span id="fare-leg1-label">Leg 1: Pickup Bike (Warangal)</span>
+          <span style="font-weight: 700; color: #0F172A;" id="fare-leg1-amt">₹80</span>
+        </div>
+        <div class="fare-row">
+          <span>Leg 2: Highway Express Bus (NH 163 Linehaul)</span>
+          <span style="font-weight: 700; color: #0F172A;" id="fare-leg2-amt">₹220</span>
+        </div>
+        <div class="fare-row" id="fare-leg3-row">
+          <span id="fare-leg3-label">Leg 3: Destination Bike Delivery</span>
+          <span style="font-weight: 700; color: #0F172A;" id="fare-leg3-amt">₹110</span>
+        </div>
+        <div class="fare-row" id="fare-weight-row" style="display: none;">
+          <span>Weight Surcharge</span>
+          <span style="font-weight: 700; color: #0F172A;" id="fare-weight-amt">+₹50</span>
+        </div>
+        <div class="fare-row">
+          <span>Transit Security Warranty & Paperwork</span>
+          <span style="font-weight: 700; color: #16A34A;">FREE</span>
+        </div>
+        <div class="fare-row total">
+          <span>Total Fare (Same-Day Intercity)</span>
+          <span style="color: #D97706;" id="fare-total-display">₹499</span>
+        </div>
+      </div>
+
+      <!-- Submit Booking Button -->
+      <button class="btn-book-primary" id="btn-submit-booking" onclick="startLiveRelay()">
+        <span>⚡ Book Along With Goodz Relay (<span id="btn-fare-text">₹499</span>)</span>
+      </button>
+
     </div>
   </div>
 
-  <!-- Map Wrap with Highway In-Words Banner -->
-  <div class="map-wrap">
-    <div id="relay-map"></div>
+  <!-- ==================== VIEW 2: LIVE RELAY TRACKING SCREEN ==================== -->
+  <div class="view-container hidden" id="view-tracking">
 
-    <!-- Highway In-Words Banner for Stage 2 (Light Themed) -->
-    <div class="highway-words-banner" id="highway-words-box">
-      <div class="highway-badge">🚌 STAGE 2: HIGHWAY TRANSIT ON NH 163</div>
-      <div class="highway-status-title">Warangal ➔ Hyderabad Intercity</div>
-      <p style="font-size:12.5px; color:#475569; max-width:320px; line-height:1.45;">
-        Scheduled Express Travel Bus. Package traveling safely in official cargo hold.
-      </p>
-      <div class="highway-milestone-pill">
-        📍 Current Milestone: Passed Jangaon • Approaching Aler Toll
+    <!-- Relay Progress Ribbon (3 Interactive Stages) -->
+    <div class="relay-ribbon">
+      <div class="relay-node active" id="node-leg1" onclick="switchStage(1)">
+        <div class="relay-node-icon">🛵</div>
+        <span class="relay-node-title">1. Pickup Bike</span>
       </div>
-      <div style="font-size:11.5px; color:#B45309; margin-top:12px; font-weight:800;">
-        Est. Arrival at Uppal Meeting Point: 2:45 PM
+      <span class="relay-arrow">➔</span>
+      <div class="relay-node" id="node-leg2" onclick="switchStage(2)">
+        <div class="relay-node-icon">🚌</div>
+        <span class="relay-node-title">2. Highway Bus</span>
       </div>
-    </div>
-  </div>
-
-  <!-- Content Section -->
-  <div class="content">
-
-    <!-- Dedicated Intercity Feature Explainer Card -->
-    <div style="background:#FFFFFF; border:1.5px solid var(--card-border); border-radius:18px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,0.03);">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:18px;">🏙️⇄🌆</span>
-          <div>
-            <div style="font-size:14px; font-weight:900; color:#0F172A;">Dedicated Intercity Feature</div>
-            <div style="font-size:10.5px; font-weight:700; color:#1D4ED8; text-transform:uppercase; letter-spacing:0.5px;">Warangal ⇄ Hyderabad Corridor</div>
-          </div>
-        </div>
-        <span style="background:#ECFDF5; color:#047857; border:1px solid #A7F3D0; font-size:10px; font-weight:800; padding:2px 8px; border-radius:99px;">Same Day • 4-5 Hrs</span>
-      </div>
-      
-      <p style="font-size:12px; color:#475569; line-height:1.5; margin-bottom:12px;">
-        This feature is built exclusively for <strong>intercity parcel delivery</strong> between different cities (starting with Warangal ⇄ Hyderabad along NH 163).
-      </p>
-
-      <div style="display:flex; flex-direction:column; gap:8px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:14px; padding:12px;">
-        <div style="display:flex; align-items:flex-start; gap:10px;">
-          <div style="width:24px; height:24px; border-radius:50%; background:#FEF3C7; color:#92400E; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; flex-shrink:0;">1</div>
-          <div style="font-size:11.5px; color:#334155; line-height:1.4;">
-            <strong style="color:#0F172A;">Leg 1 (Doorstep Pickup):</strong> A verified Rydealot Bike Captain in Warangal collects your parcel directly from your home/shop and transports it to the bus terminal/office.
-          </div>
-        </div>
-
-        <div style="display:flex; align-items:flex-start; gap:10px;">
-          <div style="width:24px; height:24px; border-radius:50%; background:#EFF6FF; color:#1D4ED8; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; flex-shrink:0;">2</div>
-          <div style="font-size:11.5px; color:#334155; line-height:1.4;">
-            <strong style="color:#0F172A;">Leg 2 (Highway Transit):</strong> The parcel travels securely in the dedicated cargo hold of scheduled express highway travel buses (e.g. TSRTC / Private travels) on NH 163, saving huge truck rental costs.
-          </div>
-        </div>
-
-        <div style="display:flex; align-items:flex-start; gap:10px;">
-          <div style="width:24px; height:24px; border-radius:50%; background:#ECFDF5; color:#047857; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; flex-shrink:0;">3</div>
-          <div style="font-size:11.5px; color:#334155; line-height:1.4;">
-            <strong style="color:#0F172A;">Leg 3 (Destination Drop or Counter Pickup):</strong> Local Hyderabad Bike Captain delivers straight to the receiver's doorstep (₹499), or the receiver can choose <strong>Bus Office Self-Pickup (₹349)</strong> to save ₹150 with a secure 4-digit PIN!
-          </div>
-        </div>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid #F1F5F9; font-size:11.5px;">
-        <span style="color:#64748B;">⚡ Why not direct truck?</span>
-        <span style="color:#0F172A; font-weight:800;">Saves 70% cost (₹349 vs ₹2,500+)</span>
+      <span class="relay-arrow">➔</span>
+      <div class="relay-node" id="node-leg3" onclick="switchStage(3)">
+        <div class="relay-node-icon" id="leg3-icon">🛵</div>
+        <span class="relay-node-title" id="leg3-title">3. Drop Bike</span>
       </div>
     </div>
 
-    <!-- Active Stage Card -->
-    <div class="status-card">
-      <div class="status-badge" id="stage-badge-label">STAGE 1: FIRST-MILE PICKUP BIKE (WARANGAL)</div>
-      
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="font-size:26px;" id="stage-icon">🛵</div>
-          <div>
-            <div style="font-size:14px; font-weight:900; color:#0F172A;" id="stage-driver-name">Captain Ramesh (Hero Splendor)</div>
-            <div style="font-size:11.5px; color:var(--text-muted);" id="stage-driver-sub">Approaching your doorstep in Hanamkonda</div>
-          </div>
-        </div>
-        <span style="font-size:12px; font-weight:800; color:#16A34A;" id="stage-eta">ETA: ~6 mins</span>
-      </div>
+    <!-- Map Wrap with Highway In-Words Banner -->
+    <div class="map-wrap">
+      <div id="relay-map"></div>
 
-      <div style="background:#F8FAFC; border:1px solid var(--card-border); border-radius:12px; padding:10px; font-size:11.5px; color:#475569;">
-        <strong>Meeting Point:</strong> <span id="meetup-text">Madikonda IOCL Petrol Bunk (Highway Exit) • 15-min scheduled handover window.</span>
-      </div>
-    </div>
-
-    <!-- Self-Pickup Option Toggle (Destination City) -->
-    <div class="delivery-toggle-box">
-      <div class="toggle-title">
-        <span>Delivery Mode at Destination (Hyderabad)</span>
-        <span style="font-size:10.5px; font-weight:700; color:#16A34A;">Flexible Options</span>
-      </div>
-      <div class="toggle-options">
-        <div class="toggle-btn active" id="btn-mode-doorstep" onclick="setDeliveryMode('doorstep')">
-          <div class="toggle-btn-title">🛵 Full Doorstep</div>
-          <div class="toggle-btn-sub">Bike rider delivers to house</div>
-          <div class="toggle-btn-price">₹499 Total</div>
+      <!-- Highway In-Words Banner for Stage 2 -->
+      <div class="highway-words-banner" id="highway-words-box">
+        <div class="highway-badge">🚌 STAGE 2: HIGHWAY TRANSIT ON NH 163</div>
+        <div class="highway-status-title" id="track-highway-corridor">Warangal ➔ Hyderabad Intercity</div>
+        <p style="font-size: 12.5px; color: #334155; max-width: 320px; line-height: 1.45;">
+          Scheduled Express Travel Bus. Package traveling safely in official cargo hold.
+        </p>
+        <div class="highway-milestone-pill">
+          📍 Current Milestone: Passed Jangaon • Approaching Aler Toll
         </div>
-        <div class="toggle-btn" id="btn-mode-self" onclick="setDeliveryMode('self')">
-          <div class="toggle-btn-title">🏬 Bus Office Pickup</div>
-          <div class="toggle-btn-sub">Receiver collects at Uppal/MGBS</div>
-          <div class="toggle-btn-price">₹349 Total (Save ₹150!)</div>
+        <div style="font-size: 11.5px; color: #B45309; margin-top: 10px; font-weight: 800;">
+          Est. Arrival at Uppal Meeting Point: 2:45 PM
         </div>
       </div>
     </div>
 
-    <!-- Fare Breakdown Card -->
-    <div class="fare-card">
-      <div class="fare-row">
-        <span>Leg 1: Doorstep Pickup Bike (Warangal)</span>
-        <span style="font-weight:700; color:#0F172A;">₹80</span>
-      </div>
-      <div class="fare-row">
-        <span>Leg 2: Highway Express Bus (NH 163 Linehaul)</span>
-        <span style="font-weight:700; color:#0F172A;">₹220</span>
-      </div>
-      <div class="fare-row" id="fare-row-leg3">
-        <span>Leg 3: Destination Doorstep Bike (Hyderabad)</span>
-        <span style="font-weight:700; color:#0F172A;" id="fare-leg3-price">₹110</span>
-      </div>
-      <div class="fare-row">
-        <span>Paperwork Handling & Transit Warranty</span>
-        <span style="font-weight:700; color:#16A34A;">FREE</span>
-      </div>
-      <div class="fare-row total">
-        <span>Total Fare (Same-Day Intercity)</span>
-        <span style="color:#D97706;" id="fare-total-price">₹499</span>
-      </div>
-    </div>
+    <!-- Live Tracking Details -->
+    <div class="tracking-content">
+      <div class="status-card">
+        <div class="status-badge" id="stage-badge-label">STAGE 1: FIRST-MILE PICKUP BIKE</div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="font-size:26px;" id="stage-icon">🛵</div>
+            <div>
+              <div style="font-size:14px; font-weight:900; color:#0F172A;" id="stage-driver-name">Captain Ramesh (Hero Splendor)</div>
+              <div style="font-size:11.5px; color:var(--text-muted);" id="stage-driver-sub">Approaching your doorstep in Hanamkonda</div>
+            </div>
+          </div>
+          <span style="font-size:12px; font-weight:800; color:#16A34A;" id="stage-eta">ETA: ~6 mins</span>
+        </div>
 
-    <!-- Action Button -->
-    <button type="button" class="btn-action" onclick="alert('✅ Demo Order Created! Relay tracking active for Warangal ➔ Hyderabad.')">
-      📦 Book Along With Goodz Relay (₹499)
-    </button>
+        <div style="background:#F8FAFC; border:1px solid var(--card-border); border-radius:12px; padding:10px; font-size:11.5px; color:#475569;">
+          <strong>Designated Bus Counter:</strong> <span id="meetup-text">Madikonda TSRTC / Orange Travels Counter • Scheduled handover window.</span>
+        </div>
+      </div>
+
+      <!-- Action: Modify or Book Another -->
+      <button class="btn-book-primary" style="background: #F1F5F9; color: #0F172A; border: 1.5px solid var(--card-border); box-shadow: none;" onclick="returnToBooking()">
+        <span>← Book Another Parcel Relay</span>
+      </button>
+    </div>
 
   </div>
 
 </div>
 
+<!-- ==================== HOW IT WORKS MODAL ==================== -->
+<div class="modal-overlay" id="how-modal" onclick="closeHowItWorksModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">
+        <img src="assets/goodz-z-icon.png" alt="Logo" style="width: 24px; height: 24px; border-radius: 6px;">
+        <span>How Along With Goodz Works</span>
+      </div>
+      <button class="modal-close-btn" onclick="closeHowItWorksModal()">✕</button>
+    </div>
+
+    <div style="font-size: 12.5px; color: #475569; line-height: 1.5; display: flex; flex-direction: column; gap: 12px;">
+      
+      <!-- The Z Story -->
+      <div style="background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 14px; padding: 12px;">
+        <div style="font-size: 13px; font-weight: 800; color: #92400E; margin-bottom: 4px;">⚡ The "Z" 3-Leg Relay Geometry</div>
+        <div style="font-size: 12px; color: #78350F; line-height: 1.45;">
+          Instead of paying ₹3,500+ to book a whole truck for a small box, Goodz links 3 stages into the letter <strong>"Z"</strong>:
+          <br><br>
+          • <strong>Top Bar (🏍️ Bike):</strong> Local Captain picks up from your doorstep & drops at the partner bus counter.<br>
+          • <strong>Diagonal Slash (🚌 Bus):</strong> High-speed passenger bus carries your parcel across NH 163 highway in 2.5 hours.<br>
+          • <strong>Bottom Bar (🛵 Bike):</strong> Destination Captain delivers to the receiver's doorstep (or self-pickup for ₹349!).
+        </div>
+      </div>
+
+      <!-- How Driver knows bus space -->
+      <div style="background: #F8FAFC; border: 1px solid var(--card-border); border-radius: 14px; padding: 12px;">
+        <div style="font-size: 12.5px; font-weight: 800; color: #0F172A; margin-bottom: 4px;">🚌 How Does the Captain Know Bus Space?</div>
+        <div style="font-size: 12px; color: #475569; line-height: 1.45;">
+          The bike captain <strong>never wanders around looking for buses</strong>. They deliver directly to our designated partner counters (TSRTC Cargo / Orange Travels Office) where buses depart every 15-20 minutes. Staff registers the parcel onto the next departing bus within 60 seconds!
+        </div>
+      </div>
+
+      <!-- Corridor Geo-fence -->
+      <div style="background: #F8FAFC; border: 1px solid var(--card-border); border-radius: 14px; padding: 12px;">
+        <div style="font-size: 12.5px; font-weight: 800; color: #0F172A; margin-bottom: 4px;">📍 Corridor & Limits</div>
+        <div style="font-size: 12px; color: #475569; line-height: 1.45;">
+          • <strong>Live Corridor:</strong> Exclusively <strong>Warangal ⇄ Hyderabad (145 KM)</strong>.<br>
+          • <strong>Max Weight:</strong> 15 KG max for bike rider safety.<br>
+          • <strong>Security:</strong> Barcode tamper-evident packing + secret 4-digit PIN for handover.
+        </div>
+      </div>
+
+      <button class="btn-book-primary" style="padding: 10px; margin-top: 4px;" onclick="closeHowItWorksModal()">
+        Got It, Back to Booking
+      </button>
+
+    </div>
+  </div>
+</div>
+
 <script>
+  var currentCorridor = 'wgl-hyd'; // 'wgl-hyd' or 'hyd-wgl'
+  var currentDeliveryMode = 'doorstep'; // 'doorstep' or 'office'
+  var selectedWeightSurcharge = 0;
+  var currentStage = 1;
   var map = null;
   var currentMarker = null;
-  var currentDeliveryMode = 'doorstep';
 
-  function initMap() {
-    // Center initially on Warangal
-    map = L.map('relay-map', { zoomControl: false }).setView([18.0073, 79.5583], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    renderMapMarker(18.0073, 79.5583, '🛵', 'Warangal Pickup Bike');
-  }
+  // Set Corridor Direction
+  function setCorridorDirection(dir) {
+    currentCorridor = dir;
+    var btnWglHyd = document.getElementById('dir-wgl-hyd');
+    var btnHydWgl = document.getElementById('dir-hyd-wgl');
+    var pickupCityName = document.getElementById('pickup-city-name');
+    var pickupCityLabel = document.getElementById('pickup-city-label');
+    var corridorTitle = document.getElementById('corridor-title-text');
+    var trackHighwayCorridor = document.getElementById('track-highway-corridor');
 
-  function switchStage(stageNum) {
-    document.getElementById('node-leg1').className = stageNum === 1 ? 'relay-node active' : (stageNum > 1 ? 'relay-node done' : 'relay-node');
-    document.getElementById('node-leg2').className = stageNum === 2 ? 'relay-node active' : (stageNum > 2 ? 'relay-node done' : 'relay-node');
-    document.getElementById('node-leg3').className = stageNum === 3 ? 'relay-node active' : 'relay-node';
-
-    var hwBox = document.getElementById('highway-words-box');
-
-    if (stageNum === 1) {
-      hwBox.style.display = 'none';
-      document.getElementById('stage-badge-label').textContent = 'STAGE 1: FIRST-MILE PICKUP BIKE (WARANGAL)';
-      document.getElementById('stage-eta').textContent = 'ETA: ~6 mins';
-      document.getElementById('stage-icon').textContent = '🛵';
-      document.getElementById('stage-driver-name').textContent = 'Captain Ramesh (Hero Splendor)';
-      document.getElementById('stage-driver-sub').textContent = 'Approaching your doorstep in Hanamkonda';
-      document.getElementById('meetup-text').textContent = 'Madikonda IOCL Petrol Bunk (Highway Exit) • 15-min scheduled handover window.';
-      renderMapMarker(18.0073, 79.5583, '🛵', 'Warangal Pickup Bike');
-      map.setView([18.0073, 79.5583], 14);
-
-    } else if (stageNum === 2) {
-      hwBox.style.display = 'flex';
-      document.getElementById('stage-badge-label').textContent = 'STAGE 2: HIGHWAY BUS TRANSIT (NH 163)';
-      document.getElementById('stage-eta').textContent = 'Est: 2:45 PM';
-      document.getElementById('stage-icon').textContent = '🚌';
-      document.getElementById('stage-driver-name').textContent = 'Express Bus #TS03 Z 4412';
-      document.getElementById('stage-driver-sub').textContent = 'En route Warangal ➔ Hyderabad on NH 163';
-      document.getElementById('meetup-text').textContent = 'Uppal Bus Hub / MGBS Counter • Scheduled bus arrival meeting point.';
-
-    } else if (stageNum === 3) {
-      hwBox.style.display = 'none';
-      if (currentDeliveryMode === 'doorstep') {
-        document.getElementById('stage-badge-label').textContent = 'STAGE 3: LAST-MILE DROP BIKE (HYDERABAD)';
-        document.getElementById('stage-eta').textContent = 'ETA: ~14 mins';
-        document.getElementById('stage-icon').textContent = '🛵';
-        document.getElementById('stage-driver-name').textContent = 'Captain Syed (Bajaj Pulsar)';
-        document.getElementById('stage-driver-sub').textContent = 'Out for doorstep delivery in Kukatpally';
-        document.getElementById('meetup-text').textContent = 'Package cleared from Uppal Highway Hub • Heading to doorstep.';
-        renderMapMarker(17.4947, 78.3996, '🛵', 'Hyderabad Delivery Bike');
-        map.setView([17.4947, 78.3996], 14);
-      } else {
-        document.getElementById('stage-badge-label').textContent = 'STAGE 3: BUS COUNTER SELF-PICKUP (HYDERABAD)';
-        document.getElementById('stage-eta').textContent = 'Ready for Pickup';
-        document.getElementById('stage-icon').textContent = '🏬';
-        document.getElementById('stage-driver-name').textContent = 'Uppal Bus Terminal Parcel Office';
-        document.getElementById('stage-driver-sub').textContent = 'Counter No. 4 • Package stored securely';
-        document.getElementById('meetup-text').textContent = 'Receiver collects package using secret 4-digit PIN: 4892.';
-        renderMapMarker(17.4018, 78.5602, '🏬', 'Uppal Bus Office');
-        map.setView([17.4018, 78.5602], 15);
-      }
+    if (dir === 'wgl-hyd') {
+      btnWglHyd.classList.add('active');
+      btnHydWgl.classList.remove('active');
+      pickupCityName.value = 'Warangal / Hanamkonda (Tri-City)';
+      pickupCityLabel.textContent = 'Pickup City (Warangal)';
+      corridorTitle.textContent = 'Warangal Urban ➔ Hyderabad Twin Cities';
+      trackHighwayCorridor.textContent = 'Warangal ➔ Hyderabad Intercity';
+    } else {
+      btnHydWgl.classList.add('active');
+      btnWglHyd.classList.remove('active');
+      pickupCityName.value = 'Hyderabad (Uppal / Secunderabad / MGBS)';
+      pickupCityLabel.textContent = 'Pickup City (Hyderabad)';
+      corridorTitle.textContent = 'Hyderabad Twin Cities ➔ Warangal Urban';
+      trackHighwayCorridor.textContent = 'Hyderabad ➔ Warangal Intercity';
     }
+    updateFareDisplay();
   }
 
-  function setDeliveryMode(mode) {
+  // Set Delivery Mode (Doorstep vs Office)
+  function selectDeliveryMode(mode) {
     currentDeliveryMode = mode;
-    var btnDoorstep = document.getElementById('btn-mode-doorstep');
-    var btnSelf = document.getElementById('btn-mode-self');
-    var fareRowLeg3 = document.getElementById('fare-row-leg3');
-    var fareTotal = document.getElementById('fare-total-price');
-    var leg3Title = document.getElementById('leg3-title');
-    var leg3Icon = document.getElementById('leg3-icon');
+    var cardDoorstep = document.getElementById('card-mode-doorstep');
+    var cardOffice = document.getElementById('card-mode-office');
+    var groupDrop = document.getElementById('group-drop-address');
+    var groupOffice = document.getElementById('group-bus-office');
+    var leg3Row = document.getElementById('fare-leg3-row');
 
     if (mode === 'doorstep') {
-      btnDoorstep.classList.add('active');
-      btnSelf.classList.remove('active');
-      fareRowLeg3.style.display = 'flex';
-      fareTotal.textContent = '₹499';
+      cardDoorstep.classList.add('active');
+      cardOffice.classList.remove('active');
+      groupDrop.classList.remove('hidden');
+      groupOffice.classList.add('hidden');
+      leg3Row.style.display = 'flex';
+    } else {
+      cardOffice.classList.add('active');
+      cardDoorstep.classList.remove('active');
+      groupDrop.classList.add('hidden');
+      groupOffice.classList.remove('hidden');
+      leg3Row.style.display = 'none';
+    }
+    updateFareDisplay();
+  }
+
+  // Select Category
+  function selectCategory(el, cat) {
+    var pills = document.getElementById('category-pills').querySelectorAll('.pill-btn');
+    pills.forEach(function(p) { p.classList.remove('active'); });
+    el.classList.add('active');
+  }
+
+  // Select Weight
+  function selectWeight(el, surcharge) {
+    selectedWeightSurcharge = surcharge;
+    var pills = document.getElementById('weight-pills').querySelectorAll('.pill-btn');
+    pills.forEach(function(p) { p.classList.remove('active'); });
+    el.classList.add('active');
+    updateFareDisplay();
+  }
+
+  // Update Dynamic Fare
+  function updateFareDisplay() {
+    var baseFare = (currentDeliveryMode === 'doorstep') ? 499 : 349;
+    var total = baseFare + selectedWeightSurcharge;
+
+    var weightRow = document.getElementById('fare-weight-row');
+    var weightAmt = document.getElementById('fare-weight-amt');
+    if (selectedWeightSurcharge > 0) {
+      weightRow.style.display = 'flex';
+      weightAmt.textContent = '+₹' + selectedWeightSurcharge;
+    } else {
+      weightRow.style.display = 'none';
+    }
+
+    document.getElementById('fare-total-display').textContent = '₹' + total;
+    document.getElementById('btn-fare-text').textContent = '₹' + total;
+  }
+
+  // Transition to Live Tracking
+  function startLiveRelay() {
+    document.getElementById('view-booking').classList.add('hidden');
+    document.getElementById('view-tracking').classList.remove('hidden');
+    
+    // Adapt Stage 3 labels to mode
+    var leg3Title = document.getElementById('leg3-title');
+    var leg3Icon = document.getElementById('leg3-icon');
+    if (currentDeliveryMode === 'doorstep') {
       leg3Title.textContent = '3. Drop Bike';
       leg3Icon.textContent = '🛵';
     } else {
-      btnSelf.classList.add('active');
-      btnDoorstep.classList.remove('active');
-      fareRowLeg3.style.display = 'none';
-      fareTotal.textContent = '₹349';
       leg3Title.textContent = '3. Bus Pickup';
       leg3Icon.textContent = '🏬';
     }
 
-    // Refresh if currently on stage 3
-    if (document.getElementById('node-leg3').classList.contains('active')) {
-      switchStage(3);
+    if (!map) {
+      setTimeout(initMap, 200);
+    } else {
+      setTimeout(function() { map.invalidateSize(); switchStage(1); }, 200);
+    }
+  }
+
+  function returnToBooking() {
+    document.getElementById('view-tracking').classList.add('hidden');
+    document.getElementById('view-booking').classList.remove('hidden');
+  }
+
+  // Leaflet Map & Stage Switcher
+  function initMap() {
+    var mapEl = document.getElementById('relay-map');
+    if (!mapEl) return;
+    map = L.map('relay-map', { zoomControl: false }).setView([17.9784, 79.5941], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+    switchStage(1);
+  }
+
+  function switchStage(stageNum) {
+    currentStage = stageNum;
+    for (var i = 1; i <= 3; i++) {
+      var node = document.getElementById('node-leg' + i);
+      if (node) {
+        if (i === stageNum) node.classList.add('active');
+        else node.classList.remove('active');
+      }
+    }
+
+    var badge = document.getElementById('stage-badge-label');
+    var icon = document.getElementById('stage-icon');
+    var name = document.getElementById('stage-driver-name');
+    var sub = document.getElementById('stage-driver-sub');
+    var eta = document.getElementById('stage-eta');
+    var meetup = document.getElementById('meetup-text');
+    var highwayBox = document.getElementById('highway-words-box');
+
+    if (stageNum === 1) {
+      highwayBox.style.display = 'none';
+      badge.textContent = 'STAGE 1: FIRST-MILE PICKUP BIKE (' + (currentCorridor === 'wgl-hyd' ? 'WARANGAL' : 'HYDERABAD') + ')';
+      icon.textContent = '🛵';
+      name.textContent = 'Captain Ramesh (Hero Splendor)';
+      sub.textContent = 'Approaching pickup address with tamper-proof bag';
+      eta.textContent = 'ETA: ~5 mins';
+      meetup.textContent = 'Handover to Captain Ramesh • He delivers parcel to Bus Cargo Counter.';
+      if (map) {
+        map.setView([17.9784, 79.5941], 14);
+        renderMapMarker(17.9784, 79.5941, '🏍️', 'Captain Ramesh');
+      }
+    } else if (stageNum === 2) {
+      highwayBox.style.display = 'flex';
+      badge.textContent = 'STAGE 2: HIGHWAY EXPRESS BUS LINEHAUL (NH 163)';
+      icon.textContent = '🚌';
+      name.textContent = 'Express Bus TS-09-UB-4821 (Orange / TSRTC)';
+      sub.textContent = 'Luggage Compartment Tag #WGL-HYD-8824';
+      eta.textContent = 'ETA: 2h 15m';
+      meetup.textContent = 'Transit via Jangaon & Aler • Live highway milestone tracking in words.';
+    } else if (stageNum === 3) {
+      highwayBox.style.display = 'none';
+      if (currentDeliveryMode === 'doorstep') {
+        badge.textContent = 'STAGE 3: DESTINATION DOORSTEP BIKE DELIVERY';
+        icon.textContent = '🛵';
+        name.textContent = 'Captain Syed (Honda Activa)';
+        sub.textContent = 'Collected from Uppal Bus Hub • Heading to receiver doorstep';
+        eta.textContent = 'ETA: ~18 mins';
+        meetup.textContent = 'Receiver must provide secret 4-digit PIN upon arrival.';
+        if (map) {
+          map.setView([17.3984, 78.5583], 14);
+          renderMapMarker(17.3984, 78.5583, '🛵', 'Captain Syed');
+        }
+      } else {
+        badge.textContent = 'STAGE 3: BUS OFFICE COUNTER SELF-PICKUP';
+        icon.textContent = '🏬';
+        name.textContent = 'Terminal Counter #4 (Uppal Hub)';
+        sub.textContent = 'Package arrived and safely shelved';
+        eta.textContent = 'READY FOR PICKUP';
+        meetup.textContent = 'Show secret PIN 4921 to desk staff to claim your parcel.';
+        if (map) {
+          map.setView([17.3984, 78.5583], 15);
+          renderMapMarker(17.3984, 78.5583, '🏬', 'Counter #4');
+        }
+      }
     }
   }
 
   function renderMapMarker(lat, lng, emoji, label) {
     if (currentMarker && map) map.removeLayer(currentMarker);
     if (!map) return;
-
     var icon = L.divIcon({
       html: '<div style="background:#FFB020; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; border:2.5px solid #0F172A; box-shadow:0 4px 12px rgba(0,0,0,0.25); transform:translate(-18px,-18px);">' + emoji + '</div>',
       iconSize: [36,36], iconAnchor: [0,0]
     });
-
     currentMarker = L.marker([lat, lng], { icon: icon }).addTo(map);
   }
 
+  // Modal Controls
+  function openHowItWorksModal() {
+    document.getElementById('how-modal').classList.add('open');
+  }
+  function closeHowItWorksModal() {
+    document.getElementById('how-modal').classList.remove('open');
+  }
+
   window.onload = function() {
-    initMap();
+    updateFareDisplay();
   };
 </script>
 </body>
