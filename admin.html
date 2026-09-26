@@ -504,6 +504,20 @@
             <option value="false">🔴 PAUSED</option>
           </select>
         </div>
+
+        <!-- 4. Along With Goodz (District Relay Pilot) -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>⚡ Along With Goodz</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="svc-goodz-desc">Inter-district bus &amp; cab relay pilot</div>
+          </div>
+          <select id="svc-toggle-goodz" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+            <option value="true">🟢 ACTIVE</option>
+            <option value="false">🔴 PAUSED / GATED</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -1499,19 +1513,26 @@
     var rides = document.getElementById('svc-toggle-rides').value === 'true';
     var parcels = document.getElementById('svc-toggle-parcels').value === 'true';
     var trucks = document.getElementById('svc-toggle-trucks').value === 'true';
+    var goodzEl = document.getElementById('svc-toggle-goodz');
+    var goodz = goodzEl ? goodzEl.value === 'true' : true;
     var badge = document.getElementById('admin-services-status-badge');
     var ridesDesc = document.getElementById('svc-rides-desc');
+    var goodzDesc = document.getElementById('svc-goodz-desc');
 
     if (ridesDesc) {
-      ridesDesc.textContent = rides ? 'Active in Rider & Driver apps' : '⚠️ PAUSED (Rider redirected to Parcels)';
+      ridesDesc.textContent = rides ? 'Active in Rider & Driver apps' : '⚠️ PAUSED (Riders see Coming Soon)';
       ridesDesc.style.color = rides ? 'var(--mute)' : '#ef4444';
+    }
+    if (goodzDesc) {
+      goodzDesc.textContent = goodz ? 'Active inter-district pilot' : '⚠️ PAUSED / GATED';
+      goodzDesc.style.color = goodz ? 'var(--mute)' : '#ef4444';
     }
 
     if (!badge) return;
-    if (rides && parcels && trucks) {
+    if (rides && parcels && trucks && goodz) {
       badge.textContent = 'ALL ACTIVE';
       badge.style.background = '#10b981';
-    } else if (!rides && !parcels && !trucks) {
+    } else if (!rides && !parcels && !trucks && !goodz) {
       badge.textContent = 'ALL PAUSED';
       badge.style.background = '#ef4444';
     } else {
@@ -1521,7 +1542,7 @@
   }
 
   async function loadPlatformServices() {
-    var def = { rides: true, parcels: true, trucks: true };
+    var def = { rides: true, parcels: true, trucks: true, goodz: true };
     try {
       var saved = localStorage.getItem('rydealot_services_config');
       if (saved) {
@@ -1529,6 +1550,7 @@
         if (typeof p.rides === 'boolean') def.rides = p.rides;
         if (typeof p.parcels === 'boolean') def.parcels = p.parcels;
         if (typeof p.trucks === 'boolean') def.trucks = p.trucks;
+        if (typeof p.goodz === 'boolean') def.goodz = p.goodz;
       }
       try {
         var rows = await sb('platform_services?id=eq.default');
@@ -1536,6 +1558,7 @@
           if (typeof rows[0].rides_enabled === 'boolean') def.rides = rows[0].rides_enabled;
           if (typeof rows[0].parcels_enabled === 'boolean') def.parcels = rows[0].parcels_enabled;
           if (typeof rows[0].trucks_enabled === 'boolean') def.trucks = rows[0].trucks_enabled;
+          if (typeof rows[0].goodz_enabled === 'boolean') def.goodz = rows[0].goodz_enabled;
           localStorage.setItem('rydealot_services_config', JSON.stringify(def));
         }
       } catch(e){}
@@ -1544,6 +1567,9 @@
         document.getElementById('svc-toggle-rides').value = def.rides ? 'true' : 'false';
         document.getElementById('svc-toggle-parcels').value = def.parcels ? 'true' : 'false';
         document.getElementById('svc-toggle-trucks').value = def.trucks ? 'true' : 'false';
+        if (document.getElementById('svc-toggle-goodz')) {
+          document.getElementById('svc-toggle-goodz').value = def.goodz ? 'true' : 'false';
+        }
         updateServiceBadge();
       }
     } catch(err){}
@@ -1553,7 +1579,8 @@
     var cfg = {
       rides: document.getElementById('svc-toggle-rides').value === 'true',
       parcels: document.getElementById('svc-toggle-parcels').value === 'true',
-      trucks: document.getElementById('svc-toggle-trucks').value === 'true'
+      trucks: document.getElementById('svc-toggle-trucks').value === 'true',
+      goodz: document.getElementById('svc-toggle-goodz') ? document.getElementById('svc-toggle-goodz').value === 'true' : true
     };
 
     localStorage.setItem('rydealot_services_config', JSON.stringify(cfg));
@@ -1566,6 +1593,7 @@
           rides_enabled: cfg.rides,
           parcels_enabled: cfg.parcels,
           trucks_enabled: cfg.trucks,
+          goodz_enabled: cfg.goodz,
           updated_at: new Date().toISOString()
         }
       });
@@ -1578,7 +1606,8 @@
             id: 'default',
             rides_enabled: cfg.rides,
             parcels_enabled: cfg.parcels,
-            trucks_enabled: cfg.trucks
+            trucks_enabled: cfg.trucks,
+            goodz_enabled: cfg.goodz
           }
         });
         toast('✅ Service switches initialized in cloud!');
