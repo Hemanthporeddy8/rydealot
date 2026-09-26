@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Rydealot • Mascot Animation Sandbox</title>
+<title>Rydealot Logistics • Sandbox (Parcels & Relay Only)</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,16 +14,20 @@
     --bg: #0B0F19;
     --card: #131B2E;
     --card-light: #1E293B;
+    --surface: #FFFFFF;
     --line: #334155;
     --ink: #FFFFFF;
+    --ink-dark: #0F172A;
     --ink-soft: #94A3B8;
-    --gold: #FACC15;
-    --maroon: #9F1239;
-    --accent: #2563EB;
-    --green: #22C55E;
-    --amber: #F59E0B;
+    --ink-muted: #64748B;
+    --sage-blue: #2563EB;
+    --along-purple: #7C3AED;
+    --goodz-amber: #D97706;
+    --green: #10B981;
     --radius: 20px;
+    --shadow: 0 10px 30px rgba(0,0,0,0.4);
   }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -31,418 +35,659 @@
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
-    padding: 24px 16px 60px;
+    padding: 20px 16px 60px;
   }
 
-  .container {
-    max-width: 960px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 28px;
-  }
-
-  /* Header */
-  .header {
+  .sandbox-header {
+    max-width: 900px;
+    margin: 0 auto 24px;
     background: linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%);
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    padding: 24px;
+    padding: 20px 24px;
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    box-shadow: var(--shadow);
   }
-  .header-top {
+  .sandbox-title h1 {
+    font-family: 'Manrope', sans-serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: #fff;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
   }
-  .badge {
+  .sandbox-title p {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+  }
+  .compliance-tag {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(250, 204, 21, 0.15);
-    border: 1px solid var(--gold);
-    color: var(--gold);
+    background: rgba(16, 185, 129, 0.15);
+    border: 1.5px solid var(--green);
+    color: #34D399;
     font-size: 11px;
     font-weight: 800;
-    padding: 4px 10px;
+    padding: 6px 12px;
     border-radius: 99px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
-  .header-title {
-    font-family: 'Manrope', sans-serif;
-    font-size: 26px;
-    font-weight: 900;
-    letter-spacing: -0.5px;
-  }
-  .header-desc {
-    color: var(--ink-soft);
-    font-size: 14px;
-    line-height: 1.5;
-  }
-  .nav-links {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 4px;
-  }
-  .nav-btn {
-    text-decoration: none;
-    color: var(--ink);
-    background: var(--card-light);
-    border: 1px solid var(--line);
-    padding: 8px 14px;
-    border-radius: 12px;
-    font-size: 12.5px;
-    font-weight: 700;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s;
-  }
-  .nav-btn:hover { background: #334155; transform: translateY(-1px); }
 
-  /* Section Title */
-  .section-title {
-    font-family: 'Manrope', sans-serif;
-    font-size: 18px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-
-  /* Sim Cards */
-  .sim-container {
+  /* Main Container */
+  .sandbox-container {
+    max-width: 900px;
+    margin: 0 auto;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
+    grid-template-columns: 1fr 390px;
+    gap: 28px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .sandbox-container {
+      grid-template-columns: 1fr;
+    }
   }
 
-  .sim-phone {
-    background: var(--card);
-    border: 2px solid var(--line);
-    border-radius: 28px;
-    padding: 24px;
+  /* Left Column: Architecture & Strategy */
+  .strategy-col {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-  }
-  .sim-tag {
-    font-size: 11px;
-    font-weight: 800;
-    padding: 4px 10px;
-    border-radius: 99px;
-    margin-bottom: 16px;
-    text-transform: uppercase;
-  }
-
-  /* Offline Simulation */
-  .offline-stage {
-    width: 170px;
-    height: 170px;
-    position: relative;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .offline-anim {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    object-fit: cover;
-    z-index: 2;
-    border: 2.5px solid var(--gold);
-    box-shadow: 0 0 25px rgba(250, 204, 21, 0.4);
-  }
-  .pulse-ring {
-    position: absolute;
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    border: 2px dashed rgba(245, 158, 11, 0.45);
-    animation: pulseRadar 2.5s linear infinite;
-  }
-  .pulse-ring:nth-child(2) { animation-delay: 1.25s; }
-  @keyframes pulseRadar {
-    0% { transform: scale(0.6); opacity: 1; }
-    100% { transform: scale(1.4); opacity: 0; }
-  }
-
-  /* Sage Simulation */
-  .sage-radar-stage {
-    width: 140px;
-    height: 140px;
-    position: relative;
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .sage-anim {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    z-index: 2;
-    border: 2.5px solid #38BDF8;
-    box-shadow: 0 0 20px rgba(56, 189, 248, 0.45);
-  }
-  .radar-spinner {
-    position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-    border: 2px dashed #38BDF8;
-    animation: spin 5s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Success Simulation */
-  .success-stage {
-    width: 150px;
-    height: 150px;
-    position: relative;
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .success-anim {
-    width: 130px;
-    height: 130px;
-    border-radius: 50%;
-    object-fit: cover;
-    z-index: 2;
-    border: 2.5px solid var(--green);
-    box-shadow: 0 0 25px rgba(34, 197, 94, 0.45);
-  }
-
-  /* Gallery Grid */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 16px;
   }
-
-  .clip-card {
+  .strategy-card {
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    padding: 16px;
+    padding: 20px;
+  }
+  .strategy-card h3 {
+    font-family: 'Manrope', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .strategy-card p {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+  .services-overview-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .service-item-row {
+    background: var(--card-light);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .service-item-row .badge-service {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  /* Right Column: Mobile Phone Frame */
+  .phone-frame {
+    background: #FFFFFF;
+    color: var(--ink-dark);
+    border-radius: 40px;
+    border: 8px solid #1E293B;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+    overflow: hidden;
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    height: 740px;
   }
-  .clip-header {
+
+  /* Mobile App Bar */
+  .app-topbar {
+    background: #FFFFFF;
+    padding: 14px 16px 10px;
+    border-bottom: 1.5px solid #F1F5F9;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
-  .clip-name {
-    font-size: 14px;
-    font-weight: 800;
-    font-family: 'Manrope', sans-serif;
+  .app-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  .clip-size {
-    font-size: 11px;
-    color: var(--ink-soft);
-    font-family: 'IBM Plex Mono', monospace;
+  .app-brand img {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+  .app-brand-name {
+    font-family: 'Manrope', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    color: #0F172A;
+    line-height: 1;
+  }
+  .app-brand-sub {
+    font-size: 10px;
+    color: #64748B;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
-  .anim-frame {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    background: #000;
+  /* App Scrollable Content */
+  .app-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    background: #F8FAFC;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Service Selector Tabs */
+  .service-tabs-pills {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    background: #E2E8F0;
+    padding: 4px;
     border-radius: 14px;
-    overflow: hidden;
+  }
+  .service-tab-btn {
+    border: none;
+    background: transparent;
+    padding: 8px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #64748B;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .service-tab-btn.active {
+    background: #FFFFFF;
+    color: #0F172A;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+
+  /* Hero Banner */
+  .hero-delivery-card {
+    background: linear-gradient(135deg, #1E40AF 0%, #1E1B4B 100%);
+    border-radius: 18px;
+    padding: 14px 16px;
+    color: #FFFFFF;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     position: relative;
-    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .hero-delivery-card h2 {
+    font-family: 'Manrope', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    margin-bottom: 2px;
+  }
+  .hero-delivery-card p {
+    font-size: 11px;
+    color: #93C5FD;
+    line-height: 1.35;
+  }
+  .hero-mascot-img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.25));
+  }
+
+  /* Booking Form Card */
+  .delivery-form-card {
+    background: #FFFFFF;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 18px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  }
+  .input-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #475569;
+    margin-bottom: 4px;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .input-box {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 10px;
+    font-size: 12.5px;
+    color: #0F172A;
+    font-weight: 600;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .input-box:focus {
+    border-color: #2563EB;
+  }
+
+  /* Category Chips */
+  .category-chips-row {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .cat-chip {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1.5px solid #E2E8F0;
+    background: #F8FAFC;
+    font-size: 11px;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .cat-chip.selected {
+    border-color: #2563EB;
+    background: #EFF6FF;
+    color: #1E40AF;
+  }
+
+  /* Recommendation Card */
+  .rec-card {
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .rec-card.sage {
+    background: #EFF6FF;
+    border: 1.5px solid #BFDBFE;
+    color: #1E40AF;
+  }
+  .rec-card.goodz {
+    background: #FFFBEB;
+    border: 1.5px solid #FDE68A;
+    color: #92400E;
+  }
+  .rec-card.along {
+    background: #F5F3FF;
+    border: 1.5px solid #DDD6FE;
+    color: #5B21B6;
+  }
+
+  /* Action Button */
+  .btn-dispatch {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    background: #2563EB;
+    color: #FFFFFF;
+    font-size: 13.5px;
+    font-weight: 800;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+    transition: all 0.15s;
   }
-  .anim-frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+  .btn-dispatch:active {
+    transform: scale(0.98);
   }
 
+  /* Real Page Launch Links */
+  .real-launch-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .real-link-btn {
+    text-decoration: none;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s;
+  }
 </style>
 </head>
 <body>
 
-<div class="container">
+<!-- Header -->
+<header class="sandbox-header">
+  <div class="sandbox-title">
+    <h1>
+      <span>📦</span> Rydealot Logistics Sandbox
+    </h1>
+    <p>Simulating the platform without passenger bike rides — Pure City & Inter-District Freight</p>
+  </div>
+  <div class="compliance-tag">
+    <span>🛡️</span> 100% Legal Courier Compliance
+  </div>
+</header>
 
-  <!-- Header Card -->
-  <div class="header">
-    <div class="header-top">
-      <div class="badge">
-        <i class="ti ti-sparkles"></i> Mascot Studio Sandbox
-      </div>
-      <div style="font-size:12px; color:var(--ink-soft); font-family:'IBM Plex Mono';">
-        Universal Animated WebP • 100% Guaranteed Autoplay
+<main class="sandbox-container">
+
+  <!-- Left: Strategic Architecture Explanation -->
+  <div class="strategy-col">
+    
+    <div class="strategy-card">
+      <h3>
+        <i class="ti ti-shield-check" style="color:var(--green); font-size:20px;"></i>
+        Why Operating as a "Parcels Only" Network is 100% License-Free
+      </h3>
+      <p>
+        In India and Telangana, <strong>commercial bike-taxis carrying passengers</strong> face regulatory hurdles (Central Aggregator Guidelines, commercial yellow-board requirements, and transport union pushback).
+      </p>
+      <p style="margin-top:8px;">
+        <strong>Courier, Parcel, and Goods Delivery (like Swiggy Genie, Dunzo, Porter, or Rydealot Sage)</strong> have <u>NO</u> passenger aggregator license requirement! A private two-wheeler or linehaul carrier can legally transport parcels, documents, food, and cargo with zero transport department bans.
+      </p>
+    </div>
+
+    <!-- The 3 Core Pillars -->
+    <div class="strategy-card">
+      <h3>
+        <i class="ti ti-box-seam" style="color:#38BDF8; font-size:20px;"></i>
+        The 3 Pillars of Rydealot Logistics
+      </h3>
+      <div class="services-overview-grid">
+        
+        <!-- Pillar 1: Sage -->
+        <div class="service-item-row">
+          <div>
+            <div style="font-size:13.5px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+              <span>🛵</span> Rydealot Sage (Intra-City Bike Courier)
+            </div>
+            <div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">
+              Point-to-point city bike delivery in 15–30 mins. Keys, medicines, documents, groceries.
+            </div>
+          </div>
+          <span class="badge-service" style="background:#EFF6FF; color:#1E40AF; border:1px solid #BFDBFE;">0–15 KM</span>
+        </div>
+
+        <!-- Pillar 2: Along With Cargo -->
+        <div class="service-item-row">
+          <div>
+            <div style="font-size:13.5px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+              <span>🧳</span> Along With (Shared Boot/Luggage Space)
+            </div>
+            <div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">
+              Utilize empty trunk space in inter-city cabs & commercial vehicles. 50% cheaper freight.
+            </div>
+          </div>
+          <span class="badge-service" style="background:#F5F3FF; color:#5B21B6; border:1px solid #DDD6FE;">CARGO TRUNK</span>
+        </div>
+
+        <!-- Pillar 3: Goodz -->
+        <div class="service-item-row">
+          <div>
+            <div style="font-size:13.5px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+              <span>⚡</span> Along With Goodz (District Bus/Cab Relay)
+            </div>
+            <div style="font-size:11.5px; color:var(--ink-soft); margin-top:2px;">
+              1-Day Telangana inter-district relay (Cab + Bus Conductor relay chain).
+            </div>
+          </div>
+          <span class="badge-service" style="background:#FFFBEB; color:#92400E; border:1px solid #FDE68A;">INTER-DISTRICT</span>
+        </div>
+
       </div>
     </div>
-    <h1 class="header-title">Rydealot Mascot Animation Sandbox</h1>
-    <p class="header-desc">
-      All 5 mascot animations are rendered in universal Animated WebP format — zero black screens, instant looping playback, and compatible with all mobile browsers & local files.
-    </p>
 
-    <div class="nav-links">
-      <a href="index.html" class="nav-btn"><i class="ti ti-home"></i> Main Rides</a>
-      <a href="sage.html" class="nav-btn"><i class="ti ti-box"></i> Sage Parcels</a>
-      <a href="offline.html" class="nav-btn"><i class="ti ti-wifi-off"></i> Offline Screen</a>
-      <a href="profile.html" class="nav-btn"><i class="ti ti-user"></i> User Profile</a>
-      <a href="login.html" class="nav-btn"><i class="ti ti-login"></i> Login / Signup</a>
+    <!-- Live Direct Links to Production Pages -->
+    <div class="strategy-card">
+      <h3 style="margin-bottom:12px;">
+        <i class="ti ti-link" style="color:var(--goodz-amber); font-size:20px;"></i>
+        Quick Jump to Existing Production Pages
+      </h3>
+      <div class="real-launch-bar">
+        <a href="sage.html" class="real-link-btn" style="background:#1E293B; border:1px solid #334155; color:#38BDF8;">
+          <span>🛵 Open Production Sage (`sage.html`)</span>
+          <i class="ti ti-external-link"></i>
+        </a>
+        <a href="goodz.html" class="real-link-btn" style="background:#1E293B; border:1px solid #334155; color:#FBBF24;">
+          <span>⚡ Open Production Goodz (`goodz.html`)</span>
+          <i class="ti ti-external-link"></i>
+        </a>
+        <a href="alongwith.html" class="real-link-btn" style="background:#1E293B; border:1px solid #334155; color:#A78BFA;">
+          <span>🧳 Open Along With Shared Boot (`alongwith.html`)</span>
+          <i class="ti ti-external-link"></i>
+        </a>
+        <a href="index.html" class="real-link-btn" style="background:#0F172A; border:1px solid #1E293B; color:#94A3B8;">
+          <span>↩️ View Original Rides UI (`index.html`)</span>
+          <i class="ti ti-arrow-back"></i>
+        </a>
+      </div>
     </div>
+
   </div>
 
-  <!-- Live In-App Simulations -->
-  <div>
-    <h2 class="section-title">
-      <i class="ti ti-device-mobile"></i> Live In-App Component Previews
-    </h2>
-
-    <div class="sim-container">
-      
-      <!-- 1. Offline Simulation -->
-      <div class="sim-phone">
-        <span class="sim-tag" style="background:rgba(245, 158, 11, 0.15); color:var(--amber); border:1px solid var(--amber);">
-          📡 Offline Screen
-        </span>
-        <div class="offline-stage">
-          <div class="pulse-ring"></div>
-          <div class="pulse-ring"></div>
-          <img class="offline-anim" src="assets/mascot-offline.webp" alt="Animated Offline Rydo">
+  <!-- Right: Simulated Interactive App Frame (NO RIDES) -->
+  <div class="phone-frame">
+    
+    <!-- Topbar -->
+    <div class="app-topbar">
+      <div class="app-brand">
+        <img src="logo.png" alt="Rydealot Logo">
+        <div>
+          <div class="app-brand-name">Rydealot</div>
+          <div class="app-brand-sub">Express Logistics Network</div>
         </div>
-        <h3 style="font-size:16px; font-weight:800; margin-bottom:4px;">No Internet Connection</h3>
-        <p style="font-size:12px; color:var(--ink-soft); margin-bottom:16px;">
-          Rydo is searching for a signal! Check your mobile data.
-        </p>
-        <button style="width:100%; padding:10px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-weight:700; font-size:12.5px; cursor:pointer;">
-          🔄 Retry Reconnection
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:10px; background:#DCFCE7; color:#166534; font-weight:800; padding:2px 8px; border-radius:99px;">● 84 CAPTAINS ONLINE</span>
+      </div>
+    </div>
+
+    <!-- App Body -->
+    <div class="app-body">
+      
+      <!-- Service Switcher (Notice: NO PASSENGER RIDE TAB!) -->
+      <div class="service-tabs-pills">
+        <button type="button" class="service-tab-btn active" id="tab-sage" onclick="switchServiceTab('sage')">
+          <span style="font-size:16px;">🛵</span>
+          <span>Sage Express</span>
+        </button>
+        <button type="button" class="service-tab-btn" id="tab-goodz" onclick="switchServiceTab('goodz')">
+          <span style="font-size:16px;">⚡</span>
+          <span>Goodz Relay</span>
+        </button>
+        <button type="button" class="service-tab-btn" id="tab-along" onclick="switchServiceTab('along')">
+          <span style="font-size:16px;">🧳</span>
+          <span>Along With</span>
         </button>
       </div>
 
-      <!-- 2. Sage Radar Simulation -->
-      <div class="sim-phone">
-        <span class="sim-tag" style="background:rgba(56, 189, 248, 0.15); color:#38BDF8; border:1px solid #38BDF8;">
-          📦 Sage Parcel Search Modal
-        </span>
-        <div class="sage-radar-stage">
-          <div class="radar-spinner"></div>
-          <img class="sage-anim" src="assets/mascot-sage.webp" alt="Animated Sage Captain">
+      <!-- Hero Card Dynamic Banner -->
+      <div class="hero-delivery-card" id="hero-banner">
+        <div>
+          <h2 id="hero-title">Send Anything Across City</h2>
+          <p id="hero-desc">Verified bike captain at your doorstep in ~4 mins. Live radar & PIN security.</p>
         </div>
-        <h3 style="font-size:16px; font-weight:800; margin-bottom:4px;">Finding Sage Captain…</h3>
-        <p style="font-size:12px; color:var(--ink-soft); margin-bottom:16px;">
-          Matching nearest verified bike courier near your pickup.
-        </p>
-        <div style="background:var(--card-light); border:1px solid var(--line); border-radius:10px; padding:8px 14px; width:100%;">
-          <div style="font-size:10px; font-weight:700; color:var(--ink-soft); text-transform:uppercase;">Pickup Verification PIN:</div>
-          <div style="font-size:20px; font-weight:900; color:#38BDF8; font-family:'IBM Plex Mono'; letter-spacing:4px;">8598</div>
-        </div>
+        <img src="assets/mascot-sage.png" class="hero-mascot-img" id="hero-img" alt="Mascot">
       </div>
 
-      <!-- 3. Success Simulation -->
-      <div class="sim-phone">
-        <span class="sim-tag" style="background:rgba(34, 197, 94, 0.15); color:var(--green); border:1px solid var(--green);">
-          🎉 Ride Completed Modal
-        </span>
-        <div class="success-stage">
-          <img class="success-anim" src="assets/mascot-success.webp" alt="Animated Success Rydo">
+      <!-- Interactive Booking / Quote Form -->
+      <div class="delivery-form-card">
+        
+        <div>
+          <label class="input-label">📍 Pickup Location</label>
+          <input type="text" class="input-box" id="sim-pickup" value="Hanamkonda Bus Station, Warangal" placeholder="Enter pickup address">
         </div>
-        <h3 style="font-size:16px; font-weight:800; margin-bottom:4px;">Ride Completed!</h3>
-        <p style="font-size:12px; color:var(--ink-soft); margin-bottom:16px;">
-          You arrived safely at Kazipet Junction.
-        </p>
-        <button style="width:100%; padding:10px; background:var(--green); border:none; border-radius:10px; color:#fff; font-weight:700; font-size:12.5px; cursor:pointer;">
-          ⭐ Rate Captain (5.0)
+
+        <div>
+          <label class="input-label">🎯 Drop Destination</label>
+          <input type="text" class="input-box" id="sim-drop" value="Kazipet Railway Station" oninput="updateAutoRouting()" placeholder="Enter drop address">
+        </div>
+
+        <div>
+          <label class="input-label">📦 Package Category</label>
+          <div class="category-chips-row">
+            <div class="cat-chip selected" onclick="selectCatChip(this, 'Document / Keys')">📄 Documents</div>
+            <div class="cat-chip" onclick="selectCatChip(this, 'Food / Tiffin')">🍱 Food / Tiffin</div>
+            <div class="cat-chip" onclick="selectCatChip(this, 'Clothes / Parcel')">👕 Clothes</div>
+            <div class="cat-chip" onclick="selectCatChip(this, 'Electronics')">📱 Electronics</div>
+          </div>
+        </div>
+
+        <!-- Dynamic Recommendation Result Card -->
+        <div class="rec-card sage" id="sim-rec-box">
+          <div>
+            <div style="font-size:12.5px; font-weight:800;" id="sim-mode-name">🛵 Recommended: Sage City Express</div>
+            <div style="font-size:10.5px; margin-top:2px;" id="sim-mode-details">Distance: ~6.2 km • Time: ~20 mins</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:16px; font-weight:900;" id="sim-mode-fare">₹45</div>
+            <div style="font-size:9.5px; font-weight:800; text-transform:uppercase;">Fixed Rate</div>
+          </div>
+        </div>
+
+        <!-- Security & Proof Notice -->
+        <div style="display:flex; align-items:center; gap:8px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:8px 10px; font-size:10.5px; color:#64748B;">
+          <span style="font-size:16px;">🔒</span>
+          <span>Secure 4-Digit Pickup PIN & Receiver Drop PIN verified by Captain</span>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="button" class="btn-dispatch" id="sim-btn-dispatch" onclick="handleSimDispatch()">
+          <span>🚀 Book Sage Bike Captain</span>
         </button>
+
+      </div>
+
+      <!-- Demo Notification Toast -->
+      <div id="sim-toast" style="display:none; background:#0F172A; color:#FFFFFF; padding:10px 14px; border-radius:12px; font-size:11.5px; font-weight:700; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,0.3);">
+        ✅ Mock Order Created! Redirecting to live tracking...
       </div>
 
     </div>
+
   </div>
 
-  <!-- Sliced Animations Gallery -->
-  <div>
-    <h2 class="section-title">
-      <i class="ti ti-movie"></i> All Extracted Mascot Animations
-    </h2>
+</main>
 
-    <div class="grid">
-      
-      <!-- Clip 1: Offline -->
-      <div class="clip-card">
-        <div class="clip-header">
-          <div class="clip-name">1. Offline / Lost Signal</div>
-          <div class="clip-size">418 KB (Animated WebP)</div>
-        </div>
-        <div class="anim-frame">
-          <img src="assets/mascot-offline.webp" alt="Offline Animation">
-        </div>
-      </div>
+<script>
+  var currentActiveMode = 'sage';
 
-      <!-- Clip 2: Waving -->
-      <div class="clip-card">
-        <div class="clip-header">
-          <div class="clip-name">2. Waving Hello</div>
-          <div class="clip-size">304 KB (Animated WebP)</div>
-        </div>
-        <div class="anim-frame">
-          <img src="assets/mascot-waving.webp" alt="Waving Animation">
-        </div>
-      </div>
+  function switchServiceTab(mode) {
+    currentActiveMode = mode;
+    document.getElementById('tab-sage').classList.remove('active');
+    document.getElementById('tab-goodz').classList.remove('active');
+    document.getElementById('tab-along').classList.remove('active');
+    document.getElementById('tab-' + mode).classList.add('active');
 
-      <!-- Clip 3: Moving -->
-      <div class="clip-card">
-        <div class="clip-header">
-          <div class="clip-name">3. Fast Ride in Motion</div>
-          <div class="clip-size">1.1 MB (Animated WebP)</div>
-        </div>
-        <div class="anim-frame">
-          <img src="assets/mascot-moving.webp" alt="Moving Animation">
-        </div>
-      </div>
+    var heroTitle = document.getElementById('hero-title');
+    var heroDesc = document.getElementById('hero-desc');
+    var heroImg = document.getElementById('hero-img');
+    var recBox = document.getElementById('sim-rec-box');
+    var btn = document.getElementById('sim-btn-dispatch');
+    var modeName = document.getElementById('sim-mode-name');
+    var modeDetails = document.getElementById('sim-mode-details');
+    var modeFare = document.getElementById('sim-mode-fare');
 
-      <!-- Clip 4: Sage -->
-      <div class="clip-card">
-        <div class="clip-header">
-          <div class="clip-name">4. Sage Parcel Delivery</div>
-          <div class="clip-size">551 KB (Animated WebP)</div>
-        </div>
-        <div class="anim-frame">
-          <img src="assets/mascot-sage.webp" alt="Sage Animation">
-        </div>
-      </div>
+    recBox.className = 'rec-card ' + mode;
 
-      <!-- Clip 5: Success (Glitch-Free) -->
-      <div class="clip-card">
-        <div class="clip-header">
-          <div class="clip-name">5. Ride Success (Glitch-Free)</div>
-          <div class="clip-size">617 KB (Animated WebP)</div>
-        </div>
-        <div class="anim-frame">
-          <img src="assets/mascot-success.webp" alt="Success Animation">
-        </div>
-      </div>
+    if (mode === 'sage') {
+      heroTitle.textContent = 'Send Anything Across City';
+      heroDesc.textContent = 'Verified bike captain at your doorstep in ~4 mins. Live radar & PIN security.';
+      heroImg.src = 'assets/mascot-sage.png';
+      modeName.textContent = '🛵 Sage City Bike Express';
+      modeDetails.textContent = 'Distance: ~6.2 km • Time: ~20 mins';
+      modeFare.textContent = '₹45';
+      btn.style.background = '#2563EB';
+      btn.innerHTML = '<span>🚀 Book Sage Bike Captain</span>';
+    } else if (mode === 'goodz') {
+      heroTitle.textContent = 'Along With Goodz • District Relay';
+      heroDesc.textContent = '1-Day Telangana inter-district transit via RTC buses & cab driver relay.';
+      heroImg.src = 'assets/mascot-moving.png';
+      modeName.textContent = '⚡ Goodz Inter-District Relay';
+      modeDetails.textContent = 'Warangal ↔ Hyderabad Relay • 1-Day Guaranteed';
+      modeFare.textContent = '₹120';
+      btn.style.background = '#D97706';
+      btn.innerHTML = '<span>⚡ Dispatch Along With Goodz</span>';
+    } else {
+      heroTitle.textContent = 'Along With • Shared Trunk Space';
+      heroDesc.textContent = 'Save up to 50% on freight using empty boot capacity on inter-city passenger cars.';
+      heroImg.src = 'assets/mascot-waving.png';
+      modeName.textContent = '🧳 Along With Shared Cargo';
+      modeDetails.textContent = 'Available on active highway departures today';
+      modeFare.textContent = '₹80';
+      btn.style.background = '#7C3AED';
+      btn.innerHTML = '<span>🧳 Match Highway Trunk Space</span>';
+    }
+  }
 
-    </div>
-  </div>
+  function selectCatChip(element, cat) {
+    var chips = document.querySelectorAll('.cat-chip');
+    chips.forEach(function(c) { c.classList.remove('selected'); });
+    element.classList.add('selected');
+  }
 
-</div>
+  function updateAutoRouting() {
+    var dropVal = document.getElementById('sim-drop').value.toLowerCase();
+    if (dropVal.includes('hyderabad') || dropVal.includes('karimnagar') || dropVal.includes('nizamabad') || dropVal.includes('siddipet')) {
+      switchServiceTab('goodz');
+    }
+  }
+
+  function handleSimDispatch() {
+    var toast = document.getElementById('sim-toast');
+    toast.style.display = 'block';
+    if (currentActiveMode === 'sage') {
+      toast.textContent = '🛵 Mock Order: Redirecting to Sage Live Radar…';
+      setTimeout(function() { window.location.href = 'sage.html'; }, 1200);
+    } else if (currentActiveMode === 'goodz') {
+      toast.textContent = '⚡ Mock Order: Opening Along With Goodz Hub…';
+      setTimeout(function() { window.location.href = 'goodz.html'; }, 1200);
+    } else {
+      toast.textContent = '🧳 Mock Order: Opening Along With Shared Boot…';
+      setTimeout(function() { window.location.href = 'alongwith.html'; }, 1200);
+    }
+  }
+</script>
 
 </body>
 </html>
