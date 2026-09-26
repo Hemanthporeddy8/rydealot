@@ -831,6 +831,22 @@
         </div>
       </div>
 
+      <!-- Closed Pilot Merchant Passcode Card (Method 1) -->
+      <div class="form-card" id="card-pilot-gate" style="border: 1.5px solid #6366f1; background: #f5f3ff;">
+        <div class="form-card-title" style="color: #4338ca;">
+          <span>🔑</span> Merchant Pilot Access Code
+        </div>
+        <div style="font-size: 11.5px; color: #4338ca; margin-bottom: 8px; line-height: 1.4;">
+          Along With Goodz is in private pilot for Warangal ⇄ Hyderabad. Enter your merchant access code to dispatch today.
+        </div>
+        <div class="input-group" style="margin: 0;">
+          <input type="text" class="input-field" id="pilot-code-input" placeholder="ENTER 6-DIGIT PILOT CODE (e.g. GOODZ2026)" style="font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; text-align: center; border-color: #6366f1; background: #ffffff;">
+        </div>
+        <div id="pilot-code-error" style="display: none; font-size: 11px; font-weight: 700; color: #dc2626; margin-top: 6px;">
+          ❌ Invalid pilot code. Goodz is currently in closed merchant testing.
+        </div>
+      </div>
+
       <!-- Live Fare Breakdown Card -->
       <div class="fare-card">
         <div class="fare-row">
@@ -856,6 +872,18 @@
         <div class="fare-row total">
           <span>Total Fare (All-Inclusive Intercity)</span>
           <span style="color: #D97706;" id="fare-total-display">₹289</span>
+        </div>
+
+        <div style="font-size: 11px; color: #15803D; background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 8px 10px; margin-top: 10px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+          <span>💵</span> Pay on Handover: Cash or UPI directly to Captain upon parcel pickup.
+        </div>
+      </div>
+
+      <!-- Daily Dispatch Quota Alert Banner (Method 3) -->
+      <div id="quota-limit-banner" style="display: none; background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 14px; padding: 12px; margin-bottom: 12px; text-align: center;">
+        <div style="font-size: 13px; font-weight: 900; color: #e11d48;">⚠️ Today's Highway Quota Full</div>
+        <div style="font-size: 11.5px; color: #9f1239; margin-top: 3px;">
+          All pilot cargo slots for today have been booked. Next dispatch slots open tomorrow at 8:00 AM.
         </div>
       </div>
 
@@ -1124,8 +1152,34 @@
       weightTier1: 0,
       weightTier2: 40,
       weightTier3: 80
+    },
+    pilot: {
+      requireCode: true,
+      accessCode: 'GOODZ2026',
+      dailyQuota: 5
     }
   };
+
+  var GOODZ_STATS_KEY = 'rydealot_goodz_today_stats';
+
+  function getTodayStats() {
+    var todayStr = new Date().toISOString().slice(0, 10);
+    var raw = localStorage.getItem(GOODZ_STATS_KEY);
+    var stats = { date: todayStr, count: 0 };
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed.date === todayStr) stats.count = parsed.count || 0;
+      } catch(e) {}
+    }
+    return stats;
+  }
+
+  function incrementTodayStats() {
+    var stats = getTodayStats();
+    stats.count = (stats.count || 0) + 1;
+    localStorage.setItem(GOODZ_STATS_KEY, JSON.stringify(stats));
+  }
 
   function getGoodzPricingConfig() {
     var raw = localStorage.getItem(GOODZ_CONFIG_KEY);
@@ -1136,6 +1190,7 @@
       res.cab = Object.assign({}, DEFAULT_GOODZ_PRICING.cab, parsed.cab || {});
       res.bus = Object.assign({}, DEFAULT_GOODZ_PRICING.bus, parsed.bus || {});
       res.fees = Object.assign({}, DEFAULT_GOODZ_PRICING.fees, parsed.fees || {});
+      res.pilot = Object.assign({}, DEFAULT_GOODZ_PRICING.pilot, parsed.pilot || {});
       return res;
     } catch(e) {
       return DEFAULT_GOODZ_PRICING;
@@ -1423,10 +1478,61 @@
     if (cabAnchor) cabAnchor.textContent = 'From ₹' + cfg.cab.highwayMeetFare;
     var busAnchor = document.getElementById('bus-anchor-price');
     if (busAnchor) busAnchor.textContent = 'From ₹' + cfg.bus.officeFare;
+
+    // Check Pilot Access Gate & Quota Limit (Method 1 & Method 3)
+    var stats = getTodayStats();
+    var pilotCard = document.getElementById('card-pilot-gate');
+    if (pilotCard) {
+      pilotCard.style.display = (cfg.pilot && cfg.pilot.requireCode !== false) ? 'block' : 'none';
+    }
+
+    var quotaBanner = document.getElementById('quota-limit-banner');
+    var btnSubmit = document.getElementById('btn-submit-booking');
+    if (cfg.pilot && cfg.pilot.dailyQuota > 0 && stats.count >= cfg.pilot.dailyQuota) {
+      if (quotaBanner) quotaBanner.style.display = 'block';
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.style.opacity = '0.55';
+        btnSubmit.style.cursor = 'not-allowed';
+      }
+    } else {
+      if (quotaBanner) quotaBanner.style.display = 'none';
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.style.opacity = '1';
+        btnSubmit.style.cursor = 'pointer';
+      }
+    }
   }
 
   // Transition to Live Tracking
   function startLiveRelay() {
+    var cfg = getGoodzPricingConfig();
+    var stats = getTodayStats();
+
+    // Check Daily Quota Cap (Method 3)
+    if (cfg.pilot && cfg.pilot.dailyQuota > 0 && stats.count >= cfg.pilot.dailyQuota) {
+      alert('⚠️ Today\'s pilot dispatch quota is full (' + stats.count + '/' + cfg.pilot.dailyQuota + ' booked). Next dispatch slots open tomorrow at 8:00 AM.');
+      return;
+    }
+
+    // Check Pilot Merchant Invite Code (Method 1)
+    if (cfg.pilot && cfg.pilot.requireCode !== false) {
+      var codeInput = document.getElementById('pilot-code-input');
+      var enteredCode = (codeInput ? codeInput.value : '').trim().toUpperCase();
+      var expectedCode = (cfg.pilot.accessCode || 'GOODZ2026').toUpperCase();
+      var errEl = document.getElementById('pilot-code-error');
+
+      if (!enteredCode || enteredCode !== expectedCode) {
+        if (errEl) errEl.style.display = 'block';
+        alert('🔑 Invalid Pilot Access Code. Goodz is currently in closed merchant pilot for Warangal ⇄ Hyderabad. Enter your merchant code (e.g. ' + expectedCode + ').');
+        if (codeInput) { codeInput.focus(); codeInput.select(); }
+        return;
+      } else {
+        if (errEl) errEl.style.display = 'none';
+      }
+    }
+
     var routeKey = selectedPickupCity + '-' + selectedDropCity;
     var routeConfig = ROUTES_DATABASE[routeKey];
     if (!routeConfig || !routeConfig.active) {
@@ -1467,6 +1573,9 @@
       document.getElementById('receiver-phone').focus();
       return;
     }
+
+    // Success! Increment today's booked quota counter
+    incrementTodayStats();
 
     document.getElementById('view-booking').classList.add('hidden');
     document.getElementById('view-tracking').classList.remove('hidden');

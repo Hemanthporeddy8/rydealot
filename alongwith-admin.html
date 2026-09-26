@@ -398,6 +398,42 @@
           ⚖️ <strong>Legal Tax Status</strong>: Turnover &lt; ₹20L threshold. No GST collected (CGST Act Sec 32 compliant). Taxes shown as ₹0 Exempt.
         </div>
       </div>
+
+      <!-- Card 4: Closed Pilot & Daily Quota Guard -->
+      <div class="goodz-card" style="border: 1.5px solid #6366f1; background: #0c101d;">
+        <div class="goodz-card-title">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span>🔒</span> Pilot Gate & Daily Quota
+          </span>
+          <label class="toggle-switch" title="Require Invite Code to Book">
+            <input type="checkbox" id="goodz-pilot-required" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p style="font-size: 11px; color: #a5b4fc; margin-bottom: 12px;">Restricts Goodz to trusted merchants & limits daily dispatch volume.</p>
+
+        <div class="goodz-field-group">
+          <label class="goodz-label">Secret Merchant Access Code</label>
+          <input type="text" id="goodz-pilot-code" class="goodz-input" value="GOODZ2026" style="text-transform: uppercase; letter-spacing: 1.5px; border-color: #6366f1;">
+        </div>
+
+        <div class="goodz-field-group">
+          <label class="goodz-label">Daily Booking Quota (Max Parcels / Day)</label>
+          <input type="number" id="goodz-pilot-quota" class="goodz-input" value="5" min="1" max="100" step="1">
+        </div>
+
+        <div style="background: #1e1b4b; border: 1px solid #4338ca; border-radius: 8px; padding: 10px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 10px; font-weight: 800; color: #c7d2fe; text-transform: uppercase;">Today's Dispatch Quota</div>
+            <div style="font-size: 13.5px; font-weight: 900; color: #a5f3fc;" id="goodz-quota-status-text">0 / 5 Booked Today</div>
+          </div>
+          <button type="button" onclick="resetTodayGoodzCount()" style="background: #312e81; border: 1px solid #6366f1; color: #e0e7ff; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 4px 8px; cursor: pointer;">↺ Reset</button>
+        </div>
+
+        <div style="font-size: 10px; color: #94a3b8; margin-top: 8px; line-height: 1.35;">
+          💵 <strong>Payment Policy</strong>: Zero Razorpay gateway required during pilot. Customers pay via <strong>Cash or UPI directly to Captain upon parcel pickup</strong>.
+        </div>
+      </div>
     </div>
   </div>
 
@@ -788,6 +824,8 @@
 
   // ── GOODZ INTERCITY PRICING & FLEET CONFIGURATION ──
   var GOODZ_CONFIG_KEY = 'rydealot_goodz_pricing_config';
+  var GOODZ_STATS_KEY = 'rydealot_goodz_today_stats';
+
   var DEFAULT_GOODZ_PRICING = {
     cab: {
       enabled: true,
@@ -812,8 +850,32 @@
       weightTier2: 40,
       weightTier3: 80
     },
+    pilot: {
+      requireCode: true,
+      accessCode: 'GOODZ2026',
+      dailyQuota: 5
+    },
     updatedAt: new Date().toISOString()
   };
+
+  function getTodayStats() {
+    var todayStr = new Date().toISOString().slice(0, 10);
+    var raw = localStorage.getItem(GOODZ_STATS_KEY);
+    var stats = { date: todayStr, count: 0 };
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed.date === todayStr) stats.count = parsed.count || 0;
+      } catch(e) {}
+    }
+    return stats;
+  }
+
+  function resetTodayGoodzCount() {
+    var todayStr = new Date().toISOString().slice(0, 10);
+    localStorage.setItem(GOODZ_STATS_KEY, JSON.stringify({ date: todayStr, count: 0 }));
+    loadGoodzPricing();
+  }
 
   function loadGoodzPricing() {
     var raw = localStorage.getItem(GOODZ_CONFIG_KEY);
@@ -825,6 +887,7 @@
         cfg.cab = Object.assign({}, DEFAULT_GOODZ_PRICING.cab, parsed.cab || {});
         cfg.bus = Object.assign({}, DEFAULT_GOODZ_PRICING.bus, parsed.bus || {});
         cfg.fees = Object.assign({}, DEFAULT_GOODZ_PRICING.fees, parsed.fees || {});
+        cfg.pilot = Object.assign({}, DEFAULT_GOODZ_PRICING.pilot, parsed.pilot || {});
       } catch(e) {
         console.warn('Error reading goodz config:', e);
       }
@@ -850,6 +913,19 @@
     document.getElementById('goodz-seal-fee').value = cfg.fees.securitySealFee || 10;
     document.getElementById('goodz-weight-med').value = cfg.fees.weightTier2 || 40;
     document.getElementById('goodz-weight-high').value = cfg.fees.weightTier3 || 80;
+
+    var pilotReq = document.getElementById('goodz-pilot-required');
+    if (pilotReq) pilotReq.checked = cfg.pilot.requireCode !== false;
+    var pilotCode = document.getElementById('goodz-pilot-code');
+    if (pilotCode) pilotCode.value = cfg.pilot.accessCode || 'GOODZ2026';
+    var pilotQuota = document.getElementById('goodz-pilot-quota');
+    if (pilotQuota) pilotQuota.value = cfg.pilot.dailyQuota || 5;
+
+    var stats = getTodayStats();
+    var quotaEl = document.getElementById('goodz-quota-status-text');
+    if (quotaEl) {
+      quotaEl.textContent = stats.count + ' / ' + (cfg.pilot.dailyQuota || 5) + ' Booked Today';
+    }
   }
 
   function saveGoodzPricing() {
@@ -876,6 +952,11 @@
         weightTier1: 0,
         weightTier2: parseFloat(document.getElementById('goodz-weight-med').value) || 40,
         weightTier3: parseFloat(document.getElementById('goodz-weight-high').value) || 80
+      },
+      pilot: {
+        requireCode: document.getElementById('goodz-pilot-required').checked,
+        accessCode: (document.getElementById('goodz-pilot-code').value || 'GOODZ2026').trim().toUpperCase(),
+        dailyQuota: parseInt(document.getElementById('goodz-pilot-quota').value, 10) || 5
       },
       updatedAt: new Date().toISOString()
     };
