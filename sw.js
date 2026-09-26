@@ -1,8 +1,9 @@
-var CACHE_NAME = 'rydealot-v31';
+var CACHE_NAME = 'rydealot-v32';
 var urlsToCache = [
   './',
   './index.html',
   './alongwith.html',
+  './alongwith-admin.html',
   './goodz.html',
   './assets/goodz-z-icon.png',
   './assets/goodz-logo.png',

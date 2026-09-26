@@ -143,6 +143,71 @@
       outline: none;
     }
     .lock-input:focus { border-color: var(--accent); }
+
+    /* Goodz Pricing Section */
+    .goodz-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+    .goodz-card {
+      background: #0f1422;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .goodz-card-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .goodz-field-group {
+      margin-bottom: 12px;
+    }
+    .goodz-label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-mute);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .goodz-input {
+      width: 100%;
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      box-sizing: border-box;
+      outline: none;
+    }
+    .goodz-input:focus { border-color: var(--accent); }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 20px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0; background-color: #334155;
+      border-radius: 20px; transition: .2s;
+    }
+    .toggle-slider:before {
+      position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+      background-color: white; border-radius: 50%; transition: .2s;
+    }
+    input:checked + .toggle-slider { background-color: #16a34a; }
+    input:checked + .toggle-slider:before { transform: translateX(18px); }
   </style>
 </head>
 <body>
@@ -215,6 +280,124 @@
     <div class="kpi-card">
       <div class="kpi-num" id="stat-commission" style="color: #facc15;">₹0</div>
       <div class="kpi-label">Rydealot Commission (15%)</div>
+    </div>
+  </div>
+
+  <!-- Along With Goodz Pricing & Fleet Management Panel -->
+  <div class="section-card" id="section-goodz-settings" style="border: 1.5px solid #d97706; background: linear-gradient(180deg, #161b2b 0%, #0f1422 100%); margin-bottom: 24px;">
+    <div class="section-header" style="flex-wrap: wrap; gap: 10px; align-items: flex-start;">
+      <div>
+        <h2 class="section-title" style="color: #fbbf24; display: flex; align-items: center; gap: 8px;">
+          <span>⚡ Along With Goodz • Intercity Fare & Fleet Settings</span>
+        </h2>
+        <p style="font-size: 11.5px; color: var(--text-mute); margin-top: 3px;">
+          Configure customer fares, linehaul transporter payouts, and vehicle modes (🚗 Direct Cab Boot & 🚌 Highway Bus Relay) for Warangal ⇄ Hyderabad and regional corridors.
+        </p>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <button type="button" class="refresh-btn" onclick="saveGoodzPricing()" style="background: #f59e0b; color: #000; font-weight: 800; cursor: pointer;">💾 Save & Apply Rates</button>
+        <button type="button" class="refresh-btn" onclick="resetGoodzPricing()" style="background: #334155; color: #e2e8f0; cursor: pointer;">↺ Reset Defaults</button>
+        <a href="goodz.html" target="_blank" class="nav-btn" style="background: #090d16; border-color: #f59e0b; color: #fbbf24; text-decoration: none; font-weight: 800;">⚡ Test in Goodz ↗</a>
+      </div>
+    </div>
+
+    <div id="goodz-status-alert" style="display: none; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 12px; font-weight: 700;"></div>
+
+    <div class="goodz-grid">
+      <!-- Card 1: Cab Boot Cargo (Direct Intercity) -->
+      <div class="goodz-card">
+        <div class="goodz-card-title">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span>🚗</span> Direct Cab Boot Express
+          </span>
+          <label class="toggle-switch" title="Enable or Disable Direct Cab Boot Mode">
+            <input type="checkbox" id="goodz-cab-enabled" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">Fastest express car trunk delivery (2.5–3 hrs) via NH 163.</p>
+
+        <div class="goodz-field-group">
+          <label class="goodz-label">Doorstep Customer Fare (₹)</label>
+          <input type="number" id="goodz-cab-doorstep" class="goodz-input" value="289" min="50" step="5">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Highway Meet / Toll Interchange Fare (₹)</label>
+          <input type="number" id="goodz-cab-highway" class="goodz-input" value="199" min="50" step="5">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Cab Driver Payout (Doorstep) (₹)</label>
+          <input type="number" id="goodz-cab-driver-doorstep" class="goodz-input" value="230" min="50" step="5">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Cab Driver Payout (Highway Meet) (₹)</label>
+          <input type="number" id="goodz-cab-driver-highway" class="goodz-input" value="160" min="50" step="5">
+        </div>
+      </div>
+
+      <!-- Card 2: Highway Express Bus Relay -->
+      <div class="goodz-card">
+        <div class="goodz-card-title">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span>🚌</span> Highway Bus Relay
+          </span>
+          <label class="toggle-switch" title="Enable or Disable Bus Relay Mode">
+            <input type="checkbox" id="goodz-bus-enabled" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">Scheduled bus cargo hold relay (3.5–4.5 hrs) via TSRTC / travels.</p>
+
+        <div class="goodz-field-group">
+          <label class="goodz-label">Full Doorstep Customer Fare (₹)</label>
+          <input type="number" id="goodz-bus-doorstep" class="goodz-input" value="249" min="50" step="5">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Bus Office Counter Pickup Fare (₹)</label>
+          <input type="number" id="goodz-bus-office" class="goodz-input" value="199" min="50" step="5">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Bus Cargo / Conductor Allowance (Doorstep) (₹)</label>
+          <input type="number" id="goodz-bus-payout-doorstep" class="goodz-input" value="130" min="30" step="5">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Bus Cargo Allowance (Counter Pickup) (₹)</label>
+          <input type="number" id="goodz-bus-payout-office" class="goodz-input" value="110" min="30" step="5">
+        </div>
+      </div>
+
+      <!-- Card 3: Commission, Security & Weight -->
+      <div class="goodz-card">
+        <div class="goodz-card-title">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span>🛡️</span> Platform Share & Surcharges
+          </span>
+          <span style="font-size: 10px; font-weight: 800; color: #4ade80; background: #064e3b; padding: 2px 6px; border-radius: 4px;">CGST Compliant</span>
+        </div>
+        <p style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">Platform fee, physical barcode seal, and weight add-ons.</p>
+
+        <div class="goodz-field-group">
+          <label class="goodz-label">Rydealot Platform Commission (%)</label>
+          <input type="number" id="goodz-platform-pct" class="goodz-input" value="8" min="0" max="30" step="1">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Tamper-Evident Barcode Seal & Guarantee (₹)</label>
+          <input type="number" id="goodz-seal-fee" class="goodz-input" value="10" min="0" step="1">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="goodz-field-group">
+            <label class="goodz-label">3–7 KG Add-on (₹)</label>
+            <input type="number" id="goodz-weight-med" class="goodz-input" value="40" min="0" step="5">
+          </div>
+          <div class="goodz-field-group">
+            <label class="goodz-label">7–15 KG Add-on (₹)</label>
+            <input type="number" id="goodz-weight-high" class="goodz-input" value="80" min="0" step="5">
+          </div>
+        </div>
+        <div style="font-size: 10px; color: #94a3b8; background: #090d16; padding: 8px; border-radius: 6px; border: 1px dashed var(--border); line-height: 1.4;">
+          ⚖️ <strong>Legal Tax Status</strong>: Turnover &lt; ₹20L threshold. No GST collected (CGST Act Sec 32 compliant). Taxes shown as ₹0 Exempt.
+        </div>
+      </div>
     </div>
   </div>
 
@@ -351,6 +534,7 @@
   var allBookings = [];
 
   function loadDashboard() {
+    loadGoodzPricing();
     var refreshBtns = document.querySelectorAll('.refresh-btn');
     refreshBtns.forEach(function(b) { if(b.textContent.includes('Refresh')) b.textContent = '⏳ Loading...'; });
 
@@ -600,6 +784,125 @@
     msgEl.textContent = 'Broadcast cleared.';
     msgEl.style.display = 'block';
     setTimeout(function() { msgEl.style.display = 'none'; }, 3000);
+  }
+
+  // ── GOODZ INTERCITY PRICING & FLEET CONFIGURATION ──
+  var GOODZ_CONFIG_KEY = 'rydealot_goodz_pricing_config';
+  var DEFAULT_GOODZ_PRICING = {
+    cab: {
+      enabled: true,
+      doorstepFare: 289,
+      highwayMeetFare: 199,
+      driverDoorstepPayout: 230,
+      driverHighwayPayout: 160,
+      transitTime: '2.5 - 3 Hours'
+    },
+    bus: {
+      enabled: true,
+      doorstepFare: 249,
+      officeFare: 199,
+      busDoorstepPayout: 130,
+      busOfficePayout: 110,
+      transitTime: '3.5 - 4.5 Hours'
+    },
+    fees: {
+      commissionPct: 8,
+      securitySealFee: 10,
+      weightTier1: 0,
+      weightTier2: 40,
+      weightTier3: 80
+    },
+    updatedAt: new Date().toISOString()
+  };
+
+  function loadGoodzPricing() {
+    var raw = localStorage.getItem(GOODZ_CONFIG_KEY);
+    var cfg = DEFAULT_GOODZ_PRICING;
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        cfg = Object.assign({}, DEFAULT_GOODZ_PRICING, parsed);
+        cfg.cab = Object.assign({}, DEFAULT_GOODZ_PRICING.cab, parsed.cab || {});
+        cfg.bus = Object.assign({}, DEFAULT_GOODZ_PRICING.bus, parsed.bus || {});
+        cfg.fees = Object.assign({}, DEFAULT_GOODZ_PRICING.fees, parsed.fees || {});
+      } catch(e) {
+        console.warn('Error reading goodz config:', e);
+      }
+    }
+
+    // Populate inputs if elements exist
+    var elCabEn = document.getElementById('goodz-cab-enabled');
+    if (!elCabEn) return;
+
+    elCabEn.checked = cfg.cab.enabled !== false;
+    document.getElementById('goodz-cab-doorstep').value = cfg.cab.doorstepFare || 289;
+    document.getElementById('goodz-cab-highway').value = cfg.cab.highwayMeetFare || 199;
+    document.getElementById('goodz-cab-driver-doorstep').value = cfg.cab.driverDoorstepPayout || 230;
+    document.getElementById('goodz-cab-driver-highway').value = cfg.cab.driverHighwayPayout || 160;
+
+    document.getElementById('goodz-bus-enabled').checked = cfg.bus.enabled !== false;
+    document.getElementById('goodz-bus-doorstep').value = cfg.bus.doorstepFare || 249;
+    document.getElementById('goodz-bus-office').value = cfg.bus.officeFare || 199;
+    document.getElementById('goodz-bus-payout-doorstep').value = cfg.bus.busDoorstepPayout || 130;
+    document.getElementById('goodz-bus-payout-office').value = cfg.bus.busOfficePayout || 110;
+
+    document.getElementById('goodz-platform-pct').value = cfg.fees.commissionPct || 8;
+    document.getElementById('goodz-seal-fee').value = cfg.fees.securitySealFee || 10;
+    document.getElementById('goodz-weight-med').value = cfg.fees.weightTier2 || 40;
+    document.getElementById('goodz-weight-high').value = cfg.fees.weightTier3 || 80;
+  }
+
+  function saveGoodzPricing() {
+    var newCfg = {
+      cab: {
+        enabled: document.getElementById('goodz-cab-enabled').checked,
+        doorstepFare: parseFloat(document.getElementById('goodz-cab-doorstep').value) || 289,
+        highwayMeetFare: parseFloat(document.getElementById('goodz-cab-highway').value) || 199,
+        driverDoorstepPayout: parseFloat(document.getElementById('goodz-cab-driver-doorstep').value) || 230,
+        driverHighwayPayout: parseFloat(document.getElementById('goodz-cab-driver-highway').value) || 160,
+        transitTime: '2.5 - 3 Hours'
+      },
+      bus: {
+        enabled: document.getElementById('goodz-bus-enabled').checked,
+        doorstepFare: parseFloat(document.getElementById('goodz-bus-doorstep').value) || 249,
+        officeFare: parseFloat(document.getElementById('goodz-bus-office').value) || 199,
+        busDoorstepPayout: parseFloat(document.getElementById('goodz-bus-payout-doorstep').value) || 130,
+        busOfficePayout: parseFloat(document.getElementById('goodz-bus-payout-office').value) || 110,
+        transitTime: '3.5 - 4.5 Hours'
+      },
+      fees: {
+        commissionPct: parseFloat(document.getElementById('goodz-platform-pct').value) || 8,
+        securitySealFee: parseFloat(document.getElementById('goodz-seal-fee').value) || 10,
+        weightTier1: 0,
+        weightTier2: parseFloat(document.getElementById('goodz-weight-med').value) || 40,
+        weightTier3: parseFloat(document.getElementById('goodz-weight-high').value) || 80
+      },
+      updatedAt: new Date().toISOString()
+    };
+
+    localStorage.setItem(GOODZ_CONFIG_KEY, JSON.stringify(newCfg));
+
+    var alertEl = document.getElementById('goodz-status-alert');
+    alertEl.style.display = 'block';
+    alertEl.style.background = '#064e3b';
+    alertEl.style.color = '#4ade80';
+    alertEl.style.border = '1px solid #16a34a';
+    alertEl.textContent = '✅ Goodz Intercity Fares saved and synced live! Customer goodz.html will automatically reflect these new rates.';
+    setTimeout(function() { alertEl.style.display = 'none'; }, 4500);
+  }
+
+  function resetGoodzPricing() {
+    if (confirm('Reset Goodz pricing rates to default baseline settings?')) {
+      localStorage.removeItem(GOODZ_CONFIG_KEY);
+      loadGoodzPricing();
+      var alertEl = document.getElementById('goodz-status-alert');
+      alertEl.style.display = 'block';
+      alertEl.style.background = '#1e293b';
+      alertEl.style.color = '#94a3b8';
+      alertEl.style.border = '1px solid #475569';
+      alertEl.textContent = '↺ Fares reset to default baseline.';
+      setTimeout(function() { alertEl.style.display = 'none'; }, 3000);
+    }
   }
 
   checkAuth();

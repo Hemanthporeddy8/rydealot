@@ -299,6 +299,68 @@
       margin-top: 4px;
     }
 
+    /* Vehicle Transport Switcher (Direct Cab Boot vs Highway Bus) */
+    .transport-cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .transport-card {
+      background: #F8FAFC;
+      border: 2px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.18s ease;
+      position: relative;
+    }
+    .transport-card:hover {
+      border-color: #CBD5E1;
+    }
+    .transport-card.active {
+      background: var(--amber-bg);
+      border-color: var(--accent-deep);
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.18);
+    }
+    .transport-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .transport-card-icon {
+      font-size: 20px;
+    }
+    .transport-tag-badge {
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .tag-fast { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
+    .tag-budget { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+    .transport-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #0F172A;
+    }
+    .transport-meta {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+    .transport-price-anchor {
+      font-size: 13px;
+      font-weight: 900;
+      color: #D97706;
+      margin-top: 4px;
+    }
+
     /* Category & Weight Pills */
     .pill-options-wrap {
       display: flex;
@@ -646,6 +708,38 @@
         </div>
       </div>
 
+      <!-- Transport Vehicle Mode Choice Card (Direct Cab Boot vs Highway Bus) -->
+      <div class="form-card" style="padding: 12px 14px;">
+        <div style="font-size:11px; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+          <span>Select Transport Mode</span>
+          <span id="vehicle-speed-badge" class="transport-tag-badge tag-fast" style="font-size:10px; font-weight:800;">⚡ FASTEST CAR BOOT</span>
+        </div>
+
+        <div class="transport-cards-grid">
+          <!-- Option 1: Direct Cab Boot -->
+          <div class="transport-card active" id="card-vehicle-cab" onclick="selectTransportVehicle('cab')">
+            <div class="transport-card-header">
+              <span class="transport-card-icon">🚗</span>
+              <span class="transport-tag-badge tag-fast" id="cab-time-tag">2.5–3 Hrs</span>
+            </div>
+            <div class="transport-title">Direct Cab Boot</div>
+            <div class="transport-meta">Express car trunk cargo via NH 163. Direct intercity taxi handover.</div>
+            <div class="transport-price-anchor" id="cab-anchor-price">From ₹199</div>
+          </div>
+
+          <!-- Option 2: Highway Bus Relay -->
+          <div class="transport-card" id="card-vehicle-bus" onclick="selectTransportVehicle('bus')">
+            <div class="transport-card-header">
+              <span class="transport-card-icon">🚌</span>
+              <span class="transport-tag-badge tag-budget" id="bus-time-tag">3.5–4.5 Hrs</span>
+            </div>
+            <div class="transport-title">Highway Bus Relay</div>
+            <div class="transport-meta">Luggage hold cargo via TSRTC / Express travel buses on NH 163.</div>
+            <div class="transport-price-anchor" id="bus-anchor-price">From ₹199</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Route Addresses Form Card -->
       <div class="form-card">
         <div class="form-card-title">
@@ -662,15 +756,15 @@
           <label class="input-label" style="margin-bottom: 6px; display: block;">Destination Delivery Mode</label>
           <div class="mode-cards-grid">
             <div class="mode-choice-card active" id="card-mode-doorstep" onclick="selectDeliveryMode('doorstep')">
-              <div class="mode-choice-title">🛵 Full Doorstep</div>
-              <div class="mode-choice-sub">Captain delivers right to receiver's house</div>
-              <div class="mode-choice-price" id="price-badge-doorstep">₹499 Total</div>
+              <div class="mode-choice-title" id="mode-doorstep-title">🛵 Full Doorstep</div>
+              <div class="mode-choice-sub" id="mode-doorstep-sub">Captain delivers right to receiver's house</div>
+              <div class="mode-choice-price" id="price-badge-doorstep">₹289 Total</div>
             </div>
 
             <div class="mode-choice-card" id="card-mode-office" onclick="selectDeliveryMode('office')">
-              <div class="mode-choice-title">🏬 Bus Office Pickup</div>
-              <div class="mode-choice-sub">Receiver collects at terminal counter</div>
-              <div class="mode-choice-price" id="price-badge-office">₹349 (Save ₹150!)</div>
+              <div class="mode-choice-title" id="mode-secondary-title">🛣️ Highway Meet Point</div>
+              <div class="mode-choice-sub" id="mode-secondary-sub">Receiver meets cab at Toll / Ring Road junction</div>
+              <div class="mode-choice-price" id="price-badge-office">₹199 Total</div>
             </div>
           </div>
         </div>
@@ -691,7 +785,7 @@
       <!-- Parcel Details Card -->
       <div class="form-card">
         <div class="form-card-title">
-          <span>📦</span> Parcel Details (Bike Safe • Max 15 KG)
+          <span>📦</span> Parcel Details (Safe • Max 15 KG)
         </div>
 
         <div class="input-group">
@@ -708,11 +802,11 @@
           <label class="input-label">Weight Tier</label>
           <div class="pill-options-wrap" id="weight-pills">
             <button class="pill-btn active" onclick="selectWeight(this, 0)">Up to 3 KG (₹0)</button>
-            <button class="pill-btn" onclick="selectWeight(this, 50)">3 - 7 KG (+₹50)</button>
-            <button class="pill-btn" onclick="selectWeight(this, 100)">7 - 15 KG (+₹100)</button>
+            <button class="pill-btn" onclick="selectWeight(this, 40)">3 - 7 KG (+₹40)</button>
+            <button class="pill-btn" onclick="selectWeight(this, 80)">7 - 15 KG (+₹80)</button>
           </div>
           <div style="font-size: 10.5px; color: #64748B; margin-top: 4px;">
-            ⚠️ Strictly max 15 KG for Captain bike safety. For full load or heavy goods, use <a href="alongwith.html" style="color: #D97706; font-weight: 700;">Along With Trucks</a>.
+            ⚠️ Strictly max 15 KG for Captain bike safety. For full load or heavy freight, use <a href="alongwith.html" style="color: #D97706; font-weight: 700;">Along With Trucks</a>.
           </div>
         </div>
       </div>
@@ -740,34 +834,34 @@
       <!-- Live Fare Breakdown Card -->
       <div class="fare-card">
         <div class="fare-row">
-          <span id="fare-leg1-label">Leg 1: Pickup Bike (Warangal)</span>
-          <span style="font-weight: 700; color: #0F172A;" id="fare-leg1-amt">₹80</span>
+          <span id="fare-linehaul-label">🚗 Cab Driver Boot Payout (Warangal ➔ Hyderabad)</span>
+          <span style="font-weight: 700; color: #0F172A;" id="fare-linehaul-amt">₹230</span>
         </div>
         <div class="fare-row">
-          <span>Leg 2: Highway Express Bus (NH 163 Linehaul)</span>
-          <span style="font-weight: 700; color: #0F172A;" id="fare-leg2-amt">₹220</span>
+          <span id="fare-platform-label">Rydealot Platform Fee (8%)</span>
+          <span style="font-weight: 700; color: #0F172A;" id="fare-platform-amt">₹23</span>
         </div>
-        <div class="fare-row" id="fare-leg3-row">
-          <span id="fare-leg3-label">Leg 3: Destination Bike Delivery</span>
-          <span style="font-weight: 700; color: #0F172A;" id="fare-leg3-amt">₹110</span>
+        <div class="fare-row">
+          <span id="fare-seal-label">Tamper-Proof Barcode Seal & Guarantee</span>
+          <span style="font-weight: 700; color: #0F172A;" id="fare-seal-amt">₹10</span>
         </div>
         <div class="fare-row" id="fare-weight-row" style="display: none;">
-          <span>Weight Surcharge</span>
-          <span style="font-weight: 700; color: #0F172A;" id="fare-weight-amt">+₹50</span>
+          <span id="fare-weight-label">Weight Surcharge</span>
+          <span style="font-weight: 700; color: #0F172A;" id="fare-weight-amt">+₹40</span>
         </div>
         <div class="fare-row">
-          <span>Transit Security Warranty & Paperwork</span>
-          <span style="font-weight: 700; color: #16A34A;">FREE</span>
+          <span>GST / Commercial Taxes (Turnover &lt; ₹20L)</span>
+          <span style="font-weight: 800; color: #16A34A;" id="fare-tax-amt">₹0 (Exempt)</span>
         </div>
         <div class="fare-row total">
-          <span>Total Fare (Same-Day Intercity)</span>
-          <span style="color: #D97706;" id="fare-total-display">₹499</span>
+          <span>Total Fare (All-Inclusive Intercity)</span>
+          <span style="color: #D97706;" id="fare-total-display">₹289</span>
         </div>
       </div>
 
       <!-- Submit Booking Button -->
       <button class="btn-book-primary" id="btn-submit-booking" onclick="startLiveRelay()">
-        <span>⚡ Book Along With Goodz Relay (<span id="btn-fare-text">₹499</span>)</span>
+        <span>⚡ Book Along With Goodz Relay (<span id="btn-fare-text">₹289</span>)</span>
       </button>
 
     </div>
@@ -784,8 +878,8 @@
       </div>
       <span class="relay-arrow">➔</span>
       <div class="relay-node" id="node-leg2" onclick="switchStage(2)">
-        <div class="relay-node-icon">🚌</div>
-        <span class="relay-node-title">2. Highway Bus</span>
+        <div class="relay-node-icon" id="leg2-icon">🚗</div>
+        <span class="relay-node-title" id="leg2-title">2. Cab Boot</span>
       </div>
       <span class="relay-arrow">➔</span>
       <div class="relay-node" id="node-leg3" onclick="switchStage(3)">
@@ -800,10 +894,10 @@
 
       <!-- Highway In-Words Banner for Stage 2 -->
       <div class="highway-words-banner" id="highway-words-box">
-        <div class="highway-badge">🚌 STAGE 2: HIGHWAY TRANSIT ON NH 163</div>
+        <div class="highway-badge" id="highway-badge-text">🚗 STAGE 2: CAR BOOT TRANSIT ON NH 163</div>
         <div class="highway-status-title" id="track-highway-corridor">Warangal ➔ Hyderabad Intercity</div>
-        <p style="font-size: 12.5px; color: #334155; max-width: 320px; line-height: 1.45;">
-          Scheduled Express Travel Bus. Package traveling safely in official cargo hold.
+        <p style="font-size: 12.5px; color: #334155; max-width: 320px; line-height: 1.45;" id="highway-desc-text">
+          Commercial cab trunk cargo. Direct express transit via NH 163 highway.
         </p>
         <div class="highway-milestone-pill">
           📍 Current Milestone: Passed Jangaon • Approaching Aler Toll
@@ -998,11 +1092,55 @@
 
   var selectedPickupCity = 'wgl';
   var selectedDropCity = 'hyd';
+  var currentVehicleMode = 'cab'; // 'cab' or 'bus'
   var currentDeliveryMode = 'doorstep'; // 'doorstep' or 'office'
   var selectedWeightSurcharge = 0;
   var currentStage = 1;
   var map = null;
   var currentMarker = null;
+
+  // Goodz Dynamic Pricing Configuration Sync (reads from localStorage or default baseline)
+  var GOODZ_CONFIG_KEY = 'rydealot_goodz_pricing_config';
+  var DEFAULT_GOODZ_PRICING = {
+    cab: {
+      enabled: true,
+      doorstepFare: 289,
+      highwayMeetFare: 199,
+      driverDoorstepPayout: 230,
+      driverHighwayPayout: 160,
+      transitTime: '2.5 - 3 Hours'
+    },
+    bus: {
+      enabled: true,
+      doorstepFare: 249,
+      officeFare: 199,
+      busDoorstepPayout: 130,
+      busOfficePayout: 110,
+      transitTime: '3.5 - 4.5 Hours'
+    },
+    fees: {
+      commissionPct: 8,
+      securitySealFee: 10,
+      weightTier1: 0,
+      weightTier2: 40,
+      weightTier3: 80
+    }
+  };
+
+  function getGoodzPricingConfig() {
+    var raw = localStorage.getItem(GOODZ_CONFIG_KEY);
+    if (!raw) return DEFAULT_GOODZ_PRICING;
+    try {
+      var parsed = JSON.parse(raw);
+      var res = Object.assign({}, DEFAULT_GOODZ_PRICING, parsed);
+      res.cab = Object.assign({}, DEFAULT_GOODZ_PRICING.cab, parsed.cab || {});
+      res.bus = Object.assign({}, DEFAULT_GOODZ_PRICING.bus, parsed.bus || {});
+      res.fees = Object.assign({}, DEFAULT_GOODZ_PRICING.fees, parsed.fees || {});
+      return res;
+    } catch(e) {
+      return DEFAULT_GOODZ_PRICING;
+    }
+  }
 
   // Populate Dropdown Menus
   function populateCityDropdowns() {
@@ -1073,15 +1211,19 @@
       statusPill.style.borderColor = '#FDE68A';
       comingSoonBox.style.display = 'block';
       comingSoonName.textContent = pCity.shortName + ' ➔ ' + dCity.shortName + ' Route';
-      btnSubmit.disabled = false; // allow clicking to show waitlist note
+      btnSubmit.disabled = false;
     }
 
     // Update Input Labels
     document.getElementById('pickup-address-label').textContent = 'Pickup Address (Doorstep/Shop in ' + pCity.shortName + ')';
-    document.getElementById('drop-doorstep-label').textContent = 'Receiver Doorstep Address (' + dCity.shortName + ')';
+    if (currentDeliveryMode === 'doorstep') {
+      document.getElementById('drop-doorstep-label').textContent = 'Receiver Doorstep Address (' + dCity.shortName + ')';
+    } else {
+      document.getElementById('drop-doorstep-label').textContent = (currentVehicleMode === 'cab')
+        ? 'Highway Meeting Point / Ring Road Toll (' + dCity.shortName + ')'
+        : 'Receiver Doorstep Address (' + dCity.shortName + ')';
+    }
     document.getElementById('drop-office-label').textContent = 'Select Bus Office Counter in ' + dCity.shortName;
-    document.getElementById('fare-leg1-label').textContent = 'Leg 1: Pickup Bike (' + pCity.shortName + ')';
-    document.getElementById('fare-leg3-label').textContent = 'Leg 3: Destination Bike Delivery (' + dCity.shortName + ')';
 
     // Populate Destination Bus Counters
     var officeSelect = document.getElementById('select-bus-office');
@@ -1114,27 +1256,78 @@
     onCitySelectionChange();
   }
 
-  // Set Delivery Mode (Doorstep vs Office)
+  // Vehicle Transport Selector (Cab vs Bus)
+  function selectTransportVehicle(vehicle) {
+    currentVehicleMode = vehicle;
+    var cardCab = document.getElementById('card-vehicle-cab');
+    var cardBus = document.getElementById('card-vehicle-bus');
+    var badge = document.getElementById('vehicle-speed-badge');
+    var secTitle = document.getElementById('mode-secondary-title');
+    var secSub = document.getElementById('mode-secondary-sub');
+    var officeGroup = document.getElementById('group-bus-office');
+    var dropGroup = document.getElementById('group-drop-address');
+    var dCity = CITIES_DATABASE[selectedDropCity] || { shortName: 'Destination' };
+
+    if (vehicle === 'cab') {
+      cardCab.classList.add('active');
+      cardBus.classList.remove('active');
+      badge.textContent = '⚡ FASTEST CAR BOOT';
+      badge.className = 'transport-tag-badge tag-fast';
+      
+      secTitle.innerHTML = '🛣️ Highway Meet Point';
+      secSub.textContent = 'Receiver meets cab at Toll / Ring Road junction';
+      
+      if (currentDeliveryMode === 'office') {
+        dropGroup.classList.remove('hidden');
+        officeGroup.classList.add('hidden');
+        document.getElementById('drop-doorstep-label').textContent = 'Highway Meeting Point / Ring Road Toll (' + dCity.shortName + ')';
+      }
+    } else {
+      cardBus.classList.add('active');
+      cardCab.classList.remove('active');
+      badge.textContent = '💰 BUDGET HIGHWAY BUS';
+      badge.className = 'transport-tag-badge tag-budget';
+
+      secTitle.innerHTML = '🏬 Bus Office Pickup';
+      secSub.textContent = 'Receiver collects at terminal counter';
+
+      if (currentDeliveryMode === 'office') {
+        dropGroup.classList.add('hidden');
+        officeGroup.classList.remove('hidden');
+        document.getElementById('drop-office-label').textContent = 'Select Bus Office Counter in ' + dCity.shortName;
+      }
+    }
+
+    updateFareDisplay();
+  }
+
+  // Set Delivery Mode (Doorstep vs Secondary)
   function selectDeliveryMode(mode) {
     currentDeliveryMode = mode;
     var cardDoorstep = document.getElementById('card-mode-doorstep');
     var cardOffice = document.getElementById('card-mode-office');
     var groupDrop = document.getElementById('group-drop-address');
     var groupOffice = document.getElementById('group-bus-office');
-    var leg3Row = document.getElementById('fare-leg3-row');
+    var dCity = CITIES_DATABASE[selectedDropCity] || { shortName: 'Destination' };
 
     if (mode === 'doorstep') {
       cardDoorstep.classList.add('active');
       cardOffice.classList.remove('active');
       groupDrop.classList.remove('hidden');
       groupOffice.classList.add('hidden');
-      leg3Row.style.display = 'flex';
+      document.getElementById('drop-doorstep-label').textContent = 'Receiver Doorstep Address (' + dCity.shortName + ')';
     } else {
       cardOffice.classList.add('active');
       cardDoorstep.classList.remove('active');
-      groupDrop.classList.add('hidden');
-      groupOffice.classList.remove('hidden');
-      leg3Row.style.display = 'none';
+      if (currentVehicleMode === 'cab') {
+        groupDrop.classList.remove('hidden');
+        groupOffice.classList.add('hidden');
+        document.getElementById('drop-doorstep-label').textContent = 'Highway Meeting Point / Ring Road Toll (' + dCity.shortName + ')';
+      } else {
+        groupDrop.classList.add('hidden');
+        groupOffice.classList.remove('hidden');
+        document.getElementById('drop-office-label').textContent = 'Select Bus Office Counter in ' + dCity.shortName;
+      }
     }
     updateFareDisplay();
   }
@@ -1155,11 +1348,41 @@
     updateFareDisplay();
   }
 
-  // Update Dynamic Fare
+  // Update Dynamic Fare (Reads from Admin Sync)
   function updateFareDisplay() {
-    var baseFare = (currentDeliveryMode === 'doorstep') ? 499 : 349;
+    var cfg = getGoodzPricingConfig();
+    var pCity = CITIES_DATABASE[selectedPickupCity] || { shortName: 'Warangal' };
+    var dCity = CITIES_DATABASE[selectedDropCity] || { shortName: 'Hyderabad' };
+
+    // Mode availability fallback
+    if (!cfg.cab.enabled && currentVehicleMode === 'cab') currentVehicleMode = 'bus';
+    if (!cfg.bus.enabled && currentVehicleMode === 'bus') currentVehicleMode = 'cab';
+
+    var cabCard = document.getElementById('card-vehicle-cab');
+    var busCard = document.getElementById('card-vehicle-bus');
+    if (cabCard) cabCard.style.display = cfg.cab.enabled ? 'flex' : 'none';
+    if (busCard) busCard.style.display = cfg.bus.enabled ? 'flex' : 'none';
+
+    var doorstepBase = (currentVehicleMode === 'cab') ? cfg.cab.doorstepFare : cfg.bus.doorstepFare;
+    var secondaryBase = (currentVehicleMode === 'cab') ? cfg.cab.highwayMeetFare : cfg.bus.officeFare;
+    var baseFare = (currentDeliveryMode === 'doorstep') ? doorstepBase : secondaryBase;
+    
     var total = baseFare + selectedWeightSurcharge;
 
+    var linehaulPayout = 0;
+    if (currentVehicleMode === 'cab') {
+      linehaulPayout = (currentDeliveryMode === 'doorstep') ? cfg.cab.driverDoorstepPayout : cfg.cab.driverHighwayPayout;
+    } else {
+      linehaulPayout = (currentDeliveryMode === 'doorstep') ? cfg.bus.busDoorstepPayout : cfg.bus.busOfficePayout;
+    }
+
+    var sealFee = cfg.fees.securitySealFee || 10;
+    var platformFee = Math.max(0, total - linehaulPayout - sealFee - selectedWeightSurcharge);
+    if (platformFee === 0) {
+      platformFee = Math.round(total * (cfg.fees.commissionPct / 100));
+    }
+
+    // Weight row
     var weightRow = document.getElementById('fare-weight-row');
     var weightAmt = document.getElementById('fare-weight-amt');
     if (selectedWeightSurcharge > 0) {
@@ -1169,10 +1392,37 @@
       weightRow.style.display = 'none';
     }
 
+    // Live Fare Breakdown rows
+    var linehaulLabel = document.getElementById('fare-linehaul-label');
+    if (linehaulLabel) {
+      linehaulLabel.textContent = (currentVehicleMode === 'cab')
+        ? '🚗 Cab Driver Boot Payout (' + pCity.shortName + ' ➔ ' + dCity.shortName + ')'
+        : '🚌 Highway Bus Cargo Linehaul (' + pCity.shortName + ' ➔ ' + dCity.shortName + ')';
+    }
+    var linehaulAmt = document.getElementById('fare-linehaul-amt');
+    if (linehaulAmt) linehaulAmt.textContent = '₹' + linehaulPayout;
+
+    var platformLabel = document.getElementById('fare-platform-label');
+    if (platformLabel) platformLabel.textContent = 'Rydealot Platform Fee (' + cfg.fees.commissionPct + '%)';
+    var platformAmt = document.getElementById('fare-platform-amt');
+    if (platformAmt) platformAmt.textContent = '₹' + platformFee;
+
+    var sealAmt = document.getElementById('fare-seal-amt');
+    if (sealAmt) sealAmt.textContent = '₹' + sealFee;
+
     document.getElementById('fare-total-display').textContent = '₹' + total;
     document.getElementById('btn-fare-text').textContent = '₹' + total;
-    document.getElementById('price-badge-doorstep').textContent = '₹' + (499 + selectedWeightSurcharge) + ' Total';
-    document.getElementById('price-badge-office').textContent = '₹' + (349 + selectedWeightSurcharge) + ' (Save ₹150!)';
+
+    // Delivery mode card badges
+    document.getElementById('price-badge-doorstep').textContent = '₹' + (doorstepBase + selectedWeightSurcharge) + ' Total';
+    var diff = doorstepBase - secondaryBase;
+    document.getElementById('price-badge-office').textContent = '₹' + (secondaryBase + selectedWeightSurcharge) + (diff > 0 ? ' (Save ₹' + diff + '!)' : ' Total');
+
+    // Anchor prices in vehicle selector
+    var cabAnchor = document.getElementById('cab-anchor-price');
+    if (cabAnchor) cabAnchor.textContent = 'From ₹' + cfg.cab.highwayMeetFare;
+    var busAnchor = document.getElementById('bus-anchor-price');
+    if (busAnchor) busAnchor.textContent = 'From ₹' + cfg.bus.officeFare;
   }
 
   // Transition to Live Tracking
@@ -1180,7 +1430,7 @@
     var routeKey = selectedPickupCity + '-' + selectedDropCity;
     var routeConfig = ROUTES_DATABASE[routeKey];
     if (!routeConfig || !routeConfig.active) {
-      alert('⏳ This corridor is launching in Phase 2! Express 3-leg bus relays are currently live between Warangal ⇄ Hyderabad.');
+      alert('⏳ This corridor is launching in Phase 2! Express intercity relays are currently live between Warangal ⇄ Hyderabad.');
       return;
     }
 
@@ -1191,10 +1441,13 @@
       return;
     }
 
-    if (currentDeliveryMode === 'doorstep') {
+    if (currentDeliveryMode === 'doorstep' || currentVehicleMode === 'cab') {
       var dropAddr = document.getElementById('drop-doorstep-address').value.trim();
       if (!dropAddr) {
-        alert('Please enter the receiver doorstep address.');
+        var alertMsg = (currentVehicleMode === 'cab' && currentDeliveryMode !== 'doorstep')
+          ? 'Please enter the highway meeting point (e.g. Uppal Toll, Ghatkesar ORR).'
+          : 'Please enter the receiver doorstep address.';
+        alert(alertMsg);
         document.getElementById('drop-doorstep-address').focus();
         return;
       }
@@ -1218,15 +1471,27 @@
     document.getElementById('view-booking').classList.add('hidden');
     document.getElementById('view-tracking').classList.remove('hidden');
     
-    // Adapt Stage 3 labels to mode
+    // Adapt Stage 2 & Stage 3 ribbons
+    var leg2Title = document.getElementById('leg2-title');
+    var leg2Icon = document.getElementById('leg2-icon');
+    if (leg2Title && leg2Icon) {
+      if (currentVehicleMode === 'cab') {
+        leg2Title.textContent = '2. Cab Boot';
+        leg2Icon.textContent = '🚗';
+      } else {
+        leg2Title.textContent = '2. Highway Bus';
+        leg2Icon.textContent = '🚌';
+      }
+    }
+
     var leg3Title = document.getElementById('leg3-title');
     var leg3Icon = document.getElementById('leg3-icon');
     if (currentDeliveryMode === 'doorstep') {
-      leg3Title.textContent = '3. Drop Bike';
-      leg3Icon.textContent = '🛵';
+      leg3Title.textContent = (currentVehicleMode === 'cab') ? '3. Doorstep' : '3. Drop Bike';
+      leg3Icon.textContent = (currentVehicleMode === 'cab') ? '🚗' : '🛵';
     } else {
-      leg3Title.textContent = '3. Bus Pickup';
-      leg3Icon.textContent = '🏬';
+      leg3Title.textContent = (currentVehicleMode === 'cab') ? '3. Highway Meet' : '3. Bus Counter';
+      leg3Icon.textContent = (currentVehicleMode === 'cab') ? '🛣️' : '🏬';
     }
 
     if (!map) {
@@ -1273,51 +1538,81 @@
     var meetup = document.getElementById('meetup-text');
     var highwayBox = document.getElementById('highway-words-box');
     var trackHighwayCorridor = document.getElementById('track-highway-corridor');
+    var highwayBadge = document.getElementById('highway-badge-text');
+    var highwayDesc = document.getElementById('highway-desc-text');
 
     if (stageNum === 1) {
       highwayBox.style.display = 'none';
-      badge.textContent = 'STAGE 1: FIRST-MILE PICKUP BIKE (' + pCity.shortName.toUpperCase() + ')';
-      icon.textContent = '🛵';
-      name.textContent = 'Captain Ramesh (Hero Splendor)';
-      sub.textContent = 'Approaching pickup address with tamper-proof bag';
+      badge.textContent = 'STAGE 1: FIRST-MILE PICKUP (' + pCity.shortName.toUpperCase() + ')';
+      icon.textContent = (currentVehicleMode === 'cab') ? '🚗' : '🛵';
+      name.textContent = (currentVehicleMode === 'cab') ? 'Cab Captain Ramesh (Maruti Dzire)' : 'Captain Ramesh (Hero Splendor)';
+      sub.textContent = 'Approaching pickup address with tamper-proof security bag';
       eta.textContent = 'ETA: ~5 mins';
-      meetup.textContent = 'Handover to Captain Ramesh • He delivers parcel to ' + pCity.shortName + ' Bus Cargo Counter.';
+      meetup.textContent = (currentVehicleMode === 'cab')
+        ? 'Direct handover to Cab Captain Ramesh • Loaded safely into locked car boot.'
+        : 'Handover to Captain Ramesh • He takes package to ' + pCity.shortName + ' Bus Cargo Desk.';
       if (map) {
         map.setView(pCity.coords, 14);
-        renderMapMarker(pCity.coords[0], pCity.coords[1], '🏍️', 'Captain Ramesh');
+        renderMapMarker(pCity.coords[0], pCity.coords[1], (currentVehicleMode === 'cab' ? '🚗' : '🏍️'), 'Pickup Pilot');
       }
     } else if (stageNum === 2) {
       highwayBox.style.display = 'flex';
-      badge.textContent = 'STAGE 2: HIGHWAY EXPRESS BUS LINEHAUL (' + routeConfig.highway + ')';
       trackHighwayCorridor.textContent = pCity.shortName + ' ➔ ' + dCity.shortName + ' Intercity';
-      icon.textContent = '🚌';
-      name.textContent = 'Express Bus TS-09-UB-4821 (Orange / TSRTC)';
-      sub.textContent = 'Luggage Tag #' + pCity.shortName.substring(0,3).toUpperCase() + '-' + dCity.shortName.substring(0,3).toUpperCase() + '-8824';
-      eta.textContent = 'ETA: 2h 15m';
-      meetup.textContent = 'Transit on ' + routeConfig.highway + ' • ' + routeConfig.milestone;
+      if (currentVehicleMode === 'cab') {
+        if (highwayBadge) highwayBadge.textContent = '🚗 STAGE 2: DIRECT CAB BOOT ON ' + routeConfig.highway;
+        if (highwayDesc) highwayDesc.textContent = 'Commercial cab trunk cargo. Fast direct car transit along ' + routeConfig.highway + ' without depot delay.';
+        badge.textContent = 'STAGE 2: DIRECT CAR BOOT EXPRESS (' + routeConfig.highway + ')';
+        icon.textContent = '🚗';
+        name.textContent = 'Cab Captain Venkatesh (Toyota Etios TS-03-ET-1944)';
+        sub.textContent = 'Trunk Seal Barcode #' + pCity.shortName.substring(0,3).toUpperCase() + '-' + dCity.shortName.substring(0,3).toUpperCase() + '-8824';
+        eta.textContent = 'ETA: 1h 45m';
+        meetup.textContent = 'En route on ' + routeConfig.highway + ' • ' + routeConfig.milestone;
+      } else {
+        if (highwayBadge) highwayBadge.textContent = '🚌 STAGE 2: HIGHWAY TRANSIT ON ' + routeConfig.highway;
+        if (highwayDesc) highwayDesc.textContent = 'Scheduled Express Travel Bus. Package traveling safely in official cargo hold.';
+        badge.textContent = 'STAGE 2: HIGHWAY EXPRESS BUS LINEHAUL (' + routeConfig.highway + ')';
+        icon.textContent = '🚌';
+        name.textContent = 'Express Bus TS-09-UB-4821 (Orange / TSRTC)';
+        sub.textContent = 'Luggage Tag #' + pCity.shortName.substring(0,3).toUpperCase() + '-' + dCity.shortName.substring(0,3).toUpperCase() + '-8824';
+        eta.textContent = 'ETA: 2h 15m';
+        meetup.textContent = 'Transit on ' + routeConfig.highway + ' • ' + routeConfig.milestone;
+      }
     } else if (stageNum === 3) {
       highwayBox.style.display = 'none';
       if (currentDeliveryMode === 'doorstep') {
-        badge.textContent = 'STAGE 3: DESTINATION DOORSTEP BIKE DELIVERY (' + dCity.shortName.toUpperCase() + ')';
-        icon.textContent = '🛵';
-        name.textContent = 'Captain Syed (Honda Activa)';
-        sub.textContent = 'Collected from ' + dCity.shortName + ' Terminal • Heading to receiver doorstep';
-        eta.textContent = 'ETA: ~18 mins';
+        badge.textContent = 'STAGE 3: DESTINATION DOORSTEP HANDOVER (' + dCity.shortName.toUpperCase() + ')';
+        icon.textContent = (currentVehicleMode === 'cab') ? '🚗' : '🛵';
+        name.textContent = (currentVehicleMode === 'cab') ? 'Cab Captain Venkatesh' : 'Captain Syed (Honda Activa)';
+        sub.textContent = (currentVehicleMode === 'cab') ? 'Arrived in destination area • Direct doorstep handover' : 'Collected from ' + dCity.shortName + ' Terminal • Heading to receiver doorstep';
+        eta.textContent = 'ETA: ~15 mins';
         meetup.textContent = 'Receiver must provide secret 4-digit PIN upon arrival.';
         if (map) {
           map.setView(dCity.coords, 14);
-          renderMapMarker(dCity.coords[0], dCity.coords[1], '🛵', 'Captain Syed');
+          renderMapMarker(dCity.coords[0], dCity.coords[1], (currentVehicleMode === 'cab' ? '🚗' : '🛵'), 'Drop Captain');
         }
       } else {
-        badge.textContent = 'STAGE 3: BUS OFFICE COUNTER SELF-PICKUP (' + dCity.shortName.toUpperCase() + ')';
-        icon.textContent = '🏬';
-        name.textContent = 'Terminal Counter #4 (' + dCity.shortName + ' Hub)';
-        sub.textContent = 'Package arrived and safely shelved';
-        eta.textContent = 'READY FOR PICKUP';
-        meetup.textContent = 'Show secret PIN 4921 to desk staff to claim your parcel.';
-        if (map) {
-          map.setView(dCity.coords, 15);
-          renderMapMarker(dCity.coords[0], dCity.coords[1], '🏬', 'Counter #4');
+        if (currentVehicleMode === 'cab') {
+          badge.textContent = 'STAGE 3: HIGHWAY MEET / RING ROAD TOLL (' + dCity.shortName.toUpperCase() + ')';
+          icon.textContent = '🛣️';
+          name.textContent = 'Cab Captain Venkatesh (Toyota Etios)';
+          sub.textContent = 'Arriving at designated Highway Ring Road Toll / Meetup Point';
+          eta.textContent = 'ETA: ~10 mins';
+          meetup.textContent = 'Receiver meets driver at designated highway point. Provide 4-digit PIN.';
+          if (map) {
+            map.setView(dCity.coords, 14);
+            renderMapMarker(dCity.coords[0], dCity.coords[1], '🛣️', 'Meetup Point');
+          }
+        } else {
+          badge.textContent = 'STAGE 3: BUS OFFICE COUNTER SELF-PICKUP (' + dCity.shortName.toUpperCase() + ')';
+          icon.textContent = '🏬';
+          name.textContent = 'Terminal Counter #4 (' + dCity.shortName + ' Hub)';
+          sub.textContent = 'Package arrived and safely shelved';
+          eta.textContent = 'READY FOR PICKUP';
+          meetup.textContent = 'Show secret PIN to desk staff to claim your parcel.';
+          if (map) {
+            map.setView(dCity.coords, 15);
+            renderMapMarker(dCity.coords[0], dCity.coords[1], '🏬', 'Counter #4');
+          }
         }
       }
     }
