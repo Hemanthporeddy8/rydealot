@@ -5324,17 +5324,18 @@
         headerRidesBtn.title = 'My Orders & Deliveries';
       }
 
-      // Re-order switcher bar: Sage first, Cargo second, Rides moved to 3rd place!
-      if (switcherBar && tabLinkRides && tabLinkSage && tabLinkDriver) {
+      // Switcher bar when rides are paused:
+      // Sage (links to sage.html), Driver (links to driver.html), and Rides (Active tab with "Soon" tag displaying the mascot card)
+      if (switcherBar) {
         switcherBar.innerHTML = 
-          '<a id="tab-link-sage" href="sage.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#0F172A; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">' +
-            '<span>📦</span> <span>Sage Parcels</span>' +
+          '<a id="tab-link-sage" href="sage.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
+            '<span>📦</span> <span>Sage</span>' +
           '</a>' +
-          '<a id="tab-link-along" href="alongwith.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
-            '<span>🚚</span> <span>Cargo</span>' +
+          '<a id="tab-link-driver" href="driver.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
+            '<span>🛺</span> <span>Driver</span>' +
           '</a>' +
-          '<a id="tab-link-rides" href="#rides-paused-mascot-card" onclick="return false;" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#94A3B8; font-weight:700; font-size:11px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px; opacity:0.8;">' +
-            '<span>🛵</span> <span>Rides <small style=\"font-size:8.5px; background:#FEF3C7; color:#B45309; padding:1px 4px; border-radius:4px; font-weight:800;\">Soon</small></span>' +
+          '<a id="tab-link-rides" href="index.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#0F172A; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">' +
+            '<span>🛵</span> <span>Rides</span> <small style=\"font-size:8.5px; background:#FEF3C7; color:#B45309; padding:1px 5px; border-radius:4px; font-weight:800; margin-left:2px;\">Soon</small>' +
           '</a>';
       }
     } else {
