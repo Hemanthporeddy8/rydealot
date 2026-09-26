@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <!-- Instant Offline Guard: Prevents page flash when offline -->
 <script>
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -558,21 +559,25 @@
         </label>
       </div>
 
-      <!-- Who Pays Selector -->
+      <!-- Payment Method Selector -->
       <div style="background:#F8FAFC; border:1.5px solid var(--line); border-radius:14px; padding:12px 14px; margin-top:8px;">
         <label style="font-size:11px; font-weight:800; color:var(--ink); display:block; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
-          💳 Who will pay the fare (Cash / UPI)?
+          💳 Payment Method
         </label>
-        <div style="display:flex; gap:8px;">
-          <button type="button" id="btn-pay-sender" onclick="selectPaymentBy('sender')" style="flex:1; padding:8px 10px; border-radius:10px; font-size:12px; font-weight:800; border:2px solid #2563EB; background:#EFF6FF; color:#1E40AF; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s;">
-            <span>🟢 Sender (Pickup)</span>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+          <button type="button" id="btn-pay-razorpay" onclick="selectPaymentBy('razorpay')" style="grid-column: span 2; padding:10px 12px; border-radius:10px; font-size:12.5px; font-weight:800; border:2px solid #2563EB; background:#EFF6FF; color:#1E40AF; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.15s;">
+            <span>⚡ Razorpay Online (UPI / GPay / Cards)</span>
+            <span style="font-size:9.5px; background:#2563EB; color:#fff; padding:2px 6px; border-radius:6px; font-weight:800;">Fastest</span>
           </button>
-          <button type="button" id="btn-pay-receiver" onclick="selectPaymentBy('receiver')" style="flex:1; padding:8px 10px; border-radius:10px; font-size:12px; font-weight:700; border:1.5px solid #CBD5E1; background:#FFFFFF; color:#64748B; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s;">
-            <span>🎯 Receiver (Drop / COD)</span>
+          <button type="button" id="btn-pay-sender" onclick="selectPaymentBy('sender')" style="padding:8px 10px; border-radius:10px; font-size:11.5px; font-weight:700; border:1.5px solid #CBD5E1; background:#FFFFFF; color:#64748B; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.15s;">
+            <span>🟢 Cash on Pickup</span>
+          </button>
+          <button type="button" id="btn-pay-receiver" onclick="selectPaymentBy('receiver')" style="padding:8px 10px; border-radius:10px; font-size:11.5px; font-weight:700; border:1.5px solid #CBD5E1; background:#FFFFFF; color:#64748B; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:all 0.15s;">
+            <span>🎯 Cash on Drop (COD)</span>
           </button>
         </div>
-        <div id="payment-by-desc" style="font-size:10.5px; color:#1E40AF; margin-top:6px; font-weight:700;">
-          💡 Sender will pay ₹<span id="payment-desc-amt">45</span> directly to captain upon package pickup.
+        <div id="payment-by-desc" style="font-size:11px; color:#1E40AF; margin-top:8px; font-weight:700;">
+          ⚡ Pay ₹<span id="payment-desc-amt">45</span> securely online via Razorpay (GPay, PhonePe, Paytm, or Cards).
         </div>
       </div>
 
@@ -677,6 +682,9 @@
     
     <!-- PIN Display Box -->
     <div id="modal-pin-box" style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:14px; padding:12px; width:100%; text-align:center; box-sizing:border-box;">
+      <div id="modal-pay-badge" style="display:inline-block; font-size:11px; font-weight:800; padding:3px 10px; border-radius:99px; margin-bottom:8px; background:#EFF6FF; color:#1E40AF; border:1px solid #BFDBFE;">
+        ⚡ Paid Online via Razorpay
+      </div>
       <div id="modal-pickup-pin-wrapper">
         <div style="font-size:10.5px; font-weight:800; color:#64748B; text-transform:uppercase;">Pickup Verification PIN:</div>
         <div style="font-size:24px; font-weight:900; color:#2563EB; font-family:'IBM Plex Mono'; letter-spacing:4px;" id="modal-pin-display">
@@ -1058,22 +1066,28 @@
   }
 
   // Dynamic Fare Formula: base category price + (km * ₹8/km)
-  var selectedPaymentBy = 'sender'; // 'sender' | 'receiver'
+  var selectedPaymentBy = 'razorpay'; // 'razorpay' | 'sender' | 'receiver'
 
   function selectPaymentBy(by) {
     selectedPaymentBy = by;
+    var btnRzp = document.getElementById('btn-pay-razorpay');
     var btnS = document.getElementById('btn-pay-sender');
     var btnR = document.getElementById('btn-pay-receiver');
     var desc = document.getElementById('payment-by-desc');
 
-    if (by === 'sender') {
-      if (btnS) { btnS.style.borderColor = '#2563EB'; btnS.style.background = '#EFF6FF'; btnS.style.color = '#1E40AF'; btnS.style.fontWeight = '800'; }
-      if (btnR) { btnR.style.borderColor = '#CBD5E1'; btnR.style.background = '#FFFFFF'; btnR.style.color = '#64748B'; btnR.style.fontWeight = '700'; }
-      if (desc) desc.innerHTML = '💡 Sender will pay ₹<span id="payment-desc-amt">' + calculatedFare + '</span> directly to captain upon package pickup.';
+    if (btnRzp) { btnRzp.style.borderColor = '#CBD5E1'; btnRzp.style.background = '#FFFFFF'; btnRzp.style.color = '#64748B'; }
+    if (btnS) { btnS.style.borderColor = '#CBD5E1'; btnS.style.background = '#FFFFFF'; btnS.style.color = '#64748B'; }
+    if (btnR) { btnR.style.borderColor = '#CBD5E1'; btnR.style.background = '#FFFFFF'; btnR.style.color = '#64748B'; }
+
+    if (by === 'razorpay') {
+      if (btnRzp) { btnRzp.style.borderColor = '#2563EB'; btnRzp.style.background = '#EFF6FF'; btnRzp.style.color = '#1E40AF'; }
+      if (desc) desc.innerHTML = '⚡ Pay ₹<span id="payment-desc-amt">' + calculatedFare + '</span> securely online via Razorpay (GPay, PhonePe, Paytm, or Cards).';
+    } else if (by === 'sender') {
+      if (btnS) { btnS.style.borderColor = '#16A34A'; btnS.style.background = '#ECFDF5'; btnS.style.color = '#065F46'; }
+      if (desc) desc.innerHTML = '💡 Sender will pay ₹<span id="payment-desc-amt">' + calculatedFare + '</span> cash/UPI directly to captain upon package pickup.';
     } else {
-      if (btnR) { btnR.style.borderColor = '#16A34A'; btnR.style.background = '#ECFDF5'; btnR.style.color = '#065F46'; btnR.style.fontWeight = '800'; }
-      if (btnS) { btnS.style.borderColor = '#CBD5E1'; btnS.style.background = '#FFFFFF'; btnS.style.color = '#64748B'; btnS.style.fontWeight = '700'; }
-      if (desc) desc.innerHTML = '💡 Captain will collect ₹<span id="payment-desc-amt">' + calculatedFare + '</span> from RECEIVER at drop (Cash / UPI).';
+      if (btnR) { btnR.style.borderColor = '#D97706'; btnR.style.background = '#FFFBEB'; btnR.style.color = '#92400E'; }
+      if (desc) desc.innerHTML = '💡 Captain will collect ₹<span id="payment-desc-amt">' + calculatedFare + '</span> cash/UPI from RECEIVER at drop (COD).';
     }
   }
 
@@ -1170,6 +1184,134 @@
   var currentBookingRecvPhone = '';
   var currentBookingRecvPin = '';
 
+  // Razorpay Checkout Launcher for Sage Parcels
+  function launchSageRazorpayCheckout(fareAmount, senderName, senderPhone, onSuccess, onFailure) {
+    var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{}');
+    var rzpKey = commCfg.rzpKey || 'rzp_test_TP8cQcN108C2KZ';
+
+    if (typeof Razorpay === 'undefined') {
+      alert('Razorpay Payment Gateway is loading or unavailable. Please check your connection or choose Cash on Pickup.');
+      if (onFailure) onFailure();
+      return;
+    }
+
+    var options = {
+      "key": rzpKey,
+      "amount": Math.round(fareAmount * 100),
+      "currency": "INR",
+      "name": "Rydealot Sage",
+      "description": "Express Parcel Delivery (" + selectedCategory + ")",
+      "image": "logo.png",
+      "handler": function (response) {
+        onSuccess(response);
+      },
+      "prefill": {
+        "name": senderName || "Rydealot User",
+        "contact": senderPhone || ""
+      },
+      "theme": {
+        "color": "#2563EB"
+      },
+      "modal": {
+        "ondismiss": function() {
+          if (onFailure) onFailure();
+        }
+      }
+    };
+
+    try {
+      var rzp = new Razorpay(options);
+      rzp.on('payment.failed', function (resp) {
+        alert('Payment failed: ' + (resp.error ? resp.error.description : 'Transaction cancelled'));
+        if (onFailure) onFailure();
+      });
+      rzp.open();
+    } catch(err) {
+      console.error('Razorpay launch error:', err);
+      alert('Could not open Razorpay checkout: ' + err.message);
+      if (onFailure) onFailure();
+    }
+  }
+
+  async function executeSageBooking(finalNotes, pin, recvPin, pingDesc, senderName, senderPhone, recvName, recvPhone, pickup, drop, payType, payId) {
+    // Update payment status badge in searching modal
+    var payBadge = document.getElementById('modal-pay-badge');
+    if (payBadge) {
+      if (payType === 'online') {
+        payBadge.textContent = '⚡ Paid Online via Razorpay (' + (payId ? payId.substring(0, 14) : 'PAID') + ')';
+        payBadge.style.background = '#EFF6FF';
+        payBadge.style.color = '#1E40AF';
+        payBadge.style.borderColor = '#BFDBFE';
+      } else if (payType === 'sender') {
+        payBadge.textContent = '🟢 Cash on Pickup: ₹' + calculatedFare + ' to Captain';
+        payBadge.style.background = '#ECFDF5';
+        payBadge.style.color = '#065F46';
+        payBadge.style.borderColor = '#A7F3D0';
+      } else {
+        payBadge.textContent = '🎯 Cash on Drop (COD): ₹' + calculatedFare + ' from Receiver';
+        payBadge.style.background = '#FFFBEB';
+        payBadge.style.color = '#92400E';
+        payBadge.style.borderColor = '#FDE68A';
+      }
+    }
+
+    // Open searching modal
+    document.getElementById('search-modal').classList.add('active');
+    document.getElementById('modal-status-title').textContent = 'Searching for Nearby Sage Captain…';
+    document.getElementById('modal-status-desc').textContent = pingDesc;
+    document.getElementById('modal-radar-bike').style.display = 'block';
+    document.getElementById('modal-assigned-captain-card').style.display = 'none';
+    document.getElementById('modal-delivered-card').style.display = 'none';
+    document.getElementById('modal-pin-box').style.display = 'block';
+    document.getElementById('modal-share-tracking-box').style.display = 'block';
+    document.getElementById('modal-cancel-btn').style.display = 'inline-block';
+
+    var createdParcelId = null;
+
+    try {
+      var res = await fetch(SUPABASE_URL + '/rest/v1/sage_parcels', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          sender_name: senderName,
+          sender_phone: senderPhone,
+          receiver_name: recvName,
+          receiver_phone: recvPhone,
+          package_category: selectedCategory,
+          pickup_address: pickup,
+          pickup_lat: pickupCoords ? pickupCoords.lat : null,
+          pickup_lng: pickupCoords ? pickupCoords.lng : null,
+          drop_address: drop,
+          drop_lat: dropCoords ? dropCoords.lat : null,
+          drop_lng: dropCoords ? dropCoords.lng : null,
+          fare: calculatedFare,
+          notes: finalNotes,
+          permanent_ride_pin: pin,
+          status: 'pending'
+        })
+      });
+      var data = await res.json();
+      if (data && data[0] && data[0].id) {
+        createdParcelId = data[0].id;
+        currentBookingParcelId = createdParcelId;
+        currentBookingRecvPhone = recvPhone;
+        localStorage.setItem('rydealot_active_parcel_id', createdParcelId);
+        console.log('✅ Sage parcel recorded in Supabase ID:', createdParcelId);
+
+        // Start live polling for real captain acceptance and delivery
+        startPollingParcelStatus(createdParcelId);
+      }
+    } catch(err) {
+      console.error('Sage sync error:', err);
+      showToast('Error booking parcel: ' + err.message);
+    }
+  }
+
   async function bookSageParcel() {
     var pickup = document.getElementById('sage-pickup').value.trim();
     var drop = document.getElementById('sage-drop').value.trim();
@@ -1215,18 +1357,13 @@
       currentBookingRecvPin = '';
     }
 
-    var payNote = selectedPaymentBy === 'receiver' ? '[PAYMENT_BY: RECEIVER]' : '[PAYMENT_BY: SENDER]';
-    var fullNotes = payNote + (notes ? (' | ' + notes) : '');
-    if (recvPin) {
-      fullNotes = fullNotes + ' | Receiver Drop PIN: ' + recvPin;
-    }
-
+    var photoNote = '';
     var photoInput = document.getElementById('sage-pkg-photo');
     if (photoInput && photoInput.files && photoInput.files[0]) {
       try {
         var pUrl = await uploadToCloudinary(photoInput.files[0], 'rydealot/parcels');
         if (pUrl) {
-          fullNotes = fullNotes + ' | [PHOTO:' + pUrl + ']';
+          photoNote = '[PHOTO:' + pUrl + ']';
         }
       } catch(e) {
         console.warn('Parcel photo upload note:', e);
@@ -1266,61 +1403,42 @@
       console.warn('Radius search note:', err);
     }
 
-    // Open searching modal
-    document.getElementById('search-modal').classList.add('active');
-    document.getElementById('modal-status-title').textContent = 'Searching for Nearby Sage Captain…';
-    document.getElementById('modal-status-desc').textContent = pingDesc;
-    document.getElementById('modal-radar-bike').style.display = 'block';
-    document.getElementById('modal-assigned-captain-card').style.display = 'none';
-    document.getElementById('modal-delivered-card').style.display = 'none';
-    document.getElementById('modal-pin-box').style.display = 'block';
-    document.getElementById('modal-share-tracking-box').style.display = 'block';
-    document.getElementById('modal-cancel-btn').style.display = 'inline-block';
-
-    var createdParcelId = null;
-
-    try {
-      var res = await fetch(SUPABASE_URL + '/rest/v1/sage_parcels', {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({
-          sender_name: senderName,
-          sender_phone: senderPhone,
-          receiver_name: recvName,
-          receiver_phone: recvPhone,
-          package_category: selectedCategory,
-          pickup_address: pickup,
-          pickup_lat: pickupCoords ? pickupCoords.lat : null,
-          pickup_lng: pickupCoords ? pickupCoords.lng : null,
-          drop_address: drop,
-          drop_lat: dropCoords ? dropCoords.lat : null,
-          drop_lng: dropCoords ? dropCoords.lng : null,
-          fare: calculatedFare,
-          notes: fullNotes,
-          permanent_ride_pin: pin,
-          status: 'pending'
-        })
-      });
-      var data = await res.json();
-      if (data && data[0] && data[0].id) {
-        createdParcelId = data[0].id;
-        currentBookingParcelId = createdParcelId;
-        currentBookingRecvPhone = recvPhone;
-        localStorage.setItem('rydealot_active_parcel_id', createdParcelId);
-        console.log('✅ Sage parcel recorded in Supabase ID:', createdParcelId);
-
-        // Start live polling for real captain acceptance and delivery
-        startPollingParcelStatus(createdParcelId);
+    // Razorpay Online Payment Flow
+    if (selectedPaymentBy === 'razorpay') {
+      var submitBtn = document.querySelector('.btn-submit');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⚡ Opening Razorpay UPI...';
       }
-    } catch(err) {
-      console.error('Sage sync error:', err);
-      showToast('Error booking parcel: ' + err.message);
+
+      launchSageRazorpayCheckout(calculatedFare, senderName, senderPhone, async function(paymentResponse) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '🚀 Book Rydealot Sage Captain';
+        }
+        var payId = paymentResponse.razorpay_payment_id || ('RZP_SAGE_' + Date.now());
+        var payNote = '[PAYMENT_BY: RAZORPAY_ONLINE | TXN: ' + payId + ' | STATUS: PAID]';
+        var finalNotes = payNote + (notes ? (' | ' + notes) : '');
+        if (recvPin) finalNotes += ' | Receiver Drop PIN: ' + recvPin;
+        if (photoNote) finalNotes += ' | ' + photoNote;
+
+        await executeSageBooking(finalNotes, pin, recvPin, pingDesc, senderName, senderPhone, recvName, recvPhone, pickup, drop, 'online', payId);
+      }, function() {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '🚀 Book Rydealot Sage Captain';
+        }
+      });
+      return;
     }
+
+    // Cash on Pickup or Cash on Drop (COD)
+    var payNote = selectedPaymentBy === 'receiver' ? '[PAYMENT_BY: RECEIVER_COD]' : '[PAYMENT_BY: SENDER_CASH_ON_PICKUP]';
+    var finalNotes = payNote + (notes ? (' | ' + notes) : '');
+    if (recvPin) finalNotes += ' | Receiver Drop PIN: ' + recvPin;
+    if (photoNote) finalNotes += ' | ' + photoNote;
+
+    await executeSageBooking(finalNotes, pin, recvPin, pingDesc, senderName, senderPhone, recvName, recvPhone, pickup, drop, selectedPaymentBy, null);
   }
 
   function startPollingParcelStatus(parcelId) {
