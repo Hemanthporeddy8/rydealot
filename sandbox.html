@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Rydealot • Logistics Super-App (No Passenger Rides)</title>
+<title>Rydealot • Complete Logistics App (Parcels, Freight, Driver & Customer Portals)</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,7 +77,7 @@
     object-fit: contain;
   }
   .header-brand-title {
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 900;
     letter-spacing: -0.3px;
     line-height: 1;
@@ -86,30 +86,43 @@
     color: #D97706;
   }
   .header-brand-tag {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 800;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
-
-  /* The 2 Primary Logistics Heroes Switcher (NO PASSENGER RIDES) */
-  .main-hero-switcher {
+  .header-profile-btn {
+    background: #F8FAFC;
+    border: 1.5px solid var(--card-border);
+    color: #0F172A;
+    border-radius: 99px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    font-weight: 800;
     display: flex;
-    padding: 8px 14px;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+  }
+
+  /* Top Service Switcher (Replaces Passenger Rides with Logistics Heroes) */
+  .top-service-switcher {
+    display: flex;
+    padding: 8px 12px;
     background: #F8FAFC;
     border-bottom: 1.5px solid var(--card-border);
     gap: 8px;
   }
-  .hero-nav-btn {
+  .top-service-btn {
     flex: 1;
-    padding: 10px 8px;
+    padding: 9px 8px;
     border-radius: 12px;
     border: 1.5px solid var(--card-border);
     background: #FFFFFF;
     color: var(--text-muted);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 800;
     display: flex;
     align-items: center;
@@ -117,227 +130,151 @@
     gap: 6px;
     transition: all 0.2s;
   }
-  .hero-nav-btn.active.sage-btn {
-    background: #EFF6FF;
-    border-color: #2563EB;
-    color: #1E40AF;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
-  }
-  .hero-nav-btn.active.along-btn {
+  .top-service-btn.active.along-btn {
     background: #FFFBEB;
     border-color: #F59E0B;
     color: #92400E;
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
   }
+  .top-service-btn.active.sage-btn {
+    background: #EFF6FF;
+    border-color: #2563EB;
+    color: #1E40AF;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+  }
 
-  /* Container Views */
-  .tab-view {
+  /* Sub-Navbar for Along With: 4 Pillars (Customer & Driver Things) */
+  .along-sub-navbar {
+    display: flex;
+    padding: 6px 12px;
+    background: #FFFFFF;
+    border-bottom: 1px solid var(--card-border);
+    gap: 6px;
+    overflow-x: auto;
+  }
+  .sub-nav-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    border: 1px solid var(--card-border);
+    background: #F8FAFC;
+    color: var(--text-muted);
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .sub-nav-btn.active {
+    background: var(--accent);
+    color: #0F172A;
+    border-color: var(--accent);
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+  }
+
+  /* Views */
+  .main-view-container {
     display: none;
     flex-direction: column;
-    padding: 16px;
+    padding: 14px;
     flex: 1;
     background: #FFFFFF;
   }
-  .tab-view.active {
+  .main-view-container.active {
     display: flex;
   }
 
-  /* ==================== ALONG WITH (CARGO TRUCK LOT) STYLES ==================== */
+  /* Form Elements */
+  .form-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .form-row > * { flex: 1; }
+  .form-group { margin-bottom: 10px; }
+  .form-label { font-size: 10.5px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; display: block; }
+  .form-input, .form-select {
+    width: 100%;
+    background: #FFFFFF;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 10px;
+    padding: 9px 12px;
+    color: #0F172A;
+    font-size: 12.5px;
+    font-weight: 600;
+    outline: none;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+
+  .btn-action {
+    width: 100%;
+    background: var(--accent);
+    color: #0F172A;
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+    margin-top: 6px;
+  }
+
+  /* SVG Truck Parking Lot */
   .lot-container {
     background: #F8FAFC;
     border: 1.5px solid var(--card-border);
-    border-radius: 18px;
-    padding: 14px;
-    margin-bottom: 14px;
-  }
-  .lot-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    padding: 0 2px;
-  }
-  .lot-title {
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #0F172A;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    border-radius: 16px;
+    padding: 12px;
+    margin-bottom: 12px;
   }
   .lot-svg-wrap {
     width: 100%;
-    height: 200px;
-    background: #0F172A;
-    border-radius: 14px;
+    height: 190px;
+    background: #0B0F19;
+    border-radius: 12px;
     border: 1.5px solid var(--card-border);
     overflow: hidden;
     position: relative;
     box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
   }
-  #truck-lot-svg {
-    width: 100%;
-    height: 100%;
-  }
+  #truck-lot-svg { width: 100%; height: 100%; }
 
-  /* Goodz Pilot Specialty Banner (Properly positioned, NOT in the middle) */
+  /* Goodz Pilot Card */
   .goodz-pilot-card {
     background: #FFFFFF;
     border: 1.5px solid #FDE68A;
-    border-radius: 16px;
-    padding: 12px 14px;
-    margin-bottom: 14px;
+    border-radius: 14px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     text-decoration: none;
-    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.08);
-  }
-  .goodz-pilot-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
   }
   .goodz-pilot-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
     object-fit: contain;
     border: 1.5px solid #FDE68A;
     background: #FFFBEB;
     flex-shrink: 0;
   }
 
-  /* Truck & Cargo Cards */
+  /* Listings */
   .truck-listing-card {
     background: #FFFFFF;
     border: 1.5px solid var(--card-border);
-    border-radius: 14px;
-    padding: 12px 14px;
-    margin-bottom: 10px;
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    transition: all 0.15s;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
-  }
-  .truck-listing-card:hover {
-    border-color: #CBD5E1;
-    transform: translateY(-1px);
-  }
-  .truck-card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
-  .truck-route-badge {
-    font-size: 13px;
-    font-weight: 800;
-    color: #0F172A;
-  }
-  .truck-veh-tag {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 600;
-  }
-  .truck-avail-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #F8FAFC;
-    padding: 6px 10px;
-    border-radius: 8px;
-    font-size: 11px;
-  }
-
-  /* ==================== SAGE STYLES ==================== */
-  .sage-map-preview {
-    width: 100%;
-    height: 140px;
-    background: #E2E8F0;
-    border-radius: 14px;
-    border: 1.5px solid var(--card-border);
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .sage-form-group {
-    margin-bottom: 12px;
-  }
-  .sage-label {
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 4px;
-    display: block;
-    letter-spacing: 0.4px;
-  }
-  .sage-input {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1.5px solid #CBD5E1;
-    border-radius: 10px;
-    font-size: 12.5px;
-    font-weight: 600;
-    outline: none;
-  }
-  .sage-input:focus {
-    border-color: #2563EB;
-  }
-  .sage-cat-row {
-    display: flex;
     gap: 6px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-  .sage-cat-pill {
-    padding: 6px 12px;
-    border: 1.5px solid var(--card-border);
-    border-radius: 99px;
-    background: #F8FAFC;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-muted);
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .sage-cat-pill.active {
-    background: #EFF6FF;
-    border-color: #2563EB;
-    color: #1E40AF;
-  }
-  .sage-fare-box {
-    background: #F8FAFC;
-    border: 1.5px solid var(--card-border);
-    border-radius: 12px;
-    padding: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 8px;
-  }
-  .btn-sage-dispatch {
-    width: 100%;
-    padding: 12px;
-    background: #2563EB;
-    color: #FFFFFF;
-    border: none;
-    border-radius: 12px;
-    font-size: 13.5px;
-    font-weight: 800;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-    margin-top: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
   }
 </style>
 </head>
@@ -354,252 +291,281 @@
         <div class="header-brand-tag">Express Courier & Freight Network</div>
       </div>
     </a>
-    <div style="display:flex; align-items:center; gap:6px;">
-      <span style="font-size:10px; background:#DCFCE7; color:#166534; font-weight:800; padding:3px 8px; border-radius:99px;">● 84 ONLINE</span>
-    </div>
+    <button class="header-profile-btn" onclick="openProfileSection()">
+      👤 <span>Hemanth</span>
+    </button>
   </header>
 
-  <!-- The 2 Primary Logistics Heroes (Notice: Goodz is NOT in the middle!) -->
-  <div class="main-hero-switcher">
-    <button type="button" class="hero-nav-btn active along-btn" id="btn-tab-along" onclick="switchHeroMode('along')">
-      <span style="font-size:15px;">🚚</span>
-      <span>Along With (Cargo Lot)</span>
+  <!-- Top Hero Service Switcher (No Passenger Rides!) -->
+  <div class="top-service-switcher">
+    <button type="button" class="top-service-btn active along-btn" id="btn-main-along" onclick="switchMainService('along')">
+      <span>🚚</span>
+      <span>Along With (Intercity Cargo)</span>
     </button>
-    <button type="button" class="hero-nav-btn sage-btn" id="btn-tab-sage" onclick="switchHeroMode('sage')">
-      <span style="font-size:15px;">🛵</span>
+    <button type="button" class="top-service-btn sage-btn" id="btn-main-sage" onclick="switchMainService('sage')">
+      <span>🛵</span>
       <span>Sage (City Parcels)</span>
     </button>
   </div>
 
-  <!-- ==================== VIEW 1: ALONG WITH (TRUCK & CARGO LOT) ==================== -->
-  <div class="tab-view active" id="view-along">
+  <!-- ==================== ALONG WITH MASTER VIEW ==================== -->
+  <div id="service-along-root" style="display:flex; flex-direction:column; flex:1;">
     
-    <!-- Goodz Limited Pilot Card (Properly placed as a specialty banner, NOT in the middle) -->
-    <a href="goodz.html" class="goodz-pilot-card">
-      <div class="goodz-pilot-left">
-        <img src="assets/goodz-z-icon.png" class="goodz-pilot-icon" alt="Goodz Pilot">
+    <!-- Along With Sub-Navbar: All 4 Customer & Driver Pillars! -->
+    <div class="along-sub-navbar">
+      <button class="sub-nav-btn active" id="sub-btn-sender" onclick="switchAlongPillar('sender')">📦 Send Cargo</button>
+      <button class="sub-nav-btn" id="sub-btn-driver" onclick="switchAlongPillar('driver')">🚚 Post Trip (Driver)</button>
+      <button class="sub-nav-btn" id="sub-btn-warehouse" onclick="switchAlongPillar('warehouse')">🏬 Warehouse</button>
+      <button class="sub-nav-btn" id="sub-btn-orders" onclick="switchAlongPillar('orders')">📜 My Shipments</button>
+    </div>
+
+    <!-- 1. SENDER PILLAR (Truck Parking Lot + Cargo Orders) -->
+    <div class="main-view-container active" id="along-subview-sender">
+      
+      <!-- Goodz Closed Pilot Gate Banner (Properly Placed, NOT in the middle) -->
+      <a href="goodz.html" class="goodz-pilot-card">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img src="assets/goodz-z-icon.png" class="goodz-pilot-icon" alt="Goodz">
+          <div>
+            <div style="display:flex; align-items:center; gap:5px;">
+              <span style="font-size:13px; font-weight:900; color:#0F172A;">Along With Goodz</span>
+              <span style="font-size:8.5px; font-weight:800; background:#FEF3C7; color:#B45309; border:1px solid #FDE68A; padding:1px 5px; border-radius:99px; text-transform:uppercase;">🔒 Pilot Gate</span>
+            </div>
+            <div style="font-size:10.5px; color:#64748B; margin-top:2px;">
+              Warangal ⇄ Hyderabad Bus Relay • Code `GOODZ2026`
+            </div>
+          </div>
+        </div>
+        <div style="background:#FFB020; color:#0F172A; font-size:11px; font-weight:900; padding:5px 10px; border-radius:99px;">
+          Book ➔
+        </div>
+      </a>
+
+      <!-- Terminal Welcome Banner -->
+      <div style="background:linear-gradient(135deg, #FFFBEB, #FEF3C7); border:1.5px solid #FDE68A; border-radius:14px; padding:10px 12px; margin-bottom:12px; display:flex; align-items:center; gap:10px;">
+        <img src="assets/mascot-moving.png" style="width:54px; height:auto; object-fit:contain;" alt="Rydo">
         <div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="font-size:13.5px; font-weight:900; color:#0F172A;">Along With Goodz</span>
-            <span style="font-size:9px; font-weight:800; background:#FEF3C7; color:#B45309; border:1px solid #FDE68A; padding:2px 6px; border-radius:99px; text-transform:uppercase;">🔒 Pilot Gate</span>
-          </div>
-          <div style="font-size:11px; color:#64748B; margin-top:2px;">
-            Warangal ⇄ Hyderabad Bus & Cab Relay • Code `GOODZ2026`
-          </div>
+          <div style="font-size:13px; font-weight:900; color:#92400E;">🚚 Rydo Freight Terminal</div>
+          <div style="font-size:10.5px; color:#78350F; margin-top:1px;">Share empty space in trucks & cars for 50% cheaper intercity shipping.</div>
         </div>
       </div>
-      <div style="background:#FFB020; color:#0F172A; font-size:11px; font-weight:900; padding:6px 12px; border-radius:99px;">
-        Book ➔
-      </div>
-    </a>
 
-    <!-- Freight Terminal Greeting with Mascot -->
-    <div style="background:linear-gradient(135deg, #FFFBEB, #FEF3C7); border:1.5px solid #FDE68A; border-radius:16px; padding:12px 14px; margin-bottom:14px; display:flex; align-items:center; gap:12px;">
-      <img src="assets/mascot-moving.png" style="width:64px; height:auto; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.12));" alt="Rydo Freight">
-      <div>
-        <div style="font-size:14px; font-weight:900; color:#92400E;">🚚 Rydo Freight Terminal</div>
-        <div style="font-size:11px; color:#78350F; margin-top:2px; line-height:1.4;">
-          Book shared space in intercity trucks & passenger car boots at 50% lower cost.
+      <!-- Truck Parking Lot SVG -->
+      <div class="lot-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:11.5px; font-weight:800; text-transform:uppercase; color:#0F172A;">🅿️ Freight Parking Lot</span>
+          <span style="font-size:10.5px; font-weight:800; color:#16A34A;">● 4 Trucks Parked</span>
         </div>
+        
+        <div class="lot-svg-wrap">
+          <svg id="truck-lot-svg" viewBox="0 0 400 190" xmlns="http://www.w3.org/2000/svg">
+            <rect width="400" height="190" fill="#0B0F19" />
+            <line x1="10" y1="10" x2="10" y2="75" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
+            <line x1="105" y1="10" x2="105" y2="75" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
+            <line x1="200" y1="10" x2="200" y2="75" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
+            <line x1="295" y1="10" x2="295" y2="75" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
+            <line x1="390" y1="10" x2="390" y2="75" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
+            <line x1="10" y1="95" x2="390" y2="95" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="10 8" opacity="0.6"/>
+            
+            <!-- Parked Tata Ace -->
+            <g transform="translate(25, 18)" style="cursor:pointer;" onclick="openBookModal('Tata Ace', 'Warangal ➔ Hyderabad', '₹150', '80 kg')">
+              <rect width="65" height="42" rx="6" fill="#1E293B" stroke="#38BDF8" stroke-width="1.5"/>
+              <rect x="42" y="5" width="18" height="32" rx="4" fill="#38BDF8" opacity="0.8"/>
+              <text x="8" y="24" font-size="9.5" font-weight="bold" fill="#FFFFFF">Tata Ace</text>
+              <circle cx="5" cy="42" r="4" fill="#64748B"/><circle cx="60" cy="42" r="4" fill="#64748B"/>
+            </g>
+
+            <!-- Parked Bolero -->
+            <g transform="translate(120, 18)" style="cursor:pointer;" onclick="openBookModal('Bolero Pickup', 'Warangal ➔ Karimnagar', '₹180', '150 kg')">
+              <rect width="65" height="42" rx="6" fill="#1E293B" stroke="#10B981" stroke-width="1.5"/>
+              <rect x="42" y="5" width="18" height="32" rx="4" fill="#10B981" opacity="0.8"/>
+              <text x="12" y="24" font-size="9.5" font-weight="bold" fill="#FFFFFF">Bolero</text>
+              <circle cx="5" cy="42" r="4" fill="#64748B"/><circle cx="60" cy="42" r="4" fill="#64748B"/>
+            </g>
+
+            <!-- Parked Car Boot Space -->
+            <g transform="translate(215, 18)" style="cursor:pointer;" onclick="openBookModal('Swift Dzire Car Boot', 'Hyderabad ➔ Warangal', '₹90', '25 kg')">
+              <rect width="65" height="42" rx="8" fill="#1E293B" stroke="#F59E0B" stroke-width="1.5"/>
+              <text x="8" y="24" font-size="9" font-weight="bold" fill="#FDE68A">Car Boot</text>
+              <circle cx="5" cy="42" r="4" fill="#64748B"/><circle cx="60" cy="42" r="4" fill="#64748B"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Active Truck Departure Listings -->
+      <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:#64748B; margin-bottom:8px;">Active Truck Departures</div>
+      
+      <div class="truck-listing-card">
+        <div style="display:flex; justify-content:space-between;">
+          <div style="font-size:12.5px; font-weight:800;">Warangal ➔ Hyderabad</div>
+          <div style="font-size:14px; font-weight:900; color:#D97706;">₹150</div>
+        </div>
+        <div style="font-size:10.5px; color:#64748B;">🚛 Tata Ace • Leaves in 40 mins</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#F8FAFC; padding:4px 8px; border-radius:6px; font-size:10.5px;">
+          <span style="color:#16A34A; font-weight:700;">🟢 80 kg Space Free</span>
+          <button style="background:#0F172A; color:#fff; border:none; padding:3px 8px; border-radius:4px; font-weight:800; cursor:pointer;" onclick="openBookModal('Tata Ace', 'Warangal ➔ Hyderabad', '₹150', '80 kg')">Book</button>
+        </div>
+      </div>
+
+      <div class="truck-listing-card">
+        <div style="display:flex; justify-content:space-between;">
+          <div style="font-size:12.5px; font-weight:800;">Hyderabad ➔ Warangal</div>
+          <div style="font-size:14px; font-weight:900; color:#D97706;">₹90</div>
+        </div>
+        <div style="font-size:10.5px; color:#64748B;">🚗 Swift Dzire (Boot Space) • Today 4:00 PM</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#F8FAFC; padding:4px 8px; border-radius:6px; font-size:10.5px;">
+          <span style="color:#16A34A; font-weight:700;">🟢 25 kg Space Free</span>
+          <button style="background:#0F172A; color:#fff; border:none; padding:3px 8px; border-radius:4px; font-weight:800; cursor:pointer;" onclick="openBookModal('Swift Dzire Car Boot', 'Hyderabad ➔ Warangal', '₹90', '25 kg')">Book</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 2. DRIVER PILLAR (Post Trip Portal) -->
+    <div class="main-view-container" id="along-subview-driver">
+      <div style="background:#F8FAFC; border:1.5px solid var(--card-border); border-radius:14px; padding:12px; margin-bottom:12px;">
+        <div style="font-size:14px; font-weight:900; color:#0F172A; margin-bottom:4px;">🚚 Driver: Post Empty Truck Space</div>
+        <div style="font-size:11px; color:#64748B; margin-bottom:10px;">Park your empty return trip in the freight lot and earn extra revenue!</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">From City</label>
+            <select class="form-select" id="drv-from">
+              <option value="Warangal">Warangal</option>
+              <option value="Hyderabad" selected>Hyderabad</option>
+              <option value="Karimnagar">Karimnagar</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">To City</label>
+            <select class="form-select" id="drv-to">
+              <option value="Warangal" selected>Warangal</option>
+              <option value="Hyderabad">Hyderabad</option>
+              <option value="Karimnagar">Karimnagar</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Vehicle Type</label>
+            <select class="form-select" id="drv-veh">
+              <option value="Tata Ace">Tata Ace (1 Ton)</option>
+              <option value="Bolero">Bolero Pickup</option>
+              <option value="Car Boot">Passenger Car Boot</option>
+              <option value="Eicher">Eicher 14ft</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Available Capacity (KG)</label>
+            <input type="number" class="form-input" id="drv-cap" value="500">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Total Freight (₹)</label>
+            <input type="number" class="form-input" id="drv-price" value="1800">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Departure Time</label>
+            <input type="time" class="form-input" id="drv-time" value="16:30">
+          </div>
+        </div>
+
+        <button class="btn-action" onclick="alert('✅ Trip Posted into Freight Parking Lot!\nShopkeepers on this route can now book cargo space.')">
+          🚛 Post Trip to Parking Lot
+        </button>
       </div>
     </div>
 
-    <!-- The Authentic Visual Truck Parking Lot SVG -->
-    <div class="lot-container">
-      <div class="lot-header">
-        <span class="lot-title">🅿️ Freight Parking Lot</span>
-        <span style="font-size:11px; font-weight:800; color:#16A34A;" id="lot-trucks-count">● 4 Trucks Waiting</span>
+    <!-- 3. WAREHOUSE PILLAR (Virtual Storage & Drop Hubs) -->
+    <div class="main-view-container" id="along-subview-warehouse">
+      <div style="background:linear-gradient(135deg, #FFFBEB, #FEF3C7); border:1.5px solid #FDE68A; border-radius:14px; padding:12px; margin-bottom:12px;">
+        <div style="font-size:14px; font-weight:900; color:#92400E;">🏬 Open Cargo Warehouse</div>
+        <div style="font-size:11px; color:#78350F; margin-top:2px;">Drop packages at verified local shop hubs or claim loads as a driver.</div>
+        <button class="btn-action" style="margin-top:8px; font-size:11.5px; padding:8px;" onclick="alert('🏬 Drop Package Modal: Enter parcel details to store at nearest Hanamkonda Hub.')">
+          ➕ Drop Package at Warehouse
+        </button>
       </div>
 
-      <div class="lot-svg-wrap">
-        <svg id="truck-lot-svg" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1E293B" stroke-width="0.5"/>
-            </pattern>
-          </defs>
-          <rect width="400" height="200" fill="#0B0F19" />
-          <rect width="400" height="200" fill="url(#grid)" />
-          
-          <!-- Parking Bay Lines Top -->
-          <line x1="10" y1="10" x2="10" y2="80" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
-          <line x1="105" y1="10" x2="105" y2="80" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
-          <line x1="200" y1="10" x2="200" y2="80" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
-          <line x1="295" y1="10" x2="295" y2="80" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
-          <line x1="390" y1="10" x2="390" y2="80" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
-          
-          <!-- Middle Road -->
-          <line x1="10" y1="100" x2="390" y2="100" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="10 8" opacity="0.6"/>
-
-          <!-- Parking Bay Lines Bottom -->
-          <line x1="10" y1="120" x2="10" y2="190" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
-          <line x1="105" y1="120" x2="105" y2="190" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
-          <line x1="200" y1="120" x2="200" y2="190" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
-          <line x1="295" y1="120" x2="295" y2="190" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
-          <line x1="390" y1="120" x2="390" y2="190" stroke="#334155" stroke-width="2" stroke-dasharray="4 4"/>
-
-          <!-- Parked Truck 1 (Tata Ace) -->
-          <g transform="translate(25, 20)" style="cursor:pointer;" onclick="selectParkedTruck('Tata Ace', 'Warangal ➔ Hyderabad', '₹150', '80 kg')">
-            <rect width="65" height="45" rx="6" fill="#1E293B" stroke="#38BDF8" stroke-width="1.5"/>
-            <rect x="42" y="5" width="18" height="35" rx="4" fill="#38BDF8" opacity="0.8"/>
-            <text x="8" y="26" font-size="10" font-weight="bold" fill="#FFFFFF">Tata Ace</text>
-            <circle cx="5" cy="45" r="4" fill="#64748B"/>
-            <circle cx="60" cy="45" r="4" fill="#64748B"/>
-          </g>
-
-          <!-- Parked Truck 2 (Pickup) -->
-          <g transform="translate(120, 20)" style="cursor:pointer;" onclick="selectParkedTruck('Mahindra Bolero', 'Warangal ➔ Karimnagar', '₹180', '150 kg')">
-            <rect width="65" height="45" rx="6" fill="#1E293B" stroke="#10B981" stroke-width="1.5"/>
-            <rect x="42" y="5" width="18" height="35" rx="4" fill="#10B981" opacity="0.8"/>
-            <text x="12" y="26" font-size="10" font-weight="bold" fill="#FFFFFF">Bolero</text>
-            <circle cx="5" cy="45" r="4" fill="#64748B"/>
-            <circle cx="60" cy="45" r="4" fill="#64748B"/>
-          </g>
-
-          <!-- Parked Car Trunk 3 (Swift Dzire Boot) -->
-          <g transform="translate(215, 20)" style="cursor:pointer;" onclick="selectParkedTruck('Swift Dzire (Boot Space)', 'Hyderabad ➔ Warangal', '₹90', '25 kg')">
-            <rect width="65" height="45" rx="10" fill="#1E293B" stroke="#F59E0B" stroke-width="1.5"/>
-            <text x="8" y="26" font-size="9" font-weight="bold" fill="#FDE68A">Car Boot</text>
-            <circle cx="5" cy="45" r="4" fill="#64748B"/>
-            <circle cx="60" cy="45" r="4" fill="#64748B"/>
-          </g>
-
-          <!-- Parked Truck 4 (Eicher 14ft) -->
-          <g transform="translate(30, 130)" style="cursor:pointer;" onclick="selectParkedTruck('Eicher 14ft Heavy', 'Warangal ➔ Khammam', '₹350', '500 kg')">
-            <rect width="70" height="45" rx="6" fill="#1E293B" stroke="#A78BFA" stroke-width="1.5"/>
-            <rect x="48" y="5" width="18" height="35" rx="4" fill="#A78BFA" opacity="0.8"/>
-            <text x="10" y="26" font-size="10" font-weight="bold" fill="#FFFFFF">Eicher</text>
-            <circle cx="5" cy="175" r="4" fill="#64748B"/>
-            <circle cx="65" cy="175" r="4" fill="#64748B"/>
-          </g>
-        </svg>
-      </div>
-      <div style="font-size:10.5px; color:#64748B; text-align:center; margin-top:6px; font-weight:700;">
-        👆 Tap any parked vehicle to inspect space and book cargo
+      <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:#64748B; margin-bottom:8px;">Open Loads Waiting for Pickup</div>
+      <div class="truck-listing-card">
+        <div style="display:flex; justify-content:space-between;">
+          <div style="font-size:12.5px; font-weight:800;">Warangal Hub ➔ Hyderabad Lakdikapul</div>
+          <span style="font-size:10px; background:#EFF6FF; color:#1E40AF; padding:2px 6px; border-radius:4px; font-weight:800;">READY</span>
+        </div>
+        <div style="font-size:10.5px; color:#64748B;">📦 3 Cartons (Auto Parts) • 45 kg • ₹400 Payout</div>
+        <button style="background:#16A34A; color:#fff; border:none; padding:6px; border-radius:6px; font-weight:800; font-size:11px; cursor:pointer;" onclick="alert('✅ Claimed! Show PIN to Warehouse Manager to collect cartons.')">
+          Claim Load (Earn ₹400)
+        </button>
       </div>
     </div>
 
-    <!-- Active Parked Truck & Order Listings -->
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-      <h3 style="font-size:12px; font-weight:800; text-transform:uppercase; color:#64748B; letter-spacing:0.5px;">Active Matching Freight Departures</h3>
-      <span style="font-size:11px; font-weight:700; color:#16A34A;">● Live Supabase Sync</span>
-    </div>
-
-    <div id="truck-listings-container">
-      <!-- Card 1 -->
-      <div class="truck-listing-card">
-        <div class="truck-card-top">
-          <div>
-            <div class="truck-route-badge">Warangal ➔ Hyderabad</div>
-            <div class="truck-veh-tag">🚛 Tata Ace • Departing in 45 mins</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:15px; font-weight:900; color:#D97706;">₹150</div>
-            <div style="font-size:9.5px; color:#64748B; font-weight:700;">Up to 30 kg</div>
-          </div>
-        </div>
-        <div class="truck-avail-bar">
-          <span style="font-weight:700; color:#16A34A;">🟢 80 kg Space Available</span>
-          <a href="alongwith.html" style="background:#0F172A; color:#FFFFFF; text-decoration:none; padding:4px 10px; border-radius:6px; font-size:10.5px; font-weight:800;">Book Space</a>
-        </div>
+    <!-- 4. ORDERS & SHIPMENTS PILLAR (Customer Tracking) -->
+    <div class="main-view-container" id="along-subview-orders">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="font-size:13px; font-weight:900; color:#0F172A;">📦 My Active Shipments</div>
+        <span style="font-size:10.5px; color:#16A34A; font-weight:800;">1 In-Transit</span>
       </div>
 
-      <!-- Card 2 -->
-      <div class="truck-listing-card">
-        <div class="truck-card-top">
+      <div class="truck-listing-card" style="border-color:#38BDF8; background:#F0F9FF;">
+        <div style="display:flex; justify-content:space-between;">
+          <div style="font-size:12.5px; font-weight:800; color:#0369A1;">Warangal ➔ Hyderabad</div>
+          <span style="font-size:9.5px; background:#BAE6FD; color:#0369A1; padding:2px 6px; border-radius:4px; font-weight:800;">ON HIGHWAY</span>
+        </div>
+        <div style="font-size:10.5px; color:#475569;">Carrier: Tata Ace (TS03 AB 4598) • Captain Ramesh</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#FFFFFF; padding:6px 10px; border-radius:8px; border:1px solid #BAE6FD; margin-top:4px;">
           <div>
-            <div class="truck-route-badge">Hyderabad ➔ Warangal</div>
-            <div class="truck-veh-tag">🚗 Swift Dzire (Car Boot) • Today 3:30 PM</div>
+            <div style="font-size:9px; color:#64748B; font-weight:800; text-transform:uppercase;">Drop Verification PIN:</div>
+            <div style="font-size:16px; font-weight:900; color:#0284C7; font-family:'IBM Plex Mono';">8421</div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:15px; font-weight:900; color:#D97706;">₹90</div>
-            <div style="font-size:9.5px; color:#64748B; font-weight:700;">Small Box / Bag</div>
-          </div>
-        </div>
-        <div class="truck-avail-bar">
-          <span style="font-weight:700; color:#16A34A;">🟢 25 kg Boot Space Free</span>
-          <a href="alongwith.html" style="background:#0F172A; color:#FFFFFF; text-decoration:none; padding:4px 10px; border-radius:6px; font-size:10.5px; font-weight:800;">Book Space</a>
-        </div>
-      </div>
-
-      <!-- Card 3 -->
-      <div class="truck-listing-card">
-        <div class="truck-card-top">
-          <div>
-            <div class="truck-route-badge">Warangal ➔ Karimnagar</div>
-            <div class="truck-veh-tag">🛻 Mahindra Bolero • Departs 5:00 PM</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:15px; font-weight:900; color:#D97706;">₹180</div>
-            <div style="font-size:9.5px; color:#64748B; font-weight:700;">Heavy Sack / Crate</div>
-          </div>
-        </div>
-        <div class="truck-avail-bar">
-          <span style="font-weight:700; color:#16A34A;">🟢 150 kg Cargo Space</span>
-          <a href="alongwith.html" style="background:#0F172A; color:#FFFFFF; text-decoration:none; padding:4px 10px; border-radius:6px; font-size:10.5px; font-weight:800;">Book Space</a>
+          <a href="track.html" style="background:#0284C7; color:#fff; text-decoration:none; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:800;">Live GPS</a>
         </div>
       </div>
     </div>
 
   </div>
 
-  <!-- ==================== VIEW 2: SAGE (CITY BIKE PARCELS) ==================== -->
-  <div class="tab-view" id="view-sage">
+  <!-- ==================== SAGE MASTER VIEW ==================== -->
+  <div id="service-sage-root" style="display:none; flex-direction:column; flex:1; padding:14px;">
     
     <!-- Hero Banner -->
-    <div style="background:linear-gradient(135deg, #1E40AF, #1E1B4B); border-radius:16px; padding:14px; margin-bottom:14px; color:#FFFFFF; display:flex; align-items:center; justify-content:space-between;">
+    <div style="background:linear-gradient(135deg, #1E40AF, #1E1B4B); border-radius:16px; padding:12px 14px; margin-bottom:12px; color:#FFFFFF; display:flex; align-items:center; justify-content:space-between;">
       <div>
-        <div style="font-size:15px; font-weight:900;">🛵 Rydealot Sage Express</div>
-        <div style="font-size:11.5px; color:#93C5FD; margin-top:2px;">
-          Send packages across city in 15–30 mins. Live captain radar & PIN handover.
-        </div>
+        <div style="font-size:14px; font-weight:900;">🛵 Rydealot Sage Express</div>
+        <div style="font-size:10.5px; color:#93C5FD; margin-top:2px;">Fast bike parcel courier across city in 15–30 mins.</div>
       </div>
-      <img src="assets/mascot-sage.png" style="width:60px; height:60px; object-fit:contain;" alt="Sage Mascot">
+      <img src="assets/mascot-sage.png" style="width:52px; height:52px; object-fit:contain;" alt="Sage Mascot">
     </div>
 
     <!-- Booking Form -->
-    <div style="background:#FFFFFF; border:1.5px solid var(--card-border); border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:12px;">
+    <div style="background:#FFFFFF; border:1.5px solid var(--card-border); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:10px;">
       
-      <div class="sage-form-group">
-        <label class="sage-label">📍 Pickup Address</label>
-        <input type="text" class="sage-input" id="sage-sim-pickup" value="Hanamkonda Bus Stand" placeholder="Enter pickup address">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">📍 Pickup Address</label>
+        <input type="text" class="form-input" id="sage-input-pickup" value="Hanamkonda Bus Stand" placeholder="Enter pickup address">
       </div>
 
-      <div class="sage-form-group">
-        <label class="sage-label">🎯 Drop Address</label>
-        <input type="text" class="sage-input" id="sage-sim-drop" value="Kazipet Railway Station (6.2 km)" placeholder="Enter drop destination">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">🎯 Drop Destination</label>
+        <input type="text" class="form-input" id="sage-input-drop" value="Kazipet Junction (6.2 km)" placeholder="Enter drop address">
       </div>
 
-      <div>
-        <label class="sage-label">📦 Package Category</label>
-        <div class="sage-cat-row">
-          <div class="sage-cat-pill active" onclick="setSageCat(this)">📄 Documents</div>
-          <div class="sage-cat-pill" onclick="setSageCat(this)">🍱 Food / Tiffin</div>
-          <div class="sage-cat-pill" onclick="setSageCat(this)">👕 Clothes</div>
-          <div class="sage-cat-pill" onclick="setSageCat(this)">📱 Electronics</div>
-        </div>
-      </div>
-
-      <!-- Fare Box -->
-      <div class="sage-fare-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#F8FAFC; border:1.5px solid var(--card-border); border-radius:10px; padding:8px 12px;">
         <div>
-          <div style="font-size:11px; font-weight:800; color:#64748B;">Estimated Fare</div>
-          <div style="font-size:18px; font-weight:900; color:#2563EB;">₹45</div>
+          <div style="font-size:10.5px; font-weight:800; color:#64748B;">Estimated Fare</div>
+          <div style="font-size:16px; font-weight:900; color:#2563EB;">₹45</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:11px; font-weight:800; color:#64748B;">Est. Time</div>
-          <div style="font-size:14px; font-weight:800; color:#10B981;">~18 mins</div>
+          <div style="font-size:10.5px; font-weight:800; color:#64748B;">Est. Time</div>
+          <div style="font-size:13px; font-weight:800; color:#10B981;">~18 mins</div>
         </div>
       </div>
 
-      <!-- Razorpay & Cash Options -->
-      <div style="font-size:11px; font-weight:700; color:#1E40AF; background:#EFF6FF; border:1px solid #BFDBFE; padding:8px 10px; border-radius:8px; display:flex; align-items:center; gap:6px;">
-        <span>⚡</span>
-        <span>Prepay with Razorpay (UPI/GPay) or Cash on Pickup/Drop</span>
-      </div>
-
-      <a href="sage.html" class="btn-sage-dispatch" style="text-decoration:none;">
-        <span>🚀 Book Real Sage Captain (Open sage.html)</span>
+      <a href="sage.html" class="btn-action" style="background:#2563EB; color:#fff; text-decoration:none;">
+        🚀 Open Full Sage App (`sage.html`)
       </a>
 
     </div>
@@ -608,33 +574,42 @@
 
 </div>
 
+<!-- Booking Modal Script -->
 <script>
-  function switchHeroMode(mode) {
-    var btnAlong = document.getElementById('btn-tab-along');
-    var btnSage = document.getElementById('btn-tab-sage');
-    var viewAlong = document.getElementById('view-along');
-    var viewSage = document.getElementById('view-sage');
+  function switchMainService(service) {
+    var btnAlong = document.getElementById('btn-main-along');
+    var btnSage = document.getElementById('btn-main-sage');
+    var alongRoot = document.getElementById('service-along-root');
+    var sageRoot = document.getElementById('service-sage-root');
 
-    if (mode === 'along') {
+    if (service === 'along') {
       btnAlong.classList.add('active');
       btnSage.classList.remove('active');
-      viewAlong.classList.add('active');
-      viewSage.classList.remove('active');
+      alongRoot.style.display = 'flex';
+      sageRoot.style.display = 'none';
     } else {
       btnSage.classList.add('active');
       btnAlong.classList.remove('active');
-      viewSage.classList.add('active');
-      viewAlong.classList.remove('active');
+      sageRoot.style.display = 'flex';
+      alongRoot.style.display = 'none';
     }
   }
 
-  function setSageCat(el) {
-    document.querySelectorAll('.sage-cat-pill').forEach(function(p) { p.classList.remove('active'); });
-    el.classList.add('active');
+  function switchAlongPillar(pillar) {
+    document.querySelectorAll('.sub-nav-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.getElementById('sub-btn-' + pillar).classList.add('active');
+
+    document.querySelectorAll('.main-view-container').forEach(function(v) { v.classList.remove('active'); });
+    document.getElementById('along-subview-' + pillar).classList.add('active');
   }
 
-  function selectParkedTruck(veh, route, price, cap) {
-    alert('🚚 Selected ' + veh + '\nRoute: ' + route + '\nCapacity: ' + cap + ' available\nEst. Rate: ' + price + '\n\nRedirecting to Along With Freight Terminal for instant booking!');
+  function openProfileSection() {
+    switchMainService('along');
+    switchAlongPillar('orders');
+  }
+
+  function openBookModal(veh, route, price, cap) {
+    alert('🚚 Book Cargo Space\nVehicle: ' + veh + '\nRoute: ' + route + '\nCapacity: ' + cap + ' free\nEst. Rate: ' + price + '\n\nOpening Along With Cargo Booking Sheet...');
     window.location.href = 'alongwith.html';
   }
 </script>
