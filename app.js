@@ -5302,40 +5302,63 @@
   function applyServiceRestrictionsUI() {
     // Rider App (index.html) gatekeeping
     var banner = document.getElementById('rd-service-alert-banner');
-    var loginBtn = document.getElementById('login-btn');
-    var simpleView = document.getElementById('simple-view-container');
-    var rideTypeRow = document.getElementById('ride-type-row');
+    var fieldsContainer = document.getElementById('ride-booking-fields-container');
+    var mascotCard = document.getElementById('rides-paused-mascot-card');
+    var headerRidesBtn = document.getElementById('btn-open-my-rides');
+    var tabLinkRides = document.getElementById('tab-link-rides');
+    var tabLinkSage = document.getElementById('tab-link-sage');
+    var tabLinkDriver = document.getElementById('tab-link-driver');
+    var switcherBar = document.getElementById('service-switcher-bar');
 
     if (!PLATFORM_SERVICES.rides) {
-      if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'rd-service-alert-banner';
-        banner.style.cssText = 'background:linear-gradient(135deg,#1e293b,#0f172a); border:1.5px solid #38bdf8; border-radius:14px; padding:12px 14px; margin:12px 0; color:#fff; display:flex; align-items:center; gap:10px; box-shadow:0 4px 14px rgba(56,189,248,0.15);';
-        banner.innerHTML = '<span style="font-size:24px;">🧙‍♂️</span>' +
-          '<div style="flex:1;">' +
-            '<div style="font-size:12px; font-weight:800; color:#38bdf8;">Sage Notice: Passenger Rides in Maintenance</div>' +
-            '<div style="font-size:11px; color:#cbd5e1; margin-top:2px;">Bike &amp; Auto taxi are temporarily paused. <strong>📦 Parcels</strong> &amp; <strong>🚚 Along With Trucks</strong> are 100% active!</div>' +
-          '</div>' +
-          '<a href="alongwith.html" style="background:#38bdf8; color:#0f172a; font-size:11px; font-weight:800; padding:6px 10px; border-radius:8px; text-decoration:none; white-space:nowrap;">Send Parcel &rarr;</a>';
-        var screenLogin = document.getElementById('screen-login');
-        if (screenLogin) {
-          var fieldWrap = screenLogin.querySelector('.fields-wrap') || screenLogin;
-          fieldWrap.insertBefore(banner, fieldWrap.firstChild);
-        }
-      } else {
-        banner.style.display = 'flex';
+      // Hide old blue banner on map if present
+      if (banner) banner.style.display = 'none';
+
+      // Hide active booking inputs and reveal the Rydo Laptop Mascot Coming Soon card
+      if (fieldsContainer) fieldsContainer.style.display = 'none';
+      if (mascotCard) mascotCard.style.display = 'flex';
+
+      // Update Header button from "📜 Rides" to "📦 Orders"
+      if (headerRidesBtn) {
+        headerRidesBtn.innerHTML = '📦 Orders';
+        headerRidesBtn.title = 'My Orders & Deliveries';
       }
 
-      if (loginBtn) {
-        loginBtn.dataset.originalText = loginBtn.dataset.originalText || loginBtn.textContent;
-        loginBtn.textContent = '📦 Send Parcel / Cargo Instead';
-        loginBtn.style.background = '#0284c7';
+      // Re-order switcher bar: Sage first, Cargo second, Rides moved to 3rd place!
+      if (switcherBar && tabLinkRides && tabLinkSage && tabLinkDriver) {
+        switcherBar.innerHTML = 
+          '<a id="tab-link-sage" href="sage.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#0F172A; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">' +
+            '<span>📦</span> <span>Sage Parcels</span>' +
+          '</a>' +
+          '<a id="tab-link-along" href="alongwith.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
+            '<span>🚚</span> <span>Cargo</span>' +
+          '</a>' +
+          '<a id="tab-link-rides" href="#rides-paused-mascot-card" onclick="return false;" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#94A3B8; font-weight:700; font-size:11px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px; opacity:0.8;">' +
+            '<span>🛵</span> <span>Rides <small style=\"font-size:8.5px; background:#FEF3C7; color:#B45309; padding:1px 4px; border-radius:4px; font-weight:800;\">Soon</small></span>' +
+          '</a>';
       }
     } else {
       if (banner) banner.style.display = 'none';
-      if (loginBtn && loginBtn.dataset.originalText) {
-        loginBtn.textContent = loginBtn.dataset.originalText;
-        loginBtn.style.background = '';
+      if (fieldsContainer) fieldsContainer.style.display = 'block';
+      if (mascotCard) mascotCard.style.display = 'none';
+
+      if (headerRidesBtn) {
+        headerRidesBtn.innerHTML = '📜 Rides';
+        headerRidesBtn.title = 'My Rides';
+      }
+
+      // Restore original switcher: Rides first, Sage second, Driver third
+      if (switcherBar && tabLinkRides && tabLinkSage && tabLinkDriver) {
+        switcherBar.innerHTML = 
+          '<a id="tab-link-rides" href="index.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#0F172A; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">' +
+            '<span>🛵</span> <span>Rides</span>' +
+          '</a>' +
+          '<a id="tab-link-sage" href="sage.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
+            '<span>📦</span> <span>Sage</span>' +
+          '</a>' +
+          '<a id="tab-link-driver" href="driver.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
+            '<span>🛺</span> <span>Driver</span>' +
+          '</a>';
       }
     }
 

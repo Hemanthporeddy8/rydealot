@@ -76,60 +76,87 @@
       <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 4px;" id="user-greeting-text">Hey there! Where are you heading today? 👋</p>
 
       <!-- In-Card Service Switcher Bar -->
-      <div style="display:flex; gap:6px; background:#F1F5F9; padding:4px; border-radius:12px; margin-bottom:6px;">
-        <a href="index.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#0F172A; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">
-          <span>🛵</span> Rides
+      <div id="service-switcher-bar" style="display:flex; gap:6px; background:#F1F5F9; padding:4px; border-radius:12px; margin-bottom:6px;">
+        <a id="tab-link-rides" href="index.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#0F172A; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">
+          <span>🛵</span> <span id="tab-rides-label">Rides</span>
         </a>
-        <a href="sage.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">
-          <span>📦</span> Sage
+        <a id="tab-link-sage" href="sage.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">
+          <span>📦</span> <span id="tab-sage-label">Sage</span>
         </a>
-        <a href="driver.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">
-          <span>🛺</span> Driver
+        <a id="tab-link-driver" href="driver.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">
+          <span id="tab-driver-icon">🛺</span> <span id="tab-driver-label">Driver</span>
         </a>
       </div>
 
-      <div class="field">
-        <label class="field-label">Your name</label>
-        <input type="text" id="login-name" placeholder="Enter your name">
-      </div>
-      <div class="field">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-          <label class="field-label" style="margin-bottom:0;">Pickup label (where the rider should find you)</label>
-          <button type="button" id="btn-use-current-loc" style="background:#eef7f2; color:#1d9e75; border:1.5px solid #a3e2c9; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s ease;">
-            📍 Current location
-          </button>
+      <!-- Rydo Laptop Mascot "Coming Soon" Card (Shown when Passenger Rides is Paused) -->
+      <div id="rides-paused-mascot-card" style="display:none; flex-direction:column; align-items:center; text-align:center; background:#FFFFFF; border:1.5px solid var(--border); border-radius:18px; padding:18px 14px; margin:4px 0 10px; box-shadow:0 4px 18px rgba(15,23,42,0.05);">
+        <img src="assets/mascot-laptop.png" style="width:180px; height:180px; object-fit:contain; border-radius:16px; margin-bottom:10px; filter:drop-shadow(0 6px 16px rgba(0,0,0,0.12));" alt="Rydo Coding on Laptop">
+        
+        <div style="display:inline-flex; align-items:center; gap:5px; background:#FEF3C7; border:1px solid #FDE68A; color:#B45309; font-size:10.5px; font-weight:800; padding:3px 10px; border-radius:99px; text-transform:uppercase; margin-bottom:8px;">
+          <span>🛠️</span> In Active Development
         </div>
-        <div style="position:relative">
-          <input type="text" id="pickup-input" placeholder="e.g. Bus Stand or Current Location" autocomplete="off">
-          <div id="pickup-suggestions" class="autocomplete-dropdown"></div>
-        </div>
-        <!-- Saved Places Quick Chips -->
-        <div id="saved-places-chips" style="display:flex; gap:8px; margin-top:6px;">
-          <button type="button" id="chip-saved-home" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; align-items:center; gap:4px;">🏠 Home</button>
-          <button type="button" id="chip-saved-work" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; align-items:center; gap:4px;">🏢 Work</button>
-        </div>
-      </div>
-      <div class="field">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-          <label class="field-label" style="margin-bottom:0;">Drop label (where you want to go)</label>
-          <button type="button" id="btn-pick-drop-on-map" style="background:#eff6ff; color:#2563eb; border:1.5px solid #bfdbfe; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s ease;">
-            🗺️ Set on Map
-          </button>
-        </div>
-        <div style="position:relative">
-          <input type="text" id="drop-input" placeholder="e.g. Railway Station or tap 'Set on Map'" autocomplete="off">
-          <div id="drop-suggestions" class="autocomplete-dropdown"></div>
+        
+        <h3 style="font-size:16px; font-weight:900; color:var(--text); margin-bottom:4px;">🛵 Passenger Rides Coming Soon!</h3>
+        <p style="font-size:11.5px; color:var(--text-mute); line-height:1.45; max-width:280px; margin-bottom:14px;">
+          Rydo is busy cooking up our RTO licensing &amp; safety upgrades. In the meantime, our express logistics fleet is 100% active!
+        </p>
+
+        <!-- Direct Action Buttons to Sage and Along With -->
+        <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+          <a href="sage.html" style="background:#2563EB; color:#fff; text-decoration:none; padding:11px 14px; border-radius:12px; font-size:12.5px; font-weight:800; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+            <span>📦 Send Instant City Parcel via Sage (15 mins) &rarr;</span>
+          </a>
+          <a href="alongwith.html" style="background:#0F172A; color:#FFB020; text-decoration:none; padding:11px 14px; border-radius:12px; font-size:12.5px; font-weight:800; display:flex; align-items:center; justify-content:center; gap:6px; border:1px solid #334155;">
+            <span>🚚 Send Intercity Cargo via Along With &rarr;</span>
+          </a>
         </div>
       </div>
 
-      <button class="btn" id="login-btn" style="margin-top:8px;">Share my location and find riders</button>
-      <p id="loc-status" style="text-align:center; font-size:12px; color:var(--text-faint); margin-top:6px; font-weight:600;">
-        Locating you...
-      </p>
+      <!-- Active Ride Booking Form (Hidden when Passenger Rides is Paused) -->
+      <div id="ride-booking-fields-container">
+        <div class="field">
+          <label class="field-label">Your name</label>
+          <input type="text" id="login-name" placeholder="Enter your name">
+        </div>
+        <div class="field">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+            <label class="field-label" style="margin-bottom:0;">Pickup label (where the rider should find you)</label>
+            <button type="button" id="btn-use-current-loc" style="background:#eef7f2; color:#1d9e75; border:1.5px solid #a3e2c9; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s ease;">
+              📍 Current location
+            </button>
+          </div>
+          <div style="position:relative">
+            <input type="text" id="pickup-input" placeholder="e.g. Bus Stand or Current Location" autocomplete="off">
+            <div id="pickup-suggestions" class="autocomplete-dropdown"></div>
+          </div>
+          <!-- Saved Places Quick Chips -->
+          <div id="saved-places-chips" style="display:flex; gap:8px; margin-top:6px;">
+            <button type="button" id="chip-saved-home" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; align-items:center; gap:4px;">🏠 Home</button>
+            <button type="button" id="chip-saved-work" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; align-items:center; gap:4px;">🏢 Work</button>
+          </div>
+        </div>
+        <div class="field">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+            <label class="field-label" style="margin-bottom:0;">Drop label (where you want to go)</label>
+            <button type="button" id="btn-pick-drop-on-map" style="background:#eff6ff; color:#2563eb; border:1.5px solid #bfdbfe; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; transition:all 0.2s ease;">
+              🗺️ Set on Map
+            </button>
+          </div>
+          <div style="position:relative">
+            <input type="text" id="drop-input" placeholder="e.g. Railway Station or tap 'Set on Map'" autocomplete="off">
+            <div id="drop-suggestions" class="autocomplete-dropdown"></div>
+          </div>
+        </div>
 
-      <p style="text-align:center; font-size:11px; color:var(--text-faint); margin-top:8px; line-height:1.4;">
-        By continuing, you agree to Rydealot's <a href="terms.html" target="_blank" style="color:var(--accent); text-decoration:underline;">Terms of Service</a> &amp; <a href="privacy.html" target="_blank" style="color:var(--accent); text-decoration:underline;">Privacy Policy</a>.
-      </p>
+        <button class="btn" id="login-btn" style="margin-top:8px;">Share my location and find riders</button>
+        <p id="loc-status" style="text-align:center; font-size:12px; color:var(--text-faint); margin-top:6px; font-weight:600;">
+          Locating you...
+        </p>
+
+        <p style="text-align:center; font-size:11px; color:var(--text-faint); margin-top:8px; line-height:1.4;">
+          By continuing, you agree to Rydealot's <a href="terms.html" target="_blank" style="color:var(--accent); text-decoration:underline;">Terms of Service</a> &amp; <a href="privacy.html" target="_blank" style="color:var(--accent); text-decoration:underline;">Privacy Policy</a>.
+        </p>
+      </div>
 
       <!-- Along With Cargo Matching Banner -->
       <a href="alongwith.html" style="display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg,#1e2229,#141721); border:1.5px solid var(--border); border-radius:14px; padding:12px 14px; margin-top:14px; text-decoration:none; color:#fff;">
