@@ -5311,6 +5311,8 @@
 
   function applyServiceRestrictionsUI() {
     // Rider App (index.html) gatekeeping
+    var mapContainer = document.getElementById('setup-map');
+    var namasteHero = document.getElementById('home-namaste-hero');
     var banner = document.getElementById('rd-service-alert-banner');
     var fieldsContainer = document.getElementById('ride-booking-fields-container');
     var logisticsHub = document.getElementById('home-logistics-hub-container');
@@ -5329,6 +5331,12 @@
     } catch(e){}
 
     if (!PLATFORM_SERVICES.rides) {
+      if (document.documentElement) document.documentElement.classList.add('rides-disabled');
+
+      // Replace map with the welcoming Namaste Hero
+      if (mapContainer) mapContainer.style.display = 'none';
+      if (namasteHero) namasteHero.style.display = 'flex';
+
       // Hide old blue banner on map
       if (banner) banner.style.display = 'none';
 
@@ -5336,12 +5344,13 @@
       if (fieldsContainer) fieldsContainer.style.display = 'none';
       if (logisticsHub) logisticsHub.style.display = 'flex';
 
-      // Friendly welcoming Namaste mascot and greeting
-      if (mascotImg) mascotImg.src = 'assets/mascot-namaste.png';
+      // Hide small mascot in header to prevent duplicate visuals
+      if (mascotImg) mascotImg.style.display = 'none';
+
       if (greetingText) {
         greetingText.innerHTML = sessName 
-          ? ('Hey <b>' + sessName + '</b>! Welcome to Rydealot. What would you like to send today? 🙏')
-          : 'Welcome to Rydealot! What would you like to send today? 🙏';
+          ? ('Choose an express service below, <b>' + sessName + '</b>: 👇')
+          : 'Choose an express service below: 👇';
       }
 
       // Update Header button from "📜 Rides" to "📦 Orders"
@@ -5368,12 +5377,26 @@
           '</button>';
       }
     } else {
+      if (document.documentElement) document.documentElement.classList.remove('rides-disabled');
+
+      // Restore map and Leaflet layout
+      if (mapContainer) {
+        mapContainer.style.display = 'block';
+        if (state.destMap) {
+          setTimeout(function() { state.destMap.invalidateSize(); }, 150);
+        }
+      }
+      if (namasteHero) namasteHero.style.display = 'none';
+
       if (banner) banner.style.display = 'none';
       if (fieldsContainer) fieldsContainer.style.display = 'block';
       if (logisticsHub) logisticsHub.style.display = 'none';
 
       // Restore waving mascot and heading greeting
-      if (mascotImg) mascotImg.src = 'assets/mascot-waving.png';
+      if (mascotImg) {
+        mascotImg.style.display = 'inline-block';
+        mascotImg.src = 'assets/mascot-waving.png';
+      }
       if (greetingText) {
         greetingText.innerHTML = sessName 
           ? ('Hey <b>' + sessName + '</b>! Where are you heading today? 👋')
