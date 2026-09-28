@@ -954,6 +954,7 @@
 <script>
   var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
+  var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
   var allDrivers = [];
   var allBookings = [];
 
@@ -969,10 +970,35 @@
       });
       if (res.status === 404) return null;
       var text = await res.text();
-      if (!res.ok) return null;
-      try { return text ? JSON.parse(text) : null; } catch(e) { return text; }
+      if (!res.ok) throw new Error('Supabase error');
+      var data = null;
+      try { data = text ? JSON.parse(text) : null; } catch(e) { data = text; }
+
+      // Live background mirror to Cloudflare D1
+      var m = (opts.method || 'GET').toUpperCase();
+      if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
+        fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + path, {
+          method: m,
+          headers: { 'Content-Type': 'application/json' },
+          body: opts.body ? JSON.stringify(opts.body) : undefined,
+          keepalive: true
+        }).catch(function(){});
+      }
+      return data;
     } catch(e) {
-      return null;
+      console.warn('[Admin Plan B Active] Supabase down, loading from Cloudflare D1:', path);
+      try {
+        var d1Res = await fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + path, {
+          method: opts.method || 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          body: opts.body ? JSON.stringify(opts.body) : undefined
+        });
+        var d1Text = await d1Res.text();
+        try { return d1Text ? JSON.parse(d1Text) : null; } catch(err) { return d1Text; }
+      } catch(d1Err) {
+        console.error('[Admin D1 Error]:', d1Err);
+        return null;
+      }
     }
   }
 

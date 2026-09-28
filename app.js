@@ -14,16 +14,20 @@
 
   var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
 
-  function d1Sync(table, data) {
-    if (!table || !data) return;
+  async function d1PostgrestCall(path, opts) {
     try {
-      fetch(CLOUDFLARE_D1_WORKER + '/sync', {
-        method: 'POST',
+      var res = await fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + path, {
+        method: (opts && opts.method) || 'GET',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: table, data: data }),
-        keepalive: true
-      }).catch(function(){});
-    } catch(e){}
+        body: opts && opts.body ? JSON.stringify(opts.body) : undefined,
+        keepalive: (opts && opts.keepalive) || false
+      });
+      var text = await res.text();
+      try { return text ? JSON.parse(text) : null; } catch(e) { return text; }
+    } catch(e) {
+      console.warn('[D1 Call Failed]:', e);
+      return null;
+    }
   }
 
   async function sbAuthFetch(path, opts) {
@@ -43,44 +47,14 @@
 
       // Asynchronous background mirror to Cloudflare D1
       var m = (opts.method || 'GET').toUpperCase();
-      if ((m === 'POST' || m === 'PATCH') && opts.body) {
-        var tbl = path.split('?')[0].split('/')[0];
-        if (['users', 'drivers'].indexOf(tbl) !== -1) {
-          d1Sync(tbl, opts.body);
-        }
+      if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
+        d1PostgrestCall(path, { method: m, body: opts.body, keepalive: true });
       }
       return data;
     } catch(err) {
-      console.warn('[Rydealot Plan B Failover - Auth]:', err.message);
-      try {
-        var tbl = path.split('?')[0].split('/')[0];
-        var m = (opts.method || 'GET').toUpperCase();
-        if ((m === 'POST' || m === 'PATCH') && opts.body) {
-          var syncRes = await fetch(CLOUDFLARE_D1_WORKER + '/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ table: tbl, data: opts.body })
-          });
-          var syncJson = await syncRes.json();
-          if (syncJson && syncJson.success) return [opts.body];
-        } else if (m === 'GET') {
-          var sql = 'SELECT * FROM ' + tbl;
-          var phoneMatch = path.match(/phone=eq\.([0-9+]+)/);
-          if (phoneMatch) {
-            sql += " WHERE phone = '" + phoneMatch[1] + "'";
-          }
-          sql += ' LIMIT 10;';
-          var qRes = await fetch(CLOUDFLARE_D1_WORKER + '/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sql: sql })
-          });
-          var qJson = await qRes.json();
-          if (qJson && qJson.result && qJson.result.results) return qJson.result.results;
-        }
-      } catch(d1Err) {
-        console.error('[Rydealot D1 Auth Error]:', d1Err);
-      }
+      console.warn('[Rydealot Plan B Failover - Auth]: Routing to Cloudflare D1:', path, err.message);
+      var fallback = await d1PostgrestCall(path, opts);
+      if (fallback) return fallback;
       throw err;
     }
   }
@@ -1276,16 +1250,20 @@
 
   var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
 
-  function d1Sync(table, data) {
-    if (!table || !data) return;
+  async function d1PostgrestCall(path, opts) {
     try {
-      fetch(CLOUDFLARE_D1_WORKER + '/sync', {
-        method: 'POST',
+      var res = await fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + path, {
+        method: (opts && opts.method) || 'GET',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: table, data: data }),
-        keepalive: true
-      }).catch(function(){});
-    } catch(e){}
+        body: opts && opts.body ? JSON.stringify(opts.body) : undefined,
+        keepalive: (opts && opts.keepalive) || false
+      });
+      var text = await res.text();
+      try { return text ? JSON.parse(text) : null; } catch(e) { return text; }
+    } catch(e) {
+      console.warn('[D1 Call Failed]:', e);
+      return null;
+    }
   }
 
   async function sbFetch(path, options){
@@ -1311,44 +1289,14 @@
 
       // Background asynchronous mirror to Cloudflare D1
       var m = (options.method || 'GET').toUpperCase();
-      if ((m === 'POST' || m === 'PATCH') && options.body) {
-        var tbl = path.split('?')[0].split('/')[0];
-        if (['rides', 'drivers', 'platform_services'].indexOf(tbl) !== -1) {
-          d1Sync(tbl, options.body);
-        }
+      if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
+        d1PostgrestCall(path, { method: m, body: options.body, keepalive: true });
       }
       return data;
     } catch(err) {
-      console.warn('[Rydealot Plan B Failover - Rider]:', err.message);
-      try {
-        var tbl = path.split('?')[0].split('/')[0];
-        var m = (options.method || 'GET').toUpperCase();
-        if ((m === 'POST' || m === 'PATCH') && options.body) {
-          var syncRes = await fetch(CLOUDFLARE_D1_WORKER + '/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ table: tbl, data: options.body })
-          });
-          var syncJson = await syncRes.json();
-          if (syncJson && syncJson.success) return [options.body];
-        } else if (m === 'GET') {
-          var sql = 'SELECT * FROM ' + tbl;
-          var idMatch = path.match(/id=eq\.([a-zA-Z0-9_-]+)/);
-          if (idMatch) {
-            sql += " WHERE id = '" + idMatch[1] + "'";
-          }
-          sql += ' LIMIT 50;';
-          var qRes = await fetch(CLOUDFLARE_D1_WORKER + '/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sql: sql })
-          });
-          var qJson = await qRes.json();
-          if (qJson && qJson.result && qJson.result.results) return qJson.result.results;
-        }
-      } catch(d1Err) {
-        console.error('[Rydealot D1 Rider Error]:', d1Err);
-      }
+      console.warn('[Rydealot Plan B Failover - Rider]: Routing to Cloudflare D1:', path, err.message);
+      var fallback = await d1PostgrestCall(path, options);
+      if (fallback) return fallback;
       throw err;
     }
   }
@@ -3502,16 +3450,20 @@
 
   var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
 
-  function d1Sync(table, data) {
-    if (!table || !data) return;
+  async function d1PostgrestCall(path, opts) {
     try {
-      fetch(CLOUDFLARE_D1_WORKER + '/sync', {
-        method: 'POST',
+      var res = await fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + path, {
+        method: (opts && opts.method) || 'GET',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: table, data: data }),
-        keepalive: true
-      }).catch(function(){});
-    } catch(e){}
+        body: opts && opts.body ? JSON.stringify(opts.body) : undefined,
+        keepalive: (opts && opts.keepalive) || false
+      });
+      var text = await res.text();
+      try { return text ? JSON.parse(text) : null; } catch(e) { return text; }
+    } catch(e) {
+      console.warn('[D1 Call Failed]:', e);
+      return null;
+    }
   }
 
   async function sbFetch(path, options){
@@ -3537,44 +3489,14 @@
 
       // Background asynchronous mirror to Cloudflare D1
       var m = (options.method || 'GET').toUpperCase();
-      if ((m === 'POST' || m === 'PATCH') && options.body) {
-        var tbl = path.split('?')[0].split('/')[0];
-        if (['rides', 'drivers', 'platform_services'].indexOf(tbl) !== -1) {
-          d1Sync(tbl, options.body);
-        }
+      if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
+        d1PostgrestCall(path, { method: m, body: options.body, keepalive: true });
       }
       return data;
     } catch(err) {
-      console.warn('[Rydealot Plan B Failover - Customer]:', err.message);
-      try {
-        var tbl = path.split('?')[0].split('/')[0];
-        var m = (options.method || 'GET').toUpperCase();
-        if ((m === 'POST' || m === 'PATCH') && options.body) {
-          var syncRes = await fetch(CLOUDFLARE_D1_WORKER + '/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ table: tbl, data: options.body })
-          });
-          var syncJson = await syncRes.json();
-          if (syncJson && syncJson.success) return [options.body];
-        } else if (m === 'GET') {
-          var sql = 'SELECT * FROM ' + tbl;
-          var idMatch = path.match(/id=eq\.([a-zA-Z0-9_-]+)/);
-          if (idMatch) {
-            sql += " WHERE id = '" + idMatch[1] + "'";
-          }
-          sql += ' LIMIT 50;';
-          var qRes = await fetch(CLOUDFLARE_D1_WORKER + '/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sql: sql })
-          });
-          var qJson = await qRes.json();
-          if (qJson && qJson.result && qJson.result.results) return qJson.result.results;
-        }
-      } catch(d1Err) {
-        console.error('[Rydealot D1 Customer Error]:', d1Err);
-      }
+      console.warn('[Rydealot Plan B Failover - Customer]: Routing to Cloudflare D1:', path, err.message);
+      var fallback = await d1PostgrestCall(path, options);
+      if (fallback) return fallback;
       throw err;
     }
   }
