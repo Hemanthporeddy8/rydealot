@@ -67,8 +67,8 @@
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <img src="assets/mascot-waving.png" alt="Rydo" style="width:42px; height:auto; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.15));">
-          <a href="profile.html#rides" id="btn-open-my-rides" style="background:#f8fafc; border:1.5px solid var(--border); border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:4px; color:var(--text);" title="My Rides">📜 Rides</a>
+          <img src="assets/mascot-namaste.png" id="home-mascot-img" alt="Rydo" style="width:46px; height:auto; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.15));">
+          <a href="profile.html#rides" id="btn-open-my-rides" style="background:#f8fafc; border:1.5px solid var(--border); border-radius:10px; padding:6px 12px; font-size:12px; font-weight:800; text-decoration:none; display:flex; align-items:center; gap:4px; color:var(--text);" title="My Deliveries">📦 Orders</a>
           <a href="profile.html" id="btn-open-user-profile" style="background:var(--bg); border:1.5px solid var(--border); border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:16px; text-decoration:none; color:inherit; overflow:hidden;" title="My Profile"><span id="user-avatar-slot">👤</span></a>
           <button type="button" id="btn-app-logout" style="background:#fef2f2; border:1.5px solid #fecaca; color:#ef4444; border-radius:10px; padding:6px 10px; font-size:11.5px; font-weight:800; cursor:pointer;" title="Log Out">🚪</button>
         </div>
@@ -88,28 +88,45 @@
         </a>
       </div>
 
-      <!-- Rydo Laptop Mascot "Coming Soon" Card (Shown when Passenger Rides is Paused) -->
-      <div id="rides-paused-mascot-card" style="display:none; flex-direction:column; align-items:center; text-align:center; background:#FFFFFF; border:1.5px solid var(--border); border-radius:18px; padding:18px 14px; margin:4px 0 10px; box-shadow:0 4px 18px rgba(15,23,42,0.05);">
-        <img src="assets/mascot-laptop.png" style="width:180px; height:180px; object-fit:contain; border-radius:16px; margin-bottom:10px; filter:drop-shadow(0 6px 16px rgba(0,0,0,0.12));" alt="Rydo Coding on Laptop">
-        
-        <div style="display:inline-flex; align-items:center; gap:5px; background:#FEF3C7; border:1px solid #FDE68A; color:#B45309; font-size:10.5px; font-weight:800; padding:3px 10px; border-radius:99px; text-transform:uppercase; margin-bottom:8px;">
-          <span>🛠️</span> In Active Development
-        </div>
-        
-        <h3 style="font-size:16px; font-weight:900; color:var(--text); margin-bottom:4px;">🛵 Passenger Rides Coming Soon!</h3>
-        <p style="font-size:11.5px; color:var(--text-mute); line-height:1.45; max-width:280px; margin-bottom:14px;">
-          Rydo is busy cooking up our RTO licensing &amp; safety upgrades. In the meantime, our express logistics fleet is 100% active!
-        </p>
+      <!-- Active Logistics Hub Feature Cards (Shown when Passenger Rides is Paused) -->
+      <div id="home-logistics-hub-container" style="display:none; flex-direction:column; gap:10px; margin:6px 0 10px;">
+        <!-- Card 1: Sage Express -->
+        <a href="sage.html" style="text-decoration:none; display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg, #EFF6FF, #DBEAFE); border:1.5px solid #BFDBFE; border-radius:16px; padding:12px 14px; box-shadow:0 2px 10px rgba(37,99,235,0.08); transition:all 0.15s ease;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <img src="assets/mascot-sage.png" style="width:48px; height:48px; object-fit:contain; filter:drop-shadow(0 3px 6px rgba(0,0,0,0.1));" alt="Sage Mascot">
+            <div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:14px; font-weight:900; color:#1E40AF;">Rydealot Sage</span>
+                <span style="font-size:9.5px; font-weight:800; background:#2563EB; color:#fff; padding:2px 6px; border-radius:99px;">⚡ 15 Mins</span>
+              </div>
+              <div style="font-size:11px; font-weight:600; color:#475569; margin-top:2px;">
+                City bike parcel delivery • Food, keys, medicine &amp; documents
+              </div>
+            </div>
+          </div>
+          <div style="background:#2563EB; color:#fff; font-size:11.5px; font-weight:900; padding:8px 12px; border-radius:99px; flex-shrink:0;">
+            Send ➔
+          </div>
+        </a>
 
-        <!-- Direct Action Buttons to Sage and Along With -->
-        <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
-          <a href="sage.html" style="background:#2563EB; color:#fff; text-decoration:none; padding:11px 14px; border-radius:12px; font-size:12.5px; font-weight:800; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
-            <span>📦 Send Instant City Parcel via Sage (15 mins) &rarr;</span>
-          </a>
-          <a href="alongwith.html" style="background:#0F172A; color:#FFB020; text-decoration:none; padding:11px 14px; border-radius:12px; font-size:12.5px; font-weight:800; display:flex; align-items:center; justify-content:center; gap:6px; border:1px solid #334155;">
-            <span>🚚 Send Intercity Cargo via Along With &rarr;</span>
-          </a>
-        </div>
+        <!-- Card 2: Along With Cargo -->
+        <a href="alongwith.html" style="text-decoration:none; display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg, #FFFBEB, #FEF3C7); border:1.5px solid #FDE68A; border-radius:16px; padding:12px 14px; box-shadow:0 2px 10px rgba(245,158,11,0.08); transition:all 0.15s ease;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <img src="assets/mascot-moving.png" style="width:48px; height:auto; object-fit:contain; filter:drop-shadow(0 3px 6px rgba(0,0,0,0.1));" alt="Along With Mascot">
+            <div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:14px; font-weight:900; color:#92400E;">Along With Cargo</span>
+                <span style="font-size:9.5px; font-weight:800; background:#D97706; color:#fff; padding:2px 6px; border-radius:99px;">🚛 Freight</span>
+              </div>
+              <div style="font-size:11px; font-weight:600; color:#78350F; margin-top:2px;">
+                Save 50% on truck &amp; car boot space • Intercity routes
+              </div>
+            </div>
+          </div>
+          <div style="background:#D97706; color:#fff; font-size:11.5px; font-weight:900; padding:8px 12px; border-radius:99px; flex-shrink:0;">
+            Book ➔
+          </div>
+        </a>
       </div>
 
       <!-- Active Ride Booking Form (Hidden when Passenger Rides is Paused) -->
@@ -543,6 +560,29 @@
 
       <button type="button" id="btn-confirm-drop-pin" class="btn" style="width:100%; background:var(--accent); color:#fff; font-weight:800; font-size:14.5px; padding:13px; border-radius:12px; box-shadow:0 4px 14px rgba(29,158,117,0.35); cursor:pointer;">
         ✅ Confirm Drop Location
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- RIDES COMING SOON MODAL (Only opens when user clicks Rides while paused) -->
+<div id="rides-coming-soon-modal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(15,23,42,0.8); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#FFFFFF; border-radius:24px; padding:24px 20px; max-width:340px; width:100%; text-align:center; position:relative; box-shadow:0 20px 40px rgba(0,0,0,0.3); border:1.5px solid #E2E8F0;">
+    <button type="button" onclick="closeRidesComingSoonModal()" style="position:absolute; top:14px; right:14px; background:#F1F5F9; border:none; width:32px; height:32px; border-radius:50%; font-size:14px; font-weight:900; color:#64748B; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+    
+    <img src="assets/mascot-laptop.png" style="width:160px; height:160px; object-fit:contain; border-radius:18px; margin-bottom:12px; filter:drop-shadow(0 6px 16px rgba(0,0,0,0.12));" alt="Rydo Coding">
+    
+    <h3 style="font-size:17px; font-weight:900; color:#0F172A; margin-bottom:6px;">🛵 Passenger Rides Coming Soon!</h3>
+    <p style="font-size:12.5px; color:#64748B; line-height:1.45; margin-bottom:16px;">
+      Rydo is busy cooking up something special! 🍳✨
+    </p>
+
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <a href="sage.html" style="background:#2563EB; color:#fff; text-decoration:none; padding:12px; border-radius:12px; font-size:12.5px; font-weight:800; display:flex; align-items:center; justify-content:center; gap:6px;">
+        📦 Send City Parcel via Sage ➔
+      </a>
+      <button type="button" onclick="closeRidesComingSoonModal()" style="background:#F8FAFC; border:1.5px solid #CBD5E1; color:#475569; padding:10px; border-radius:12px; font-size:12px; font-weight:700; cursor:pointer;">
+        Got it!
       </button>
     </div>
   </div>

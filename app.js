@@ -5299,24 +5299,50 @@
     applyServiceRestrictionsUI();
   }
 
+  window.openRidesComingSoonModal = function() {
+    var modal = document.getElementById('rides-coming-soon-modal');
+    if (modal) modal.style.display = 'flex';
+  };
+
+  window.closeRidesComingSoonModal = function() {
+    var modal = document.getElementById('rides-coming-soon-modal');
+    if (modal) modal.style.display = 'none';
+  };
+
   function applyServiceRestrictionsUI() {
     // Rider App (index.html) gatekeeping
     var banner = document.getElementById('rd-service-alert-banner');
     var fieldsContainer = document.getElementById('ride-booking-fields-container');
-    var mascotCard = document.getElementById('rides-paused-mascot-card');
+    var logisticsHub = document.getElementById('home-logistics-hub-container');
     var headerRidesBtn = document.getElementById('btn-open-my-rides');
-    var tabLinkRides = document.getElementById('tab-link-rides');
-    var tabLinkSage = document.getElementById('tab-link-sage');
-    var tabLinkDriver = document.getElementById('tab-link-driver');
     var switcherBar = document.getElementById('service-switcher-bar');
+    var mascotImg = document.getElementById('home-mascot-img');
+    var greetingText = document.getElementById('user-greeting-text');
+
+    var sessName = '';
+    try {
+      var sessRaw = localStorage.getItem('rydealot_user_session');
+      if (sessRaw) {
+        var sess = JSON.parse(sessRaw);
+        if (sess && sess.name) sessName = sess.name;
+      }
+    } catch(e){}
 
     if (!PLATFORM_SERVICES.rides) {
-      // Hide old blue banner on map if present
+      // Hide old blue banner on map
       if (banner) banner.style.display = 'none';
 
-      // Hide active booking inputs and reveal the Rydo Laptop Mascot Coming Soon card
+      // Hide active ride inputs and display active logistics hub
       if (fieldsContainer) fieldsContainer.style.display = 'none';
-      if (mascotCard) mascotCard.style.display = 'flex';
+      if (logisticsHub) logisticsHub.style.display = 'flex';
+
+      // Friendly welcoming Namaste mascot and greeting
+      if (mascotImg) mascotImg.src = 'assets/mascot-namaste.png';
+      if (greetingText) {
+        greetingText.innerHTML = sessName 
+          ? ('Hey <b>' + sessName + '</b>! Welcome to Rydealot. What would you like to send today? 🙏')
+          : 'Welcome to Rydealot! What would you like to send today? 🙏';
+      }
 
       // Update Header button from "📜 Rides" to "📦 Orders"
       if (headerRidesBtn) {
@@ -5325,23 +5351,34 @@
       }
 
       // Switcher bar when rides are paused:
-      // Sage (links to sage.html), Driver (links to driver.html), and Rides (Active tab with "Soon" tag displaying the mascot card)
+      // Sage (15 mins), Cargo (Along With), Driver, and Rides (Tapping opens friendly modal)
       if (switcherBar) {
         switcherBar.innerHTML = 
-          '<a id="tab-link-sage" href="sage.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
+          '<a id="tab-link-sage" href="sage.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#1E40AF; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">' +
             '<span>📦</span> <span>Sage</span>' +
+          '</a>' +
+          '<a id="tab-link-along" href="alongwith.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
+            '<span>🚚</span> <span>Cargo</span>' +
           '</a>' +
           '<a id="tab-link-driver" href="driver.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
             '<span>🛺</span> <span>Driver</span>' +
           '</a>' +
-          '<a id="tab-link-rides" href="index.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#0F172A; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">' +
-            '<span>🛵</span> <span>Rides</span> <small style=\"font-size:8.5px; background:#FEF3C7; color:#B45309; padding:1px 5px; border-radius:4px; font-weight:800; margin-left:2px;\">Soon</small>' +
-          '</a>';
+          '<button type="button" id="tab-link-rides" onclick="openRidesComingSoonModal()" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#94A3B8; font-weight:700; font-size:11px; border-radius:8px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px;">' +
+            '<span>🛵</span> <span>Rides</span> <small style=\"font-size:8px; background:#FEF3C7; color:#B45309; padding:1px 4px; border-radius:4px; font-weight:800;\">Soon</small>' +
+          '</button>';
       }
     } else {
       if (banner) banner.style.display = 'none';
       if (fieldsContainer) fieldsContainer.style.display = 'block';
-      if (mascotCard) mascotCard.style.display = 'none';
+      if (logisticsHub) logisticsHub.style.display = 'none';
+
+      // Restore waving mascot and heading greeting
+      if (mascotImg) mascotImg.src = 'assets/mascot-waving.png';
+      if (greetingText) {
+        greetingText.innerHTML = sessName 
+          ? ('Hey <b>' + sessName + '</b>! Where are you heading today? 👋')
+          : 'Hey there! Where are you heading today? 👋';
+      }
 
       if (headerRidesBtn) {
         headerRidesBtn.innerHTML = '📜 Rides';
@@ -5349,7 +5386,7 @@
       }
 
       // Restore original switcher: Rides first, Sage second, Driver third
-      if (switcherBar && tabLinkRides && tabLinkSage && tabLinkDriver) {
+      if (switcherBar) {
         switcherBar.innerHTML = 
           '<a id="tab-link-rides" href="index.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#0F172A; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">' +
             '<span>🛵</span> <span>Rides</span>' +
