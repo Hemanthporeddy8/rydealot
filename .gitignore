@@ -1,3 +1,6 @@
 node_modules/
 .env
 .env.local
+DATABASE_INFRASTRUCTURE.md
+*credentials*
+*secret*
