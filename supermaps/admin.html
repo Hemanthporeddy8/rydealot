@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rydealot Supermaps — Command Tower & Admin GIS</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet & Leaflet Draw CSS/JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+  <style>
+    :root {
+      --bg: #090b10;
+      --card: #12151e;
+      --border: rgba(255, 255, 255, 0.1);
+      --gold: #f59e0b;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --red: #ef4444;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --font-sans: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Left Sidebar: Controls & Queues */
+    .admin-sidebar {
+      width: 440px;
+      height: 100vh;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+    }
+
+    .admin-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .admin-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Master Dormant Switch */
+    .dormant-banner {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 12px 16px;
+      margin: 16px 20px 0;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .dormant-text {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .dormant-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--gold);
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155; transition: .3s; border-radius: 24px;
+    }
+    .toggle-slider:before {
+      position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background-color: white; transition: .3s; border-radius: 50%;
+    }
+    input:checked + .toggle-slider { background-color: var(--green); }
+    input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+    /* Tabs */
+    .tabs-nav {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      margin-top: 14px;
+    }
+    .tab-btn {
+      padding: 10px 14px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .tab-btn.active {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
+    }
+
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    /* Queue Cards */
+    .queue-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .queue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .queue-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .badge-alert { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+    .badge-gold { background: rgba(245, 158, 11, 0.2); color: var(--gold); }
+    .badge-green { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+
+    .action-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .btn-act {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-act-inspect { background: #1e293b; color: #fff; }
+    .btn-act-publish { background: var(--green); color: #000; }
+    .btn-act-dismiss { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+    /* Right Main Map */
+    .admin-map-container {
+      flex: 1;
+      height: 100vh;
+      position: relative;
+    }
+    #admin-map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .layer-switcher {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: rgba(18, 21, 30, 0.9);
+      border: 1px solid var(--border);
+      padding: 8px;
+      border-radius: 12px;
+      display: flex;
+      gap: 8px;
+    }
+    .layer-btn {
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .layer-btn.active {
+      background: var(--gold);
+      color: #000;
+      border-color: var(--gold);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left Control Tower Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="admin-header">
+      <div class="admin-title">
+        <span>⚡</span>
+        <span>SUPERMAPS CONTROL TOWER</span>
+      </div>
+      <a href="index.html" style="color:var(--muted); text-decoration:none; font-size:0.8rem; font-weight:700;">Public Map ↗</a>
+    </div>
+
+    <!-- Master B2B Dormant Switch -->
+    <div class="dormant-banner">
+      <div>
+        <div class="dormant-title">Crowdsourced Consensus Engine</div>
+        <div class="dormant-text">Dormant until B2B clients sign contracts</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="toggle-crowdsource" onchange="toggleConsensusEngine(this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchAdminTab('trails')">🚗 5-Car Trails (<span id="count-trails">2</span>)</button>
+      <button class="tab-btn" onclick="switchAdminTab('shops')">⭐ Golden Shops (<span id="count-shops">2</span>)</button>
+      <button class="tab-btn" onclick="switchAdminTab('create-road')">🛣️ Add Highway</button>
+    </div>
+
+    <!-- Tab 1: 5-Car Unmapped Road Alerts -->
+    <div class="tab-content" id="tab-trails">
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">
+        Paths where 5+ four-wheelers drove across unmapped space at driving speed. Switch to <strong>Satellite View</strong> to verify tar/concrete vs mud field before publishing.
+      </p>
+
+      <!-- Alert 1 -->
+      <div class="queue-card">
+        <div class="queue-header">
+          <span style="font-weight:700; font-size:0.9rem;">Warangal South Bypass Link</span>
+          <span class="queue-badge badge-alert">7 Cars Detected</span>
+        </div>
+        <div style="font-size:0.78rem; color:var(--muted);">
+          Length: 3.2 KM • Avg Speed: 58 KM/H
+        </div>
+        <div class="action-row">
+          <button class="btn-act btn-act-inspect" onclick="inspectTrail([17.980, 79.560], [17.995, 79.585])">🛰️ View Satellite</button>
+          <button class="btn-act btn-act-publish" onclick="publishVerifiedRoad('Warangal South Bypass', 'asphalt')">✅ Tar Road</button>
+          <button class="btn-act btn-act-dismiss" onclick="dismissTrail(this)">✕ Discard</button>
+        </div>
+      </div>
+
+      <!-- Alert 2 -->
+      <div class="queue-card">
+        <div class="queue-header">
+          <span style="font-weight:700; font-size:0.9rem;">Village Canal Crossing</span>
+          <span class="queue-badge badge-alert">5 Cars Detected</span>
+        </div>
+        <div style="font-size:0.78rem; color:var(--muted);">
+          Length: 1.1 KM • Avg Speed: 32 KM/H
+        </div>
+        <div class="action-row">
+          <button class="btn-act btn-act-inspect" onclick="inspectTrail([17.410, 78.520], [17.418, 78.532])">🛰️ View Satellite</button>
+          <button class="btn-act btn-act-publish" onclick="publishVerifiedRoad('Canal Mud Road', 'mud_dirt')">🟫 Mud Road</button>
+          <button class="btn-act btn-act-dismiss" onclick="dismissTrail(this)">✕ Discard</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Golden Goose Shopkeeper Pins -->
+    <div class="tab-content" id="tab-shops" style="display:none;">
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">
+        Self-registered local shops. Stored as tiny 200-byte JSON coordinates (₹0 server cost).
+      </p>
+
+      <div class="queue-card">
+        <div class="queue-header">
+          <span style="font-weight:700; font-size:0.9rem;">Bawarchi Grand Biryani</span>
+          <span class="queue-badge badge-gold">ACTIVE • ₹99 / YR</span>
+        </div>
+        <div style="font-size:0.78rem; color:var(--muted);">
+          Phone: +91 9876543210 • Category: Restaurant
+        </div>
+        <div class="action-row">
+          <button class="btn-act btn-act-inspect" onclick="focusShop([17.4018, 78.4908])">📍 Show Pin</button>
+          <button class="btn-act btn-act-publish" onclick="alert('Subscription verified active.')">Verified</button>
+        </div>
+      </div>
+
+      <div class="queue-card">
+        <div class="queue-header">
+          <span style="font-weight:700; font-size:0.9rem;">Niloufer Irani Chai</span>
+          <span class="queue-badge badge-green">3-MONTH TRIAL</span>
+        </div>
+        <div style="font-size:0.78rem; color:var(--muted);">
+          Phone: +91 9123456780 • Category: Tea Stall
+        </div>
+        <div class="action-row">
+          <button class="btn-act btn-act-inspect" onclick="focusShop([17.3970, 78.4682])">📍 Show Pin</button>
+          <button class="btn-act btn-act-publish" onclick="alert('Trial pin active until Dec 2026')">Active</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Manual Road & Highway Creator -->
+    <div class="tab-content" id="tab-create-road" style="display:none;">
+      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">
+        Draw brand-new expressways, bypasses, or colony roads using the Leaflet Draw tool on the map.
+      </p>
+      
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <label style="font-size:0.8rem; font-weight:700;">Highway / Road Name</label>
+        <input type="text" id="draw-road-name" placeholder="e.g. Hyderabad Regional Ring Road (Section 4)" style="padding:10px; background:#1e293b; border:1px solid var(--border); border-radius:8px; color:#fff;">
+
+        <label style="font-size:0.8rem; font-weight:700;">Road Surface Type</label>
+        <select id="draw-road-surface" style="padding:10px; background:#1e293b; border:1px solid var(--border); border-radius:8px; color:#fff;">
+          <option value="asphalt">⬛ Tar / Bitumen (Black Line)</option>
+          <option value="concrete">⬜ Cement / CC Road (Grey Line)</option>
+          <option value="mud_dirt">🟫 Mud / Dirt Path (Brown Dotted)</option>
+        </select>
+
+        <label style="font-size:0.8rem; font-weight:700;">Speed Limit</label>
+        <input type="number" id="draw-road-speed" value="80" style="padding:10px; background:#1e293b; border:1px solid var(--border); border-radius:8px; color:#fff;">
+
+        <button class="btn-act btn-act-publish" style="padding:14px; margin-top:12px; font-size:0.9rem;" onclick="saveDrawnRoad()">
+          💾 Save & Publish Road
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Right Interactive Map with Satellite Layer Switcher -->
+  <main class="admin-map-container">
+    <div class="layer-switcher">
+      <button class="layer-btn active" id="btn-layer-dark" onclick="setAdminLayer('dark')">Dark Map</button>
+      <button class="layer-btn" id="btn-layer-sat" onclick="setAdminLayer('satellite')">🛰️ Satellite View</button>
+    </div>
+    <div id="admin-map"></div>
+  </main>
+
+  <script>
+    let adminMap, baseLayer, satelliteLayer, drawnItems;
+    let currentTrailPolyline = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      adminMap = L.map('admin-map', {
+        center: [17.3850, 78.4867],
+        zoom: 13,
+        zoomControl: true
+      });
+
+      baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(adminMap);
+      satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+
+      drawnItems = new L.FeatureGroup();
+      adminMap.addLayer(drawnItems);
+
+      const drawControl = new L.Control.Draw({
+        edit: { featureGroup: drawnItems },
+        draw: {
+          polyline: { shapeOptions: { color: '#06b6d4', weight: 6 } },
+          polygon: false, circle: false, rectangle: false, circlemarker: false
+        }
+      });
+      adminMap.addControl(drawControl);
+
+      adminMap.on(L.Draw.Event.CREATED, (event) => {
+        drawnItems.addLayer(event.layer);
+      });
+    });
+
+    function setAdminLayer(type) {
+      if (type === 'satellite') {
+        adminMap.removeLayer(baseLayer);
+        satelliteLayer.addTo(adminMap);
+        document.getElementById('btn-layer-sat').classList.add('active');
+        document.getElementById('btn-layer-dark').classList.remove('active');
+      } else {
+        adminMap.removeLayer(satelliteLayer);
+        baseLayer.addTo(adminMap);
+        document.getElementById('btn-layer-dark').classList.add('active');
+        document.getElementById('btn-layer-sat').classList.remove('active');
+      }
+    }
+
+    function switchAdminTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+
+      if (tab === 'trails') {
+        document.getElementById('tab-trails').style.display = 'block';
+        event.target.classList.add('active');
+      } else if (tab === 'shops') {
+        document.getElementById('tab-shops').style.display = 'block';
+        event.target.classList.add('active');
+      } else if (tab === 'create-road') {
+        document.getElementById('tab-create-road').style.display = 'block';
+        event.target.classList.add('active');
+      }
+    }
+
+    function inspectTrail(start, end) {
+      setAdminLayer('satellite');
+      adminMap.setView(start, 16);
+      if (currentTrailPolyline) adminMap.removeLayer(currentTrailPolyline);
+      currentTrailPolyline = L.polyline([start, end], { color: '#ef4444', weight: 6, dashArray: '8, 8' }).addTo(adminMap);
+    }
+
+    function publishVerifiedRoad(name, surface) {
+      alert(`Road "${name}" approved and published as ${surface.toUpperCase()}!\nInstantly accessible in public Rydealot Supermaps.`);
+      if (currentTrailPolyline) {
+        adminMap.removeLayer(currentTrailPolyline);
+        currentTrailPolyline = null;
+      }
+    }
+
+    function dismissTrail(btn) {
+      const card = btn.closest('.queue-card');
+      card.remove();
+      if (currentTrailPolyline) adminMap.removeLayer(currentTrailPolyline);
+      alert('Trail dismissed as off-road terrain.');
+    }
+
+    function focusShop(coords) {
+      adminMap.setView(coords, 17);
+      L.marker(coords).addTo(adminMap).bindPopup('⭐ Promoted Golden Shop').openPopup();
+    }
+
+    function saveDrawnRoad() {
+      const name = document.getElementById('draw-road-name').value.trim();
+      const surface = document.getElementById('draw-road-surface').value;
+      if (!name) return alert('Please enter road name.');
+      alert(`🎉 Road "${name}" (${surface}) published directly to Rydealot Supermaps routing database!`);
+    }
+
+    function toggleConsensusEngine(isActive) {
+      alert(isActive 
+        ? '⚡ Consensus Engine Activated: Drivers will receive obstacle verification prompts and wallet rewards.' 
+        : '💤 Consensus Engine set to DORMANT: Wallet rewards paused until B2B contracts activate.');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Rydealot Supermaps — The Map That Never Dies in Signal Dead Zones</title>
+  
+  <!-- Modern & Fast Web Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS & JS (Hardware Accelerated 2D Rendering) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- PWA Manifest & App Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#0a0b0e">
+</head>
+<body>
+
+  <!-- Full-Screen Map Viewport -->
+  <div id="map-viewport"></div>
+
+  <!-- Top Floating Header & Search -->
+  <header class="top-header">
+    <div class="search-bar-card">
+      <div class="brand-badge">⚡ SUPERMAPS</div>
+      <input type="text" id="search-input" class="search-input" placeholder="Search biryani, chai, shops, metro..." autocomplete="off">
+      <button class="search-action-btn" id="btn-clear-search" onclick="document.getElementById('search-input').value=''">✕</button>
+    </div>
+
+    <!-- Search Autocomplete Dropdown -->
+    <div class="search-dropdown" id="search-dropdown"></div>
+
+    <!-- 1-Tap Category Filter Chips -->
+    <div class="chips-carousel">
+      <button class="chip-btn active" onclick="setCategoryFilter('all')">📍 All Places</button>
+      <button class="chip-btn" onclick="setCategoryFilter('food')">🍗 Biryani & Food</button>
+      <button class="chip-btn" onclick="setCategoryFilter('tea')">☕ Irani Chai</button>
+      <button class="chip-btn" onclick="setCategoryFilter('auto')">🛺 Auto Stands</button>
+      <button class="chip-btn" onclick="setCategoryFilter('fuel')">⛽ Fuel & EV</button>
+      <button class="chip-btn" onclick="setCategoryFilter('station')">🚉 Metro & Trains</button>
+    </div>
+  </header>
+
+  <!-- 5 KM Rolling Buffer & Signal Safety Indicator -->
+  <div class="safety-buffer-pill" id="safety-pill">
+    <div class="pulse-indicator"></div>
+    <span id="safety-pill-text">🟢 5 KM Safety Buffer Running</span>
+  </div>
+
+  <!-- Road Surface Legend (Black=Tar, Grey=Cement, Brown=Mud) -->
+  <div class="surface-legend-bar">
+    <div class="surface-item">
+      <span class="surface-dot dot-tar"></span>
+      <span>Tar (Black)</span>
+    </div>
+    <div class="surface-item">
+      <span class="surface-dot dot-cement"></span>
+      <span>Cement (Grey)</span>
+    </div>
+    <div class="surface-item">
+      <span class="surface-dot dot-mud"></span>
+      <span>Mud Path (Brown)</span>
+    </div>
+  </div>
+
+  <!-- Floating Right-Side Action Controls -->
+  <div class="controls-dock">
+    <button class="dock-btn" onclick="toggleMapTheme()" title="Switch Sunlight / Dark Mode">🎨</button>
+    <button class="dock-btn" onclick="recenterGps()" title="Re-center My Vehicle">📍</button>
+    <button class="dock-btn gold-btn" onclick="openModal('modal-shop-claim')" title="Pin / Claim Your Shop (The Golden Goose)">⭐</button>
+  </div>
+
+  <!-- Live Turn-by-Turn In-Car HUD Overlay -->
+  <div class="nav-hud-overlay" id="nav-hud">
+    <div class="nav-hud-card">
+      <div class="nav-turn-icon">⬆️</div>
+      <div class="nav-instruction-block">
+        <div class="nav-distance-text" id="nav-hud-dist">0.0 KM</div>
+        <div class="nav-action-text" id="nav-hud-action">Driving Route Active</div>
+      </div>
+      <button class="btn-stop-nav" onclick="stopNavigation()">Stop</button>
+    </div>
+  </div>
+
+  <!-- Bottom Panel: Selected Place Details & 1-Tap Navigation -->
+  <div class="bottom-panel" id="bottom-panel">
+    <div class="panel-drag-handle"></div>
+    <div class="place-detail-header">
+      <div>
+        <div class="place-title" id="place-title">Landmark Name</div>
+        <div class="place-subtitle" id="place-subtitle">Category • Address</div>
+      </div>
+      <button class="close-panel-btn" onclick="closeBottomPanel()">✕</button>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="route-actions-row">
+      <button class="btn-nav-primary" id="btn-start-nav">
+        <span>🚗</span>
+        <span>Start Navigation</span>
+      </button>
+      <button class="btn-nav-secondary" id="btn-wa-place">
+        <span>💬</span>
+        <span>WhatsApp</span>
+      </button>
+      <button class="btn-nav-secondary" id="btn-call-place">
+        <span>📞</span>
+        <span>Call</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal: Self-Serve "Add / Pin My Shop" (The Golden Goose) -->
+  <div class="modal-overlay" id="modal-shop-claim">
+    <div class="modal-container">
+      <div class="modal-title">
+        <span>⭐</span>
+        <span>Pin Your Shop on Rydealot Supermaps</span>
+      </div>
+      <p class="modal-desc">
+        Put your shop directly on the map! Promoted Golden Pins glow 24/7 so customers in your area discover your shop first.
+      </p>
+
+      <form id="form-claim-shop" onsubmit="submitShopkeeperClaim(event)">
+        <div class="form-group">
+          <label class="form-label">Shop / Business Name</label>
+          <input type="text" id="shop-input-name" class="form-input" placeholder="e.g. Sri Balaji Kirana & General Store" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Business Category</label>
+          <select id="shop-input-cat" class="form-select">
+            <option value="food">🍗 Restaurant & Biryani</option>
+            <option value="tea">☕ Tea Stall & Cafe</option>
+            <option value="kirana">🛒 Kirana & Supermarket</option>
+            <option value="salon">💇 Salon & Beauty Parlour</option>
+            <option value="medical">💊 Medical Store</option>
+            <option value="auto">🛺 Auto / Taxi Stand</option>
+            <option value="repair">🔧 Mobile & Bike Repair</option>
+            <option value="services">💼 Other Local Business</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Phone / WhatsApp Number</label>
+          <input type="tel" id="shop-input-phone" class="form-input" placeholder="e.g. 9876543210" required>
+        </div>
+
+        <!-- Subscription Pricing Selector -->
+        <label class="form-label">Select Shop Promotion Plan</label>
+        <div class="plan-picker-grid">
+          <div class="plan-card selected" data-plan="trial_3m" onclick="selectPlanCard(this)">
+            <span class="plan-badge">FREE LAUNCH</span>
+            <div class="plan-price">₹0</div>
+            <div class="plan-period">Free for 3 Months</div>
+          </div>
+          <div class="plan-card" data-plan="annual_1y" onclick="selectPlanCard(this)">
+            <span class="plan-badge">BEST VALUE</span>
+            <div class="plan-price">₹99</div>
+            <div class="plan-period">Full 1 Year Pin</div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit-shop">
+          🚀 Pin My Shop Instantly
+        </button>
+        <button type="button" class="btn-nav-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="closeModal('modal-shop-claim')">
+          Cancel
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Master Engine Script -->
+  <script src="supermaps.js"></script>
+</body>
+</html>
