@@ -25,10 +25,49 @@
 
   <!-- Top Floating Header & Search -->
   <header class="top-header">
-    <div class="search-bar-card">
+    <div class="search-bar-card" id="search-bar-box">
       <div class="brand-badge">⚡ SUPERMAPS</div>
-      <input type="text" id="search-input" class="search-input" placeholder="Search biryani, chai, shops, metro..." autocomplete="off">
+      <input type="text" id="search-input" class="search-input" placeholder="Search village, city, address, shops..." autocomplete="off">
+      <button class="search-action-btn" id="btn-open-directions" onclick="toggleDirectionsMode(true)" title="Get Directions">🧭</button>
       <button class="search-action-btn" id="btn-clear-search" onclick="document.getElementById('search-input').value=''">✕</button>
+    </div>
+
+    <!-- Google Maps Full Direction Card (From 📍 To 🏁) -->
+    <div class="directions-card" id="directions-card" style="display:none;">
+      <div class="dir-header">
+        <span class="dir-title">🧭 Directions & Navigation</span>
+        <button class="dir-close-btn" onclick="toggleDirectionsMode(false)">✕</button>
+      </div>
+
+      <!-- Vehicle Mode Switcher (Car vs Bike) -->
+      <div class="vehicle-switcher">
+        <button class="veh-btn active" id="veh-btn-car" onclick="setVehicleMode('car')">🚗 Car / Auto</button>
+        <button class="veh-btn" id="veh-btn-bike" onclick="setVehicleMode('bike')">🏍️ Bike (Shortcuts)</button>
+      </div>
+
+      <!-- From / To Inputs -->
+      <div class="dir-inputs-box">
+        <div class="dir-row">
+          <span class="dir-icon">📍</span>
+          <input type="text" id="dir-from-input" class="dir-input" value="Your Location (GPS)" readonly>
+        </div>
+        <div class="dir-divider">
+          <button type="button" class="swap-dir-btn" onclick="swapDirections()" title="Swap Start & Destination">↕️</button>
+        </div>
+        <div class="dir-row">
+          <span class="dir-icon">🏁</span>
+          <input type="text" id="dir-to-input" class="dir-input" placeholder="Choose destination or tap on map..." autocomplete="off">
+        </div>
+      </div>
+
+      <!-- Live Route Calculation Summary -->
+      <div class="route-summary-banner" id="route-summary-banner" style="display:none;">
+        <div>
+          <div class="route-main-time" id="route-eta">-- mins</div>
+          <div class="route-main-dist" id="route-dist">-- km • Fastest route</div>
+        </div>
+        <button type="button" class="btn-start-driving" onclick="startDrivingActiveRoute()">🚗 Start</button>
+      </div>
     </div>
 
     <!-- Search Autocomplete Dropdown -->

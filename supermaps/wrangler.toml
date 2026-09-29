@@ -1,0 +1,10 @@
+name = "rydealot-supermaps-api"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+# Standalone configuration for Rydealot Supermaps Edge Server
+# Zero shared dependencies with the taxi app
+
+[vars]
+ENVIRONMENT = "production"
+SERVICE_NAME = "Rydealot Supermaps"

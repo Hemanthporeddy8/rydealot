@@ -33,6 +33,110 @@ let customRoadLayers = [];
 let offroadBreadcrumbs = [];
 let isTrackingOffroad = false;
 
+// Google Maps Direction State
+let destMarker = null;
+let activeVehicleMode = 'car';
+let activeDestination = null;
+
+function toggleDirectionsMode(show) {
+  const searchBox = document.getElementById('search-bar-box');
+  const dirCard = document.getElementById('directions-card');
+  if (show) {
+    searchBox.style.display = 'none';
+    dirCard.style.display = 'flex';
+  } else {
+    dirCard.style.display = 'none';
+    searchBox.style.display = 'flex';
+    if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
+    if (activeRoutePolyline) { map.removeLayer(activeRoutePolyline); activeRoutePolyline = null; }
+    document.getElementById('route-summary-banner').style.display = 'none';
+    activeDestination = null;
+  }
+}
+
+function setVehicleMode(mode) {
+  activeVehicleMode = mode;
+  document.getElementById('veh-btn-car').classList.toggle('active', mode === 'car');
+  document.getElementById('veh-btn-bike').classList.toggle('active', mode === 'bike');
+  if (activeDestination) {
+    calculateActiveRoute(activeDestination.lat, activeDestination.lng, activeDestination.name);
+  }
+}
+
+function swapDirections() {
+  const fromVal = document.getElementById('dir-from-input').value;
+  const toVal = document.getElementById('dir-to-input').value;
+  document.getElementById('dir-from-input').value = toVal || 'Your Location (GPS)';
+  document.getElementById('dir-to-input').value = fromVal;
+}
+
+function handleMapDestinationClick(latlng) {
+  if (isNavigating) return;
+
+  if (destMarker) map.removeLayer(destMarker);
+
+  const destIcon = L.divIcon({
+    html: '<div style="font-size:2rem; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.5)); transform:translate(-10px, -28px);">🏁</div>',
+    className: 'dest-pin',
+    iconSize: [30, 30]
+  });
+
+  destMarker = L.marker([latlng.lat, latlng.lng], { icon: destIcon }).addTo(map);
+
+  toggleDirectionsMode(true);
+  const label = `Dropped Pin (${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)})`;
+  document.getElementById('dir-to-input').value = label;
+  calculateActiveRoute(latlng.lat, latlng.lng, label);
+}
+
+async function calculateActiveRoute(destLat, destLng, destName) {
+  activeDestination = { lat: destLat, lng: destLng, name: destName };
+  
+  try {
+    const url = `${CONFIG.OSRM_ROUTING}${userLng},${userLat};${destLng},${destLat}?overview=full&geometries=geojson&steps=true`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data.routes || data.routes.length === 0) {
+      alert('Could not calculate a drivable route to this location.');
+      return;
+    }
+
+    const route = data.routes[0];
+    const coordinates = route.geometry.coordinates.map(c => [c[1], c[0]]);
+
+    if (activeRoutePolyline) map.removeLayer(activeRoutePolyline);
+
+    // Color by vehicle mode: Cyan for Car, Gold for Bike
+    const routeColor = activeVehicleMode === 'bike' ? '#f59e0b' : '#06b6d4';
+    activeRoutePolyline = L.polyline(coordinates, {
+      color: routeColor,
+      weight: 7,
+      opacity: 0.95
+    }).addTo(map);
+
+    map.fitBounds(activeRoutePolyline.getBounds(), { padding: [50, 50] });
+
+    const distKm = (route.distance / 1000).toFixed(1);
+    const etaMins = Math.round(route.duration / 60);
+
+    // Update Route Summary Banner
+    const banner = document.getElementById('route-summary-banner');
+    banner.style.display = 'flex';
+    document.getElementById('route-eta').innerText = `${etaMins} mins`;
+    document.getElementById('route-dist').innerText = `${distKm} km • ${activeVehicleMode === 'car' ? '🚗 Tar road route' : '🏍️ Bike shortcut route'}`;
+
+  } catch (err) {
+    console.warn('Route calc error:', err);
+  }
+}
+
+function startDrivingActiveRoute() {
+  if (!activeDestination) return;
+  toggleDirectionsMode(false);
+  startNavigation(activeDestination.lat, activeDestination.lng, activeDestination.name);
+}
+
 // 1. INITIALIZE SUPERMAPS
 window.addEventListener('DOMContentLoaded', () => {
   initMap();
@@ -72,10 +176,11 @@ function initMap() {
     createUserMarker(userLat, userLng);
   }
 
-  // Handle map click to hide bottom sheets
-  map.on('click', () => {
+  // Handle 1-Tap map click: drops destination pin and calculates route
+  map.on('click', (e) => {
     closeBottomPanel();
     document.getElementById('search-dropdown').style.display = 'none';
+    handleMapDestinationClick(e.latlng);
   });
 }
 
