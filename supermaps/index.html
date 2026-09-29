@@ -29,9 +29,9 @@
   <header class="top-header">
     <div class="search-bar-card" id="search-bar-box">
       <div class="brand-badge">⚡ SUPERMAPS</div>
-      <input type="text" id="search-input" class="search-input" placeholder="Search village, city, address, shops..." autocomplete="off">
+      <input type="text" id="search-input" class="search-input" placeholder="Search village, city, address, shops..." autocomplete="off" oninput="handlePlaceInput(event, 'search')">
       <button class="search-action-btn" id="btn-open-directions" onclick="toggleDirectionsMode(true)" title="Get Directions">🧭</button>
-      <button class="search-action-btn" id="btn-clear-search" onclick="document.getElementById('search-input').value=''">✕</button>
+      <button class="search-action-btn" id="btn-clear-search" onclick="clearSearchInput()">✕</button>
     </div>
 
     <!-- Google Maps Full Direction Card (From 📍 To 🏁) -->
@@ -41,24 +41,27 @@
         <button class="dir-close-btn" onclick="toggleDirectionsMode(false)">✕</button>
       </div>
 
-      <!-- Vehicle Mode Switcher (Car vs Bike) -->
+      <!-- Vehicle Mode Switcher (Car vs Bike vs Walk) -->
       <div class="vehicle-switcher">
-        <button class="veh-btn active" id="veh-btn-car" onclick="setVehicleMode('car')">🚗 Car / Auto</button>
-        <button class="veh-btn" id="veh-btn-bike" onclick="setVehicleMode('bike')">🏍️ Bike (Shortcuts)</button>
+        <button type="button" class="veh-btn active" id="veh-btn-car" onclick="setVehicleMode('car')">🚗 Car</button>
+        <button type="button" class="veh-btn" id="veh-btn-bike" onclick="setVehicleMode('bike')">🏍️ Bike</button>
+        <button type="button" class="veh-btn" id="veh-btn-walk" onclick="setVehicleMode('walk')">🚶 Walk</button>
       </div>
 
-      <!-- From / To Inputs -->
+      <!-- From / To Inputs (Both 100% Typable with Live Suggestions) -->
       <div class="dir-inputs-box">
         <div class="dir-row">
           <span class="dir-icon">📍</span>
-          <input type="text" id="dir-from-input" class="dir-input" value="Your Location (GPS)" readonly>
+          <input type="text" id="dir-from-input" class="dir-input" placeholder="Enter starting point (or GPS)..." value="Your Location (GPS)" oninput="handlePlaceInput(event, 'from')">
+          <button type="button" class="icon-clear-sm" onclick="clearDirectionInput('from')">✕</button>
         </div>
         <div class="dir-divider">
           <button type="button" class="swap-dir-btn" onclick="swapDirections()" title="Swap Start & Destination">↕️</button>
         </div>
         <div class="dir-row">
           <span class="dir-icon">🏁</span>
-          <input type="text" id="dir-to-input" class="dir-input" placeholder="Choose destination or tap on map..." autocomplete="off">
+          <input type="text" id="dir-to-input" class="dir-input" placeholder="Type destination or tap on map..." oninput="handlePlaceInput(event, 'to')">
+          <button type="button" class="icon-clear-sm" onclick="clearDirectionInput('to')">✕</button>
         </div>
       </div>
 

@@ -65,6 +65,23 @@ function initMapEngine() {
     handleMapDestinationClick(e.lngLat);
   });
 
+  // Render Admin GIS Overlays (Custom Roads, Road Blocks, 3D Buildings)
+  map.on('load', () => {
+    renderAdminGisOverlays();
+  });
+
+  // Re-render when theme or basemap style changes
+  map.on('style.load', () => {
+    renderAdminGisOverlays();
+  });
+
+  // Real-time synchronization when Admin updates roads or buildings in another tab
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'rydealot_custom_roads' || e.key === 'rydealot_custom_buildings') {
+      renderAdminGisOverlays();
+    }
+  });
+
   // Track User GPS Location
   if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition(
@@ -151,6 +168,107 @@ function setupCompassHeading() {
 }
 
 // 4. GOOGLE MAPS STYLE "FROM / TO" DIRECTIONS & 1-TAP MAP ROUTING
+let originLngLat = null; // null defaults to user GPS
+let debounceTimer = null;
+
+function clearSearchInput() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-dropdown').style.display = 'none';
+}
+
+function clearDirectionInput(which) {
+  if (which === 'from') {
+    document.getElementById('dir-from-input').value = '';
+    originLngLat = null;
+  } else {
+    document.getElementById('dir-to-input').value = '';
+    clearActiveRoute();
+    activeDestination = null;
+  }
+}
+
+function handlePlaceInput(event, targetType) {
+  const query = event.target.value.trim();
+  clearTimeout(debounceTimer);
+
+  if (query.length < 2) {
+    document.getElementById('search-dropdown').style.display = 'none';
+    return;
+  }
+
+  debounceTimer = setTimeout(() => {
+    fetchPlaceSuggestions(query, targetType);
+  }, 250);
+}
+
+async function fetchPlaceSuggestions(query, targetType) {
+  const dropdown = document.getElementById('search-dropdown');
+  dropdown.innerHTML = '<div style="padding:12px 16px; font-size:0.85rem; color:var(--text-muted);">Searching Indian places...</div>';
+  dropdown.style.display = 'block';
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(query)}&limit=6`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'RydealotSupermaps/1.0' } });
+    const results = await res.json();
+
+    if (!results || results.length === 0) {
+      dropdown.innerHTML = '<div style="padding:12px 16px; font-size:0.85rem; color:var(--text-muted);">No locations found. Try village or city name.</div>';
+      return;
+    }
+
+    dropdown.innerHTML = '';
+    results.forEach(place => {
+      const parts = place.display_name.split(',');
+      const title = parts[0];
+      const subtitle = parts.slice(1, 4).join(', ');
+
+      const item = document.createElement('div');
+      item.className = 'search-item';
+      item.innerHTML = `
+        <div class="search-item-info">
+          <div class="search-item-name">📍 ${title}</div>
+          <div class="search-item-meta">${subtitle}</div>
+        </div>
+        <span class="search-item-badge">${place.type || 'place'}</span>
+      `;
+      item.onclick = () => selectSuggestedPlace(place, targetType);
+      dropdown.appendChild(item);
+    });
+
+  } catch (err) {
+    dropdown.style.display = 'none';
+  }
+}
+
+function selectSuggestedPlace(place, targetType) {
+  const dropdown = document.getElementById('search-dropdown');
+  dropdown.style.display = 'none';
+
+  const lat = parseFloat(place.lat);
+  const lng = parseFloat(place.lon);
+  const shortName = place.display_name.split(',')[0];
+
+  if (targetType === 'from') {
+    originLngLat = [lng, lat];
+    document.getElementById('dir-from-input').value = shortName;
+    if (activeDestination) {
+      calculateActiveRoute(activeDestination.lng, activeDestination.lat, activeDestination.name);
+    }
+  } else {
+    // Target is 'to' or 'search'
+    document.getElementById('dir-to-input').value = shortName;
+    toggleDirectionsMode(true);
+
+    if (destMarker) destMarker.remove();
+    const el = document.createElement('div');
+    el.innerHTML = '<div style="font-size:2.2rem; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.6)); cursor:pointer; transform:translate(-10px, -28px);">🏁</div>';
+    destMarker = new maplibregl.Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
+
+    map.flyTo({ center: [lng, lat], zoom: 14 });
+    calculateActiveRoute(lng, lat, shortName);
+  }
+}
+
 function toggleDirectionsMode(show) {
   const searchBox = document.getElementById('search-bar-box');
   const dirCard = document.getElementById('directions-card');
@@ -162,6 +280,7 @@ function toggleDirectionsMode(show) {
     searchBox.style.display = 'flex';
     clearActiveRoute();
     activeDestination = null;
+    originLngLat = null;
   }
 }
 
@@ -169,6 +288,7 @@ function setVehicleMode(mode) {
   activeVehicleMode = mode;
   document.getElementById('veh-btn-car').classList.toggle('active', mode === 'car');
   document.getElementById('veh-btn-bike').classList.toggle('active', mode === 'bike');
+  document.getElementById('veh-btn-walk').classList.toggle('active', mode === 'walk');
   if (activeDestination) {
     calculateActiveRoute(activeDestination.lng, activeDestination.lat, activeDestination.name);
   }
@@ -179,6 +299,16 @@ function swapDirections() {
   const toVal = document.getElementById('dir-to-input').value;
   document.getElementById('dir-from-input').value = toVal || 'Your Location (GPS)';
   document.getElementById('dir-to-input').value = fromVal;
+
+  const tempCoord = originLngLat;
+  if (activeDestination) {
+    originLngLat = [activeDestination.lng, activeDestination.lat];
+    if (tempCoord) {
+      calculateActiveRoute(tempCoord[0], tempCoord[1], fromVal);
+    } else {
+      calculateActiveRoute(userLngLat[0], userLngLat[1], 'Current Location');
+    }
+  }
 }
 
 // 1-Tap Anywhere on the Map: Drops Pin & Computes Route
@@ -202,9 +332,11 @@ function handleMapDestinationClick(lngLat) {
 
 async function calculateActiveRoute(destLng, destLat, destName) {
   activeDestination = { lng: destLng, lat: destLat, name: destName };
+  const startCoord = originLngLat || userLngLat;
 
   try {
-    const url = `${CONFIG.OSRM_ROUTING}${userLngLat[0]},${userLngLat[1]};${destLng},${destLat}?overview=full&geometries=geojson&steps=true`;
+    const profile = activeVehicleMode === 'walk' ? 'foot' : 'driving';
+    const url = `${CONFIG.OSRM_ROUTING}${startCoord[0]},${startCoord[1]};${destLng},${destLat}?overview=full&geometries=geojson&steps=true`;
     const res = await fetch(url);
     const data = await res.json();
 
@@ -222,7 +354,12 @@ async function calculateActiveRoute(destLng, destLat, destName) {
     const banner = document.getElementById('route-summary-banner');
     banner.style.display = 'flex';
     document.getElementById('route-eta').innerText = `${etaMins} mins`;
-    document.getElementById('route-dist').innerText = `${distKm} km • ${activeVehicleMode === 'car' ? '🚗 Tar road route' : '🏍️ Bike shortcut route'}`;
+    
+    let modeText = '🚗 Tar road route';
+    if (activeVehicleMode === 'bike') modeText = '🏍️ Bike shortcut route';
+    if (activeVehicleMode === 'walk') modeText = '🚶 Walking path';
+    
+    document.getElementById('route-dist').innerText = `${distKm} km • ${modeText}`;
 
   } catch (err) {
     console.warn('Routing error:', err);
@@ -410,3 +547,220 @@ function registerServiceWorker() {
     navigator.serviceWorker.register('./sw.js').catch(e => console.warn(e));
   }
 }
+
+// 7. ADMIN GIS OVERLAYS (Custom Roads, Road Demolitions/Blocks, 3D Buildings)
+function renderAdminGisOverlays() {
+  if (!map) return;
+
+  // Retrieve roads from LocalStorage
+  let customRoads = [];
+  try {
+    const raw = localStorage.getItem('rydealot_custom_roads');
+    if (raw) customRoads = JSON.parse(raw);
+  } catch (e) {}
+
+  if (!customRoads || customRoads.length === 0) {
+    customRoads = [
+      {
+        id: 'road_001',
+        name: 'Warangal North Bypass (4-Lane)',
+        surface: 'asphalt',
+        status: 'active',
+        speed_limit: 80,
+        coordinates: [[78.4867, 17.3850], [78.4950, 17.3920], [78.5100, 17.4050]]
+      },
+      {
+        id: 'road_002',
+        name: 'Old Bridge Road (Closed for Repairs)',
+        surface: 'concrete',
+        status: 'blocked',
+        speed_limit: 20,
+        coordinates: [[78.4720, 17.3780], [78.4780, 17.3810]]
+      }
+    ];
+  }
+
+  // Retrieve buildings from LocalStorage
+  let customBuildings = [];
+  try {
+    const rawBldg = localStorage.getItem('rydealot_custom_buildings');
+    if (rawBldg) customBuildings = JSON.parse(rawBldg);
+  } catch (e) {}
+
+  if (!customBuildings || customBuildings.length === 0) {
+    customBuildings = [
+      {
+        id: 'bldg_001',
+        name: 'Sri Sai Medical Center',
+        category: 'hospital',
+        status: 'active',
+        height_meters: 18,
+        floors: 5,
+        coordinates: [
+          [[78.4870, 17.3860], [78.4880, 17.3860], [78.4880, 17.3870], [78.4870, 17.3870], [78.4870, 17.3860]]
+        ]
+      }
+    ];
+  }
+
+  // Convert roads to GeoJSON
+  const roadsGeoJson = {
+    type: 'FeatureCollection',
+    features: customRoads.map(r => ({
+      type: 'Feature',
+      properties: {
+        id: r.id,
+        name: r.name,
+        surface: r.surface,
+        status: r.status,
+        speed_limit: r.speed_limit
+      },
+      geometry: {
+        type: 'LineString',
+        coordinates: r.coordinates
+      }
+    }))
+  };
+
+  // Convert buildings to GeoJSON
+  const bldgsGeoJson = {
+    type: 'FeatureCollection',
+    features: customBuildings.map(b => ({
+      type: 'Feature',
+      properties: {
+        id: b.id,
+        name: b.name,
+        category: b.category,
+        status: b.status,
+        height_meters: b.height_meters || 15
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: b.coordinates
+      }
+    }))
+  };
+
+  // Remove existing layers & sources safely
+  ['custom-roads-casing', 'custom-roads-core', 'custom-roads-blocked', 'custom-buildings-3d'].forEach(id => {
+    if (map.getLayer(id)) map.removeLayer(id);
+  });
+  if (map.getSource('supermaps-custom-roads')) map.removeSource('supermaps-custom-roads');
+  if (map.getSource('supermaps-custom-buildings')) map.removeSource('supermaps-custom-buildings');
+
+  // Add Roads Source & Layers
+  map.addSource('supermaps-custom-roads', {
+    type: 'geojson',
+    data: roadsGeoJson
+  });
+
+  map.addLayer({
+    id: 'custom-roads-casing',
+    type: 'line',
+    source: 'supermaps-custom-roads',
+    paint: {
+      'line-color': '#000000',
+      'line-width': 8,
+      'line-opacity': 0.8
+    }
+  });
+
+  map.addLayer({
+    id: 'custom-roads-core',
+    type: 'line',
+    source: 'supermaps-custom-roads',
+    filter: ['!=', ['get', 'status'], 'blocked'],
+    paint: {
+      'line-color': [
+        'match',
+        ['get', 'surface'],
+        'asphalt', '#06b6d4',
+        'concrete', '#e2e8f0',
+        'mud_dirt', '#d97706',
+        '#06b6d4'
+      ],
+      'line-width': 5
+    }
+  });
+
+  map.addLayer({
+    id: 'custom-roads-blocked',
+    type: 'line',
+    source: 'supermaps-custom-roads',
+    filter: ['==', ['get', 'status'], 'blocked'],
+    paint: {
+      'line-color': '#ef4444',
+      'line-width': 6,
+      'line-dasharray': [2, 2]
+    }
+  });
+
+  // Add Buildings Source & 3D Extrusion Layer
+  map.addSource('supermaps-custom-buildings', {
+    type: 'geojson',
+    data: bldgsGeoJson
+  });
+
+  map.addLayer({
+    id: 'custom-buildings-3d',
+    type: 'fill-extrusion',
+    source: 'supermaps-custom-buildings',
+    paint: {
+      'fill-extrusion-color': [
+        'case',
+        ['==', ['get', 'status'], 'demolished'], '#ef4444',
+        '#f59e0b'
+      ],
+      'fill-extrusion-height': ['get', 'height_meters'],
+      'fill-extrusion-base': 0,
+      'fill-extrusion-opacity': 0.85
+    }
+  });
+
+  // Interactive Popups
+  map.on('click', 'custom-roads-core', (e) => {
+    const props = e.features[0].properties;
+    new maplibregl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(`
+        <div style="color:#000; font-family:'Plus Jakarta Sans',sans-serif; padding:4px;">
+          <strong>🛣️ ${props.name}</strong><br>
+          <span style="font-size:0.8rem; color:#475569;">Surface: ${props.surface.toUpperCase()} • Speed: ${props.speed_limit} km/h</span><br>
+          <span style="color:#10b981; font-weight:700; font-size:0.75rem;">🟢 Admin Verified Active Road</span>
+        </div>
+      `)
+      .addTo(map);
+  });
+
+  map.on('click', 'custom-roads-blocked', (e) => {
+    const props = e.features[0].properties;
+    new maplibregl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(`
+        <div style="color:#000; font-family:'Plus Jakarta Sans',sans-serif; padding:4px;">
+          <strong style="color:#ef4444;">🚫 ${props.name}</strong><br>
+          <span style="font-size:0.8rem; color:#ef4444; font-weight:700;">CLOSED FOR REPAIRS / DEMOLISHED</span><br>
+          <span style="font-size:0.75rem; color:#475569;">Supermaps routing will bypass this path.</span>
+        </div>
+      `)
+      .addTo(map);
+  });
+
+  map.on('click', 'custom-buildings-3d', (e) => {
+    const props = e.features[0].properties;
+    const isDemolished = props.status === 'demolished';
+    new maplibregl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(`
+        <div style="color:#000; font-family:'Plus Jakarta Sans',sans-serif; padding:4px;">
+          <strong>🏢 ${props.name}</strong><br>
+          <span style="font-size:0.8rem; color:#475569;">Category: ${props.category.toUpperCase()} • Height: ${props.height_meters}m</span><br>
+          <span style="color:${isDemolished ? '#ef4444' : '#10b981'}; font-weight:700; font-size:0.75rem;">
+            ${isDemolished ? '❌ DEMOLISHED STRUCTURE' : '🟢 3D Building Landmark'}
+          </span>
+        </div>
+      `)
+      .addTo(map);
+  });
+}
+

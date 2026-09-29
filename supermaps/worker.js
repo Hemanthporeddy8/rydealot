@@ -59,14 +59,30 @@ export default {
         return await handleShops(request, path, env, corsHeaders);
       }
 
-      // 6. 5-CAR UNMAPPED ROAD TELEMETRY
+      // 6. ROADS & HIGHWAYS GIS (Add new roads, block/demolish roads)
+      // GET  /api/v1/roads
+      // POST /api/v1/roads
+      // DELETE /api/v1/roads/:id
+      if (path.startsWith('/api/v1/roads')) {
+        return await handleRoadsGis(request, path, url, env, corsHeaders);
+      }
+
+      // 7. BUILDINGS GIS (Add 3D buildings, demolish unwanted buildings)
+      // GET  /api/v1/buildings
+      // POST /api/v1/buildings
+      // DELETE /api/v1/buildings/:id
+      if (path.startsWith('/api/v1/buildings')) {
+        return await handleBuildingsGis(request, path, url, env, corsHeaders);
+      }
+
+      // 8. 5-CAR UNMAPPED ROAD TELEMETRY
       // POST /api/v1/telemetry/unmapped
       // GET  /api/v1/telemetry/unmapped
       if (path.startsWith('/api/v1/telemetry')) {
         return await handleTelemetry(request, path, env, corsHeaders);
       }
 
-      // 7. EDGE TILE CACHE PROXY
+      // 9. EDGE TILE CACHE PROXY
       // /api/v1/tiles/:z/:x/:y.png
       if (path.startsWith('/api/v1/tiles')) {
         return await handleTileProxy(request, path, ctx, corsHeaders);
@@ -300,7 +316,167 @@ async function handleShops(request, path, env, headers) {
 }
 
 // =========================================================================
-// MODULE 5: 5-CAR UNMAPPED ROAD TELEMETRY
+// MODULE 5: ROADS & HIGHWAYS GIS (Add, Modify, Block Roads)
+// =========================================================================
+let inMemoryRoads = [
+  {
+    id: 'road_001',
+    name: 'Warangal North Bypass (4-Lane)',
+    surface: 'asphalt',
+    status: 'active',
+    coordinates: [[78.4867, 17.3850], [78.4950, 17.3920], [78.5100, 17.4050]],
+    speed_limit: 80,
+    created_at: new Date().toISOString()
+  }
+];
+
+async function handleRoadsGis(request, path, url, env, headers) {
+  if (request.method === 'GET') {
+    if (env && env.DB) {
+      try {
+        const { results } = await env.DB.prepare('SELECT * FROM supermaps_roads ORDER BY created_at DESC').all();
+        return jsonResponse(results, 200, headers);
+      } catch (e) {
+        return jsonResponse(inMemoryRoads, 200, headers);
+      }
+    }
+    return jsonResponse(inMemoryRoads, 200, headers);
+  }
+
+  if (request.method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    if (!body.name || !body.coordinates) {
+      return jsonResponse({ error: 'Road name and coordinates are required.' }, 400, headers);
+    }
+
+    const roadItem = {
+      id: body.id || 'road_' + Date.now(),
+      name: body.name,
+      surface: body.surface || 'asphalt', // asphalt, concrete, mud_dirt
+      status: body.status || 'active',    // active, blocked
+      coordinates: body.coordinates,       // Array of [lng, lat]
+      speed_limit: body.speed_limit || 60,
+      created_at: new Date().toISOString()
+    };
+
+    if (env && env.DB) {
+      try {
+        await env.DB.prepare(`
+          INSERT INTO supermaps_roads (id, name, surface, status, coordinates_json, speed_limit, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET name=excluded.name, surface=excluded.surface, status=excluded.status, coordinates_json=excluded.coordinates_json
+        `).bind(
+          roadItem.id, roadItem.name, roadItem.surface, roadItem.status, JSON.stringify(roadItem.coordinates), roadItem.speed_limit, roadItem.created_at
+        ).run();
+      } catch (e) {
+        // Fallback to in-memory
+      }
+    }
+
+    const existingIndex = inMemoryRoads.findIndex(r => r.id === roadItem.id);
+    if (existingIndex >= 0) inMemoryRoads[existingIndex] = roadItem;
+    else inMemoryRoads.unshift(roadItem);
+
+    return jsonResponse({ status: 'success', road: roadItem }, 201, headers);
+  }
+
+  if (request.method === 'DELETE') {
+    const id = path.split('/').pop();
+    if (env && env.DB) {
+      try {
+        await env.DB.prepare('DELETE FROM supermaps_roads WHERE id = ?').bind(id).run();
+      } catch (e) {}
+    }
+    inMemoryRoads = inMemoryRoads.filter(r => r.id !== id);
+    return jsonResponse({ status: 'deleted', id: id }, 200, headers);
+  }
+
+  return jsonResponse({ error: 'Method not allowed' }, 405, headers);
+}
+
+// =========================================================================
+// MODULE 6: BUILDINGS GIS (Add 3D Buildings, Demolish Unwanted Buildings)
+// =========================================================================
+let inMemoryBuildings = [
+  {
+    id: 'bldg_001',
+    name: 'Sri Sai Medical Center',
+    category: 'hospital',
+    height_meters: 18,
+    floors: 5,
+    status: 'active',
+    coordinates: [
+      [[78.4870, 17.3860], [78.4880, 17.3860], [78.4880, 17.3870], [78.4870, 17.3870], [78.4870, 17.3860]]
+    ],
+    created_at: new Date().toISOString()
+  }
+];
+
+async function handleBuildingsGis(request, path, url, env, headers) {
+  if (request.method === 'GET') {
+    if (env && env.DB) {
+      try {
+        const { results } = await env.DB.prepare('SELECT * FROM supermaps_buildings ORDER BY created_at DESC').all();
+        return jsonResponse(results, 200, headers);
+      } catch (e) {
+        return jsonResponse(inMemoryBuildings, 200, headers);
+      }
+    }
+    return jsonResponse(inMemoryBuildings, 200, headers);
+  }
+
+  if (request.method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    if (!body.name || !body.coordinates) {
+      return jsonResponse({ error: 'Building name and polygon coordinates are required.' }, 400, headers);
+    }
+
+    const bldgItem = {
+      id: body.id || 'bldg_' + Date.now(),
+      name: body.name,
+      category: body.category || 'commercial',
+      height_meters: body.height_meters || 15,
+      floors: body.floors || 4,
+      status: body.status || 'active', // 'active' or 'demolished'
+      coordinates: body.coordinates,    // Polygon coordinates [[[lng, lat], ...]]
+      created_at: new Date().toISOString()
+    };
+
+    if (env && env.DB) {
+      try {
+        await env.DB.prepare(`
+          INSERT INTO supermaps_buildings (id, name, category, height_meters, floors, status, coordinates_json, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET name=excluded.name, category=excluded.category, status=excluded.status, coordinates_json=excluded.coordinates_json
+        `).bind(
+          bldgItem.id, bldgItem.name, bldgItem.category, bldgItem.height_meters, bldgItem.floors, bldgItem.status, JSON.stringify(bldgItem.coordinates), bldgItem.created_at
+        ).run();
+      } catch (e) {}
+    }
+
+    const existingIndex = inMemoryBuildings.findIndex(b => b.id === bldgItem.id);
+    if (existingIndex >= 0) inMemoryBuildings[existingIndex] = bldgItem;
+    else inMemoryBuildings.unshift(bldgItem);
+
+    return jsonResponse({ status: 'success', building: bldgItem }, 201, headers);
+  }
+
+  if (request.method === 'DELETE') {
+    const id = path.split('/').pop();
+    if (env && env.DB) {
+      try {
+        await env.DB.prepare('DELETE FROM supermaps_buildings WHERE id = ?').bind(id).run();
+      } catch (e) {}
+    }
+    inMemoryBuildings = inMemoryBuildings.filter(b => b.id !== id);
+    return jsonResponse({ status: 'deleted', id: id }, 200, headers);
+  }
+
+  return jsonResponse({ error: 'Method not allowed' }, 405, headers);
+}
+
+// =========================================================================
+// MODULE 7: 5-CAR UNMAPPED ROAD TELEMETRY
 // =========================================================================
 let inMemoryTrails = [];
 

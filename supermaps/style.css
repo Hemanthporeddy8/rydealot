@@ -775,6 +775,23 @@ body.daylight-theme .leaflet-tile {
   color: var(--text-muted);
   font-weight: 500;
 }
+.icon-clear-sm {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-clear-sm:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
 .dir-divider {
   height: 1px;
   background: var(--border-color);

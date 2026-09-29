@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rydealot Supermaps — Command Tower & Admin GIS</title>
+  <title>Rydealot Supermaps — Admin Control Tower (Roads & Buildings GIS)</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,6 +19,7 @@
     :root {
       --bg: #090b10;
       --card: #12151e;
+      --card-alt: #181d2a;
       --border: rgba(255, 255, 255, 0.1);
       --gold: #f59e0b;
       --cyan: #06b6d4;
@@ -40,26 +41,27 @@
       overflow: hidden;
     }
 
-    /* Left Sidebar: Controls & Queues */
+    /* Left Sidebar */
     .admin-sidebar {
-      width: 440px;
+      width: 460px;
       height: 100vh;
       background: var(--card);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      z-index: 10;
+      z-index: 1000;
     }
 
     .admin-header {
-      padding: 20px;
+      padding: 16px 20px;
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background: #0f121a;
     }
     .admin-title {
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       font-weight: 800;
       color: var(--gold);
       display: flex;
@@ -67,60 +69,25 @@
       gap: 8px;
     }
 
-    /* Master Dormant Switch */
-    .dormant-banner {
-      background: rgba(245, 158, 11, 0.1);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      padding: 12px 16px;
-      margin: 16px 20px 0;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .dormant-text {
-      font-size: 0.78rem;
-      color: var(--muted);
-    }
-    .dormant-title {
-      font-size: 0.85rem;
-      font-weight: 800;
-      color: var(--gold);
-    }
-    .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 44px;
-      height: 24px;
-    }
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider {
-      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #334155; transition: .3s; border-radius: 24px;
-    }
-    .toggle-slider:before {
-      position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
-      background-color: white; transition: .3s; border-radius: 50%;
-    }
-    input:checked + .toggle-slider { background-color: var(--green); }
-    input:checked + .toggle-slider:before { transform: translateX(20px); }
-
     /* Tabs */
     .tabs-nav {
       display: flex;
       border-bottom: 1px solid var(--border);
-      padding: 0 20px;
-      margin-top: 14px;
+      padding: 0 12px;
+      background: #11141f;
+      overflow-x: auto;
     }
     .tab-btn {
-      padding: 10px 14px;
+      padding: 12px 14px;
       background: transparent;
       border: none;
       color: var(--muted);
-      font-size: 0.84rem;
+      font-size: 0.82rem;
       font-weight: 700;
       cursor: pointer;
       border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: all 0.2s;
     }
     .tab-btn.active {
       color: var(--gold);
@@ -130,52 +97,125 @@
     .tab-content {
       flex: 1;
       overflow-y: auto;
-      padding: 20px;
+      padding: 18px 20px;
     }
 
-    /* Queue Cards */
-    .queue-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 12px;
+    /* Admin Action Forms & Cards */
+    .info-box {
+      background: rgba(6, 182, 212, 0.08);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 0.8rem;
+      color: #a5f3fc;
+      line-height: 1.4;
+    }
+
+    .form-group {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
+      margin-bottom: 12px;
     }
-    .queue-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .form-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .queue-badge {
-      font-size: 0.72rem;
-      font-weight: 800;
-      padding: 3px 8px;
-      border-radius: 6px;
-    }
-    .badge-alert { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
-    .badge-gold { background: rgba(245, 158, 11, 0.2); color: var(--gold); }
-    .badge-green { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
-
-    .action-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 6px;
-    }
-    .btn-act {
-      flex: 1;
-      padding: 8px 10px;
+    .form-control {
+      background: #1a202c;
+      border: 1px solid var(--border);
       border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.88rem;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+
+    .drawing-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px dashed var(--gold);
+      color: var(--gold);
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .btn-act {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
       border: none;
-      font-size: 0.78rem;
+      font-size: 0.88rem;
       font-weight: 800;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
     }
-    .btn-act-inspect { background: #1e293b; color: #fff; }
-    .btn-act-publish { background: var(--green); color: #000; }
-    .btn-act-dismiss { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .btn-act-publish { background: var(--green); color: #000; margin-bottom: 8px; }
+    .btn-act-publish:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-act-danger { background: rgba(239, 68, 68, 0.2); border: 1px solid var(--red); color: #f87171; }
+    .btn-act-danger:hover { background: var(--red); color: #fff; }
+
+    .items-list {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .item-card {
+      background: var(--card-alt);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      transition: border 0.2s;
+    }
+    .item-card:hover {
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+    .item-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+    .item-meta {
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .btn-del-sm {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--red);
+      color: #f87171;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-del-sm:hover {
+      background: var(--red);
+      color: #fff;
+    }
 
     /* Right Main Map */
     .admin-map-container {
@@ -186,31 +226,99 @@
     #admin-map {
       width: 100%;
       height: 100%;
+      background: #090b10;
+    }
+
+    /* Top Floating Tools */
+    .map-top-bar {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    .map-top-bar > * {
+      pointer-events: auto;
+    }
+
+    .admin-search-box {
+      display: flex;
+      align-items: center;
+      background: rgba(18, 21, 30, 0.95);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px 12px;
+      width: 320px;
+      backdrop-filter: blur(12px);
+    }
+    .admin-search-input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 0.85rem;
+      width: 100%;
+      padding: 6px;
+      outline: none;
     }
 
     .layer-switcher {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 1000;
-      background: rgba(18, 21, 30, 0.9);
+      background: rgba(18, 21, 30, 0.95);
       border: 1px solid var(--border);
-      padding: 8px;
-      border-radius: 12px;
+      padding: 4px;
+      border-radius: 10px;
       display: flex;
-      gap: 8px;
+      gap: 6px;
+      backdrop-filter: blur(12px);
     }
     .layer-btn {
-      padding: 8px 12px;
-      border-radius: 8px;
+      padding: 8px 14px;
+      border-radius: 7px;
       background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-size: 0.78rem;
+      border: none;
+      color: var(--muted);
+      font-size: 0.8rem;
       font-weight: 700;
       cursor: pointer;
     }
     .layer-btn.active {
+      background: var(--gold);
+      color: #000;
+    }
+
+    /* Bottom Quick Action Bar */
+    .quick-draw-dock {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: rgba(18, 21, 30, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      padding: 6px 12px;
+      display: flex;
+      gap: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      backdrop-filter: blur(12px);
+    }
+    .dock-action-btn {
+      background: #1a202c;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .dock-action-btn:hover {
       background: var(--gold);
       color: #000;
       border-color: var(--gold);
@@ -224,171 +332,661 @@
     <div class="admin-header">
       <div class="admin-title">
         <span>⚡</span>
-        <span>SUPERMAPS CONTROL TOWER</span>
+        <span>SUPERMAPS GIS TOWER</span>
       </div>
-      <a href="index.html" style="color:var(--muted); text-decoration:none; font-size:0.8rem; font-weight:700;">Public Map ↗</a>
-    </div>
-
-    <!-- Master B2B Dormant Switch -->
-    <div class="dormant-banner">
-      <div>
-        <div class="dormant-title">Crowdsourced Consensus Engine</div>
-        <div class="dormant-text">Dormant until B2B clients sign contracts</div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button onclick="syncAllToPublicMap()" style="background:var(--gold); border:none; color:#000; font-weight:800; font-size:0.75rem; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Sync to Public Map">⚡ Sync Live</button>
+        <a href="index.html" target="_blank" style="color:var(--muted); text-decoration:none; font-size:0.8rem; font-weight:700;">Public Map ↗</a>
       </div>
-      <label class="toggle-switch">
-        <input type="checkbox" id="toggle-crowdsource" onchange="toggleConsensusEngine(this.checked)">
-        <span class="toggle-slider"></span>
-      </label>
     </div>
 
     <!-- Tabs Navigation -->
     <div class="tabs-nav">
-      <button class="tab-btn active" onclick="switchAdminTab('trails')">🚗 5-Car Trails (<span id="count-trails">2</span>)</button>
-      <button class="tab-btn" onclick="switchAdminTab('shops')">⭐ Golden Shops (<span id="count-shops">2</span>)</button>
-      <button class="tab-btn" onclick="switchAdminTab('create-road')">🛣️ Add Highway</button>
+      <button class="tab-btn active" onclick="switchAdminTab('roads')">🛣️ Roads GIS</button>
+      <button class="tab-btn" onclick="switchAdminTab('buildings')">🏢 Buildings GIS</button>
+      <button class="tab-btn" onclick="switchAdminTab('trails')">🚗 5-Car Alerts</button>
+      <button class="tab-btn" onclick="switchAdminTab('shops')">⭐ Shops</button>
     </div>
 
-    <!-- Tab 1: 5-Car Unmapped Road Alerts -->
-    <div class="tab-content" id="tab-trails">
-      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">
-        Paths where 5+ four-wheelers drove across unmapped space at driving speed. Switch to <strong>Satellite View</strong> to verify tar/concrete vs mud field before publishing.
-      </p>
-
-      <!-- Alert 1 -->
-      <div class="queue-card">
-        <div class="queue-header">
-          <span style="font-weight:700; font-size:0.9rem;">Warangal South Bypass Link</span>
-          <span class="queue-badge badge-alert">7 Cars Detected</span>
-        </div>
-        <div style="font-size:0.78rem; color:var(--muted);">
-          Length: 3.2 KM • Avg Speed: 58 KM/H
-        </div>
-        <div class="action-row">
-          <button class="btn-act btn-act-inspect" onclick="inspectTrail([17.980, 79.560], [17.995, 79.585])">🛰️ View Satellite</button>
-          <button class="btn-act btn-act-publish" onclick="publishVerifiedRoad('Warangal South Bypass', 'asphalt')">✅ Tar Road</button>
-          <button class="btn-act btn-act-dismiss" onclick="dismissTrail(this)">✕ Discard</button>
-        </div>
+    <!-- TAB 1: ROADS GIS (ADD, CHANGE, DEMOLISH/BLOCK ROADS) -->
+    <div class="tab-content" id="tab-roads">
+      <div class="info-box">
+        💡 <strong>Add or Remove Roads:</strong> Click <strong>"Draw Road Line"</strong> below, tap points along the path on the satellite or dark map, then enter details here and click <strong>Publish</strong>.
       </div>
 
-      <!-- Alert 2 -->
-      <div class="queue-card">
-        <div class="queue-header">
-          <span style="font-weight:700; font-size:0.9rem;">Village Canal Crossing</span>
-          <span class="queue-badge badge-alert">5 Cars Detected</span>
-        </div>
-        <div style="font-size:0.78rem; color:var(--muted);">
-          Length: 1.1 KM • Avg Speed: 32 KM/H
-        </div>
-        <div class="action-row">
-          <button class="btn-act btn-act-inspect" onclick="inspectTrail([17.410, 78.520], [17.418, 78.532])">🛰️ View Satellite</button>
-          <button class="btn-act btn-act-publish" onclick="publishVerifiedRoad('Canal Mud Road', 'mud_dirt')">🟫 Mud Road</button>
-          <button class="btn-act btn-act-dismiss" onclick="dismissTrail(this)">✕ Discard</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab 2: Golden Goose Shopkeeper Pins -->
-    <div class="tab-content" id="tab-shops" style="display:none;">
-      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">
-        Self-registered local shops. Stored as tiny 200-byte JSON coordinates (₹0 server cost).
-      </p>
-
-      <div class="queue-card">
-        <div class="queue-header">
-          <span style="font-weight:700; font-size:0.9rem;">Bawarchi Grand Biryani</span>
-          <span class="queue-badge badge-gold">ACTIVE • ₹99 / YR</span>
-        </div>
-        <div style="font-size:0.78rem; color:var(--muted);">
-          Phone: +91 9876543210 • Category: Restaurant
-        </div>
-        <div class="action-row">
-          <button class="btn-act btn-act-inspect" onclick="focusShop([17.4018, 78.4908])">📍 Show Pin</button>
-          <button class="btn-act btn-act-publish" onclick="alert('Subscription verified active.')">Verified</button>
-        </div>
+      <div id="road-status-badge" class="drawing-badge" style="display:none;">
+        <span>📍</span>
+        <span id="road-points-count">0 coordinates recorded</span>
       </div>
 
-      <div class="queue-card">
-        <div class="queue-header">
-          <span style="font-weight:700; font-size:0.9rem;">Niloufer Irani Chai</span>
-          <span class="queue-badge badge-green">3-MONTH TRIAL</span>
-        </div>
-        <div style="font-size:0.78rem; color:var(--muted);">
-          Phone: +91 9123456780 • Category: Tea Stall
-        </div>
-        <div class="action-row">
-          <button class="btn-act btn-act-inspect" onclick="focusShop([17.3970, 78.4682])">📍 Show Pin</button>
-          <button class="btn-act btn-act-publish" onclick="alert('Trial pin active until Dec 2026')">Active</button>
-        </div>
+      <div class="form-group">
+        <label class="form-label">Road / Highway Name</label>
+        <input type="text" id="road-name-input" class="form-control" placeholder="e.g. Warangal North Bypass (4-Lane)">
       </div>
-    </div>
 
-    <!-- Tab 3: Manual Road & Highway Creator -->
-    <div class="tab-content" id="tab-create-road" style="display:none;">
-      <p style="font-size:0.8rem; color:var(--muted); margin-bottom:14px;">
-        Draw brand-new expressways, bypasses, or colony roads using the Leaflet Draw tool on the map.
-      </p>
-      
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <label style="font-size:0.8rem; font-weight:700;">Highway / Road Name</label>
-        <input type="text" id="draw-road-name" placeholder="e.g. Hyderabad Regional Ring Road (Section 4)" style="padding:10px; background:#1e293b; border:1px solid var(--border); border-radius:8px; color:#fff;">
-
-        <label style="font-size:0.8rem; font-weight:700;">Road Surface Type</label>
-        <select id="draw-road-surface" style="padding:10px; background:#1e293b; border:1px solid var(--border); border-radius:8px; color:#fff;">
-          <option value="asphalt">⬛ Tar / Bitumen (Black Line)</option>
-          <option value="concrete">⬜ Cement / CC Road (Grey Line)</option>
-          <option value="mud_dirt">🟫 Mud / Dirt Path (Brown Dotted)</option>
+      <div class="form-group">
+        <label class="form-label">Surface Type (Visual Color)</label>
+        <select id="road-surface-select" class="form-control">
+          <option value="asphalt">⬛ Pitch Black — Tar / Asphalt Highway</option>
+          <option value="concrete">⬜ Cool Grey — Cement / CC Colony Road</option>
+          <option value="mud_dirt">🟫 Earth Brown — Mud / Village Shortcut</option>
         </select>
+      </div>
 
-        <label style="font-size:0.8rem; font-weight:700;">Speed Limit</label>
-        <input type="number" id="draw-road-speed" value="80" style="padding:10px; background:#1e293b; border:1px solid var(--border); border-radius:8px; color:#fff;">
+      <div class="form-group">
+        <label class="form-label">Road Operational Status</label>
+        <select id="road-action-select" class="form-control">
+          <option value="active">🟢 Active Drivable Road (New Road)</option>
+          <option value="blocked">🚫 Closed / Demolished Road (Routing Bypass)</option>
+        </select>
+      </div>
 
-        <button class="btn-act btn-act-publish" style="padding:14px; margin-top:12px; font-size:0.9rem;" onclick="saveDrawnRoad()">
-          💾 Save & Publish Road
-        </button>
+      <div class="form-group">
+        <label class="form-label">Speed Limit (KM/H)</label>
+        <input type="number" id="road-speed-input" class="form-control" value="60" min="10" max="140">
+      </div>
+
+      <button type="button" class="btn-act btn-act-publish" onclick="saveAdminRoad()">
+        💾 Save & Publish Road to Map
+      </button>
+
+      <!-- Active Roads & Blocks List -->
+      <div style="margin-top:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:0.78rem; font-weight:800; color:var(--gold);">ACTIVE ROADS & REMOVALS (<span id="count-roads">0</span>)</span>
+          <button onclick="clearAllRoads()" style="background:none; border:none; color:#f87171; font-size:0.7rem; font-weight:700; cursor:pointer;">Clear All</button>
+        </div>
+        <div class="items-list" id="custom-roads-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: BUILDINGS GIS (ADD & DEMOLISH BUILDINGS) -->
+    <div class="tab-content" id="tab-buildings" style="display:none;">
+      <div class="info-box">
+        💡 <strong>Add 3D Buildings or Remove Unwanted Structures:</strong> Click <strong>"Draw Building Polygon"</strong>, tap around the building boundary on the map, and save.
+      </div>
+
+      <div id="bldg-status-badge" class="drawing-badge" style="display:none;">
+        <span>🏢</span>
+        <span id="bldg-points-count">0 corners recorded</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Building / Structure Name</label>
+        <input type="text" id="bldg-name-input" class="form-control" placeholder="e.g. Inorbit Mall / Govt Hospital">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select id="bldg-cat-select" class="form-control">
+          <option value="commercial">🏬 Commercial / Mall / Complex</option>
+          <option value="hospital">🏥 Hospital / Healthcare</option>
+          <option value="residential">🏢 Apartment / Gated Community</option>
+          <option value="government">🏛️ Government / Police / Station</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Building Status</label>
+        <select id="bldg-status-select" class="form-control">
+          <option value="active">🟢 Active Building (Visible in 3D)</option>
+          <option value="demolished">❌ Demolished / Removed Structure</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Height / Floors (Approx)</label>
+        <input type="number" id="bldg-height-input" class="form-control" value="18" placeholder="Height in meters (e.g. 18m = 5 floors)">
+      </div>
+
+      <button type="button" class="btn-act btn-act-publish" onclick="saveAdminBuilding()">
+        🏢 Save Building to Supermaps
+      </button>
+
+      <!-- Active Buildings List -->
+      <div style="margin-top:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:0.78rem; font-weight:800; color:var(--gold);">ACTIVE BUILDINGS & DEMOLITIONS (<span id="count-buildings">0</span>)</span>
+          <button onclick="clearAllBuildings()" style="background:none; border:none; color:#f87171; font-size:0.7rem; font-weight:700; cursor:pointer;">Clear All</button>
+        </div>
+        <div class="items-list" id="custom-buildings-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: 5-CAR UNMAPPED ROAD ALERTS -->
+    <div class="tab-content" id="tab-trails" style="display:none;">
+      <div class="info-box">
+        🚗 <strong>5-Car Detection Engine:</strong> Anonymous traces where 5+ vehicles travelled across unmapped terrain. Inspect in <strong>Satellite View</strong> before publishing.
+      </div>
+
+      <div class="items-list">
+        <div class="item-card" style="flex-direction:column; align-items:flex-start; gap:8px;">
+          <div style="display:flex; justify-content:space-between; width:100%;">
+            <span style="font-weight:700;">Warangal South Bypass Trail</span>
+            <span style="background:rgba(239,68,68,0.2); color:#fca5a5; font-size:0.72rem; padding:2px 8px; border-radius:6px; font-weight:800;">7 CARS</span>
+          </div>
+          <div style="font-size:0.75rem; color:var(--muted);">3.2 KM • Avg Speed: 58 KM/H</div>
+          <div style="display:flex; gap:8px; width:100%; margin-top:4px;">
+            <button class="btn-act" style="background:#1e293b; color:#fff;" onclick="inspectTrail([17.980, 79.560], [17.995, 79.585])">🛰️ Inspect</button>
+            <button class="btn-act btn-act-publish" onclick="publishVerifiedTrail('Warangal South Bypass Trail', 'asphalt')">✅ Tar Road</button>
+            <button class="btn-act btn-act-danger" onclick="this.closest('.item-card').remove()">✕ Discard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: GOLDEN SHOPS -->
+    <div class="tab-content" id="tab-shops" style="display:none;">
+      <div class="info-box">
+        ⭐ <strong>Shopkeeper Radar Pins:</strong> Verified local shops glow with radar waves on public Rydealot Supermaps.
+      </div>
+
+      <div class="items-list" id="admin-shops-list">
+        <div class="item-card">
+          <div>
+            <div class="item-title">Bawarchi Grand Biryani</div>
+            <div class="item-meta">₹99 / Year Plan • +91 9876543210</div>
+          </div>
+          <button class="btn-act" style="width:auto; padding:6px 12px; background:var(--green); color:#000;" onclick="alert('Subscription verified active.')">Active</button>
+        </div>
+        <div class="item-card">
+          <div>
+            <div class="item-title">Niloufer Irani Chai</div>
+            <div class="item-meta">3-Month Free Trial • +91 9123456780</div>
+          </div>
+          <button class="btn-act" style="width:auto; padding:6px 12px; background:var(--gold); color:#000;" onclick="alert('Trial active.')">Active</button>
+        </div>
       </div>
     </div>
   </aside>
 
-  <!-- Right Interactive Map with Satellite Layer Switcher -->
+  <!-- Right Interactive Map with Satellite Switcher -->
   <main class="admin-map-container">
-    <div class="layer-switcher">
-      <button class="layer-btn active" id="btn-layer-dark" onclick="setAdminLayer('dark')">Dark Map</button>
-      <button class="layer-btn" id="btn-layer-sat" onclick="setAdminLayer('satellite')">🛰️ Satellite View</button>
+    <div class="map-top-bar">
+      <!-- Search Place in Admin Map -->
+      <div class="admin-search-box">
+        <span>🔍</span>
+        <input type="text" id="admin-map-search" class="admin-search-input" placeholder="Search Indian city, town or village..." onkeydown="handleAdminSearch(event)">
+      </div>
+
+      <!-- Layer Switcher -->
+      <div class="layer-switcher">
+        <button type="button" class="layer-btn active" id="btn-layer-dark" onclick="setAdminLayer('dark')">Dark Map</button>
+        <button type="button" class="layer-btn" id="btn-layer-sat" onclick="setAdminLayer('satellite')">🛰️ Satellite View</button>
+      </div>
     </div>
+
+    <!-- Quick Drawing Dock -->
+    <div class="quick-draw-dock">
+      <button class="dock-action-btn" onclick="startDrawRoad()">
+        <span>🛣️</span>
+        <span>Draw Road Line</span>
+      </button>
+      <button class="dock-action-btn" onclick="startDrawBlock()">
+        <span>🚫</span>
+        <span>Mark Road Blocked</span>
+      </button>
+      <button class="dock-action-btn" onclick="startDrawBuilding()">
+        <span>🏢</span>
+        <span>Draw Building</span>
+      </button>
+      <button class="dock-action-btn" onclick="startDemolishBuilding()">
+        <span>💥</span>
+        <span>Demolish Building</span>
+      </button>
+    </div>
+
     <div id="admin-map"></div>
   </main>
 
   <script>
-    let adminMap, baseLayer, satelliteLayer, drawnItems;
-    let currentTrailPolyline = null;
+    // =========================================================================
+    // RYDEALOT SUPERMAPS GIS ADMIN ENGINE
+    // =========================================================================
+    let adminMap, baseLayer, satelliteLayer;
+    let drawnItemsGroup;
+    let currentDrawnLayer = null;
+    let currentDrawingCoords = null;
+
+    // Persistent GIS Databases
+    let customRoads = [];
+    let customBuildings = [];
+
+    const STORAGE_KEY_ROADS = 'rydealot_custom_roads';
+    const STORAGE_KEY_BLDGS = 'rydealot_custom_buildings';
+
+    // Default Seed Roads & Buildings
+    const DEFAULT_ROADS = [
+      {
+        id: 'road_001',
+        name: 'Warangal North Bypass (4-Lane)',
+        surface: 'asphalt',
+        status: 'active',
+        speed_limit: 80,
+        coordinates: [[78.4867, 17.3850], [78.4950, 17.3920], [78.5100, 17.4050]]
+      },
+      {
+        id: 'road_002',
+        name: 'Old Bridge Road (Closed for Repairs)',
+        surface: 'concrete',
+        status: 'blocked',
+        speed_limit: 20,
+        coordinates: [[78.4720, 17.3780], [78.4780, 17.3810]]
+      }
+    ];
+
+    const DEFAULT_BUILDINGS = [
+      {
+        id: 'bldg_001',
+        name: 'Sri Sai Medical Center',
+        category: 'hospital',
+        status: 'active',
+        height_meters: 18,
+        floors: 5,
+        coordinates: [
+          [[78.4870, 17.3860], [78.4880, 17.3860], [78.4880, 17.3870], [78.4870, 17.3870], [78.4870, 17.3860]]
+        ]
+      }
+    ];
 
     window.addEventListener('DOMContentLoaded', () => {
+      initAdminMap();
+      loadStorageData();
+      renderAllGisOverlays();
+      renderSidebarLists();
+    });
+
+    function initAdminMap() {
       adminMap = L.map('admin-map', {
-        center: [17.3850, 78.4867],
-        zoom: 13,
+        center: [17.3850, 78.4867], // Hyderabad
+        zoom: 14,
         zoomControl: true
       });
 
-      baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(adminMap);
-      satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 });
+      // CartoDB Dark Matter (clean dark basemap with zero OSM branding)
+      baseLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 20,
+        subdomains: 'abcd',
+        attribution: '&copy; Rydealot Supermaps'
+      }).addTo(adminMap);
 
-      drawnItems = new L.FeatureGroup();
-      adminMap.addLayer(drawnItems);
+      // High Resolution Esri World Imagery (Satellite)
+      satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 20,
+        attribution: '&copy; Rydealot Satellite GIS'
+      });
 
+      drawnItemsGroup = new L.FeatureGroup().addTo(adminMap);
+
+      // Leaflet Draw Control
       const drawControl = new L.Control.Draw({
-        edit: { featureGroup: drawnItems },
+        position: 'topright',
         draw: {
-          polyline: { shapeOptions: { color: '#06b6d4', weight: 6 } },
-          polygon: false, circle: false, rectangle: false, circlemarker: false
+          polyline: {
+            shapeOptions: { color: '#06b6d4', weight: 6, opacity: 0.9 }
+          },
+          polygon: {
+            shapeOptions: { color: '#f59e0b', weight: 3, fillOpacity: 0.45 }
+          },
+          rectangle: false,
+          circle: false,
+          circlemarker: false,
+          marker: false
+        },
+        edit: {
+          featureGroup: drawnItemsGroup,
+          remove: true
         }
       });
       adminMap.addControl(drawControl);
 
-      adminMap.on(L.Draw.Event.CREATED, (event) => {
-        drawnItems.addLayer(event.layer);
-      });
-    });
+      // Draw events
+      adminMap.on(L.Draw.Event.CREATED, (e) => {
+        currentDrawnLayer = e.layer;
+        drawnItemsGroup.addLayer(currentDrawnLayer);
 
+        if (e.layerType === 'polyline') {
+          const latlngs = currentDrawnLayer.getLatLngs();
+          currentDrawingCoords = latlngs.map(ll => [Number(ll.lng.toFixed(6)), Number(ll.lat.toFixed(6))]);
+          
+          switchAdminTab('roads');
+          document.getElementById('road-status-badge').style.display = 'flex';
+          document.getElementById('road-points-count').innerText = `✅ ${currentDrawingCoords.length} road coordinates captured! Enter name below.`;
+        } else if (e.layerType === 'polygon') {
+          const latlngs = currentDrawnLayer.getLatLngs()[0];
+          currentDrawingCoords = [latlngs.map(ll => [Number(ll.lng.toFixed(6)), Number(ll.lat.toFixed(6))])];
+          // Close polygon if needed
+          if (currentDrawingCoords[0].length > 0) {
+            currentDrawingCoords[0].push(currentDrawingCoords[0][0]);
+          }
+
+          switchAdminTab('buildings');
+          document.getElementById('bldg-status-badge').style.display = 'flex';
+          document.getElementById('bldg-points-count').innerText = `✅ ${latlngs.length} building corners captured! Enter name below.`;
+        }
+      });
+    }
+
+    // Quick dock draw triggers
+    function startDrawRoad() {
+      switchAdminTab('roads');
+      document.getElementById('road-action-select').value = 'active';
+      new L.Draw.Polyline(adminMap, { shapeOptions: { color: '#06b6d4', weight: 6 } }).enable();
+    }
+
+    function startDrawBlock() {
+      switchAdminTab('roads');
+      document.getElementById('road-action-select').value = 'blocked';
+      document.getElementById('road-name-input').value = 'Closed / Demolished Road';
+      new L.Draw.Polyline(adminMap, { shapeOptions: { color: '#ef4444', weight: 7, dashArray: '6, 8' } }).enable();
+    }
+
+    function startDrawBuilding() {
+      switchAdminTab('buildings');
+      document.getElementById('bldg-status-select').value = 'active';
+      new L.Draw.Polygon(adminMap, { shapeOptions: { color: '#f59e0b', weight: 3, fillOpacity: 0.5 } }).enable();
+    }
+
+    function startDemolishBuilding() {
+      switchAdminTab('buildings');
+      document.getElementById('bldg-status-select').value = 'demolished';
+      document.getElementById('bldg-name-input').value = 'Demolished Structure';
+      new L.Draw.Polygon(adminMap, { shapeOptions: { color: '#ef4444', weight: 3, fillOpacity: 0.6 } }).enable();
+    }
+
+    // Data Load & Save
+    function loadStorageData() {
+      try {
+        const storedRoads = localStorage.getItem(STORAGE_KEY_ROADS);
+        customRoads = storedRoads ? JSON.parse(storedRoads) : DEFAULT_ROADS;
+
+        const storedBldgs = localStorage.getItem(STORAGE_KEY_BLDGS);
+        customBuildings = storedBldgs ? JSON.parse(storedBldgs) : DEFAULT_BUILDINGS;
+      } catch (e) {
+        customRoads = DEFAULT_ROADS;
+        customBuildings = DEFAULT_BUILDINGS;
+      }
+    }
+
+    function persistStorageData() {
+      localStorage.setItem(STORAGE_KEY_ROADS, JSON.stringify(customRoads));
+      localStorage.setItem(STORAGE_KEY_BLDGS, JSON.stringify(customBuildings));
+    }
+
+    // Render on Admin Map
+    function renderAllGisOverlays() {
+      drawnItemsGroup.clearLayers();
+
+      // 1. Render Roads
+      customRoads.forEach(road => {
+        const latlngs = road.coordinates.map(c => [c[1], c[0]]); // Leaflet uses [lat, lng]
+        let color = '#06b6d4';
+        let dash = null;
+
+        if (road.status === 'blocked') {
+          color = '#ef4444';
+          dash = '8, 8';
+        } else if (road.surface === 'asphalt') {
+          color = '#38bdf8';
+        } else if (road.surface === 'concrete') {
+          color = '#cbd5e1';
+        } else if (road.surface === 'mud_dirt') {
+          color = '#d97706';
+        }
+
+        const polyline = L.polyline(latlngs, {
+          color: color,
+          weight: road.status === 'blocked' ? 7 : 6,
+          opacity: 0.9,
+          dashArray: dash
+        }).addTo(drawnItemsGroup);
+
+        const statusTag = road.status === 'blocked' ? '<span style="color:#ef4444; font-weight:800;">🚫 DEMOLISHED / BLOCKED</span>' : '🟢 ACTIVE ROAD';
+        polyline.bindPopup(`
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; color:#000;">
+            <strong style="font-size:0.95rem;">${road.name}</strong><br>
+            <span style="font-size:0.8rem; color:#475569;">Surface: ${road.surface.toUpperCase()} • ${road.speed_limit} km/h</span><br>
+            <div style="margin-top:6px;">${statusTag}</div>
+            <button onclick="deleteRoadById('${road.id}')" style="margin-top:8px; background:#ef4444; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-weight:700; cursor:pointer;">Delete Road</button>
+          </div>
+        `);
+      });
+
+      // 2. Render Buildings
+      customBuildings.forEach(bldg => {
+        if (!bldg.coordinates || !bldg.coordinates[0]) return;
+        const latlngs = bldg.coordinates[0].map(c => [c[1], c[0]]);
+        const isDemolished = bldg.status === 'demolished';
+
+        const polygon = L.polygon(latlngs, {
+          color: isDemolished ? '#ef4444' : '#f59e0b',
+          weight: 2,
+          fillColor: isDemolished ? '#ef4444' : '#f59e0b',
+          fillOpacity: isDemolished ? 0.6 : 0.4
+        }).addTo(drawnItemsGroup);
+
+        const statusTag = isDemolished ? '<span style="color:#ef4444; font-weight:800;">❌ DEMOLISHED / REMOVED STRUCTURE</span>' : '🟢 ACTIVE BUILDING';
+        polygon.bindPopup(`
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; color:#000;">
+            <strong style="font-size:0.95rem;">${bldg.name}</strong><br>
+            <span style="font-size:0.8rem; color:#475569;">Category: ${bldg.category.toUpperCase()} • ${bldg.height_meters || 15}m</span><br>
+            <div style="margin-top:6px;">${statusTag}</div>
+            <button onclick="deleteBuildingById('${bldg.id}')" style="margin-top:8px; background:#ef4444; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-weight:700; cursor:pointer;">Delete Structure</button>
+          </div>
+        `);
+      });
+    }
+
+    // Render Left Sidebar Lists
+    function renderSidebarLists() {
+      // 1. Roads List
+      const roadsListEl = document.getElementById('custom-roads-list');
+      roadsListEl.innerHTML = '';
+      document.getElementById('count-roads').innerText = customRoads.length;
+
+      customRoads.forEach(road => {
+        const item = document.createElement('div');
+        item.className = 'item-card';
+        const isBlocked = road.status === 'blocked';
+        item.innerHTML = `
+          <div>
+            <div class="item-title">${road.name}</div>
+            <div class="item-meta" ${isBlocked ? 'style="color:#f87171; font-weight:700;"' : ''}>
+              ${isBlocked ? '🚫 BLOCKED / DEMOLISHED' : `Surface: ${road.surface.toUpperCase()} • ${road.speed_limit} km/h`}
+            </div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-del-sm" style="background:#1e293b; color:#fff; border-color:var(--border);" onclick="zoomToRoad('${road.id}')">Zoom</button>
+            <button class="btn-del-sm" onclick="deleteRoadById('${road.id}')">Remove</button>
+          </div>
+        `;
+        roadsListEl.appendChild(item);
+      });
+
+      // 2. Buildings List
+      const bldgsListEl = document.getElementById('custom-buildings-list');
+      bldgsListEl.innerHTML = '';
+      document.getElementById('count-buildings').innerText = customBuildings.length;
+
+      customBuildings.forEach(bldg => {
+        const item = document.createElement('div');
+        item.className = 'item-card';
+        const isDemolished = bldg.status === 'demolished';
+        item.innerHTML = `
+          <div>
+            <div class="item-title">${bldg.name}</div>
+            <div class="item-meta" ${isDemolished ? 'style="color:#f87171; font-weight:700;"' : ''}>
+              ${isDemolished ? '❌ DEMOLISHED / REMOVED' : `Category: ${bldg.category.toUpperCase()} • ${bldg.height_meters || 15}m`}
+            </div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-del-sm" style="background:#1e293b; color:#fff; border-color:var(--border);" onclick="zoomToBuilding('${bldg.id}')">Zoom</button>
+            <button class="btn-del-sm" onclick="deleteBuildingById('${bldg.id}')">Remove</button>
+          </div>
+        `;
+        bldgsListEl.appendChild(item);
+      });
+    }
+
+    // Save Action Handlers
+    function saveAdminRoad() {
+      const name = document.getElementById('road-name-input').value.trim();
+      const surface = document.getElementById('road-surface-select').value;
+      const status = document.getElementById('road-action-select').value;
+      const speed = parseInt(document.getElementById('road-speed-input').value) || 60;
+
+      if (!name) return alert('Please enter road name.');
+
+      let coords = currentDrawingCoords;
+      if (!coords || coords.length < 2) {
+        // Fallback: create short segment around map center if user didn't use draw tool
+        const center = adminMap.getCenter();
+        coords = [
+          [Number(center.lng.toFixed(6)), Number(center.lat.toFixed(6))],
+          [Number((center.lng + 0.005).toFixed(6)), Number((center.lat + 0.005).toFixed(6))]
+        ];
+      }
+
+      const newRoad = {
+        id: 'road_' + Date.now(),
+        name: name,
+        surface: surface,
+        status: status,
+        speed_limit: speed,
+        coordinates: coords
+      };
+
+      customRoads.unshift(newRoad);
+      persistStorageData();
+      renderAllGisOverlays();
+      renderSidebarLists();
+
+      // Reset
+      document.getElementById('road-name-input').value = '';
+      document.getElementById('road-status-badge').style.display = 'none';
+      currentDrawingCoords = null;
+
+      alert(`🎉 Road "${name}" published!\nStatus: ${status === 'blocked' ? 'BLOCKED / DEMOLISHED (Routing will avoid)' : 'ACTIVE (Routable)'}\nInstantly live on Supermaps.`);
+    }
+
+    function saveAdminBuilding() {
+      const name = document.getElementById('bldg-name-input').value.trim();
+      const category = document.getElementById('bldg-cat-select').value;
+      const status = document.getElementById('bldg-status-select').value;
+      const height = parseInt(document.getElementById('bldg-height-input').value) || 18;
+
+      if (!name) return alert('Please enter building name.');
+
+      let coords = currentDrawingCoords;
+      if (!coords || !coords[0] || coords[0].length < 3) {
+        // Fallback: 4-corner box around map center
+        const c = adminMap.getCenter();
+        coords = [[
+          [c.lng - 0.001, c.lat - 0.001],
+          [c.lng + 0.001, c.lat - 0.001],
+          [c.lng + 0.001, c.lat + 0.001],
+          [c.lng - 0.001, c.lat + 0.001],
+          [c.lng - 0.001, c.lat - 0.001]
+        ]];
+      }
+
+      const newBuilding = {
+        id: 'bldg_' + Date.now(),
+        name: name,
+        category: category,
+        status: status,
+        height_meters: height,
+        floors: Math.max(1, Math.round(height / 3.5)),
+        coordinates: coords
+      };
+
+      customBuildings.unshift(newBuilding);
+      persistStorageData();
+      renderAllGisOverlays();
+      renderSidebarLists();
+
+      // Reset
+      document.getElementById('bldg-name-input').value = '';
+      document.getElementById('bldg-status-badge').style.display = 'none';
+      currentDrawingCoords = null;
+
+      alert(`🏢 Building "${name}" saved!\nStatus: ${status.toUpperCase()}\nInstantly updated on Supermaps.`);
+    }
+
+    // Delete Operations
+    function deleteRoadById(id) {
+      customRoads = customRoads.filter(r => r.id !== id);
+      persistStorageData();
+      renderAllGisOverlays();
+      renderSidebarLists();
+    }
+
+    function deleteBuildingById(id) {
+      customBuildings = customBuildings.filter(b => b.id !== id);
+      persistStorageData();
+      renderAllGisOverlays();
+      renderSidebarLists();
+    }
+
+    function clearAllRoads() {
+      if (confirm('Clear all custom roads and blocks?')) {
+        customRoads = [];
+        persistStorageData();
+        renderAllGisOverlays();
+        renderSidebarLists();
+      }
+    }
+
+    function clearAllBuildings() {
+      if (confirm('Clear all custom buildings and demolitions?')) {
+        customBuildings = [];
+        persistStorageData();
+        renderAllGisOverlays();
+        renderSidebarLists();
+      }
+    }
+
+    // Navigation and Zooming
+    function zoomToRoad(id) {
+      const road = customRoads.find(r => r.id === id);
+      if (!road || !road.coordinates || road.coordinates.length === 0) return;
+      const bounds = L.latLngBounds(road.coordinates.map(c => [c[1], c[0]]));
+      adminMap.fitBounds(bounds, { padding: [60, 60] });
+    }
+
+    function zoomToBuilding(id) {
+      const bldg = customBuildings.find(b => b.id === id);
+      if (!bldg || !bldg.coordinates || !bldg.coordinates[0]) return;
+      const bounds = L.latLngBounds(bldg.coordinates[0].map(c => [c[1], c[0]]));
+      adminMap.fitBounds(bounds, { padding: [60, 60] });
+    }
+
+    // Map Search
+    async function handleAdminSearch(e) {
+      if (e.key !== 'Enter') return;
+      const query = e.target.value.trim();
+      if (!query) return;
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(query)}&limit=1`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          adminMap.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 15);
+        } else {
+          alert('Location not found in India.');
+        }
+      } catch (err) {
+        alert('Could not search location.');
+      }
+    }
+
+    // Sync Live to Public Map
+    function syncAllToPublicMap() {
+      persistStorageData();
+      alert('⚡ GIS Changes synced to LocalStorage & Public Supermaps!\nOpen or refresh the Public Map to see new roads, blocks, and 3D buildings.');
+    }
+
+    // Layer Switcher
     function setAdminLayer(type) {
       if (type === 'satellite') {
         adminMap.removeLayer(baseLayer);
@@ -403,60 +1001,39 @@
       }
     }
 
+    // Tabs Switcher
     function switchAdminTab(tab) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
 
-      if (tab === 'trails') {
-        document.getElementById('tab-trails').style.display = 'block';
-        event.target.classList.add('active');
-      } else if (tab === 'shops') {
-        document.getElementById('tab-shops').style.display = 'block';
-        event.target.classList.add('active');
-      } else if (tab === 'create-road') {
-        document.getElementById('tab-create-road').style.display = 'block';
-        event.target.classList.add('active');
-      }
+      const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(tab));
+      if (btn) btn.classList.add('active');
+
+      const content = document.getElementById(`tab-${tab}`);
+      if (content) content.style.display = 'block';
     }
 
+    // 5-Car Alerts Helpers
     function inspectTrail(start, end) {
       setAdminLayer('satellite');
       adminMap.setView(start, 16);
-      if (currentTrailPolyline) adminMap.removeLayer(currentTrailPolyline);
-      currentTrailPolyline = L.polyline([start, end], { color: '#ef4444', weight: 6, dashArray: '8, 8' }).addTo(adminMap);
+      L.polyline([start, end], { color: '#ef4444', weight: 6, dashArray: '8, 8' }).addTo(drawnItemsGroup);
     }
 
-    function publishVerifiedRoad(name, surface) {
-      alert(`Road "${name}" approved and published as ${surface.toUpperCase()}!\nInstantly accessible in public Rydealot Supermaps.`);
-      if (currentTrailPolyline) {
-        adminMap.removeLayer(currentTrailPolyline);
-        currentTrailPolyline = null;
-      }
-    }
-
-    function dismissTrail(btn) {
-      const card = btn.closest('.queue-card');
-      card.remove();
-      if (currentTrailPolyline) adminMap.removeLayer(currentTrailPolyline);
-      alert('Trail dismissed as off-road terrain.');
-    }
-
-    function focusShop(coords) {
-      adminMap.setView(coords, 17);
-      L.marker(coords).addTo(adminMap).bindPopup('⭐ Promoted Golden Shop').openPopup();
-    }
-
-    function saveDrawnRoad() {
-      const name = document.getElementById('draw-road-name').value.trim();
-      const surface = document.getElementById('draw-road-surface').value;
-      if (!name) return alert('Please enter road name.');
-      alert(`🎉 Road "${name}" (${surface}) published directly to Rydealot Supermaps routing database!`);
-    }
-
-    function toggleConsensusEngine(isActive) {
-      alert(isActive 
-        ? '⚡ Consensus Engine Activated: Drivers will receive obstacle verification prompts and wallet rewards.' 
-        : '💤 Consensus Engine set to DORMANT: Wallet rewards paused until B2B contracts activate.');
+    function publishVerifiedTrail(name, surface) {
+      const road = {
+        id: 'road_' + Date.now(),
+        name: name,
+        surface: surface,
+        status: 'active',
+        speed_limit: 60,
+        coordinates: [[79.560, 17.980], [79.585, 17.995]]
+      };
+      customRoads.unshift(road);
+      persistStorageData();
+      renderAllGisOverlays();
+      renderSidebarLists();
+      alert(`Road "${name}" approved & published as ${surface.toUpperCase()}!`);
     }
   </script>
 </body>
