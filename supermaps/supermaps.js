@@ -442,7 +442,7 @@ function stopNavigation() {
 
 // 5. GOLDEN PROMOTED SHOPS (The Golden Goose)
 async function loadGoldenShops() {
-  verifiedShops = [
+  const fallbackShops = [
     {
       id: 'shop_001',
       name: 'Bawarchi Grand Biryani',
@@ -465,6 +465,21 @@ async function loadGoldenShops() {
     }
   ];
 
+  try {
+    const res = await fetch(`${CONFIG.D1_WORKER}/rest/v1/supermaps_shops?select=*`, { headers: { 'Accept': 'application/json' } });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        verifiedShops = data;
+        renderShopMarkers(verifiedShops);
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('Cloudflare D1 shops offline, using offline defaults:', err);
+  }
+
+  verifiedShops = fallbackShops;
   renderShopMarkers(verifiedShops);
 }
 
@@ -601,6 +616,50 @@ function renderAdminGisOverlays() {
         ]
       }
     ];
+  }
+
+  // Cloudflare D1 Cloud Sync (fetches latest roads/buildings in background)
+  if (navigator.onLine && !renderAdminGisOverlays._isFetching) {
+    renderAdminGisOverlays._isFetching = true;
+    Promise.all([
+      fetch(`${CONFIG.D1_WORKER}/rest/v1/supermaps_roads?select=*`).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${CONFIG.D1_WORKER}/rest/v1/supermaps_buildings?select=*`).then(r => r.ok ? r.json() : []).catch(() => [])
+    ]).then(([d1Roads, d1Bldgs]) => {
+      renderAdminGisOverlays._isFetching = false;
+      let hasUpdates = false;
+
+      if (Array.isArray(d1Roads) && d1Roads.length > 0) {
+        const parsedRoads = d1Roads.map(r => ({
+          id: r.id,
+          name: r.road_name || r.name,
+          surface: r.surface,
+          status: r.status,
+          speed_limit: r.speed_limit || 60,
+          coordinates: typeof r.coordinates_geojson === 'string' ? JSON.parse(r.coordinates_geojson) : (r.coordinates || [])
+        }));
+        localStorage.setItem('rydealot_custom_roads', JSON.stringify(parsedRoads));
+        hasUpdates = true;
+      }
+
+      if (Array.isArray(d1Bldgs) && d1Bldgs.length > 0) {
+        const parsedBldgs = d1Bldgs.map(b => ({
+          id: b.id,
+          name: b.building_name || b.name,
+          category: b.category,
+          status: b.status,
+          height_meters: b.height_meters || 15,
+          floors: Math.max(1, Math.round((b.height_meters || 15) / 3.5)),
+          coordinates: typeof b.coordinates_geojson === 'string' ? JSON.parse(b.coordinates_geojson) : (b.coordinates || [])
+        }));
+        localStorage.setItem('rydealot_custom_buildings', JSON.stringify(parsedBldgs));
+        hasUpdates = true;
+      }
+
+      if (hasUpdates) {
+        // Silently refresh overlays with Cloud data
+        updateGisOverlaysData();
+      }
+    });
   }
 
   // Convert roads to GeoJSON
@@ -762,5 +821,45 @@ function renderAdminGisOverlays() {
       `)
       .addTo(map);
   });
+}
+
+function updateGisOverlaysData() {
+  if (!map) return;
+  const roadsSrc = map.getSource('supermaps-custom-roads');
+  const bldgsSrc = map.getSource('supermaps-custom-buildings');
+
+  let customRoads = [];
+  try {
+    const raw = localStorage.getItem('rydealot_custom_roads');
+    if (raw) customRoads = JSON.parse(raw);
+  } catch (e) {}
+
+  let customBuildings = [];
+  try {
+    const rawBldg = localStorage.getItem('rydealot_custom_buildings');
+    if (rawBldg) customBuildings = JSON.parse(rawBldg);
+  } catch (e) {}
+
+  if (roadsSrc && customRoads.length > 0) {
+    roadsSrc.setData({
+      type: 'FeatureCollection',
+      features: customRoads.map(r => ({
+        type: 'Feature',
+        properties: { id: r.id, name: r.name, surface: r.surface, status: r.status, speed_limit: r.speed_limit },
+        geometry: { type: 'LineString', coordinates: r.coordinates }
+      }))
+    });
+  }
+
+  if (bldgsSrc && customBuildings.length > 0) {
+    bldgsSrc.setData({
+      type: 'FeatureCollection',
+      features: customBuildings.map(b => ({
+        type: 'Feature',
+        properties: { id: b.id, name: b.name, category: b.category, status: b.status, height_meters: b.height_meters || 15 },
+        geometry: { type: 'Polygon', coordinates: b.coordinates }
+      }))
+    });
+  }
 }
 
