@@ -6,7 +6,7 @@
 const CONFIG = {
   // Your Verified Cloud-Hosted 2.42 GB India Map Archive
   PMTILES_SOURCE: 'https://huggingface.co/datasets/RydealotMaps/rydealot-maps/resolve/main/india.pmtiles',
-  D1_WORKER: null, // Disconnected from main taxi app Cloudflare account
+  D1_WORKER: 'https://rydealot-supermaps-api.rydealotmaps.workers.dev',
   OSRM_ROUTING: 'https://router.project-osrm.org/route/v1/driving/',
   DEFAULT_LNG_LAT: [78.4867, 17.3850], // Hyderabad [lng, lat]
   INDIA_BOUNDS: [
@@ -467,7 +467,7 @@ async function loadGoldenShops() {
 
   if (CONFIG.D1_WORKER) {
     try {
-      const res = await fetch(`${CONFIG.D1_WORKER}/rest/v1/supermaps_shops?select=*`, { headers: { 'Accept': 'application/json' } });
+      const res = await fetch(`${CONFIG.D1_WORKER}/api/v1/shops`, { headers: { 'Accept': 'application/json' } });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -624,8 +624,8 @@ function renderAdminGisOverlays() {
   if (CONFIG.D1_WORKER && navigator.onLine && !renderAdminGisOverlays._isFetching) {
     renderAdminGisOverlays._isFetching = true;
     Promise.all([
-      fetch(`${CONFIG.D1_WORKER}/rest/v1/supermaps_roads?select=*`).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`${CONFIG.D1_WORKER}/rest/v1/supermaps_buildings?select=*`).then(r => r.ok ? r.json() : []).catch(() => [])
+      fetch(`${CONFIG.D1_WORKER}/api/v1/roads`).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${CONFIG.D1_WORKER}/api/v1/buildings`).then(r => r.ok ? r.json() : []).catch(() => [])
     ]).then(([d1Roads, d1Bldgs]) => {
       renderAdminGisOverlays._isFetching = false;
       let hasUpdates = false;
@@ -633,11 +633,11 @@ function renderAdminGisOverlays() {
       if (Array.isArray(d1Roads) && d1Roads.length > 0) {
         const parsedRoads = d1Roads.map(r => ({
           id: r.id,
-          name: r.road_name || r.name,
-          surface: r.surface,
-          status: r.status,
+          name: r.name || r.road_name,
+          surface: r.surface || 'asphalt',
+          status: r.status || 'active',
           speed_limit: r.speed_limit || 60,
-          coordinates: typeof r.coordinates_geojson === 'string' ? JSON.parse(r.coordinates_geojson) : (r.coordinates || [])
+          coordinates: Array.isArray(r.coordinates) ? r.coordinates : (typeof r.coordinates_geojson === 'string' ? JSON.parse(r.coordinates_geojson) : [])
         }));
         localStorage.setItem('rydealot_custom_roads', JSON.stringify(parsedRoads));
         hasUpdates = true;
@@ -646,12 +646,12 @@ function renderAdminGisOverlays() {
       if (Array.isArray(d1Bldgs) && d1Bldgs.length > 0) {
         const parsedBldgs = d1Bldgs.map(b => ({
           id: b.id,
-          name: b.building_name || b.name,
-          category: b.category,
-          status: b.status,
+          name: b.name || b.building_name,
+          category: b.category || 'commercial',
+          status: b.status || 'active',
           height_meters: b.height_meters || 15,
-          floors: Math.max(1, Math.round((b.height_meters || 15) / 3.5)),
-          coordinates: typeof b.coordinates_geojson === 'string' ? JSON.parse(b.coordinates_geojson) : (b.coordinates || [])
+          floors: b.floors || Math.max(1, Math.round((b.height_meters || 15) / 3.5)),
+          coordinates: Array.isArray(b.coordinates) ? b.coordinates : (typeof b.coordinates_geojson === 'string' ? JSON.parse(b.coordinates_geojson) : [])
         }));
         localStorage.setItem('rydealot_custom_buildings', JSON.stringify(parsedBldgs));
         hasUpdates = true;

@@ -3,7 +3,12 @@ main = "worker.js"
 compatibility_date = "2026-09-01"
 
 # Standalone configuration for Rydealot Supermaps Edge Server
-# Zero shared dependencies with the taxi app
+# 100% Isolated on rydealotmaps@gmail.com
+
+[[d1_databases]]
+binding = "DB"
+database_name = "supermaps-db"
+database_id = "4780b744-88d2-4807-bac6-3321ca944d14"
 
 [vars]
 ENVIRONMENT = "production"

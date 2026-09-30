@@ -694,7 +694,7 @@
       new L.Draw.Polygon(adminMap, { shapeOptions: { color: '#ef4444', weight: 3, fillOpacity: 0.6 } }).enable();
     }
 
-    const D1_WORKER = null; // Disconnected from main taxi app Cloudflare account
+    const D1_WORKER = 'https://rydealot-supermaps-api.rydealotmaps.workers.dev';
 
     // Data Load & Save
     function loadStorageData() {
@@ -709,22 +709,22 @@
         customBuildings = DEFAULT_BUILDINGS;
       }
 
-      // Cloudflare D1 Background Sync (only when brand new worker configured)
+      // Cloudflare D1 Background Sync
       if (D1_WORKER && navigator.onLine) {
         Promise.all([
-          fetch(`${D1_WORKER}/rest/v1/supermaps_roads?select=*`).then(r => r.ok ? r.json() : []).catch(() => []),
-          fetch(`${D1_WORKER}/rest/v1/supermaps_buildings?select=*`).then(r => r.ok ? r.json() : []).catch(() => [])
+          fetch(`${D1_WORKER}/api/v1/roads`).then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(`${D1_WORKER}/api/v1/buildings`).then(r => r.ok ? r.json() : []).catch(() => [])
         ]).then(([d1Roads, d1Bldgs]) => {
           let updated = false;
 
           if (Array.isArray(d1Roads) && d1Roads.length > 0) {
             customRoads = d1Roads.map(r => ({
               id: r.id,
-              name: r.road_name || r.name,
-              surface: r.surface,
-              status: r.status,
+              name: r.name || r.road_name,
+              surface: r.surface || 'asphalt',
+              status: r.status || 'active',
               speed_limit: r.speed_limit || 60,
-              coordinates: typeof r.coordinates_geojson === 'string' ? JSON.parse(r.coordinates_geojson) : (r.coordinates || [])
+              coordinates: Array.isArray(r.coordinates) ? r.coordinates : (typeof r.coordinates_geojson === 'string' ? JSON.parse(r.coordinates_geojson) : [])
             }));
             localStorage.setItem(STORAGE_KEY_ROADS, JSON.stringify(customRoads));
             updated = true;
@@ -733,12 +733,12 @@
           if (Array.isArray(d1Bldgs) && d1Bldgs.length > 0) {
             customBuildings = d1Bldgs.map(b => ({
               id: b.id,
-              name: b.building_name || b.name,
-              category: b.category,
-              status: b.status,
+              name: b.name || b.building_name,
+              category: b.category || 'commercial',
+              status: b.status || 'active',
               height_meters: b.height_meters || 15,
-              floors: Math.max(1, Math.round((b.height_meters || 15) / 3.5)),
-              coordinates: typeof b.coordinates_geojson === 'string' ? JSON.parse(b.coordinates_geojson) : (b.coordinates || [])
+              floors: b.floors || Math.max(1, Math.round((b.height_meters || 15) / 3.5)),
+              coordinates: Array.isArray(b.coordinates) ? b.coordinates : (typeof b.coordinates_geojson === 'string' ? JSON.parse(b.coordinates_geojson) : [])
             }));
             localStorage.setItem(STORAGE_KEY_BLDGS, JSON.stringify(customBuildings));
             updated = true;
@@ -905,19 +905,12 @@
       renderAllGisOverlays();
       renderSidebarLists();
 
-      // Cloudflare D1 Cloud Sync (Background - only if configured)
+      // Cloudflare D1 Cloud Sync (Background)
       if (D1_WORKER && navigator.onLine) {
-        fetch(`${D1_WORKER}/rest/v1/supermaps_roads`, {
+        fetch(`${D1_WORKER}/api/v1/roads`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: newRoad.id,
-            road_name: newRoad.name,
-            surface: newRoad.surface,
-            status: newRoad.status,
-            speed_limit: newRoad.speed_limit,
-            coordinates_geojson: JSON.stringify(newRoad.coordinates)
-          }),
+          body: JSON.stringify(newRoad),
           keepalive: true
         }).catch(err => console.warn('D1 road sync error:', err));
       }
@@ -927,7 +920,7 @@
       document.getElementById('road-status-badge').style.display = 'none';
       currentDrawingCoords = null;
 
-      alert(`🎉 Road "${name}" published!\nStatus: ${status === 'blocked' ? 'BLOCKED / DEMOLISHED (Routing will avoid)' : 'ACTIVE (Routable)'}\nSaved to local storage & live on Supermaps.`);
+      alert(`🎉 Road "${name}" published!\nStatus: ${status === 'blocked' ? 'BLOCKED / DEMOLISHED (Routing will avoid)' : 'ACTIVE (Routable)'}\nSaved to Cloudflare D1 & live on Supermaps.`);
     }
 
     function saveAdminBuilding() {
@@ -966,19 +959,12 @@
       renderAllGisOverlays();
       renderSidebarLists();
 
-      // Cloudflare D1 Cloud Sync (Background - only if configured)
+      // Cloudflare D1 Cloud Sync (Background)
       if (D1_WORKER && navigator.onLine) {
-        fetch(`${D1_WORKER}/rest/v1/supermaps_buildings`, {
+        fetch(`${D1_WORKER}/api/v1/buildings`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: newBuilding.id,
-            building_name: newBuilding.name,
-            category: newBuilding.category,
-            height_meters: newBuilding.height_meters,
-            status: newBuilding.status,
-            coordinates_geojson: JSON.stringify(newBuilding.coordinates)
-          }),
+          body: JSON.stringify(newBuilding),
           keepalive: true
         }).catch(err => console.warn('D1 building sync error:', err));
       }
@@ -988,7 +974,7 @@
       document.getElementById('bldg-status-badge').style.display = 'none';
       currentDrawingCoords = null;
 
-      alert(`🏢 Building "${name}" saved!\nStatus: ${status.toUpperCase()}\nSaved to local storage & updated on Supermaps.`);
+      alert(`🏢 Building "${name}" saved!\nStatus: ${status.toUpperCase()}\nSaved to Cloudflare D1 & updated on Supermaps.`);
     }
 
     // Delete Operations
@@ -999,7 +985,7 @@
       renderSidebarLists();
 
       if (D1_WORKER && navigator.onLine) {
-        fetch(`${D1_WORKER}/rest/v1/supermaps_roads?id=eq.${id}`, { method: 'DELETE', keepalive: true })
+        fetch(`${D1_WORKER}/api/v1/roads/${id}`, { method: 'DELETE', keepalive: true })
           .catch(err => console.warn('D1 road delete error:', err));
       }
     }
@@ -1011,7 +997,7 @@
       renderSidebarLists();
 
       if (D1_WORKER && navigator.onLine) {
-        fetch(`${D1_WORKER}/rest/v1/supermaps_buildings?id=eq.${id}`, { method: 'DELETE', keepalive: true })
+        fetch(`${D1_WORKER}/api/v1/buildings/${id}`, { method: 'DELETE', keepalive: true })
           .catch(err => console.warn('D1 building delete error:', err));
       }
     }
