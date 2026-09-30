@@ -6,7 +6,7 @@
 const CONFIG = {
   // Your Verified Cloud-Hosted 2.42 GB India Map Archive
   PMTILES_SOURCE: 'https://huggingface.co/datasets/RydealotMaps/rydealot-maps/resolve/main/india.pmtiles',
-  D1_WORKER: 'https://rydealot-api.rydealotoffical.workers.dev',
+  D1_WORKER: null, // Disconnected from main taxi app Cloudflare account
   OSRM_ROUTING: 'https://router.project-osrm.org/route/v1/driving/',
   DEFAULT_LNG_LAT: [78.4867, 17.3850], // Hyderabad [lng, lat]
   INDIA_BOUNDS: [
@@ -465,18 +465,20 @@ async function loadGoldenShops() {
     }
   ];
 
-  try {
-    const res = await fetch(`${CONFIG.D1_WORKER}/rest/v1/supermaps_shops?select=*`, { headers: { 'Accept': 'application/json' } });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        verifiedShops = data;
-        renderShopMarkers(verifiedShops);
-        return;
+  if (CONFIG.D1_WORKER) {
+    try {
+      const res = await fetch(`${CONFIG.D1_WORKER}/rest/v1/supermaps_shops?select=*`, { headers: { 'Accept': 'application/json' } });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          verifiedShops = data;
+          renderShopMarkers(verifiedShops);
+          return;
+        }
       }
+    } catch (err) {
+      console.warn('Cloudflare D1 shops offline, using offline defaults:', err);
     }
-  } catch (err) {
-    console.warn('Cloudflare D1 shops offline, using offline defaults:', err);
   }
 
   verifiedShops = fallbackShops;
@@ -618,8 +620,8 @@ function renderAdminGisOverlays() {
     ];
   }
 
-  // Cloudflare D1 Cloud Sync (fetches latest roads/buildings in background)
-  if (navigator.onLine && !renderAdminGisOverlays._isFetching) {
+  // Cloudflare D1 Cloud Sync (only if brand new worker is configured)
+  if (CONFIG.D1_WORKER && navigator.onLine && !renderAdminGisOverlays._isFetching) {
     renderAdminGisOverlays._isFetching = true;
     Promise.all([
       fetch(`${CONFIG.D1_WORKER}/rest/v1/supermaps_roads?select=*`).then(r => r.ok ? r.json() : []).catch(() => []),

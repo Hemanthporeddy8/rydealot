@@ -694,7 +694,7 @@
       new L.Draw.Polygon(adminMap, { shapeOptions: { color: '#ef4444', weight: 3, fillOpacity: 0.6 } }).enable();
     }
 
-    const D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
+    const D1_WORKER = null; // Disconnected from main taxi app Cloudflare account
 
     // Data Load & Save
     function loadStorageData() {
@@ -709,8 +709,8 @@
         customBuildings = DEFAULT_BUILDINGS;
       }
 
-      // Cloudflare D1 Background Sync
-      if (navigator.onLine) {
+      // Cloudflare D1 Background Sync (only when brand new worker configured)
+      if (D1_WORKER && navigator.onLine) {
         Promise.all([
           fetch(`${D1_WORKER}/rest/v1/supermaps_roads?select=*`).then(r => r.ok ? r.json() : []).catch(() => []),
           fetch(`${D1_WORKER}/rest/v1/supermaps_buildings?select=*`).then(r => r.ok ? r.json() : []).catch(() => [])
@@ -905,8 +905,8 @@
       renderAllGisOverlays();
       renderSidebarLists();
 
-      // Cloudflare D1 Cloud Sync (Background)
-      if (navigator.onLine) {
+      // Cloudflare D1 Cloud Sync (Background - only if configured)
+      if (D1_WORKER && navigator.onLine) {
         fetch(`${D1_WORKER}/rest/v1/supermaps_roads`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -927,7 +927,7 @@
       document.getElementById('road-status-badge').style.display = 'none';
       currentDrawingCoords = null;
 
-      alert(`🎉 Road "${name}" published!\nStatus: ${status === 'blocked' ? 'BLOCKED / DEMOLISHED (Routing will avoid)' : 'ACTIVE (Routable)'}\nSaved to Cloudflare D1 & live on Supermaps.`);
+      alert(`🎉 Road "${name}" published!\nStatus: ${status === 'blocked' ? 'BLOCKED / DEMOLISHED (Routing will avoid)' : 'ACTIVE (Routable)'}\nSaved to local storage & live on Supermaps.`);
     }
 
     function saveAdminBuilding() {
@@ -966,8 +966,8 @@
       renderAllGisOverlays();
       renderSidebarLists();
 
-      // Cloudflare D1 Cloud Sync (Background)
-      if (navigator.onLine) {
+      // Cloudflare D1 Cloud Sync (Background - only if configured)
+      if (D1_WORKER && navigator.onLine) {
         fetch(`${D1_WORKER}/rest/v1/supermaps_buildings`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -988,7 +988,7 @@
       document.getElementById('bldg-status-badge').style.display = 'none';
       currentDrawingCoords = null;
 
-      alert(`🏢 Building "${name}" saved!\nStatus: ${status.toUpperCase()}\nSaved to Cloudflare D1 & updated on Supermaps.`);
+      alert(`🏢 Building "${name}" saved!\nStatus: ${status.toUpperCase()}\nSaved to local storage & updated on Supermaps.`);
     }
 
     // Delete Operations
@@ -998,7 +998,7 @@
       renderAllGisOverlays();
       renderSidebarLists();
 
-      if (navigator.onLine) {
+      if (D1_WORKER && navigator.onLine) {
         fetch(`${D1_WORKER}/rest/v1/supermaps_roads?id=eq.${id}`, { method: 'DELETE', keepalive: true })
           .catch(err => console.warn('D1 road delete error:', err));
       }
@@ -1010,7 +1010,7 @@
       renderAllGisOverlays();
       renderSidebarLists();
 
-      if (navigator.onLine) {
+      if (D1_WORKER && navigator.onLine) {
         fetch(`${D1_WORKER}/rest/v1/supermaps_buildings?id=eq.${id}`, { method: 'DELETE', keepalive: true })
           .catch(err => console.warn('D1 building delete error:', err));
       }
