@@ -27,6 +27,8 @@ let isNavigating = false;
 let activeVehicleMode = 'car';
 let activeDestination = null;
 let verifiedShops = [];
+let _styleReloadPending = false;   // true when setStyle() was called (theme toggle)
+let _pendingRouteGeometry = null;  // saved route to re-draw after style reload
 
 // 1. INITIALIZE MAPLIBRE WITH PMTILES PROTOCOL
 window.addEventListener('DOMContentLoaded', () => {
@@ -73,6 +75,11 @@ function initMapEngine() {
   // Re-render when theme or basemap style changes
   map.on('style.load', () => {
     renderAdminGisOverlays();
+    // Restore active route after theme toggle wiped all sources/layers
+    if (_styleReloadPending && _pendingRouteGeometry) {
+      renderRouteOnMap(_pendingRouteGeometry);
+    }
+    _styleReloadPending = false;
   });
 
   // Real-time synchronization when Admin updates roads or buildings in another tab
@@ -124,6 +131,20 @@ function buildVectorStyle(theme) {
 function toggleMapTheme() {
   currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
   document.body.classList.toggle('daylight-theme', currentTheme === 'light');
+
+  // Toggle sun/moon icon
+  const moon = document.getElementById('theme-icon-moon');
+  const sun = document.getElementById('theme-icon-sun');
+  if (moon && sun) {
+    moon.style.display = currentTheme === 'dark' ? 'block' : 'none';
+    sun.style.display = currentTheme === 'light' ? 'block' : 'none';
+  }
+
+  // Save active route geometry before style wipe
+  const savedRoute = _pendingRouteGeometry;
+
+  // setStyle wipes all sources/layers — restore everything in style.load
+  _styleReloadPending = true;
   map.setStyle(buildVectorStyle(currentTheme));
 }
 
@@ -226,7 +247,7 @@ async function fetchPlaceSuggestions(query, targetType) {
       item.className = 'search-item';
       item.innerHTML = `
         <div class="search-item-info">
-          <div class="search-item-name">📍 ${title}</div>
+          <div class="search-item-name">${title}</div>
           <div class="search-item-meta">${subtitle}</div>
         </div>
         <span class="search-item-badge">${place.type || 'place'}</span>
@@ -261,7 +282,7 @@ function selectSuggestedPlace(place, targetType) {
 
     if (destMarker) destMarker.remove();
     const el = document.createElement('div');
-    el.innerHTML = '<div style="font-size:2.2rem; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.6)); cursor:pointer; transform:translate(-10px, -28px);">🏁</div>';
+    el.innerHTML = '<div style="width:16px;height:16px;background:#f59e0b;border:3px solid #fff;border-radius:50%;box-shadow:0 0 12px rgba(245,158,11,0.7);transform:translate(-8px,-8px);"></div>';
     destMarker = new maplibregl.Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
 
     map.flyTo({ center: [lng, lat], zoom: 14 });
@@ -318,7 +339,7 @@ function handleMapDestinationClick(lngLat) {
   if (destMarker) destMarker.remove();
 
   const el = document.createElement('div');
-  el.innerHTML = '<div style="font-size:2.2rem; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.6)); cursor:pointer; transform:translate(-10px, -28px);">🏁</div>';
+  el.innerHTML = '<div style="width:16px;height:16px;background:#f59e0b;border:3px solid #fff;border-radius:50%;box-shadow:0 0 12px rgba(245,158,11,0.7);transform:translate(-8px,-8px);"></div>';
 
   destMarker = new maplibregl.Marker({ element: el })
     .setLngLat([lngLat.lng, lngLat.lat])
@@ -355,9 +376,9 @@ async function calculateActiveRoute(destLng, destLat, destName) {
     banner.style.display = 'flex';
     document.getElementById('route-eta').innerText = `${etaMins} mins`;
     
-    let modeText = '🚗 Tar road route';
-    if (activeVehicleMode === 'bike') modeText = '🏍️ Bike shortcut route';
-    if (activeVehicleMode === 'walk') modeText = '🚶 Walking path';
+    let modeText = 'Tar road route';
+    if (activeVehicleMode === 'bike') modeText = 'Bike shortcut route';
+    if (activeVehicleMode === 'walk') modeText = 'Walking path';
     
     document.getElementById('route-dist').innerText = `${distKm} km • ${modeText}`;
 
@@ -368,6 +389,7 @@ async function calculateActiveRoute(destLng, destLat, destName) {
 
 function renderRouteOnMap(geojsonGeometry) {
   clearActiveRoute();
+  _pendingRouteGeometry = geojsonGeometry; // save for theme-toggle restore
 
   const routeColor = activeVehicleMode === 'bike' ? '#f59e0b' : '#06b6d4';
 
@@ -401,6 +423,7 @@ function renderRouteOnMap(geojsonGeometry) {
 }
 
 function clearActiveRoute() {
+  _pendingRouteGeometry = null;
   if (map.getLayer('route-line')) map.removeLayer('route-line');
   if (map.getSource('active-route')) map.removeSource('active-route');
   if (destMarker) { destMarker.remove(); destMarker = null; }
@@ -492,8 +515,8 @@ function renderShopMarkers(shops) {
     el.innerHTML = `
       <div class="golden-pin-pulse"></div>
       <div class="golden-pin-badge">
-        <span>⭐</span>
-        <span>${shop.name.substring(0, 14)}...</span>
+        <span>BIZ</span>
+        <span>${shop.name.substring(0, 14)}</span>
       </div>
     `;
     el.onclick = () => onShopPinClicked(shop.id);
@@ -536,10 +559,10 @@ function initNetworkListeners() {
   function updateStatus() {
     if (!navigator.onLine) {
       pill.className = 'safety-buffer-pill offline';
-      text.innerText = '⚠️ OFFLINE — 5 KM Safety Buffer Active';
+      text.innerText = 'OFFLINE — 5 KM Safety Buffer Active';
     } else {
       pill.className = 'safety-buffer-pill';
-      text.innerText = '🟢 5 KM Safety Buffer Running';
+      text.innerText = '5 KM Safety Buffer Running';
     }
   }
 
@@ -559,6 +582,65 @@ function selectPlanCard(el) {
   document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
 }
+
+async function submitShopkeeperClaim(event) {
+  event.preventDefault();
+  const name = document.getElementById('shop-input-name').value.trim();
+  const category = document.getElementById('shop-input-cat').value;
+  const phone = document.getElementById('shop-input-phone').value.trim();
+  const plan = document.querySelector('.plan-card.selected')?.dataset?.plan || 'trial_3m';
+  const submitBtn = event.target.querySelector('button[type="submit"]');
+
+  if (!name || !phone) return;
+
+  submitBtn.textContent = 'Publishing...';
+  submitBtn.disabled = true;
+
+  const payload = {
+    name,
+    category,
+    phone,
+    whatsapp: phone,
+    tagline: `${category.toUpperCase()} · Verified Local Business`,
+    plan_tier: plan,
+    is_golden_pin: plan !== 'trial_3m',
+    latitude: userLngLat[1],
+    longitude: userLngLat[0]
+  };
+
+  try {
+    const res = await fetch(`${CONFIG.D1_WORKER}/api/v1/shops`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      closeModal('modal-shop-claim');
+      alert(`Business "${name}" published successfully! It will appear on the map shortly.`);
+      loadGoldenShops(); // Refresh pins
+    } else {
+      alert('Could not publish business. Please try again.');
+    }
+  } catch (err) {
+    alert('No internet connection. Please try again when online.');
+  } finally {
+    submitBtn.textContent = 'Publish Business Now';
+    submitBtn.disabled = false;
+  }
+}
+
+function setCategoryFilter(category) {
+  // Highlight active chip
+  document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  // Filter visible shop markers by category
+  if (category === 'all') {
+    renderShopMarkers(verifiedShops);
+  } else {
+    renderShopMarkers(verifiedShops.filter(s => s.category === category));
+  }
+}
+
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(e => console.warn(e));
@@ -785,9 +867,9 @@ function renderAdminGisOverlays() {
       .setLngLat(e.lngLat)
       .setHTML(`
         <div style="color:#000; font-family:'Plus Jakarta Sans',sans-serif; padding:4px;">
-          <strong>🛣️ ${props.name}</strong><br>
-          <span style="font-size:0.8rem; color:#475569;">Surface: ${props.surface.toUpperCase()} • Speed: ${props.speed_limit} km/h</span><br>
-          <span style="color:#10b981; font-weight:700; font-size:0.75rem;">🟢 Admin Verified Active Road</span>
+          <strong>${props.name}</strong><br>
+          <span style="font-size:0.8rem; color:#475569;">Surface: ${props.surface.toUpperCase()} · Speed: ${props.speed_limit} km/h</span><br>
+          <span style="color:#10b981; font-weight:700; font-size:0.75rem;">Admin Verified Active Road</span>
         </div>
       `)
       .addTo(map);
@@ -799,7 +881,7 @@ function renderAdminGisOverlays() {
       .setLngLat(e.lngLat)
       .setHTML(`
         <div style="color:#000; font-family:'Plus Jakarta Sans',sans-serif; padding:4px;">
-          <strong style="color:#ef4444;">🚫 ${props.name}</strong><br>
+          <strong style="color:#ef4444;">${props.name}</strong><br>
           <span style="font-size:0.8rem; color:#ef4444; font-weight:700;">CLOSED FOR REPAIRS / DEMOLISHED</span><br>
           <span style="font-size:0.75rem; color:#475569;">Supermaps routing will bypass this path.</span>
         </div>
@@ -814,10 +896,10 @@ function renderAdminGisOverlays() {
       .setLngLat(e.lngLat)
       .setHTML(`
         <div style="color:#000; font-family:'Plus Jakarta Sans',sans-serif; padding:4px;">
-          <strong>🏢 ${props.name}</strong><br>
-          <span style="font-size:0.8rem; color:#475569;">Category: ${props.category.toUpperCase()} • Height: ${props.height_meters}m</span><br>
+          <strong>${props.name}</strong><br>
+          <span style="font-size:0.8rem; color:#475569;">Category: ${props.category.toUpperCase()} · Height: ${props.height_meters}m</span><br>
           <span style="color:${isDemolished ? '#ef4444' : '#10b981'}; font-weight:700; font-size:0.75rem;">
-            ${isDemolished ? '❌ DEMOLISHED STRUCTURE' : '🟢 3D Building Landmark'}
+            ${isDemolished ? 'DEMOLISHED STRUCTURE' : '3D Building Landmark'}
           </span>
         </div>
       `)

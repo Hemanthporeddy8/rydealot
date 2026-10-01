@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   
-  <!-- MapLibre GL JS & PMTiles Vector Engine (60 FPS WebGL • Zero OpenStreetMap) -->
+  <!-- MapLibre GL JS & PMTiles Vector Engine (60 FPS WebGL) -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
@@ -28,100 +28,122 @@
   <!-- Top Floating Header & Search -->
   <header class="top-header">
     <div class="search-bar-card" id="search-bar-box">
-      <div class="brand-badge">⚡ SUPERMAPS</div>
+      <div class="brand-badge">SUPERMAPS</div>
       <input type="text" id="search-input" class="search-input" placeholder="Search village, city, address, shops..." autocomplete="off" oninput="handlePlaceInput(event, 'search')">
-      <button class="search-action-btn" id="btn-open-directions" onclick="toggleDirectionsMode(true)" title="Get Directions">🧭</button>
-      <button class="search-action-btn" id="btn-clear-search" onclick="clearSearchInput()">✕</button>
+      <button class="search-action-btn" id="btn-open-directions" onclick="toggleDirectionsMode(true)" title="Get Directions">Directions</button>
+      <button class="search-action-btn icon-only" id="btn-clear-search" onclick="clearSearchInput()" title="Clear">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
     </div>
 
-    <!-- Google Maps Full Direction Card (From 📍 To 🏁) -->
+    <!-- Google Maps Style From / To Directions Card -->
     <div class="directions-card" id="directions-card" style="display:none;">
       <div class="dir-header">
-        <span class="dir-title">🧭 Directions & Navigation</span>
-        <button class="dir-close-btn" onclick="toggleDirectionsMode(false)">✕</button>
+        <span class="dir-title">Directions</span>
+        <button class="dir-close-btn" onclick="toggleDirectionsMode(false)" title="Close">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
       </div>
 
-      <!-- Vehicle Mode Switcher (Car vs Bike vs Walk) -->
+      <!-- Vehicle Mode Switcher -->
       <div class="vehicle-switcher">
-        <button type="button" class="veh-btn active" id="veh-btn-car" onclick="setVehicleMode('car')">🚗 Car</button>
-        <button type="button" class="veh-btn" id="veh-btn-bike" onclick="setVehicleMode('bike')">🏍️ Bike</button>
-        <button type="button" class="veh-btn" id="veh-btn-walk" onclick="setVehicleMode('walk')">🚶 Walk</button>
+        <button type="button" class="veh-btn active" id="veh-btn-car" onclick="setVehicleMode('car')">Car</button>
+        <button type="button" class="veh-btn" id="veh-btn-bike" onclick="setVehicleMode('bike')">Bike</button>
+        <button type="button" class="veh-btn" id="veh-btn-walk" onclick="setVehicleMode('walk')">Walk</button>
       </div>
 
-      <!-- From / To Inputs (Both 100% Typable with Live Suggestions) -->
+      <!-- From / To Inputs -->
       <div class="dir-inputs-box">
         <div class="dir-row">
-          <span class="dir-icon">📍</span>
-          <input type="text" id="dir-from-input" class="dir-input" placeholder="Enter starting point (or GPS)..." value="Your Location (GPS)" oninput="handlePlaceInput(event, 'from')">
-          <button type="button" class="icon-clear-sm" onclick="clearDirectionInput('from')">✕</button>
+          <span class="dir-dot dir-dot-from"></span>
+          <input type="text" id="dir-from-input" class="dir-input" placeholder="Starting point or GPS location" value="Your Location (GPS)" oninput="handlePlaceInput(event, 'from')">
+          <button type="button" class="icon-clear-sm" onclick="clearDirectionInput('from')" title="Clear">
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </button>
         </div>
         <div class="dir-divider">
-          <button type="button" class="swap-dir-btn" onclick="swapDirections()" title="Swap Start & Destination">↕️</button>
+          <button type="button" class="swap-dir-btn" onclick="swapDirections()" title="Swap Start and Destination">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1V15M4 11L8 15L12 11M4 5L8 1L12 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="dir-row">
-          <span class="dir-icon">🏁</span>
-          <input type="text" id="dir-to-input" class="dir-input" placeholder="Type destination or tap on map..." oninput="handlePlaceInput(event, 'to')">
-          <button type="button" class="icon-clear-sm" onclick="clearDirectionInput('to')">✕</button>
+          <span class="dir-dot dir-dot-to"></span>
+          <input type="text" id="dir-to-input" class="dir-input" placeholder="Type destination or tap on map" oninput="handlePlaceInput(event, 'to')">
+          <button type="button" class="icon-clear-sm" onclick="clearDirectionInput('to')" title="Clear">
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </button>
         </div>
       </div>
 
-      <!-- Live Route Calculation Summary -->
+      <!-- Route Summary -->
       <div class="route-summary-banner" id="route-summary-banner" style="display:none;">
         <div>
           <div class="route-main-time" id="route-eta">-- mins</div>
-          <div class="route-main-dist" id="route-dist">-- km • Fastest route</div>
+          <div class="route-main-dist" id="route-dist">-- km · Fastest route</div>
         </div>
-        <button type="button" class="btn-start-driving" onclick="startDrivingActiveRoute()">🚗 Start</button>
+        <button type="button" class="btn-start-driving" onclick="startDrivingActiveRoute()">Start</button>
       </div>
     </div>
 
     <!-- Search Autocomplete Dropdown -->
     <div class="search-dropdown" id="search-dropdown"></div>
 
-    <!-- 1-Tap Category Filter Chips -->
+    <!-- Category Filter Chips -->
     <div class="chips-carousel">
-      <button class="chip-btn active" onclick="setCategoryFilter('all')">📍 All Places</button>
-      <button class="chip-btn" onclick="setCategoryFilter('food')">🍗 Biryani & Food</button>
-      <button class="chip-btn" onclick="setCategoryFilter('tea')">☕ Irani Chai</button>
-      <button class="chip-btn" onclick="setCategoryFilter('auto')">🛺 Auto Stands</button>
-      <button class="chip-btn" onclick="setCategoryFilter('fuel')">⛽ Fuel & EV</button>
-      <button class="chip-btn" onclick="setCategoryFilter('station')">🚉 Metro & Trains</button>
+      <button class="chip-btn active" onclick="setCategoryFilter('all')">All Places</button>
+      <button class="chip-btn" onclick="setCategoryFilter('food')">Biryani &amp; Food</button>
+      <button class="chip-btn" onclick="setCategoryFilter('tea')">Irani Chai</button>
+      <button class="chip-btn" onclick="setCategoryFilter('auto')">Auto Stands</button>
+      <button class="chip-btn" onclick="setCategoryFilter('fuel')">Fuel &amp; EV</button>
+      <button class="chip-btn" onclick="setCategoryFilter('station')">Metro &amp; Trains</button>
     </div>
   </header>
 
-  <!-- 5 KM Rolling Buffer & Signal Safety Indicator -->
+  <!-- 5 KM Rolling Buffer Indicator -->
   <div class="safety-buffer-pill" id="safety-pill">
     <div class="pulse-indicator"></div>
-    <span id="safety-pill-text">🟢 5 KM Safety Buffer Running</span>
+    <span id="safety-pill-text">5 KM Safety Buffer Running</span>
   </div>
 
-  <!-- Road Surface Legend (Black=Tar, Grey=Cement, Brown=Mud) -->
+  <!-- Road Surface Legend -->
   <div class="surface-legend-bar">
     <div class="surface-item">
       <span class="surface-dot dot-tar"></span>
-      <span>Tar (Black)</span>
+      <span>Tar</span>
     </div>
     <div class="surface-item">
       <span class="surface-dot dot-cement"></span>
-      <span>Cement (Grey)</span>
+      <span>Cement</span>
     </div>
     <div class="surface-item">
       <span class="surface-dot dot-mud"></span>
-      <span>Mud Path (Brown)</span>
+      <span>Mud</span>
     </div>
   </div>
 
   <!-- Floating Right-Side Action Controls -->
   <div class="controls-dock">
-    <button class="dock-btn" onclick="toggleMapTheme()" title="Switch Sunlight / Dark Mode">🎨</button>
-    <button class="dock-btn" onclick="recenterGps()" title="Re-center My Vehicle">📍</button>
-    <button class="dock-btn gold-btn" onclick="openModal('modal-shop-claim')" title="Pin / Claim Your Shop (The Golden Goose)">⭐</button>
+    <button class="dock-btn" onclick="openModal('modal-profile')" title="My Profile">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <button class="dock-btn" onclick="toggleMapTheme()" title="Switch Day / Night Mode">
+      <svg id="theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg id="theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" style="display:none;"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.8"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <button class="dock-btn" onclick="recenterGps()" title="Re-center to My Location">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <button class="dock-btn gold-btn" onclick="openModal('modal-shop-claim')" title="Publish Your Business">
+      <span style="font-size:0.7rem; font-weight:800; letter-spacing:0.5px; line-height:1.1; text-align:center;">ADD<br>BIZ</span>
+    </button>
   </div>
 
   <!-- Live Turn-by-Turn In-Car HUD Overlay -->
   <div class="nav-hud-overlay" id="nav-hud">
     <div class="nav-hud-card">
-      <div class="nav-turn-icon">⬆️</div>
+      <div class="nav-turn-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
       <div class="nav-instruction-block">
         <div class="nav-distance-text" id="nav-hud-dist">0.0 KM</div>
         <div class="nav-action-text" id="nav-hud-action">Driving Route Active</div>
@@ -130,62 +152,108 @@
     </div>
   </div>
 
-  <!-- Bottom Panel: Selected Place Details & 1-Tap Navigation -->
+  <!-- Bottom Panel: Selected Place Details -->
   <div class="bottom-panel" id="bottom-panel">
     <div class="panel-drag-handle"></div>
     <div class="place-detail-header">
       <div>
         <div class="place-title" id="place-title">Landmark Name</div>
-        <div class="place-subtitle" id="place-subtitle">Category • Address</div>
+        <div class="place-subtitle" id="place-subtitle">Category · Address</div>
       </div>
-      <button class="close-panel-btn" onclick="closeBottomPanel()">✕</button>
+      <button class="close-panel-btn" onclick="closeBottomPanel()">
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </button>
     </div>
 
-    <!-- Action Buttons -->
     <div class="route-actions-row">
       <button class="btn-nav-primary" id="btn-start-nav">
-        <span>🚗</span>
-        <span>Start Navigation</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 12L21 12M15 6L21 12L15 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Navigate</span>
       </button>
       <button class="btn-nav-secondary" id="btn-wa-place">
-        <span>💬</span>
         <span>WhatsApp</span>
       </button>
       <button class="btn-nav-secondary" id="btn-call-place">
-        <span>📞</span>
         <span>Call</span>
       </button>
     </div>
   </div>
 
-  <!-- Modal: Self-Serve "Add / Pin My Shop" (The Golden Goose) -->
+  <!-- Modal: Profile -->
+  <div class="modal-overlay" id="modal-profile">
+    <div class="modal-container">
+      <div class="modal-title">My Profile</div>
+      <p class="modal-desc">Your account details, ride history and saved locations.</p>
+      
+      <div class="profile-avatar-block">
+        <div class="profile-avatar-circle">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <div class="profile-name-text" id="profile-name-display">Guest Rider</div>
+          <div class="profile-phone-text" id="profile-phone-display">Sign in to save your places</div>
+        </div>
+      </div>
+
+      <div class="profile-stats-row">
+        <div class="profile-stat-box">
+          <div class="stat-number" id="profile-rides">0</div>
+          <div class="stat-label">Rides</div>
+        </div>
+        <div class="profile-stat-box">
+          <div class="stat-number" id="profile-saved">0</div>
+          <div class="stat-label">Saved Places</div>
+        </div>
+        <div class="profile-stat-box">
+          <div class="stat-number" id="profile-km">0</div>
+          <div class="stat-label">KM Navigated</div>
+        </div>
+      </div>
+
+      <div class="profile-section-label">My Business Listings</div>
+      <div class="profile-biz-empty" id="profile-biz-list">
+        No business published yet. Tap Add Biz to list your shop.
+      </div>
+
+      <div class="profile-section-label" style="margin-top:16px;">Saved Places</div>
+      <div class="profile-biz-empty">
+        No saved places yet. Tap any location on the map and save it.
+      </div>
+
+      <button type="button" class="btn-submit-shop" style="margin-top:20px; background: var(--accent-gold);" onclick="closeModal('modal-profile'); openModal('modal-shop-claim')">
+        Publish My Business
+      </button>
+      <button type="button" class="btn-nav-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="closeModal('modal-profile')">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal: Publish Business -->
   <div class="modal-overlay" id="modal-shop-claim">
     <div class="modal-container">
-      <div class="modal-title">
-        <span>⭐</span>
-        <span>Pin Your Shop on Rydealot Supermaps</span>
-      </div>
+      <div class="modal-title">Publish Your Business</div>
       <p class="modal-desc">
-        Put your shop directly on the map! Promoted Golden Pins glow 24/7 so customers in your area discover your shop first.
+        Put your business on the map. Promoted listings glow 24/7 so customers in your area discover you first.
       </p>
 
       <form id="form-claim-shop" onsubmit="submitShopkeeperClaim(event)">
         <div class="form-group">
-          <label class="form-label">Shop / Business Name</label>
-          <input type="text" id="shop-input-name" class="form-input" placeholder="e.g. Sri Balaji Kirana & General Store" required>
+          <label class="form-label">Business Name</label>
+          <input type="text" id="shop-input-name" class="form-input" placeholder="e.g. Sri Balaji Kirana and General Store" required>
         </div>
 
         <div class="form-group">
           <label class="form-label">Business Category</label>
           <select id="shop-input-cat" class="form-select">
-            <option value="food">🍗 Restaurant & Biryani</option>
-            <option value="tea">☕ Tea Stall & Cafe</option>
-            <option value="kirana">🛒 Kirana & Supermarket</option>
-            <option value="salon">💇 Salon & Beauty Parlour</option>
-            <option value="medical">💊 Medical Store</option>
-            <option value="auto">🛺 Auto / Taxi Stand</option>
-            <option value="repair">🔧 Mobile & Bike Repair</option>
-            <option value="services">💼 Other Local Business</option>
+            <option value="food">Restaurant and Biryani</option>
+            <option value="tea">Tea Stall and Cafe</option>
+            <option value="kirana">Kirana and Supermarket</option>
+            <option value="salon">Salon and Beauty Parlour</option>
+            <option value="medical">Medical Store</option>
+            <option value="auto">Auto and Taxi Stand</option>
+            <option value="repair">Mobile and Bike Repair</option>
+            <option value="services">Other Local Business</option>
           </select>
         </div>
 
@@ -194,23 +262,22 @@
           <input type="tel" id="shop-input-phone" class="form-input" placeholder="e.g. 9876543210" required>
         </div>
 
-        <!-- Subscription Pricing Selector -->
-        <label class="form-label">Select Shop Promotion Plan</label>
+        <label class="form-label">Promotion Plan</label>
         <div class="plan-picker-grid">
           <div class="plan-card selected" data-plan="trial_3m" onclick="selectPlanCard(this)">
             <span class="plan-badge">FREE LAUNCH</span>
-            <div class="plan-price">₹0</div>
+            <div class="plan-price">Rs 0</div>
             <div class="plan-period">Free for 3 Months</div>
           </div>
           <div class="plan-card" data-plan="annual_1y" onclick="selectPlanCard(this)">
             <span class="plan-badge">BEST VALUE</span>
-            <div class="plan-price">₹99</div>
-            <div class="plan-period">Full 1 Year Pin</div>
+            <div class="plan-price">Rs 99</div>
+            <div class="plan-period">Full 1 Year Listing</div>
           </div>
         </div>
 
         <button type="submit" class="btn-submit-shop">
-          🚀 Pin My Shop Instantly
+          Publish Business Now
         </button>
         <button type="button" class="btn-nav-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="closeModal('modal-shop-claim')">
           Cancel
