@@ -994,3 +994,175 @@ body.daylight-theme .leaflet-tile {
   letter-spacing: 0.5px;
 }
 
+/* =========================================================================
+   PROFILE MODAL — HERO REDESIGN
+   ========================================================================= */
+
+/* Override container for profile — no top padding so hero fills edge to edge */
+.profile-modal-container {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-gold);
+}
+
+/* Hero gradient header */
+.profile-hero {
+  background: linear-gradient(160deg, #1a1d2e 0%, #0f1218 55%, rgba(245, 158, 11, 0.08) 100%);
+  border-bottom: 1px solid var(--border-gold);
+  padding: 32px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+}
+
+.profile-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-avatar-large {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.05));
+  border: 2.5px solid var(--accent-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-gold);
+  box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.08), 0 8px 28px rgba(0, 0, 0, 0.5);
+  margin-bottom: 14px;
+}
+
+.profile-hero-name {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.profile-hero-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.profile-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+.profile-edit-btn {
+  margin-top: 14px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid var(--border-gold);
+  color: var(--accent-gold);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 7px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.profile-edit-btn:hover {
+  background: var(--accent-gold);
+  color: #000;
+}
+
+/* Stats row inside profile (re-use existing but padded) */
+.profile-modal-container .profile-stats-row {
+  margin: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Section blocks */
+.profile-section-block {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.profile-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.profile-section-action {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--border-gold);
+  color: var(--accent-gold);
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.profile-section-action:hover {
+  background: var(--accent-gold);
+  color: #000;
+}
+
+/* Quick action buttons at bottom */
+.profile-quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 16px 20px;
+}
+
+.profile-quick-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 11px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+}
+.profile-quick-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+}
+.profile-quick-btn.outline-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  box-shadow: none;
+}
+.profile-quick-btn.outline-btn:hover {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  box-shadow: none;
+  transform: none;
+}

@@ -355,35 +355,56 @@ async function calculateActiveRoute(destLng, destLat, destName) {
   activeDestination = { lng: destLng, lat: destLat, name: destName };
   const startCoord = originLngLat || userLngLat;
 
+  // Show loading state
+  const banner = document.getElementById('route-summary-banner');
+  banner.style.display = 'flex';
+  document.getElementById('route-eta').innerText = 'Calculating...';
+  document.getElementById('route-dist').innerText = 'Finding best route';
+
   try {
-    const profile = activeVehicleMode === 'walk' ? 'foot' : 'driving';
-    const url = `${CONFIG.OSRM_ROUTING}${startCoord[0]},${startCoord[1]};${destLng},${destLat}?overview=full&geometries=geojson&steps=true`;
+    // OSRM public demo only supports 'driving' and 'foot' — bike uses driving geometry
+    const osrmProfile = activeVehicleMode === 'walk' ? 'foot' : 'driving';
+    const osrmBase = activeVehicleMode === 'walk'
+      ? 'https://router.project-osrm.org/route/v1/foot/'
+      : CONFIG.OSRM_ROUTING;
+    const url = `${osrmBase}${startCoord[0]},${startCoord[1]};${destLng},${destLat}?overview=full&geometries=geojson&steps=true`;
     const res = await fetch(url);
     const data = await res.json();
 
     if (!data.routes || data.routes.length === 0) {
-      alert('Could not compute a drivable route to this location.');
+      document.getElementById('route-eta').innerText = 'No route';
+      document.getElementById('route-dist').innerText = 'Could not find a route to this location';
       return;
     }
 
     const route = data.routes[0];
     renderRouteOnMap(route.geometry);
 
-    const distKm = (route.distance / 1000).toFixed(1);
-    const etaMins = Math.round(route.duration / 60);
+    const distKm = route.distance / 1000;
 
-    const banner = document.getElementById('route-summary-banner');
-    banner.style.display = 'flex';
-    document.getElementById('route-eta').innerText = `${etaMins} mins`;
-    
-    let modeText = 'Tar road route';
-    if (activeVehicleMode === 'bike') modeText = 'Bike shortcut route';
-    if (activeVehicleMode === 'walk') modeText = 'Walking path';
-    
-    document.getElementById('route-dist').innerText = `${distKm} km • ${modeText}`;
+    // REALISTIC Indian city speed estimates (OSRM highway speeds are useless for city nav)
+    // Car: avg 28 km/h in city traffic  |  Bike: avg 20 km/h  |  Walk: 4.5 km/h
+    let avgSpeedKmh;
+    if (activeVehicleMode === 'car') avgSpeedKmh = 28;
+    else if (activeVehicleMode === 'bike') avgSpeedKmh = 20;
+    else avgSpeedKmh = 4.5;
+
+    const realisticMins = Math.round((distKm / avgSpeedKmh) * 60);
+    const etaText = realisticMins < 60
+      ? `${realisticMins} mins`
+      : `${Math.floor(realisticMins / 60)} hr ${realisticMins % 60} min`;
+
+    let modeText = 'Car · City traffic estimate';
+    if (activeVehicleMode === 'bike') modeText = 'Bike · City traffic estimate';
+    if (activeVehicleMode === 'walk') modeText = 'Walking estimate';
+
+    document.getElementById('route-eta').innerText = etaText;
+    document.getElementById('route-dist').innerText = `${distKm.toFixed(1)} km · ${modeText}`;
 
   } catch (err) {
     console.warn('Routing error:', err);
+    document.getElementById('route-eta').innerText = 'Error';
+    document.getElementById('route-dist').innerText = 'Could not reach routing server. Check your connection.';
   }
 }
 
@@ -433,8 +454,13 @@ function clearActiveRoute() {
 
 function startDrivingActiveRoute() {
   if (!activeDestination) return;
+  // IMPORTANT: save before toggleDirectionsMode() nulls activeDestination
+  const dest = { ...activeDestination };
+  const routeGeom = _pendingRouteGeometry;
   toggleDirectionsMode(false);
-  startNavigation(activeDestination.lng, activeDestination.lat, activeDestination.name);
+  // Restore route on map (toggleDirectionsMode called clearActiveRoute)
+  if (routeGeom) renderRouteOnMap(routeGeom);
+  startNavigation(dest.lng, dest.lat, dest.name);
 }
 
 function startNavigation(destLng, destLat, destName) {
@@ -629,10 +655,10 @@ async function submitShopkeeperClaim(event) {
   }
 }
 
-function setCategoryFilter(category) {
+function setCategoryFilter(category, btnEl) {
   // Highlight active chip
   document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active'));
-  event.target.classList.add('active');
+  if (btnEl) btnEl.classList.add('active');
   // Filter visible shop markers by category
   if (category === 'all') {
     renderShopMarkers(verifiedShops);

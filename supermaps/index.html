@@ -90,12 +90,12 @@
 
     <!-- Category Filter Chips -->
     <div class="chips-carousel">
-      <button class="chip-btn active" onclick="setCategoryFilter('all')">All Places</button>
-      <button class="chip-btn" onclick="setCategoryFilter('food')">Biryani &amp; Food</button>
-      <button class="chip-btn" onclick="setCategoryFilter('tea')">Irani Chai</button>
-      <button class="chip-btn" onclick="setCategoryFilter('auto')">Auto Stands</button>
-      <button class="chip-btn" onclick="setCategoryFilter('fuel')">Fuel &amp; EV</button>
-      <button class="chip-btn" onclick="setCategoryFilter('station')">Metro &amp; Trains</button>
+      <button class="chip-btn active" onclick="setCategoryFilter('all', this)">All Places</button>
+      <button class="chip-btn" onclick="setCategoryFilter('food', this)">Biryani &amp; Food</button>
+      <button class="chip-btn" onclick="setCategoryFilter('tea', this)">Irani Chai</button>
+      <button class="chip-btn" onclick="setCategoryFilter('auto', this)">Auto Stands</button>
+      <button class="chip-btn" onclick="setCategoryFilter('fuel', this)">Fuel &amp; EV</button>
+      <button class="chip-btn" onclick="setCategoryFilter('station', this)">Metro &amp; Trains</button>
     </div>
   </header>
 
@@ -181,51 +181,78 @@
 
   <!-- Modal: Profile -->
   <div class="modal-overlay" id="modal-profile">
-    <div class="modal-container">
-      <div class="modal-title">My Profile</div>
-      <p class="modal-desc">Your account details, ride history and saved locations.</p>
-      
-      <div class="profile-avatar-block">
-        <div class="profile-avatar-circle">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <div class="modal-container profile-modal-container">
+
+      <!-- Hero Header -->
+      <div class="profile-hero">
+        <button class="profile-close-btn" onclick="closeModal('modal-profile')" title="Close">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </button>
+
+        <div class="profile-avatar-large">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         </div>
-        <div>
-          <div class="profile-name-text" id="profile-name-display">Guest Rider</div>
-          <div class="profile-phone-text" id="profile-phone-display">Sign in to save your places</div>
+
+        <div class="profile-hero-name" id="profile-name-display">Guest Rider</div>
+        <div class="profile-hero-status">
+          <span class="profile-status-dot"></span>
+          <span id="profile-phone-display">Sign in to unlock all features</span>
         </div>
+
+        <!-- Edit Profile Button -->
+        <button class="profile-edit-btn" onclick="alert('Sign-in coming soon')">Edit Profile</button>
       </div>
 
+      <!-- Stats Row -->
       <div class="profile-stats-row">
         <div class="profile-stat-box">
           <div class="stat-number" id="profile-rides">0</div>
-          <div class="stat-label">Rides</div>
+          <div class="stat-label">Navigations</div>
+        </div>
+        <div class="profile-stat-box">
+          <div class="stat-number" id="profile-km">0</div>
+          <div class="stat-label">KM Tracked</div>
         </div>
         <div class="profile-stat-box">
           <div class="stat-number" id="profile-saved">0</div>
           <div class="stat-label">Saved Places</div>
         </div>
-        <div class="profile-stat-box">
-          <div class="stat-number" id="profile-km">0</div>
-          <div class="stat-label">KM Navigated</div>
+      </div>
+
+      <!-- My Business Section -->
+      <div class="profile-section-block">
+        <div class="profile-section-header">
+          <span class="profile-section-label">My Business Listings</span>
+          <button class="profile-section-action" onclick="closeModal('modal-profile'); openModal('modal-shop-claim')">+ Add</button>
+        </div>
+        <div class="profile-biz-empty" id="profile-biz-list">
+          No business published yet. Tap Add to list your business on the map.
         </div>
       </div>
 
-      <div class="profile-section-label">My Business Listings</div>
-      <div class="profile-biz-empty" id="profile-biz-list">
-        No business published yet. Tap Add Biz to list your shop.
+      <!-- Saved Places Section -->
+      <div class="profile-section-block">
+        <div class="profile-section-header">
+          <span class="profile-section-label">Saved Places</span>
+          <button class="profile-section-action" onclick="closeModal('modal-profile')">+ Save</button>
+        </div>
+        <div class="profile-biz-empty">
+          No saved places yet. Tap any location on the map to save it here.
+        </div>
       </div>
 
-      <div class="profile-section-label" style="margin-top:16px;">Saved Places</div>
-      <div class="profile-biz-empty">
-        No saved places yet. Tap any location on the map and save it.
+      <!-- Quick Actions -->
+      <div class="profile-quick-actions">
+        <button class="profile-quick-btn" onclick="closeModal('modal-profile'); openModal('modal-shop-claim')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Publish Business
+        </button>
+        <button class="profile-quick-btn outline-btn" onclick="closeModal('modal-profile')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 12L21 12M15 6L21 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Back to Map
+        </button>
       </div>
 
-      <button type="button" class="btn-submit-shop" style="margin-top:20px; background: var(--accent-gold);" onclick="closeModal('modal-profile'); openModal('modal-shop-claim')">
-        Publish My Business
-      </button>
-      <button type="button" class="btn-nav-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="closeModal('modal-profile')">
-        Close
-      </button>
     </div>
   </div>
 
