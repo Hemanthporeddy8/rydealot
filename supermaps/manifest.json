@@ -1,0 +1,28 @@
+{
+  "name": "Rydealot Supermaps",
+  "short_name": "Supermaps",
+  "description": "Navigate India with offline-ready vector maps, business pins, and real routing.",
+  "start_url": "/supermaps/",
+  "scope": "/supermaps/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0b0e",
+  "theme_color": "#0a0b0e",
+  "icons": [
+    {
+      "src": "https://www.rydealot.com/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://www.rydealot.com/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["navigation", "travel", "maps"],
+  "lang": "en-IN",
+  "dir": "ltr"
+}

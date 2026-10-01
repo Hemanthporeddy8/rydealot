@@ -262,38 +262,30 @@ body.daylight-theme .leaflet-tile {
 }
 
 /* =========================================================================
-   5KM ROLLING BUFFER & SIGNAL SAFETY PILL
+   OFFLINE WARNING PILL (hidden when online, shown at bottom-left when offline)
    ========================================================================= */
 .safety-buffer-pill {
   position: absolute;
-  top: 130px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: calc(var(--safe-bottom) + 130px);
+  left: 16px;
   z-index: 999;
-  display: flex;
+  display: none; /* JS shows this only when offline */
   align-items: center;
   gap: 8px;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  color: #34d399;
-  padding: 6px 14px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+  padding: 7px 14px;
   border-radius: 30px;
   font-size: 0.76rem;
   font-weight: 700;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
   pointer-events: none;
-}
-.safety-buffer-pill.low-signal {
-  background: rgba(245, 158, 11, 0.2);
-  border-color: rgba(245, 158, 11, 0.5);
-  color: var(--accent-gold);
+  max-width: 280px;
 }
 .safety-buffer-pill.offline {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.5);
-  color: #fca5a5;
+  display: flex;
 }
 .pulse-indicator {
   width: 8px;

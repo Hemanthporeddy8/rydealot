@@ -219,46 +219,88 @@ function handlePlaceInput(event, targetType) {
 
   debounceTimer = setTimeout(() => {
     fetchPlaceSuggestions(query, targetType);
-  }, 250);
+  }, 350);
 }
 
 async function fetchPlaceSuggestions(query, targetType) {
   const dropdown = document.getElementById('search-dropdown');
-  dropdown.innerHTML = '<div style="padding:12px 16px; font-size:0.85rem; color:var(--text-muted);">Searching Indian places...</div>';
+  dropdown.innerHTML = '<div style="padding:12px 16px; font-size:0.85rem; color:var(--text-muted);">Searching...</div>';
   dropdown.style.display = 'block';
 
+  // --- PRIMARY: Photon (komoot) — better partial/fuzzy matching for Indian place names ---
+  // Bounding box restricted to India [lng_min, lat_min, lng_max, lat_max]
+  const INDIA_BBOX = '68.1,7.9,97.4,35.5';
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&q=${encodeURIComponent(query)}&limit=6`;
-    const res = await fetch(url, { headers: { 'User-Agent': 'RydealotSupermaps/1.0' } });
-    const results = await res.json();
+    const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&bbox=${INDIA_BBOX}&limit=8&lang=en`;
+    const res = await fetch(photonUrl);
+    const geojson = await res.json();
 
-    if (!results || results.length === 0) {
-      dropdown.innerHTML = '<div style="padding:12px 16px; font-size:0.85rem; color:var(--text-muted);">No locations found. Try village or city name.</div>';
+    if (geojson.features && geojson.features.length > 0) {
+      renderSearchResults(geojson.features.map(f => ({
+        lat: f.geometry.coordinates[1],
+        lon: f.geometry.coordinates[0],
+        display_name: [
+          f.properties.name,
+          f.properties.street,
+          f.properties.city || f.properties.county,
+          f.properties.state,
+          'India'
+        ].filter(Boolean).join(', '),
+        type: f.properties.osm_value || f.properties.type || 'place',
+        _source: 'photon'
+      })), dropdown, targetType);
       return;
     }
-
-    dropdown.innerHTML = '';
-    results.forEach(place => {
-      const parts = place.display_name.split(',');
-      const title = parts[0];
-      const subtitle = parts.slice(1, 4).join(', ');
-
-      const item = document.createElement('div');
-      item.className = 'search-item';
-      item.innerHTML = `
-        <div class="search-item-info">
-          <div class="search-item-name">${title}</div>
-          <div class="search-item-meta">${subtitle}</div>
-        </div>
-        <span class="search-item-badge">${place.type || 'place'}</span>
-      `;
-      item.onclick = () => selectSuggestedPlace(place, targetType);
-      dropdown.appendChild(item);
-    });
-
-  } catch (err) {
-    dropdown.style.display = 'none';
+  } catch (e) {
+    // Photon failed — fall through to Nominatim
   }
+
+  // --- FALLBACK: Nominatim (stricter but more precise for exact names) ---
+  try {
+    const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&accept-language=te,hi,en&q=${encodeURIComponent(query)}&limit=8&addressdetails=1`;
+    const res2 = await fetch(nomUrl, { headers: { 'User-Agent': 'RydealotSupermaps/1.0 contact@rydealot.com' } });
+    const results = await res2.json();
+
+    if (results && results.length > 0) {
+      renderSearchResults(results.map(r => ({
+        lat: r.lat,
+        lon: r.lon,
+        display_name: r.display_name,
+        type: r.type || r.class || 'place',
+        _source: 'nominatim'
+      })), dropdown, targetType);
+      return;
+    }
+  } catch (e) {
+    // both failed
+  }
+
+  dropdown.innerHTML = `
+    <div style="padding:14px 16px;">
+      <div style="font-size:0.88rem; font-weight:700; color:var(--text-main); margin-bottom:4px;">No results for "${query}"</div>
+      <div style="font-size:0.78rem; color:var(--text-muted);">Try adding city name — e.g. "Erragattugutta Hyderabad" — or tap on the map to drop a pin.</div>
+    </div>`;
+}
+
+function renderSearchResults(places, dropdown, targetType) {
+  dropdown.innerHTML = '';
+  places.forEach(place => {
+    const parts = place.display_name.split(',');
+    const title = parts[0].trim();
+    const subtitle = parts.slice(1, 4).map(s => s.trim()).filter(Boolean).join(', ');
+
+    const item = document.createElement('div');
+    item.className = 'search-item';
+    item.innerHTML = `
+      <div class="search-item-info">
+        <div class="search-item-name">${title}</div>
+        <div class="search-item-meta">${subtitle}</div>
+      </div>
+      <span class="search-item-badge">${place.type}</span>
+    `;
+    item.onclick = () => selectSuggestedPlace(place, targetType);
+    dropdown.appendChild(item);
+  });
 }
 
 function selectSuggestedPlace(place, targetType) {
@@ -584,17 +626,19 @@ function initNetworkListeners() {
 
   function updateStatus() {
     if (!navigator.onLine) {
+      // Show prominent offline warning
       pill.className = 'safety-buffer-pill offline';
-      text.innerText = 'OFFLINE — 5 KM Safety Buffer Active';
+      pill.style.display = 'flex';
+      text.innerText = 'OFFLINE — Map tiles cached, routing unavailable';
     } else {
-      pill.className = 'safety-buffer-pill';
-      text.innerText = '5 KM Safety Buffer Running';
+      // Hide completely when online — don't clutter the map
+      pill.style.display = 'none';
     }
   }
 
   window.addEventListener('online', updateStatus);
   window.addEventListener('offline', updateStatus);
-  updateStatus();
+  updateStatus(); // Run immediately on page load
 }
 
 function openBottomPanel() { document.getElementById('bottom-panel').classList.add('active'); }
