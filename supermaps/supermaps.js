@@ -531,49 +531,26 @@ function stopNavigation() {
   map.resetNorthPitch();
 }
 
-// 5. GOLDEN PROMOTED SHOPS (The Golden Goose)
+// 5. VERIFIED BUSINESSES (Only load from Cloudflare D1 — no fake fallback pins)
 async function loadGoldenShops() {
-  const fallbackShops = [
-    {
-      id: 'shop_001',
-      name: 'Bawarchi Grand Biryani',
-      category: 'food',
-      latitude: 17.4018,
-      longitude: 78.4908,
-      phone: '+91 9876543210',
-      whatsapp: '919876543210',
-      tagline: 'Authentic Hyderabadi Dum Biryani • 10% Off'
-    },
-    {
-      id: 'shop_002',
-      name: 'Niloufer Irani Chai',
-      category: 'tea',
-      latitude: 17.3970,
-      longitude: 78.4682,
-      phone: '+91 9123456780',
-      whatsapp: '919123456780',
-      tagline: 'World Famous Kadak Chai & Malai Bun'
-    }
-  ];
+  if (!CONFIG.D1_WORKER) return; // No worker configured — skip silently
 
-  if (CONFIG.D1_WORKER) {
-    try {
-      const res = await fetch(`${CONFIG.D1_WORKER}/api/v1/shops`, { headers: { 'Accept': 'application/json' } });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          verifiedShops = data;
-          renderShopMarkers(verifiedShops);
-          return;
-        }
+  try {
+    const res = await fetch(`${CONFIG.D1_WORKER}/api/v1/shops`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        verifiedShops = data;
+        renderShopMarkers(verifiedShops);
       }
-    } catch (err) {
-      console.warn('Cloudflare D1 shops offline, using offline defaults:', err);
+      // If empty array — no businesses yet — map stays clean. Good.
     }
+  } catch (err) {
+    // D1 offline or network error — just skip, don't show fake pins
+    console.warn('Business pins offline:', err);
   }
-
-  verifiedShops = fallbackShops;
-  renderShopMarkers(verifiedShops);
 }
 
 function renderShopMarkers(shops) {
