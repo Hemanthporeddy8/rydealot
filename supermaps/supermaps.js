@@ -212,6 +212,14 @@ window.addEventListener('DOMContentLoaded', () => {
   setupCompassHeading();
 });
 
+function hideSplashLoader() {
+  const loader = document.getElementById('splash-loader');
+  if (loader && !loader.classList.contains('hidden')) {
+    loader.classList.add('hidden');
+    setTimeout(() => { if (loader.parentElement) loader.remove(); }, 600);
+  }
+}
+
 function initMapEngine() {
   // Register PMTiles Protocol with MapLibre GL
   if (typeof pmtiles !== 'undefined') {
@@ -222,16 +230,33 @@ function initMapEngine() {
   // Apply saved theme class to body immediately (before map loads)
   document.body.classList.toggle('daylight-theme', !getActiveTheme().isDark);
 
+  // Location Memory: Open directly at user's last visited city/location (No Hyderabad jump!)
+  let initialCenter = CONFIG.DEFAULT_LNG_LAT;
+  try {
+    const savedLoc = localStorage.getItem('supermaps_last_location');
+    if (savedLoc) {
+      const parsed = JSON.parse(savedLoc);
+      if (Array.isArray(parsed) && parsed.length === 2 && !isNaN(parsed[0]) && !isNaN(parsed[1])) {
+        initialCenter = parsed;
+        userLngLat = parsed;
+      }
+    }
+  } catch (e) {}
+
   // Create Vector Map (Strictly Bounded to India)
   map = new maplibregl.Map({
     container: 'map-viewport',
-    center: CONFIG.DEFAULT_LNG_LAT,
-    zoom: 13,
+    center: initialCenter,
+    zoom: 14,
     minZoom: 4.2,
     maxBounds: CONFIG.INDIA_BOUNDS,
     style: buildVectorStyle(),
     attributionControl: false
   });
+
+  // Smoothly fade out splash screen once initial tiles are painted
+  map.once('idle', hideSplashLoader);
+  setTimeout(hideSplashLoader, 3500); // Safety fallback
 
   // Navigation controls
   map.addControl(new maplibregl.NavigationControl({ showCompass: true, showZoom: false }), 'bottom-right');
@@ -266,26 +291,30 @@ function initMapEngine() {
     }
   });
 
-  // Track User GPS Location — with accuracy circle & warning
+  // Track User GPS Location
   if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         userLngLat = [pos.coords.longitude, pos.coords.latitude];
-        const accuracyMeters = pos.coords.accuracy; // browser gives accuracy in meters
+        try { localStorage.setItem('supermaps_last_location', JSON.stringify(userLngLat)); } catch(e){}
+        const accuracyMeters = pos.coords.accuracy;
 
         map.flyTo({ center: userLngLat, zoom: 15 });
         createUserMarker(userLngLat);
         drawAccuracyCircle(userLngLat, accuracyMeters);
+        hideSplashLoader();
       },
       (err) => {
         // GPS denied or unavailable — stay at default and let user drop pin
         createUserMarker(userLngLat);
         showLocationPermissionBanner();
+        hideSplashLoader();
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   } else {
     createUserMarker(userLngLat);
+    hideSplashLoader();
   }
 }
 
@@ -1120,56 +1149,19 @@ function registerServiceWorker() {
 function renderAdminGisOverlays() {
   if (!map) return;
 
-  // Retrieve roads from LocalStorage
+  // Retrieve roads from LocalStorage (empty array if none exist)
   let customRoads = [];
   try {
     const raw = localStorage.getItem('rydealot_custom_roads');
     if (raw) customRoads = JSON.parse(raw);
   } catch (e) {}
 
-  if (!customRoads || customRoads.length === 0) {
-    customRoads = [
-      {
-        id: 'road_001',
-        name: 'Warangal North Bypass (4-Lane)',
-        surface: 'asphalt',
-        status: 'active',
-        speed_limit: 80,
-        coordinates: [[78.4867, 17.3850], [78.4950, 17.3920], [78.5100, 17.4050]]
-      },
-      {
-        id: 'road_002',
-        name: 'Old Bridge Road (Closed for Repairs)',
-        surface: 'concrete',
-        status: 'blocked',
-        speed_limit: 20,
-        coordinates: [[78.4720, 17.3780], [78.4780, 17.3810]]
-      }
-    ];
-  }
-
-  // Retrieve buildings from LocalStorage
+  // Retrieve buildings from LocalStorage (empty array if none exist)
   let customBuildings = [];
   try {
     const rawBldg = localStorage.getItem('rydealot_custom_buildings');
     if (rawBldg) customBuildings = JSON.parse(rawBldg);
   } catch (e) {}
-
-  if (!customBuildings || customBuildings.length === 0) {
-    customBuildings = [
-      {
-        id: 'bldg_001',
-        name: 'Sri Sai Medical Center',
-        category: 'hospital',
-        status: 'active',
-        height_meters: 18,
-        floors: 5,
-        coordinates: [
-          [[78.4870, 17.3860], [78.4880, 17.3860], [78.4880, 17.3870], [78.4870, 17.3870], [78.4870, 17.3860]]
-        ]
-      }
-    ];
-  }
 
   // Cloudflare D1 Cloud Sync (only if brand new worker is configured)
   if (CONFIG.D1_WORKER && navigator.onLine && !renderAdminGisOverlays._isFetching) {

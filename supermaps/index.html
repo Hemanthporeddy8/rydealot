@@ -34,6 +34,25 @@
 </head>
 <body>
 
+  <!-- App Splash / Map Loading Screen (Smooth First Load) -->
+  <div class="splash-loader" id="splash-loader">
+    <div class="splash-card">
+      <div class="splash-logo">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+          <polyline points="2 17 12 22 22 17"></polyline>
+          <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+      </div>
+      <div class="splash-title">RYDEALOT SUPERMAPS</div>
+      <div class="splash-subtitle">Vector India Map • Offline Navigation</div>
+      <div class="splash-spinner-wrap">
+        <div class="splash-spinner"></div>
+      </div>
+      <div class="splash-status" id="splash-status">Loading vector map...</div>
+    </div>
+  </div>
+
   <!-- Full-Screen Map Viewport -->
   <div id="map-viewport"></div>
 
