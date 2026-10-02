@@ -18,7 +18,6 @@ const CONFIG = {
 
 // --- GLOBAL STATE ---
 let map = null;
-let currentTheme = 'dark'; // 'dark' or 'light'
 let userMarker = null;
 let destMarker = null;
 let currentHeading = 0;
@@ -27,8 +26,202 @@ let isNavigating = false;
 let activeVehicleMode = 'car';
 let activeDestination = null;
 let verifiedShops = [];
-let _styleReloadPending = false;   // true when setStyle() was called (theme toggle)
-let _pendingRouteGeometry = null;  // saved route to re-draw after style reload
+let _styleReloadPending = false;
+let _pendingRouteGeometry = null;
+
+// ── THEME DEFINITIONS ──────────────────────────────────────────────────────────
+// Each theme has a Protomaps base flavor + paint property overrides applied after style loads.
+// Layer IDs follow @protomaps/basemaps v5 naming convention.
+const THEMES = {
+  gold: {
+    key: 'gold',
+    name: 'Rydealot Gold',
+    badge: 'DEFAULT',
+    description: 'Signature black & gold. Your brand, your map.',
+    base: 'dark',
+    preview: ['#0a0a0a', '#f59e0b', '#d97706', '#1a1400'],
+    isDark: true,
+    overrides: {
+      'earth':           { 'fill-color': '#0a0a0a' },
+      'water':           { 'fill-color': '#0a1520' },
+      'landuse_park':    { 'fill-color': '#0d1a0d' },
+      'landuse_wood':    { 'fill-color': '#0d1a0d' },
+      'roads_highway':   { 'line-color': '#d97706', 'line-width': 5 },
+      'roads_major':     { 'line-color': '#f59e0b' },
+      'roads_medium':    { 'line-color': '#78350f' },
+      'roads_minor':     { 'line-color': '#1c1400' },
+      'roads_link':      { 'line-color': '#92400e' },
+      'buildings':       { 'fill-color': '#141008', 'fill-opacity': 0.9 },
+    }
+  },
+
+  autonight: {
+    key: 'autonight',
+    name: 'Auto Night',
+    badge: 'RIDER MODE',
+    description: 'Max contrast for bike/auto night riding.',
+    base: 'dark',
+    preview: ['#000000', '#fbbf24', '#f97316', '#1c0800'],
+    isDark: true,
+    overrides: {
+      'earth':           { 'fill-color': '#000000' },
+      'water':           { 'fill-color': '#00060f' },
+      'landuse_park':    { 'fill-color': '#010800' },
+      'landuse_wood':    { 'fill-color': '#010800' },
+      'roads_highway':   { 'line-color': '#f97316', 'line-width': 6 },
+      'roads_major':     { 'line-color': '#fbbf24', 'line-width': 4 },
+      'roads_medium':    { 'line-color': '#d97706' },
+      'roads_minor':     { 'line-color': '#1c0a00' },
+      'roads_link':      { 'line-color': '#b45309' },
+      'buildings':       { 'fill-color': '#050300', 'fill-opacity': 0.95 },
+    }
+  },
+
+  neon: {
+    key: 'neon',
+    name: 'Neon Bazaar',
+    badge: 'FESTIVAL',
+    description: 'Electric neon lights. Like a night bazaar from above.',
+    base: 'dark',
+    preview: ['#000000', '#ec4899', '#a855f7', '#0a001a'],
+    isDark: true,
+    overrides: {
+      'earth':           { 'fill-color': '#000000' },
+      'water':           { 'fill-color': '#05001a' },
+      'landuse_park':    { 'fill-color': '#001a0a' },
+      'landuse_wood':    { 'fill-color': '#001a0a' },
+      'roads_highway':   { 'line-color': '#a855f7', 'line-width': 5 },
+      'roads_major':     { 'line-color': '#ec4899' },
+      'roads_medium':    { 'line-color': '#7c3aed' },
+      'roads_minor':     { 'line-color': '#1a0025' },
+      'roads_link':      { 'line-color': '#9333ea' },
+      'buildings':       { 'fill-color': '#0a0015', 'fill-opacity': 0.9 },
+    }
+  },
+
+  chai: {
+    key: 'chai',
+    name: 'Chai Tapri',
+    badge: 'WARM',
+    description: 'Earthy & warm. Like a chai stall hand-drawn board.',
+    base: 'light',
+    preview: ['#f5e6c8', '#c2440e', '#8b2500', '#d4b483'],
+    isDark: false,
+    overrides: {
+      'earth':           { 'fill-color': '#f5e6c8' },
+      'water':           { 'fill-color': '#b0c8d8' },
+      'landuse_park':    { 'fill-color': '#d4e8c0' },
+      'landuse_wood':    { 'fill-color': '#c4d8a8' },
+      'roads_highway':   { 'line-color': '#8b2500', 'line-width': 5 },
+      'roads_major':     { 'line-color': '#c2440e' },
+      'roads_medium':    { 'line-color': '#d97032' },
+      'roads_minor':     { 'line-color': '#d4b483' },
+      'roads_link':      { 'line-color': '#b85c20' },
+      'buildings':       { 'fill-color': '#e8d0a0', 'fill-opacity': 0.8 },
+    }
+  },
+
+  heritage: {
+    key: 'heritage',
+    name: 'Heritage',
+    badge: 'VINTAGE',
+    description: 'Old Survey of India parchment style. Classic & unique.',
+    base: 'light',
+    preview: ['#e8d5a3', '#5c3317', '#3d1f0a', '#c4a87a'],
+    isDark: false,
+    overrides: {
+      'earth':           { 'fill-color': '#e8d5a3' },
+      'water':           { 'fill-color': '#a0b8c8' },
+      'landuse_park':    { 'fill-color': '#d0c890' },
+      'landuse_wood':    { 'fill-color': '#c8ba78' },
+      'roads_highway':   { 'line-color': '#3d1f0a', 'line-width': 5 },
+      'roads_major':     { 'line-color': '#5c3317' },
+      'roads_medium':    { 'line-color': '#7a4a28' },
+      'roads_minor':     { 'line-color': '#c4a87a' },
+      'roads_link':      { 'line-color': '#6b3a20' },
+      'buildings':       { 'fill-color': '#d4b87a', 'fill-opacity': 0.7 },
+    }
+  }
+};
+
+// Active theme — load from localStorage or default to Gold
+let activeThemeKey = localStorage.getItem('rydealot_map_theme') || 'gold';
+function getActiveTheme() { return THEMES[activeThemeKey] || THEMES.gold; }
+
+// 2. VECTOR STYLE BUILDER
+function buildVectorStyle() {
+  const theme = getActiveTheme();
+  const flavor = theme.base; // 'dark' or 'light'
+
+  let vectorLayers = [];
+  if (typeof basemaps !== 'undefined' && basemaps.layers) {
+    vectorLayers = basemaps.layers('protomaps', basemaps.namedFlavor(flavor), { lang: 'en' });
+  }
+
+  return {
+    version: 8,
+    glyphs: 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf',
+    sprite: `https://protomaps.github.io/basemaps-assets/sprites/v4/${flavor}`,
+    sources: {
+      protomaps: {
+        type: 'vector',
+        url: `pmtiles://${CONFIG.PMTILES_SOURCE}`
+      }
+    },
+    layers: vectorLayers
+  };
+}
+
+// Apply theme paint overrides after style loads (compatible layer ID matching)
+function applyThemeOverrides() {
+  const theme = getActiveTheme();
+  const styleLayers = map.getStyle().layers;
+  const layerIds = new Set(styleLayers.map(l => l.id));
+
+  Object.entries(theme.overrides).forEach(([layerPattern, props]) => {
+    // Try exact match first, then prefix/contains match
+    layerIds.forEach(id => {
+      if (id === layerPattern || id.includes(layerPattern.replace('_', '-')) || id.includes(layerPattern)) {
+        Object.entries(props).forEach(([prop, value]) => {
+          try { map.setPaintProperty(id, prop, value); } catch (e) { /* layer may not support this prop */ }
+        });
+      }
+    });
+  });
+
+  // Update body class for UI theming
+  document.body.classList.toggle('daylight-theme', !theme.isDark);
+}
+
+// Set a new theme — saves to localStorage, reloads map style
+function setMapTheme(themeKey) {
+  if (!THEMES[themeKey]) return;
+  activeThemeKey = themeKey;
+  localStorage.setItem('rydealot_map_theme', themeKey);
+  _styleReloadPending = true;
+  map.setStyle(buildVectorStyle());
+  updateThemePickerSelection();
+}
+
+// Open/close theme picker panel
+function openThemePicker() {
+  const panel = document.getElementById('theme-picker-panel');
+  if (panel) panel.classList.add('active');
+  updateThemePickerSelection();
+}
+function closeThemePicker() {
+  const panel = document.getElementById('theme-picker-panel');
+  if (panel) panel.classList.remove('active');
+}
+function updateThemePickerSelection() {
+  document.querySelectorAll('.theme-card').forEach(card => {
+    card.classList.toggle('selected', card.dataset.theme === activeThemeKey);
+  });
+}
+
+// Legacy toggle — now opens picker
+function toggleMapTheme() { openThemePicker(); }
+
 
 // 1. INITIALIZE MAPLIBRE WITH PMTILES PROTOCOL
 window.addEventListener('DOMContentLoaded', () => {
@@ -46,43 +239,47 @@ function initMapEngine() {
     maplibregl.addProtocol('pmtiles', protocol.tile);
   }
 
+  // Apply saved theme class to body immediately (before map loads)
+  document.body.classList.toggle('daylight-theme', !getActiveTheme().isDark);
+
   // Create Vector Map (Strictly Bounded to India)
   map = new maplibregl.Map({
     container: 'map-viewport',
     center: CONFIG.DEFAULT_LNG_LAT,
     zoom: 13,
     minZoom: 4.2,
-    maxBounds: CONFIG.INDIA_BOUNDS, // Clips the rest of the world completely!
-    style: buildVectorStyle(currentTheme),
+    maxBounds: CONFIG.INDIA_BOUNDS,
+    style: buildVectorStyle(),
     attributionControl: false
   });
 
-  // Setup navigation controls
+  // Navigation controls
   map.addControl(new maplibregl.NavigationControl({ showCompass: true, showZoom: false }), 'bottom-right');
 
-  // Handle 1-Tap Anywhere on the Map (Google Maps Style)
+  // 1-tap on map → drop destination pin
   map.on('click', (e) => {
     closeBottomPanel();
     document.getElementById('search-dropdown').style.display = 'none';
     handleMapDestinationClick(e.lngLat);
   });
 
-  // Render Admin GIS Overlays (Custom Roads, Road Blocks, 3D Buildings)
+  // Initial load — apply theme overrides + GIS overlays
   map.on('load', () => {
+    applyThemeOverrides();
     renderAdminGisOverlays();
   });
 
-  // Re-render when theme or basemap style changes
+  // Re-apply everything after setStyle() (theme change wipes all layers)
   map.on('style.load', () => {
+    applyThemeOverrides();
     renderAdminGisOverlays();
-    // Restore active route after theme toggle wiped all sources/layers
     if (_styleReloadPending && _pendingRouteGeometry) {
       renderRouteOnMap(_pendingRouteGeometry);
     }
     _styleReloadPending = false;
   });
 
-  // Real-time synchronization when Admin updates roads or buildings in another tab
+  // Real-time sync when Admin updates GIS data in another tab
   window.addEventListener('storage', (e) => {
     if (e.key === 'rydealot_custom_roads' || e.key === 'rydealot_custom_buildings') {
       renderAdminGisOverlays();
