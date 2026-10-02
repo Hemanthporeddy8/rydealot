@@ -16,6 +16,31 @@ const CONFIG = {
   BUFFER_KM: 5.0
 };
 
+// --- PROGRAMMATIC AUTO-UPDATE & STALE CACHE EVAPORATOR ---
+// Ensures mobile phones & desktop browsers automatically discard old code with ZERO user friction.
+const SUPERMAPS_BUILD = 'v3.2.0';
+(function runAutoUpdater() {
+  try {
+    const cachedBuild = localStorage.getItem('supermaps_build_version');
+    if (cachedBuild && cachedBuild !== SUPERMAPS_BUILD) {
+      console.log(`[Supermaps Auto-Updater] New build detected: ${SUPERMAPS_BUILD} (was ${cachedBuild}). Refreshing...`);
+      localStorage.setItem('supermaps_build_version', SUPERMAPS_BUILD);
+      if ('caches' in window) {
+        caches.keys().then(names => Promise.all(names.map(n => caches.delete(n)))).catch(() => {});
+      }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(r => r.unregister());
+        }).catch(() => {});
+      }
+      // Instant reload to load fresh scripts
+      window.location.reload();
+      return;
+    }
+    localStorage.setItem('supermaps_build_version', SUPERMAPS_BUILD);
+  } catch (e) {}
+})();
+
 // --- GLOBAL STATE ---
 let map = null;
 let userMarker = null;
@@ -243,7 +268,7 @@ function initMapEngine() {
     }
   } catch (e) {}
 
-  // Create Vector Map (Strictly Bounded to India)
+  // Create Vector Map (Strictly Bounded to India) with High-Performance Mobile GPU
   map = new maplibregl.Map({
     container: 'map-viewport',
     center: initialCenter,
@@ -251,7 +276,10 @@ function initMapEngine() {
     minZoom: 4.2,
     maxBounds: CONFIG.INDIA_BOUNDS,
     style: buildVectorStyle(),
-    attributionControl: false
+    attributionControl: false,
+    powerPreference: 'high-performance', // Explicitly wake up mobile hardware GPU (Adreno / Mali)
+    antialias: false,                    // Lowers mobile shader overhead
+    pixelRatio: Math.min(window.devicePixelRatio || 1, 2) // Cap to 2.0 to eliminate 3X retina lag on Android
   });
 
   // Smoothly fade out splash screen once initial tiles are painted
@@ -291,8 +319,9 @@ function initMapEngine() {
     }
   });
 
-  // Track User GPS Location
+  // Track User GPS Location with Progressive Satellite Lock (< 60m)
   if ('geolocation' in navigator) {
+    // 1. Instant coarse estimate (Wi-Fi / Cell tower) for zero-wait display
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         userLngLat = [pos.coords.longitude, pos.coords.latitude];
@@ -303,6 +332,10 @@ function initMapEngine() {
         createUserMarker(userLngLat);
         drawAccuracyCircle(userLngLat, accuracyMeters);
         hideSplashLoader();
+
+        if (accuracyMeters < 60) {
+          cacheSafetyBuffer5Km(userLngLat);
+        }
       },
       (err) => {
         // GPS denied or unavailable — stay at default and let user drop pin
@@ -310,11 +343,59 @@ function initMapEngine() {
         showLocationPermissionBanner();
         hideSplashLoader();
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+
+    // 2. High-Accuracy Satellite GPS Watcher (< 60m)
+    // Snaps from coarse cell tower to exact doorstep when satellites acquire lock
+    let hasSatelliteLock = false;
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        const accuracy = pos.coords.accuracy;
+        const newCoords = [pos.coords.longitude, pos.coords.latitude];
+
+        if (accuracy < 60 || (!hasSatelliteLock && accuracy < 150)) {
+          if (accuracy < 60) hasSatelliteLock = true;
+          userLngLat = newCoords;
+          try { localStorage.setItem('supermaps_last_location', JSON.stringify(userLngLat)); } catch(e){}
+          createUserMarker(userLngLat);
+          drawAccuracyCircle(userLngLat, accuracy);
+
+          // Update camera smoothly to real satellite doorstep if user isn't navigating
+          if (!isNavigating) {
+            map.flyTo({ center: userLngLat, zoom: 16 });
+          }
+
+          // Pre-cache the 5KM safety buffer around this exact physical spot
+          cacheSafetyBuffer5Km(userLngLat);
+        }
+      },
+      (err) => console.warn('Satellite lock watcher:', err),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
     );
   } else {
     createUserMarker(userLngLat);
     hideSplashLoader();
+  }
+}
+
+// ── ROLLING 5KM BUFFER & OFFLINE RESILIENCE ──────────────────────────────────
+let _lastBufferedCoords = null;
+function cacheSafetyBuffer5Km(lngLat) {
+  if (!lngLat || !Array.isArray(lngLat)) return;
+  if (_lastBufferedCoords) {
+    const d = calculateDistanceKm(_lastBufferedCoords[1], _lastBufferedCoords[0], lngLat[1], lngLat[0]);
+    if (d < 1.5) return;
+  }
+  _lastBufferedCoords = lngLat;
+  console.log('[Supermaps 5KM Buffer] Satellite lock confirmed. Pre-buffering 5KM radius for:', lngLat);
+
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'CACHE_5KM_BUFFER',
+      coords: lngLat,
+      radiusKm: CONFIG.BUFFER_KM
+    });
   }
 }
 

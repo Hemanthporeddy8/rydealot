@@ -105,3 +105,11 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// 3. Rolling 5KM Safety Buffer Pre-Cache Receiver
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CACHE_5KM_BUFFER') {
+    console.log('[SW] 5KM Safety Buffer active for satellite coords:', event.data.coords);
+  }
+});
+
