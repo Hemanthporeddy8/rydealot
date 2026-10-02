@@ -89,16 +89,28 @@ function initMapEngine() {
     }
   });
 
-  // Track User GPS Location
+  // Track User GPS Location — with accuracy circle & warning
   if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         userLngLat = [pos.coords.longitude, pos.coords.latitude];
+        const accuracyMeters = pos.coords.accuracy; // browser gives accuracy in meters
+
         map.flyTo({ center: userLngLat, zoom: 15 });
         createUserMarker(userLngLat);
+        drawAccuracyCircle(userLngLat, accuracyMeters);
+
+        // Warn the user when GPS is too inaccurate (desktop/WiFi-based location)
+        if (accuracyMeters > 300) {
+          showLocationAccuracyWarning(accuracyMeters);
+        }
       },
-      () => createUserMarker(userLngLat),
-      { enableHighAccuracy: true, timeout: 8000 }
+      (err) => {
+        // GPS denied or unavailable — stay at default and let user drop pin
+        createUserMarker(userLngLat);
+        showLocationPermissionBanner();
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   } else {
     createUserMarker(userLngLat);
@@ -187,6 +199,166 @@ function setupCompassHeading() {
     }, true);
   }
 }
+
+// ── GPS ACCURACY CIRCLE ──────────────────────────────────────────────────────
+// Draws a ring around the user position showing GPS precision.
+// Larger circle = worse accuracy (common on desktop with no GPS chip).
+function drawAccuracyCircle(lngLat, accuracyMeters) {
+  // Remove old circle if exists
+  if (map.getLayer('user-accuracy-fill')) map.removeLayer('user-accuracy-fill');
+  if (map.getLayer('user-accuracy-stroke')) map.removeLayer('user-accuracy-stroke');
+  if (map.getSource('user-accuracy')) map.removeSource('user-accuracy');
+
+  // Convert accuracy radius from meters to approximate GeoJSON circle polygon
+  const points = 64;
+  const earthRadius = 6371000; // meters
+  const latR = (accuracyMeters / earthRadius) * (180 / Math.PI);
+  const lngR = latR / Math.cos(lngLat[1] * Math.PI / 180);
+  const coords = [];
+  for (let i = 0; i <= points; i++) {
+    const angle = (i / points) * 2 * Math.PI;
+    coords.push([lngLat[0] + lngR * Math.cos(angle), lngLat[1] + latR * Math.sin(angle)]);
+  }
+
+  map.addSource('user-accuracy', {
+    type: 'geojson',
+    data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] } }
+  });
+  map.addLayer({
+    id: 'user-accuracy-fill',
+    type: 'fill',
+    source: 'user-accuracy',
+    paint: { 'fill-color': '#06b6d4', 'fill-opacity': 0.08 }
+  });
+  map.addLayer({
+    id: 'user-accuracy-stroke',
+    type: 'line',
+    source: 'user-accuracy',
+    paint: { 'line-color': '#06b6d4', 'line-width': 1.5, 'line-opacity': 0.4, 'line-dasharray': [4, 3] }
+  });
+}
+
+// ── LOCATION ACCURACY WARNING ────────────────────────────────────────────────
+function showLocationAccuracyWarning(accuracyMeters) {
+  const existing = document.getElementById('loc-accuracy-banner');
+  if (existing) existing.remove();
+
+  const km = (accuracyMeters / 1000).toFixed(1);
+  const banner = document.createElement('div');
+  banner.id = 'loc-accuracy-banner';
+  banner.style.cssText = `
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    z-index: 3000; background: rgba(245,158,11,0.95); color: #000;
+    padding: 10px 16px; border-radius: 14px; font-size: 0.82rem; font-weight: 700;
+    max-width: 340px; width: calc(100% - 32px); text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); font-family: 'Plus Jakarta Sans', sans-serif;
+  `;
+  banner.innerHTML = `
+    Location accuracy is low (approx. ${km} km radius).
+    This is normal on desktop — no GPS chip available.<br>
+    <button onclick="openManualLocationSetter()" style="margin-top:8px; background:#000; color:#f59e0b; border:none; padding:7px 16px; border-radius:8px; font-weight:800; font-size:0.8rem; cursor:pointer; font-family:inherit;">
+      Set My Location Manually
+    </button>
+    <button onclick="this.parentElement.remove()" style="margin-top:8px; margin-left:6px; background:rgba(0,0,0,0.15); color:#000; border:none; padding:7px 12px; border-radius:8px; font-weight:700; font-size:0.8rem; cursor:pointer; font-family:inherit;">
+      Dismiss
+    </button>
+  `;
+  document.body.appendChild(banner);
+
+  // Auto-dismiss after 10 seconds
+  setTimeout(() => { if (banner.parentElement) banner.remove(); }, 10000);
+}
+
+function showLocationPermissionBanner() {
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    z-index: 3000; background: rgba(239,68,68,0.95); color: #fff;
+    padding: 10px 16px; border-radius: 14px; font-size: 0.82rem; font-weight: 700;
+    max-width: 340px; width: calc(100% - 32px); text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); font-family: 'Plus Jakarta Sans', sans-serif;
+  `;
+  banner.innerHTML = `
+    Location access denied or unavailable.<br>
+    <button onclick="this.parentElement.remove(); openManualLocationSetter()" style="margin-top:8px; background:#fff; color:#ef4444; border:none; padding:7px 16px; border-radius:8px; font-weight:800; font-size:0.8rem; cursor:pointer; font-family:inherit;">
+      Set Location Manually
+    </button>
+    <button onclick="this.parentElement.remove()" style="margin-top:8px; margin-left:6px; background:rgba(255,255,255,0.2); color:#fff; border:none; padding:7px 12px; border-radius:8px; font-weight:700; font-size:0.8rem; cursor:pointer; font-family:inherit;">
+      Dismiss
+    </button>
+  `;
+  document.body.appendChild(banner);
+}
+
+// ── MANUAL LOCATION SETTER ───────────────────────────────────────────────────
+// User types their location name, selects from suggestions, location pin moves
+function openManualLocationSetter() {
+  const existing = document.getElementById('manual-loc-panel');
+  if (existing) { existing.remove(); return; }
+
+  const panel = document.createElement('div');
+  panel.id = 'manual-loc-panel';
+  panel.style.cssText = `
+    position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+    z-index: 3000; background: var(--bg-surface); border: 1.5px solid var(--accent-gold);
+    border-radius: 18px; padding: 16px; width: calc(100% - 32px); max-width: 400px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.7); font-family: 'Plus Jakarta Sans', sans-serif;
+  `;
+  panel.innerHTML = `
+    <div style="font-size:0.9rem; font-weight:800; color:var(--accent-gold); margin-bottom:10px;">Set My Location</div>
+    <input id="manual-loc-input" type="text" placeholder="Type your location (e.g. Kazipet, Warangal)"
+      style="width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--border-color); border-radius:10px;
+             padding:10px 12px; color:var(--text-main); font-size:0.9rem; font-family:inherit; outline:none;"
+      oninput="searchManualLocation(this.value)">
+    <div id="manual-loc-results" style="margin-top:8px; max-height:200px; overflow-y:auto;"></div>
+    <button onclick="document.getElementById('manual-loc-panel').remove()"
+      style="margin-top:10px; width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--border-color);
+             color:var(--text-muted); padding:8px; border-radius:10px; cursor:pointer; font-family:inherit; font-size:0.82rem;">
+      Cancel
+    </button>
+  `;
+  document.body.appendChild(panel);
+  document.getElementById('manual-loc-input').focus();
+}
+
+let _manualLocTimer = null;
+function searchManualLocation(query) {
+  clearTimeout(_manualLocTimer);
+  if (query.length < 2) return;
+  _manualLocTimer = setTimeout(async () => {
+    const resultsEl = document.getElementById('manual-loc-results');
+    if (!resultsEl) return;
+    resultsEl.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:8px;">Searching...</div>';
+    try {
+      const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&bbox=68.1,7.9,97.4,35.5&limit=5&lang=en`;
+      const res = await fetch(url);
+      const data = await res.json();
+      resultsEl.innerHTML = '';
+      (data.features || []).forEach(f => {
+        const name = [f.properties.name, f.properties.city, f.properties.state].filter(Boolean).join(', ');
+        const div = document.createElement('div');
+        div.style.cssText = 'padding:10px 12px; border-bottom:1px solid var(--border-color); cursor:pointer; font-size:0.85rem; color:var(--text-main); border-radius:8px;';
+        div.textContent = name;
+        div.onmouseenter = () => div.style.background = 'rgba(245,158,11,0.1)';
+        div.onmouseleave = () => div.style.background = '';
+        div.onclick = () => {
+          const lng = f.geometry.coordinates[0];
+          const lat = f.geometry.coordinates[1];
+          userLngLat = [lng, lat];
+          createUserMarker(userLngLat);
+          drawAccuracyCircle(userLngLat, 50); // 50m circle for manual = high confidence
+          map.flyTo({ center: userLngLat, zoom: 16 });
+          document.getElementById('manual-loc-panel')?.remove();
+          document.getElementById('loc-accuracy-banner')?.remove();
+        };
+        resultsEl.appendChild(div);
+      });
+    } catch (e) {
+      resultsEl.innerHTML = '<div style="color:var(--text-muted); font-size:0.8rem; padding:8px;">Search failed. Try again.</div>';
+    }
+  }, 350);
+}
+
 
 // 4. GOOGLE MAPS STYLE "FROM / TO" DIRECTIONS & 1-TAP MAP ROUTING
 let originLngLat = null; // null defaults to user GPS
@@ -623,7 +795,21 @@ function closeBottomPanel() { document.getElementById('bottom-panel').classList.
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function recenterGps() {
-  if (userLngLat) map.flyTo({ center: userLngLat, zoom: 16 });
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        userLngLat = [pos.coords.longitude, pos.coords.latitude];
+        createUserMarker(userLngLat);
+        drawAccuracyCircle(userLngLat, pos.coords.accuracy);
+        map.flyTo({ center: userLngLat, zoom: 16 });
+        if (pos.coords.accuracy > 300) showLocationAccuracyWarning(pos.coords.accuracy);
+      },
+      () => { if (userLngLat) map.flyTo({ center: userLngLat, zoom: 16 }); },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  } else if (userLngLat) {
+    map.flyTo({ center: userLngLat, zoom: 16 });
+  }
 }
 function selectPlanCard(el) {
   document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
