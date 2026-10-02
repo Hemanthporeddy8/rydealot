@@ -138,12 +138,11 @@
     <button class="dock-btn" onclick="openModal('modal-profile')" title="My Profile">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     </button>
-    <button class="dock-btn" onclick="toggleMapTheme()" title="Map Themes">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
-        <circle cx="9" cy="10" r="1.5" fill="currentColor"/>
-        <circle cx="15" cy="10" r="1.5" fill="currentColor"/>
-        <path d="M8 15c1.1 1.3 6.9 1.3 8 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <button class="dock-btn" onclick="openThemePicker()" title="Map Themes (Gold, Night, Neon, Chai, Heritage)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+        <polyline points="2 17 12 22 22 17"></polyline>
+        <polyline points="2 12 12 17 22 12"></polyline>
       </svg>
     </button>
     <button class="dock-btn" onclick="recenterGps()" title="Re-center to My Location">
@@ -152,6 +151,25 @@
     <button class="dock-btn gold-btn" onclick="openModal('modal-shop-claim')" title="Publish Your Business">
       <span style="font-size:0.7rem; font-weight:800; letter-spacing:0.5px; line-height:1.1; text-align:center;">ADD<br>BIZ</span>
     </button>
+  </div>
+
+  <!-- Floating Bottom Route & Start Bar (Google Maps Style) -->
+  <div id="floating-route-bar" class="floating-route-bar" style="display:none;">
+    <div class="floating-route-info">
+      <div class="floating-route-time" id="fl-route-eta">-- mins</div>
+      <div class="floating-route-meta">
+        <span id="fl-route-dist">-- km</span> · <span id="fl-route-name">Destination</span>
+      </div>
+    </div>
+    <div class="floating-route-actions">
+      <button type="button" class="btn-floating-start" onclick="startDrivingActiveRoute()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <span>START</span>
+      </button>
+      <button type="button" class="btn-floating-cancel" onclick="clearActiveRoute()" title="Cancel Route">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
   </div>
 
   <!-- Theme Picker Bottom Sheet -->
@@ -271,7 +289,10 @@
         <div class="nav-distance-text" id="nav-hud-dist">0.0 KM</div>
         <div class="nav-action-text" id="nav-hud-action">Driving Route Active</div>
       </div>
-      <button class="btn-stop-nav" onclick="stopNavigation()">Stop</button>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button type="button" class="btn-sim-nav" id="btn-sim-nav" onclick="toggleSimulation()" title="Test Live Drive Simulation">Simulate</button>
+        <button type="button" class="btn-stop-nav" onclick="stopNavigation()">Stop</button>
+      </div>
     </div>
   </div>
 

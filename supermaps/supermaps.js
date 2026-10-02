@@ -155,7 +155,19 @@ function buildVectorStyle() {
 
   let vectorLayers = [];
   if (typeof basemaps !== 'undefined' && basemaps.layers) {
+    // Generate base layers from protomaps
     vectorLayers = basemaps.layers('protomaps', basemaps.namedFlavor(flavor), { lang: 'en' });
+    
+    // Bake theme paint overrides directly into layer objects!
+    // This compiles once in GPU memory — zero runtime setPaintProperty lag, zero device heat!
+    const overrides = theme.overrides || {};
+    vectorLayers.forEach(layer => {
+      Object.entries(overrides).forEach(([pattern, props]) => {
+        if (layer.id === pattern || layer.id.includes(pattern.replace('_', '-')) || layer.id.includes(pattern)) {
+          layer.paint = Object.assign({}, layer.paint, props);
+        }
+      });
+    });
   }
 
   return {
@@ -172,24 +184,9 @@ function buildVectorStyle() {
   };
 }
 
-// Apply theme paint overrides after style loads (compatible layer ID matching)
+// Fast UI theme class update (no heavy layer iteration needed)
 function applyThemeOverrides() {
   const theme = getActiveTheme();
-  const styleLayers = map.getStyle().layers;
-  const layerIds = new Set(styleLayers.map(l => l.id));
-
-  Object.entries(theme.overrides).forEach(([layerPattern, props]) => {
-    // Try exact match first, then prefix/contains match
-    layerIds.forEach(id => {
-      if (id === layerPattern || id.includes(layerPattern.replace('_', '-')) || id.includes(layerPattern)) {
-        Object.entries(props).forEach(([prop, value]) => {
-          try { map.setPaintProperty(id, prop, value); } catch (e) { /* layer may not support this prop */ }
-        });
-      }
-    });
-  });
-
-  // Update body class for UI theming
   document.body.classList.toggle('daylight-theme', !theme.isDark);
 }
 
@@ -314,49 +311,6 @@ function initMapEngine() {
   }
 }
 
-// 2. VECTOR STYLE BUILDER (Powered by Your 2.42 GB File)
-function buildVectorStyle(theme) {
-  const flavor = theme === 'dark' ? 'dark' : 'light';
-  
-  let vectorLayers = [];
-  if (typeof basemaps !== 'undefined' && basemaps.layers) {
-    vectorLayers = basemaps.layers('protomaps', basemaps.namedFlavor(flavor), { lang: 'en' });
-  }
-
-  return {
-    version: 8,
-    glyphs: 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf',
-    sprite: `https://protomaps.github.io/basemaps-assets/sprites/v4/${flavor}`,
-    sources: {
-      protomaps: {
-        type: 'vector',
-        url: `pmtiles://${CONFIG.PMTILES_SOURCE}`
-      }
-    },
-    layers: vectorLayers
-  };
-}
-
-function toggleMapTheme() {
-  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  document.body.classList.toggle('daylight-theme', currentTheme === 'light');
-
-  // Toggle sun/moon icon
-  const moon = document.getElementById('theme-icon-moon');
-  const sun = document.getElementById('theme-icon-sun');
-  if (moon && sun) {
-    moon.style.display = currentTheme === 'dark' ? 'block' : 'none';
-    sun.style.display = currentTheme === 'light' ? 'block' : 'none';
-  }
-
-  // Save active route geometry before style wipe
-  const savedRoute = _pendingRouteGeometry;
-
-  // setStyle wipes all sources/layers — restore everything in style.load
-  _styleReloadPending = true;
-  map.setStyle(buildVectorStyle(currentTheme));
-}
-
 // 3. USER VEHICLE NAVIGATION MARKER
 function createUserMarker(lngLat) {
   if (userMarker) {
@@ -377,8 +331,17 @@ function createUserMarker(lngLat) {
     .addTo(map);
 }
 
+let _lastCompassTime = 0;
+let _lastCompassAngle = -999;
+
 function updateCompassHeading(heading) {
   if (isNaN(heading)) return;
+  const now = performance.now();
+  if (now - _lastCompassTime < 120) return; // throttle to max ~8fps to avoid CPU churn
+  if (Math.abs(heading - _lastCompassAngle) < 3) return; // ignore micro-jitter
+  _lastCompassTime = now;
+  _lastCompassAngle = heading;
+
   currentHeading = heading;
   const arrow = document.getElementById('nav-arrow-wrapper');
   if (arrow) arrow.style.transform = `rotate(${currentHeading}deg)`;
@@ -391,25 +354,27 @@ function updateCompassHeading(heading) {
 function setupCompassHeading() {
   if (window.DeviceOrientationEvent) {
     window.addEventListener('deviceorientation', (e) => {
-      if (e.webkitCompassHeading) updateCompassHeading(e.webkitCompassHeading);
-      else if (e.alpha) updateCompassHeading(360 - e.alpha);
-    }, true);
+      const heading = e.webkitCompassHeading !== undefined ? e.webkitCompassHeading : (e.alpha ? (360 - e.alpha) : null);
+      if (heading !== null) updateCompassHeading(heading);
+    }, { passive: true });
   }
 }
 
-// ── GPS ACCURACY CIRCLE ──────────────────────────────────────────────────────
-// Draws a ring around the user position showing GPS precision.
-// Larger circle = worse accuracy (common on desktop with no GPS chip).
+// ── GPS ACCURACY CIRCLE (Optimized with setData — zero pipeline thrash) ───────
 function drawAccuracyCircle(lngLat, accuracyMeters) {
-  // Remove old circle if exists
-  if (map.getLayer('user-accuracy-fill')) map.removeLayer('user-accuracy-fill');
-  if (map.getLayer('user-accuracy-stroke')) map.removeLayer('user-accuracy-stroke');
-  if (map.getSource('user-accuracy')) map.removeSource('user-accuracy');
+  if (!map) return;
 
-  // Convert accuracy radius from meters to approximate GeoJSON circle polygon
-  const points = 64;
-  const earthRadius = 6371000; // meters
-  const latR = (accuracyMeters / earthRadius) * (180 / Math.PI);
+  // If accuracy is too huge (> 1000m) or very accurate (< 25m), hide circle
+  if (accuracyMeters > 1000 || accuracyMeters < 25) {
+    if (map.getLayer('user-accuracy-fill')) map.setLayoutProperty('user-accuracy-fill', 'visibility', 'none');
+    if (map.getLayer('user-accuracy-stroke')) map.setLayoutProperty('user-accuracy-stroke', 'visibility', 'none');
+    return;
+  }
+
+  const clampedRadius = Math.min(accuracyMeters, 350); // visual cap at 350m
+  const points = 32;
+  const earthRadius = 6371000;
+  const latR = (clampedRadius / earthRadius) * (180 / Math.PI);
   const lngR = latR / Math.cos(lngLat[1] * Math.PI / 180);
   const coords = [];
   for (let i = 0; i <= points; i++) {
@@ -417,22 +382,27 @@ function drawAccuracyCircle(lngLat, accuracyMeters) {
     coords.push([lngLat[0] + lngR * Math.cos(angle), lngLat[1] + latR * Math.sin(angle)]);
   }
 
-  map.addSource('user-accuracy', {
-    type: 'geojson',
-    data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] } }
-  });
-  map.addLayer({
-    id: 'user-accuracy-fill',
-    type: 'fill',
-    source: 'user-accuracy',
-    paint: { 'fill-color': '#06b6d4', 'fill-opacity': 0.08 }
-  });
-  map.addLayer({
-    id: 'user-accuracy-stroke',
-    type: 'line',
-    source: 'user-accuracy',
-    paint: { 'line-color': '#06b6d4', 'line-width': 1.5, 'line-opacity': 0.4, 'line-dasharray': [4, 3] }
-  });
+  const geojson = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] } };
+
+  if (map.getSource('user-accuracy')) {
+    map.getSource('user-accuracy').setData(geojson);
+    map.setLayoutProperty('user-accuracy-fill', 'visibility', 'visible');
+    map.setLayoutProperty('user-accuracy-stroke', 'visibility', 'visible');
+  } else {
+    map.addSource('user-accuracy', { type: 'geojson', data: geojson });
+    map.addLayer({
+      id: 'user-accuracy-fill',
+      type: 'fill',
+      source: 'user-accuracy',
+      paint: { 'fill-color': '#06b6d4', 'fill-opacity': 0.08 }
+    });
+    map.addLayer({
+      id: 'user-accuracy-stroke',
+      type: 'line',
+      source: 'user-accuracy',
+      paint: { 'line-color': '#06b6d4', 'line-width': 1.5, 'line-opacity': 0.4, 'line-dasharray': [4, 3] }
+    });
+  }
 }
 
 // ── LOCATION ACCURACY WARNING ────────────────────────────────────────────────
@@ -795,10 +765,9 @@ async function calculateActiveRoute(destLng, destLat, destName) {
 
     // REALISTIC Indian city speed estimates (OSRM highway speeds are useless for city nav)
     // Car: avg 28 km/h in city traffic  |  Bike: avg 20 km/h  |  Walk: 4.5 km/h
-    let avgSpeedKmh;
-    if (activeVehicleMode === 'car') avgSpeedKmh = 28;
-    else if (activeVehicleMode === 'bike') avgSpeedKmh = 20;
-    else avgSpeedKmh = 4.5;
+    let avgSpeedKmh = 28;
+    if (activeVehicleMode === 'bike') avgSpeedKmh = 20;
+    else if (activeVehicleMode === 'walk') avgSpeedKmh = 4.5;
 
     const realisticMins = Math.round((distKm / avgSpeedKmh) * 60);
     const etaText = realisticMins < 60
@@ -811,6 +780,15 @@ async function calculateActiveRoute(destLng, destLat, destName) {
 
     document.getElementById('route-eta').innerText = etaText;
     document.getElementById('route-dist').innerText = `${distKm.toFixed(1)} km · ${modeText}`;
+
+    // Show Floating Bottom Route & Start Bar (Never hidden, 100% visible)
+    const flBar = document.getElementById('floating-route-bar');
+    if (flBar) {
+      flBar.style.display = 'flex';
+      document.getElementById('fl-route-eta').innerText = etaText;
+      document.getElementById('fl-route-dist').innerText = `${distKm.toFixed(1)} km`;
+      document.getElementById('fl-route-name').innerText = destName;
+    }
 
   } catch (err) {
     console.warn('Routing error:', err);
@@ -851,7 +829,7 @@ function renderRouteOnMap(geojsonGeometry) {
   // Fit camera bounds to route
   const coordinates = geojsonGeometry.coordinates;
   const bounds = coordinates.reduce((b, coord) => b.extend(coord), new maplibregl.LngLatBounds(coordinates[0], coordinates[0]));
-  map.fitBounds(bounds, { padding: 60 });
+  map.fitBounds(bounds, { padding: 80 });
 }
 
 function clearActiveRoute() {
@@ -861,43 +839,152 @@ function clearActiveRoute() {
   if (destMarker) { destMarker.remove(); destMarker = null; }
   const banner = document.getElementById('route-summary-banner');
   if (banner) banner.style.display = 'none';
+  const flBar = document.getElementById('floating-route-bar');
+  if (flBar) flBar.style.display = 'none';
 }
 
 function startDrivingActiveRoute() {
   if (!activeDestination) return;
-  // IMPORTANT: save before toggleDirectionsMode() nulls activeDestination
   const dest = { ...activeDestination };
   const routeGeom = _pendingRouteGeometry;
   toggleDirectionsMode(false);
-  // Restore route on map (toggleDirectionsMode called clearActiveRoute)
+  const flBar = document.getElementById('floating-route-bar');
+  if (flBar) flBar.style.display = 'none';
+
+  // Restore route on map
   if (routeGeom) renderRouteOnMap(routeGeom);
-  startNavigation(dest.lng, dest.lat, dest.name);
+  startNavigation(dest.lng, dest.lat, dest.name, routeGeom);
 }
 
-function startNavigation(destLng, destLat, destName) {
+// Global navigation trackers
+let navWatchId = null;
+let navSimInterval = null;
+let _activeNavRoute = null;
+
+function startNavigation(destLng, destLat, destName, routeGeom) {
   isNavigating = true;
+  _activeNavRoute = routeGeom;
+
+  // Show HUD
   document.getElementById('nav-hud').style.display = 'flex';
   document.getElementById('nav-hud-action').innerText = `Heading to ${destName}`;
+  const initialDist = document.getElementById('route-dist')?.innerText?.split('·')[0]?.trim() || 'Active Route';
+  document.getElementById('nav-hud-dist').innerText = initialDist;
 
+  // Tilt camera into 3D navigation perspective
+  map.easeTo({
+    center: userLngLat,
+    zoom: 17,
+    pitch: 50,
+    bearing: currentHeading || 0,
+    duration: 1200
+  });
+
+  // Real GPS tracking (with watch ID saved so it can be cleared cleanly)
   if ('geolocation' in navigator) {
-    navigator.geolocation.watchPosition(
+    if (navWatchId) navigator.geolocation.clearWatch(navWatchId);
+    navWatchId = navigator.geolocation.watchPosition(
       (pos) => {
         userLngLat = [pos.coords.longitude, pos.coords.latitude];
         createUserMarker(userLngLat);
         if (pos.coords.heading) updateCompassHeading(pos.coords.heading);
         map.panTo(userLngLat);
+        // Calculate remaining straight-line distance to destination
+        const d = calculateDistanceKm(userLngLat[1], userLngLat[0], destLat, destLng);
+        document.getElementById('nav-hud-dist').innerText = `${d.toFixed(1)} KM`;
       },
-      (err) => console.warn(err),
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 5000 }
+      (err) => console.warn('Nav GPS watch error:', err),
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 6000 }
     );
   }
 }
 
+// Toggle live drive simulation (so users can preview ride tracking on any device)
+function toggleSimulation() {
+  const btn = document.getElementById('btn-sim-nav');
+  if (navSimInterval) {
+    // Stop simulation
+    clearInterval(navSimInterval);
+    navSimInterval = null;
+    if (btn) btn.classList.remove('active');
+    return;
+  }
+
+  if (!_activeNavRoute || !_activeNavRoute.coordinates || _activeNavRoute.coordinates.length < 2) {
+    alert('No active route geometry to simulate.');
+    return;
+  }
+
+  if (btn) btn.classList.add('active');
+  const coords = _activeNavRoute.coordinates;
+  let idx = 0;
+
+  navSimInterval = setInterval(() => {
+    if (idx >= coords.length) {
+      clearInterval(navSimInterval);
+      navSimInterval = null;
+      if (btn) btn.classList.remove('active');
+      alert('You have reached your destination!');
+      stopNavigation();
+      return;
+    }
+
+    const currentCoord = coords[idx];
+    userLngLat = currentCoord;
+    createUserMarker(userLngLat);
+    map.panTo(userLngLat);
+
+    // Calculate heading toward next coordinate
+    if (idx < coords.length - 1) {
+      const nextCoord = coords[idx + 1];
+      const bearing = calculateBearing(currentCoord[1], currentCoord[0], nextCoord[1], nextCoord[0]);
+      updateCompassHeading(bearing);
+    }
+
+    // Remaining KM
+    const remainingSteps = coords.length - idx;
+    const totalSteps = coords.length;
+    const estRemainingKm = ((remainingSteps / totalSteps) * 5.0).toFixed(1);
+    document.getElementById('nav-hud-dist').innerText = `${estRemainingKm} KM`;
+
+    idx += 2; // advance along route
+  }, 400);
+}
+
+// Distance helper
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+}
+
+// Bearing helper
+function calculateBearing(lat1, lon1, lat2, lon2) {
+  const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
+  const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+            Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+
 function stopNavigation() {
   isNavigating = false;
+  if (navWatchId) {
+    navigator.geolocation.clearWatch(navWatchId);
+    navWatchId = null;
+  }
+  if (navSimInterval) {
+    clearInterval(navSimInterval);
+    navSimInterval = null;
+  }
+  _activeNavRoute = null;
+
   document.getElementById('nav-hud').style.display = 'none';
   clearActiveRoute();
-  map.resetNorthPitch();
+  map.easeTo({ pitch: 0, bearing: 0, zoom: 14, duration: 800 });
 }
 
 // 5. VERIFIED BUSINESSES (Only load from Cloudflare D1 — no fake fallback pins)
