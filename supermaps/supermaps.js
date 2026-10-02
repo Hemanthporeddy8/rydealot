@@ -724,10 +724,13 @@ async function calculateActiveRoute(destLng, destLat, destName) {
     if (activeVehicleMode === 'bike') modeText = 'Bike · City traffic estimate';
     if (activeVehicleMode === 'walk') modeText = 'Walking estimate';
 
+    // Ensure Route Summary banner inside Directions Card is visible
+    const summaryBanner = document.getElementById('route-summary-banner');
+    if (summaryBanner) summaryBanner.style.display = 'flex';
     document.getElementById('route-eta').innerText = etaText;
     document.getElementById('route-dist').innerText = `${distKm.toFixed(1)} km · ${modeText}`;
 
-    // Show Floating Bottom Route & Start Bar (Never hidden, 100% visible)
+    // Show Floating Bottom Route & Start Bar (Always visible at bottom)
     const flBar = document.getElementById('floating-route-bar');
     if (flBar) {
       flBar.style.display = 'flex';
@@ -1105,7 +1108,11 @@ function setCategoryFilter(category, btnEl) {
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(e => console.warn(e));
+    navigator.serviceWorker.register('./sw.js?v=3.0')
+      .then(reg => {
+        reg.update();
+      })
+      .catch(e => console.warn(e));
   }
 }
 

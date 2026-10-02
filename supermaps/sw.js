@@ -1,38 +1,37 @@
 // =========================================================================
-// RYDEALOT SUPERMAPS — SERVICE WORKER (Rolling 5KM Buffer & Offline Engine)
+// RYDEALOT SUPERMAPS — SERVICE WORKER (Network-First Auto-Updating Engine)
 // =========================================================================
 
-const CACHE_NAME = 'supermaps-v1.0';
+const CACHE_NAME = 'supermaps-v3.0';
 const TILE_CACHE = 'supermaps-rolling-tiles';
-const MAX_CACHED_TILES = 120; // Keeps RAM usage strictly under 3 MB for potato phones
+const MAX_CACHED_TILES = 120;
 
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './admin.html',
   './style.css',
   './supermaps.js',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap'
 ];
 
-// Install Event: Cache core application assets
+// Install: Cache current assets & activate immediately
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
-// Activate Event: Clean up stale caches
+// Activate: Purge ALL stale caches (v1.0, etc.) immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME && key !== TILE_CACHE) {
+            console.log('[SW] Evicting old cache:', key);
             return caches.delete(key);
           }
         })
@@ -41,7 +40,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Trim Tile Cache to prevent memory growth (FIFO Sliding Window)
+// Trim Tile Cache to prevent memory growth
 async function trimTileCache() {
   const cache = await caches.open(TILE_CACHE);
   const keys = await cache.keys();
@@ -53,31 +52,27 @@ async function trimTileCache() {
   }
 }
 
-// Fetch Handler: Network-first with Rolling Cache Fallback
+// Fetch: NETWORK-FIRST for HTML/CSS/JS (Always fresh when online, cache when offline)
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // 1. Handle Map Tiles (CartoDB, OpenStreetMap, or custom tiles)
+  // 1. Handle Map Tiles
   if (url.hostname.includes('tile') || url.pathname.includes('/tile/')) {
     event.respondWith(
       fetch(event.request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
+            const clone = networkResponse.clone();
             caches.open(TILE_CACHE).then((cache) => {
-              cache.put(event.request, responseClone);
+              cache.put(event.request, clone);
               trimTileCache();
             });
           }
           return networkResponse;
         })
         .catch(async () => {
-          // Dead Zone Trigger: Retrieve from rolling buffer cache
-          const cachedResponse = await caches.match(event.request);
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // Fallback transparent 1x1 tile if outside buffer
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
           return new Response(
             '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#141416"/></svg>',
             { headers: { 'Content-Type': 'image/svg+xml' } }
@@ -87,18 +82,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Handle Application Shell & Static Assets
+  // 2. Network-First Strategy for App Assets (Prevents stale code bugs)
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).catch(() => {
-        // Fallback for HTML documents if completely offline
-        if (event.request.headers.get('accept')?.includes('text/html')) {
-          return caches.match('./index.html');
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, clone);
+          });
         }
-      });
-    })
+        return networkResponse;
+      })
+      .catch(() => {
+        // Only if offline, serve from cache
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          if (event.request.headers.get('accept')?.includes('text/html')) {
+            return caches.match('./index.html');
+          }
+        });
+      })
   );
 });
