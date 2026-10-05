@@ -305,10 +305,11 @@ function initMapEngine() {
     handleMapDestinationClick(e.lngLat);
   });
 
-  // Initial load — apply theme overrides + GIS overlays
+  // Initial load — apply theme overrides + GIS overlays + check deep-link URL params
   map.on('load', () => {
     applyThemeOverrides();
     renderAdminGisOverlays();
+    checkUrlLaunchParameters();
   });
 
   // Re-apply everything after setStyle() (theme change wipes all layers)
@@ -811,15 +812,17 @@ function handleMapDestinationClick(lngLat) {
   calculateActiveRoute(lngLat.lng, lngLat.lat, label);
 }
 
-async function calculateActiveRoute(destLng, destLat, destName) {
+async function calculateActiveRoute(destLng, destLat, destName, autoNav = false) {
   activeDestination = { lng: destLng, lat: destLat, name: destName };
   const startCoord = originLngLat || userLngLat;
 
   // Show loading state
   const banner = document.getElementById('route-summary-banner');
-  banner.style.display = 'flex';
-  document.getElementById('route-eta').innerText = 'Calculating...';
-  document.getElementById('route-dist').innerText = 'Finding best route';
+  if (banner) banner.style.display = 'flex';
+  const etaEl = document.getElementById('route-eta');
+  if (etaEl) etaEl.innerText = 'Calculating...';
+  const distEl = document.getElementById('route-dist');
+  if (distEl) distEl.innerText = 'Finding best route';
 
   try {
     const profile = activeVehicleMode === 'walk' ? 'foot' : 'driving';
@@ -849,9 +852,9 @@ async function calculateActiveRoute(destLng, destLat, destName) {
       } catch(e) {}
     }
 
-    if (!data.routes || data.routes.length === 0) {
-      document.getElementById('route-eta').innerText = 'No route';
-      document.getElementById('route-dist').innerText = 'Could not find a route to this location';
+    if (!data || !data.routes || data.routes.length === 0) {
+      if (etaEl) etaEl.innerText = 'No route';
+      if (distEl) distEl.innerText = 'Could not find a route to this location';
       return;
     }
 
@@ -860,8 +863,7 @@ async function calculateActiveRoute(destLng, destLat, destName) {
 
     const distKm = route.distance / 1000;
 
-    // REALISTIC Indian city speed estimates (OSRM highway speeds are useless for city nav)
-    // Car: avg 28 km/h in city traffic  |  Bike: avg 20 km/h  |  Walk: 4.5 km/h
+    // REALISTIC Indian city speed estimates
     let avgSpeedKmh = 28;
     if (activeVehicleMode === 'bike') avgSpeedKmh = 20;
     else if (activeVehicleMode === 'walk') avgSpeedKmh = 4.5;
@@ -878,22 +880,52 @@ async function calculateActiveRoute(destLng, destLat, destName) {
     // Ensure Route Summary banner inside Directions Card is visible
     const summaryBanner = document.getElementById('route-summary-banner');
     if (summaryBanner) summaryBanner.style.display = 'flex';
-    document.getElementById('route-eta').innerText = etaText;
-    document.getElementById('route-dist').innerText = `${distKm.toFixed(1)} km · ${modeText}`;
+    if (etaEl) etaEl.innerText = etaText;
+    if (distEl) distEl.innerText = `${distKm.toFixed(1)} km · ${modeText}`;
 
-    // Show Floating Bottom Route & Start Bar (Always visible at bottom)
+    // Show Floating Bottom Route & Start Bar
     const flBar = document.getElementById('floating-route-bar');
     if (flBar) {
       flBar.style.display = 'flex';
-      document.getElementById('fl-route-eta').innerText = etaText;
-      document.getElementById('fl-route-dist').innerText = `${distKm.toFixed(1)} km`;
-      document.getElementById('fl-route-name').innerText = destName;
+      const flEta = document.getElementById('fl-route-eta');
+      if (flEta) flEta.innerText = etaText;
+      const flDist = document.getElementById('fl-route-dist');
+      if (flDist) flDist.innerText = `${distKm.toFixed(1)} km`;
+      const flName = document.getElementById('fl-route-name');
+      if (flName) flName.innerText = destName;
+    }
+
+    // Auto-launch turn-by-turn navigation if requested by deep link
+    if (autoNav) {
+      setTimeout(() => {
+        startDrivingActiveRoute();
+      }, 500);
     }
 
   } catch (err) {
     console.warn('Routing error:', err);
-    document.getElementById('route-eta').innerText = 'Error';
-    document.getElementById('route-dist').innerText = 'Could not reach routing server. Check your connection.';
+    if (etaEl) etaEl.innerText = 'Error';
+    if (distEl) distEl.innerText = 'Could not reach routing server. Check your connection.';
+  }
+}
+
+// Check if Supermaps was launched via deep-link from Rydealot Taxi / Driver App
+function checkUrlLaunchParameters() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const destLat = parseFloat(params.get('destLat') || params.get('lat'));
+    const destLng = parseFloat(params.get('destLng') || params.get('lng'));
+    const destName = params.get('destName') || params.get('name') || 'Destination';
+    const isNav = params.get('nav') === 'true' || params.get('autoNav') === 'true';
+
+    if (!isNaN(destLat) && !isNaN(destLng)) {
+      console.log(`[Supermaps Launch] Received destination: ${destName} (${destLat}, ${destLng}) - autoNav: ${isNav}`);
+      setTimeout(() => {
+        calculateActiveRoute(destLng, destLat, destName, isNav);
+      }, 800);
+    }
+  } catch (e) {
+    console.warn('[Supermaps] Could not parse launch parameters:', e);
   }
 }
 

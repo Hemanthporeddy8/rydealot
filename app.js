@@ -2688,7 +2688,7 @@
       if (b.maps_link) {
         gmapsLink.href = b.maps_link.replace(/[?&]pin=\d{4}/, '');
       } else {
-        gmapsLink.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
+        gmapsLink.href = supermapsNavUrlFor(b.drop_lat, b.drop_lng, b.drop_label || '');
       }
     }
 
@@ -2700,8 +2700,10 @@
     var buttonHtml = '';
     if (b.status === 'accepted') {
       buttonHtml = 
-        '<div class="maps-link-box" style="margin: 0 0 10px 0; background: var(--bg); border-radius: 12px; padding: 10px; font-size: 13px;">' +
-          'Navigate to pickup: <a href="' + mapsLinkFor(b) + '" target="_blank" rel="noopener" style="display:block; text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:8px; font-weight:700; color:#1a73e8; text-decoration:none; margin-top:6px;">Open in Google Maps</a>' +
+        '<div class="maps-link-box" style="margin: 0 0 10px 0; background: var(--bg); border-radius: 12px; padding: 12px; font-size: 13px;">' +
+          'Navigate to pickup:' +
+          '<a href="' + mapsLinkFor(b) + '" target="_blank" rel="noopener" style="display:block; text-align:center; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius:10px; padding:10px; font-weight:800; color:#fff; text-decoration:none; margin-top:6px; box-shadow:0 4px 12px rgba(16,185,129,0.25);">⚡ Open in Supermaps Navigation</a>' +
+          '<a href="' + gmapsLinkFor(b) + '" target="_blank" rel="noopener" style="display:block; text-align:center; font-size:11.5px; font-weight:600; color:var(--text-muted); text-decoration:none; margin-top:6px;">Alternative: Open in Google Maps</a>' +
         '</div>' +
         '<button class="btn" style="background:var(--green); border-color:var(--green); color:#fff;" id="rd-btn-arrived">I have arrived</button>' +
         '<button class="btn btn-outline" style="border-color:#f3d4d4; color:var(--red); background:#fff; margin-top:8px;" id="rd-btn-cancel-trip">Cancel Trip</button>';
@@ -2710,10 +2712,15 @@
         '<button class="btn" style="background:var(--signal); border-color:var(--accent); color:var(--accent);" id="rd-btn-start">Start trip</button>' +
         '<button class="btn btn-outline" style="border-color:#f3d4d4; color:var(--red); background:#fff; margin-top:8px;" id="rd-btn-cancel-trip">Cancel Trip</button>';
     } else if (b.status === 'in_progress') {
-      var cleanLink = b.maps_link ? b.maps_link.replace(/[?&]pin=(\d{4})/, '') : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
+      var dLat = b.drop_lat || (state && state.destLat);
+      var dLng = b.drop_lng || (state && state.destLng);
+      var superDrop = supermapsNavUrlFor(dLat, dLng, b.drop_label || 'Destination');
+      var gmapsDrop = gmapsBackupUrlFor(dLat, dLng, b.drop_label || 'Destination');
       buttonHtml = 
-        '<div class="maps-link-box" style="margin: 0 0 10px 0; background: var(--bg); border-radius: 12px; padding: 10px; font-size: 13px;">' +
-          'Navigate to drop-off: <a href="' + cleanLink + '" target="_blank" rel="noopener" style="display:block; text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:8px; font-weight:700; color:#1a73e8; text-decoration:none; margin-top:6px;">Open in Google Maps</a>' +
+        '<div class="maps-link-box" style="margin: 0 0 10px 0; background: var(--bg); border-radius: 12px; padding: 12px; font-size: 13px;">' +
+          'Navigate to drop-off:' +
+          '<a href="' + superDrop + '" target="_blank" rel="noopener" style="display:block; text-align:center; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius:10px; padding:10px; font-weight:800; color:#fff; text-decoration:none; margin-top:6px; box-shadow:0 4px 12px rgba(16,185,129,0.25);">⚡ Open in Supermaps Navigation</a>' +
+          '<a href="' + gmapsDrop + '" target="_blank" rel="noopener" style="display:block; text-align:center; font-size:11.5px; font-weight:600; color:var(--text-muted); text-decoration:none; margin-top:6px;">Alternative: Open in Google Maps</a>' +
         '</div>' +
         '<button class="btn" style="background:var(--red); border-color:var(--red); color:#fff;" id="rd-btn-complete">Complete trip</button>';
     }
@@ -2815,8 +2822,10 @@
       }
 
       openDriverPinModal(correctPin, function() {
-        var cleanLink = b.maps_link ? b.maps_link.replace(/[?&]pin=(\d{4})/, '') : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
-        window.open(cleanLink, '_blank');
+        var dLat = b.drop_lat || (state && state.destLat);
+        var dLng = b.drop_lng || (state && state.destLng);
+        var navLink = supermapsNavUrlFor(dLat, dLng, b.drop_label || 'Destination');
+        window.open(navLink, '_blank');
         handleBookingAction('start', b.id, correctPin);
       });
     });
@@ -2838,10 +2847,7 @@
           attributionControl: false
         }).setView([dLat, dLng], 15);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          subdomains: ['a', 'b', 'c']
-        }).addTo(state.map);
+        createRydealotTileLayer({ subdomains: ['a', 'b', 'c'] }).addTo(state.map);
 
         var vType = (r && r.vehicle_type) ? r.vehicle_type : 'auto';
         var vIconEmoji = vType === 'bike' ? '🏍️' : (vType === 'auto' ? '🛺' : '🚗');
@@ -2984,11 +2990,54 @@
     }
   }
 
-  function mapsLinkFor(b){
-    if(b.pickup_lat && b.pickup_lng){
-      return 'https://www.google.com/maps/dir/?api=1&destination=' + b.pickup_lat + ',' + b.pickup_lng + '&travelmode=driving';
+  // =========================================================================
+  // RYDEALOT MAP & NAVIGATION ENGINE — POWERED BY SUPERMAPS
+  // Primary: Rydealot Supermaps (Edge Proxy & Web Navigation)
+  // Backup:  OpenStreetMap (Tiles) & Google Maps (Navigation)
+  // =========================================================================
+  var SUPERMAPS_NAV_BASE = 'https://maps.rydealot.com';
+  var SUPERMAPS_TILE_URL = 'https://rydealot-supermaps-api.rydealotmaps.workers.dev/api/v1/tiles/{z}/{x}/{y}.png';
+  var OSM_BACKUP_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+  function createRydealotTileLayer(options) {
+    var opts = Object.assign({
+      maxZoom: 19,
+      attribution: '© Rydealot Supermaps'
+    }, options || {});
+
+    var layer = L.tileLayer(SUPERMAPS_TILE_URL, opts);
+
+    // Dynamic failover to backup if Supermaps edge server is unreachable
+    layer.on('tileerror', function() {
+      if (layer._url !== OSM_BACKUP_TILE_URL) {
+        console.warn('[Rydealot Maps] Supermaps edge tile offline, engaging backup tile server.');
+        layer.setUrl(OSM_BACKUP_TILE_URL);
+      }
+    });
+
+    return layer;
+  }
+
+  function supermapsNavUrlFor(lat, lng, label) {
+    if (lat && lng) {
+      return SUPERMAPS_NAV_BASE + '/?destLat=' + lat + '&destLng=' + lng + '&name=' + encodeURIComponent(label || 'Destination') + '&nav=true';
     }
-    return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.pickup_label || '');
+    return SUPERMAPS_NAV_BASE + '/?query=' + encodeURIComponent(label || '');
+  }
+
+  function gmapsBackupUrlFor(lat, lng, label) {
+    if (lat && lng) {
+      return 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=driving';
+    }
+    return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(label || '');
+  }
+
+  function mapsLinkFor(b){
+    return supermapsNavUrlFor(b.pickup_lat, b.pickup_lng, b.pickup_label || 'Pickup Location');
+  }
+
+  function gmapsLinkFor(b){
+    return gmapsBackupUrlFor(b.pickup_lat, b.pickup_lng, b.pickup_label || 'Pickup Location');
   }
 
   function renderBookings(list){
@@ -4003,9 +4052,7 @@
         attributionControl: false
       }).setView([startLat, startLng], 16);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
-      }).addTo(dropPickerMap);
+      createRydealotTileLayer().addTo(dropPickerMap);
 
       dropPickerMap.on('movestart dragstart', function() {
         var addrEl = document.getElementById('drop-picker-address-display');
@@ -4139,9 +4186,7 @@
     
     state.destMap = L.map('setup-map', { zoomControl: true }).setView([defaultLat, defaultLng], 13);
     
-    setupMapTileLayer = L.tileLayer(SETUP_MAP_THEMES['light'], {
-      maxZoom: 19
-    }).addTo(state.destMap);
+    setupMapTileLayer = createRydealotTileLayer({ maxZoom: 19 }).addTo(state.destMap);
 
     var btnTheme = document.getElementById('btn-toggle-map-theme');
     if (btnTheme) {
@@ -6202,10 +6247,10 @@
       var pin = Math.floor(1000 + Math.random() * 9000);
       var mapsLink = '';
       if(state.destLat && state.destLng){
-        mapsLink = 'https://www.google.com/maps/dir/?api=1&destination=' + state.destLat + ',' + state.destLng + '&travelmode=driving&pin=' + pin;
+        mapsLink = SUPERMAPS_NAV_BASE + '/?destLat=' + state.destLat + '&destLng=' + state.destLng + '&name=' + encodeURIComponent(state.drop || 'Destination') + '&nav=true&pin=' + pin;
       } else {
         var query = state.drop || '';
-        mapsLink = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query) + '&pin=' + pin;
+        mapsLink = SUPERMAPS_NAV_BASE + '/?query=' + encodeURIComponent(query) + '&pin=' + pin;
       }
       var rows = await sbFetch('bookings', {
         method: 'POST',
@@ -6407,10 +6452,7 @@
           attributionControl: false
         }).setView([state.lat, state.lng], 15);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          subdomains: ['a', 'b', 'c']
-        }).addTo(state.map);
+        createRydealotTileLayer({ subdomains: ['a', 'b', 'c'] }).addTo(state.map);
 
         var passengerIcon = L.divIcon({
           html: '<div style="background-color:#1d9e75; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>',

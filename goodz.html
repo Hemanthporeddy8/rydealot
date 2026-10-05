@@ -1621,7 +1621,14 @@
     if (!mapEl) return;
     var pCity = CITIES_DATABASE[selectedPickupCity] || { coords: [17.9784, 79.5941] };
     map = L.map('relay-map', { zoomControl: false }).setView(pCity.coords, 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+    var supermapsTileUrl = 'https://rydealot-supermaps-api.rydealotmaps.workers.dev/api/v1/tiles/{z}/{x}/{y}.png';
+    var osmTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    var goodzTileLayer = L.tileLayer(supermapsTileUrl, { maxZoom: 18 }).addTo(map);
+    goodzTileLayer.on('tileerror', function() {
+      if (goodzTileLayer._url !== osmTileUrl) {
+        goodzTileLayer.setUrl(osmTileUrl);
+      }
+    });
     switchStage(1);
   }
 

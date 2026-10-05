@@ -1129,10 +1129,17 @@
     // Default center on Warangal
     godViewMapInstance = L.map('god-view-map').setView([17.9689, 79.5941], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    var supermapsTileUrl = 'https://rydealot-supermaps-api.rydealotmaps.workers.dev/api/v1/tiles/{z}/{x}/{y}.png';
+    var osmTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    var adminTileLayer = L.tileLayer(supermapsTileUrl, {
       maxZoom: 19,
-      attribution: '© OpenStreetMap contributors'
+      attribution: '© Rydealot Supermaps'
     }).addTo(godViewMapInstance);
+    adminTileLayer.on('tileerror', function() {
+      if (adminTileLayer._url !== osmTileUrl) {
+        adminTileLayer.setUrl(osmTileUrl);
+      }
+    });
 
     godViewMarkersLayer = L.layerGroup().addTo(godViewMapInstance);
   }
