@@ -2715,8 +2715,7 @@
         '<div class="maps-link-box" style="margin: 0 0 10px 0; background: var(--bg); border-radius: 12px; padding: 10px; font-size: 13px;">' +
           'Navigate to drop-off: <a href="' + cleanLink + '" target="_blank" rel="noopener" style="display:block; text-align:center; background:#fff; border:1.5px solid var(--border); border-radius:10px; padding:8px; font-weight:700; color:#1a73e8; text-decoration:none; margin-top:6px;">Open in Google Maps</a>' +
         '</div>' +
-        '<button class="btn" style="background:var(--red); border-color:var(--red); color:#fff;" id="rd-btn-complete">Complete trip</button>' +
-        '<button class="btn btn-outline" style="border-color:#f3d4d4; color:var(--red); background:#fff; margin-top:8px;" id="rd-btn-cancel-trip">Cancel Trip</button>';
+        '<button class="btn" style="background:var(--red); border-color:var(--red); color:#fff;" id="rd-btn-complete">Complete trip</button>';
     }
     actionsEl.innerHTML = buttonHtml;
 
@@ -2728,9 +2727,13 @@
     if (cancelTripBtn) {
       cancelTripBtn.addEventListener('click', async function(){
         if(!confirm('Are you sure you want to cancel this trip?')) return;
+        if(b.status === 'in_progress' || b.status === 'completed') {
+          toast('⚠️ You cannot cancel a trip that is already in progress. Please complete the trip.');
+          return;
+        }
         try {
           if (window.RydealotChat) window.RydealotChat.stopChat();
-          await sbFetch('bookings?id=eq.' + b.id, { method: 'PATCH', body: { status: 'cancelled' } });
+          await sbFetch('bookings?id=eq.' + b.id + '&rider_id=eq.' + state.riderId + '&status=in.(accepted,arrived)', { method: 'PATCH', body: { status: 'cancelled' } });
           await sbFetch('riders?id=eq.' + state.riderId, { method: 'PATCH', body: { status: 'available' } });
           setPill('available');
           toast('Trip cancelled');
@@ -2804,19 +2807,18 @@
   if (startBtn) {
     startBtn.addEventListener('click', function() {
       var pinMatch = b.maps_link ? b.maps_link.match(/[?&]pin=(\d{4})/) : null;
-      var correctPin = pinMatch ? pinMatch[1] : null;
+      var correctPin = b.pin_code || (pinMatch ? pinMatch[1] : null);
       
-      if (correctPin) {
-        openDriverPinModal(correctPin, function() {
-          var cleanLink = b.maps_link ? b.maps_link.replace(/[?&]pin=(\d{4})/, '') : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
-          window.open(cleanLink, '_blank');
-          handleBookingAction('start', b.id);
-        });
-      } else {
+      if (!correctPin) {
+        toast('⚠️ Waiting for passenger PIN code. Please ask the passenger for their 4-digit PIN.');
+        return;
+      }
+
+      openDriverPinModal(correctPin, function() {
         var cleanLink = b.maps_link ? b.maps_link.replace(/[?&]pin=(\d{4})/, '') : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(b.drop_label || '');
         window.open(cleanLink, '_blank');
-        handleBookingAction('start', b.id);
-      }
+        handleBookingAction('start', b.id, correctPin);
+      });
     });
   }
   if (completeBtn) completeBtn.addEventListener('click', function() { showDriverCollectFareModal(b); });
@@ -3037,9 +3039,10 @@
     });
   }
 
-  async function handleBookingAction(action, bookingId){
+  async function handleBookingAction(action, bookingId, enteredPin){
     var statusMap = { accept:'accepted', decline:'cancelled', arrived:'arrived', start:'in_progress', complete:'completed' };
     var newStatus = statusMap[action];
+    if (!newStatus) return;
     
     // Immediate UI transition on complete/decline so driver never gets stuck on tracking screen
     if(action === 'complete' || action === 'decline'){
@@ -3054,8 +3057,31 @@
       setPill('available');
     }
 
+    // ANTI-HIJACK & STATE-MACHINE ENFORCEMENT:
+    var queryPath = 'bookings?id=eq.' + bookingId;
+    if (action === 'accept') {
+      // Must be requested to accept; prevents race conditions / double acceptance
+      queryPath += '&status=eq.requested';
+    } else if (action === 'arrived') {
+      // Must belong to this driver and be currently accepted
+      queryPath += '&rider_id=eq.' + state.riderId + '&status=eq.accepted';
+    } else if (action === 'start') {
+      // Must belong to this driver and be arrived or accepted
+      queryPath += '&rider_id=eq.' + state.riderId + '&status=in.(accepted,arrived)';
+      if (enteredPin) queryPath += '&pin_code=eq.' + enteredPin;
+    } else if (action === 'complete') {
+      // Must belong to this driver and be in_progress
+      queryPath += '&rider_id=eq.' + state.riderId + '&status=eq.in_progress';
+    } else if (action === 'decline') {
+      queryPath += '&rider_id=eq.' + state.riderId;
+    }
+
     try{
-      await sbFetch('bookings?id=eq.' + bookingId, { method:'PATCH', body:{ status: newStatus } });
+      var patchBody = { status: newStatus, updated_at: new Date().toISOString() };
+      if (action === 'accept') {
+        patchBody.rider_id = state.riderId;
+      }
+      var patchRes = await sbFetch(queryPath, { method:'PATCH', body: patchBody });
       var nowIso = new Date().toISOString();
       if(action === 'accept'){
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'busy', updated_at: nowIso } });
@@ -6194,7 +6220,8 @@
           vehicle_type: type,
           fare: price,
           status: 'requested',
-          maps_link: mapsLink
+          maps_link: mapsLink,
+          pin_code: String(pin)
         }
       });
       var row = Array.isArray(rows) ? rows[0] : rows;
@@ -6559,11 +6586,15 @@
   }
 
   document.getElementById('cancel-trip-btn').addEventListener('click', async function(){
-    clearInterval(state.bookingPollTimer);
-    destroyMap();
-    localStorage.removeItem('rydealot_active_booking');
-    if (window.RydealotChat) window.RydealotChat.stopChat();
+    if (state.lastKnownStatus === 'in_progress' || state.lastKnownStatus === 'completed') {
+      toast('⚠️ Trip is already in progress and cannot be cancelled. Use SOS in an emergency.');
+      return;
+    }
     if(!state.activeBookingId){
+      clearInterval(state.bookingPollTimer);
+      destroyMap();
+      localStorage.removeItem('rydealot_active_booking');
+      if (window.RydealotChat) window.RydealotChat.stopChat();
       showScreen('screen-lot');
       await resetLot();
       return;
@@ -6571,12 +6602,20 @@
     try{
       var bRows = await sbFetch('bookings?id=eq.' + state.activeBookingId);
       var b = bRows && bRows[0];
-      await sbFetch('bookings?id=eq.' + state.activeBookingId, { method: 'PATCH', body: { status: 'cancelled' } });
+      if (b && (b.status === 'in_progress' || b.status === 'completed')) {
+        toast('⚠️ Trip is already in progress and cannot be cancelled. Use SOS in an emergency.');
+        return;
+      }
+      clearInterval(state.bookingPollTimer);
+      destroyMap();
+      localStorage.removeItem('rydealot_active_booking');
+      if (window.RydealotChat) window.RydealotChat.stopChat();
+      await sbFetch('bookings?id=eq.' + state.activeBookingId + '&status=in.(requested,accepted,arrived)', { method: 'PATCH', body: { status: 'cancelled' } });
       if (b && b.rider_id) {
         await sbFetch('riders?id=eq.' + b.rider_id, { method: 'PATCH', body: { status: 'available', updated_at: new Date().toISOString() } });
       }
     } catch(err){ console.error(err); }
-    var feeApplies = state.lastKnownStatus === 'arrived' || state.lastKnownStatus === 'in_progress';
+    var feeApplies = state.lastKnownStatus === 'arrived';
     toast(feeApplies ? 'Trip cancelled. A cancellation fee of Rs 20 applies.' : 'Trip cancelled \u2014 no charge.');
     document.getElementById('cancel-trip-btn').style.display = 'none';
     state.activeBookingId = null;
@@ -6588,6 +6627,10 @@
   });
 
   document.getElementById('tracking-close').addEventListener('click', function(){
+    if (state.lastKnownStatus === 'in_progress') {
+      toast('⚠️ Trip is currently in progress. Cannot exit live tracking.');
+      return;
+    }
     clearInterval(state.bookingPollTimer);
     destroyMap();
     localStorage.removeItem('rydealot_active_booking');
