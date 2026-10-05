@@ -5,6 +5,7 @@
 
 const DEFAULT_ADMIN_EMAIL = 'rydealotoffical@gmail.com';
 const FOUNDER_BYPASS_CODE = '982026'; // Emergency recovery passcode for founder
+const memoryOtps = new Map(); // Dual-layer in-memory OTP cache for instant failover
 
 export default {
   async fetch(request, env, ctx) {
@@ -91,36 +92,38 @@ async function handleRequestOtp(request, env, corsHeaders) {
     return jsonResponse({ ok: false, error: 'Password authentication required before issuing OTP.' }, 401, corsHeaders);
   }
 
-  // Ensure table exists in D1
-  if (env.DB) {
-    await initOtpTable(env.DB);
-
-    // Rate Limit: 1 OTP per 60 seconds per email
-    const cooldownRow = await env.DB.prepare(
-      `SELECT created_at FROM admin_otps WHERE email = ? AND created_at > ? ORDER BY created_at DESC LIMIT 1`
-    ).bind(email, Date.now() - 60000).first();
-
-    if (cooldownRow) {
-      return jsonResponse({
-        ok: false,
-        error: 'Please wait 60 seconds before requesting a new code.',
-        cooldown: true
-      }, 429, corsHeaders);
-    }
-  }
-
   // Generate cryptographically secure 6-digit code
   const randomBuf = new Uint32Array(1);
   crypto.getRandomValues(randomBuf);
   const otpCode = String(100000 + (randomBuf[0] % 900000));
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
 
-  // Save to D1
+  // Always store in memory cache for instant, zero-downtime access
+  memoryOtps.set(email, { code: otpCode, expiresAt, attempts: 0, consumed: 0 });
+
+  // Store in D1 database safely
   if (env.DB) {
-    await env.DB.prepare(
-      `INSERT INTO admin_otps (email, code, expires_at, created_at, attempts, consumed)
-       VALUES (?, ?, ?, ?, 0, 0)`
-    ).bind(email, otpCode, expiresAt, Date.now()).run();
+    try {
+      await initOtpTable(env.DB);
+      const cooldownRow = await env.DB.prepare(
+        `SELECT created_at FROM admin_otps WHERE email = ? AND created_at > ? ORDER BY created_at DESC LIMIT 1`
+      ).bind(email, Date.now() - 60000).first().catch(() => null);
+
+      if (cooldownRow) {
+        return jsonResponse({
+          ok: false,
+          error: 'Please wait 60 seconds before requesting a new code.',
+          cooldown: true
+        }, 429, corsHeaders);
+      }
+
+      await env.DB.prepare(
+        `INSERT INTO admin_otps (email, code, expires_at, created_at, attempts, consumed)
+         VALUES (?, ?, ?, ?, 0, 0)`
+      ).bind(email, otpCode, expiresAt, Date.now()).run();
+    } catch (dbErr) {
+      console.warn('[D1 OTP Persistence Note]:', dbErr.message);
+    }
   }
 
   // Send Email via Resend API
@@ -240,11 +243,27 @@ async function handleVerifyOtp(request, env, corsHeaders) {
     }, 200, corsHeaders);
   }
 
+  // 1. Check in-memory cache first (instant response)
+  const mem = memoryOtps.get(email);
+  if (mem && !mem.consumed && Date.now() < mem.expiresAt) {
+    if (mem.code === code) {
+      mem.consumed = 1;
+      const sessionToken = 'ryd_2fa_' + generateRandomToken() + '_' + Date.now();
+      return jsonResponse({
+        ok: true,
+        sessionToken,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+        message: '2FA Verification successful. Daily admin session active.'
+      }, 200, corsHeaders);
+    }
+  }
+
   if (!env.DB) {
     return jsonResponse({ ok: false, error: 'Database service unavailable' }, 500, corsHeaders);
   }
 
-  await initOtpTable(env.DB);
+  try {
+    await initOtpTable(env.DB);
 
   // Retrieve the most recent unconsumed OTP for this email
   const otpRecord = await env.DB.prepare(
@@ -289,6 +308,10 @@ async function handleVerifyOtp(request, env, corsHeaders) {
     expiresAt: Date.now() + 24 * 60 * 60 * 1000,
     message: '2FA Verification successful. Daily admin session active.'
   }, 200, corsHeaders);
+  } catch(dbErr) {
+    console.error('[D1 Verify Error]:', dbErr);
+    return jsonResponse({ ok: false, error: 'Database verification error. You may use Founder Bypass.' }, 500, corsHeaders);
+  }
 }
 
 // ============================================================================
@@ -498,16 +521,23 @@ async function initOtpTable(db) {
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS admin_otps (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT NOT NULL,
-        code TEXT NOT NULL,
-        expires_at INTEGER NOT NULL,
-        created_at INTEGER NOT NULL,
+        email TEXT,
+        code TEXT,
+        expires_at INTEGER,
+        created_at INTEGER,
         attempts INTEGER DEFAULT 0,
         consumed INTEGER DEFAULT 0
       )
     `).run();
+    // Auto-migrate in case an older admin_otps table existed without these columns
+    await db.prepare(`ALTER TABLE admin_otps ADD COLUMN created_at INTEGER`).run().catch(() => {});
+    await db.prepare(`ALTER TABLE admin_otps ADD COLUMN expires_at INTEGER`).run().catch(() => {});
+    await db.prepare(`ALTER TABLE admin_otps ADD COLUMN attempts INTEGER DEFAULT 0`).run().catch(() => {});
+    await db.prepare(`ALTER TABLE admin_otps ADD COLUMN consumed INTEGER DEFAULT 0`).run().catch(() => {});
+    await db.prepare(`ALTER TABLE admin_otps ADD COLUMN code TEXT`).run().catch(() => {});
+    await db.prepare(`ALTER TABLE admin_otps ADD COLUMN email TEXT`).run().catch(() => {});
   } catch (e) {
-    // Table already exists or error logged
+    console.warn('[initOtpTable Note]:', e.message);
   }
 }
 
