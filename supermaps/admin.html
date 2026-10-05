@@ -657,7 +657,7 @@
       const overlay = document.getElementById('supermaps-auth-overlay');
       const userInput = document.getElementById('sm-admin-user');
       if (userInput && !userInput.value) {
-        userInput.value = localStorage.getItem('rydealot_admin_email') || 'hemanth@gmail.com';
+        userInput.value = localStorage.getItem('rydealot_admin_email') || 'rydealotoffical@gmail.com';
       }
       if (isAuthed) {
         if (overlay) overlay.style.display = 'none';
@@ -684,7 +684,7 @@
         return;
       }
 
-      const expectedEmail = (localStorage.getItem('rydealot_admin_email') || 'hemanth@gmail.com').toLowerCase();
+      const expectedEmail = (localStorage.getItem('rydealot_admin_email') || 'rydealotoffical@gmail.com').toLowerCase();
       const savedHash = localStorage.getItem('rydealot_admin_pass_hash') || '';
       const legacyPass = localStorage.getItem('rydealot_admin_pass');
 

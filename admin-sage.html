@@ -277,7 +277,7 @@
     <p style="font-size:0.8rem; color:var(--mute); margin-bottom:20px;">Dedicated Operations Dashboard for Parcel Couriers</p>
 
     <form onsubmit="event.preventDefault(); verifySageAdmin();">
-      <input type="text" id="sage-admin-user" class="auth-input" placeholder="Admin Gmail or Username" autocomplete="username" value="hemanth@gmail.com">
+      <input type="text" id="sage-admin-user" class="auth-input" placeholder="Admin Gmail or Username" autocomplete="username" value="rydealotoffical@gmail.com">
       <div style="position:relative; margin-bottom:16px;">
         <input type="password" id="sage-admin-pass" class="auth-input" style="margin-bottom:0; padding-right:45px;" placeholder="Admin Password" autofocus autocomplete="current-password">
         <button type="button" onclick="togglePassView()" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1rem;">👁️</button>
@@ -524,7 +524,7 @@
       return;
     }
 
-    var expectedEmail = (localStorage.getItem('rydealot_admin_email') || 'hemanth@gmail.com').toLowerCase();
+    var expectedEmail = (localStorage.getItem('rydealot_admin_email') || 'rydealotoffical@gmail.com').toLowerCase();
     var savedHash = localStorage.getItem('rydealot_admin_pass_hash') || '';
     var legacyPass = localStorage.getItem('rydealot_admin_pass');
 
