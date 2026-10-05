@@ -2,7 +2,7 @@
 // RYDEALOT SUPERMAPS — SERVICE WORKER (Network-First Auto-Updating Engine)
 // =========================================================================
 
-const CACHE_NAME = 'supermaps-v3.0';
+const CACHE_NAME = 'supermaps-v3.3';
 const TILE_CACHE = 'supermaps-rolling-tiles';
 const MAX_CACHED_TILES = 120;
 

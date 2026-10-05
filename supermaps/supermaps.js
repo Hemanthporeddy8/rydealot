@@ -18,7 +18,7 @@ const CONFIG = {
 
 // --- PROGRAMMATIC AUTO-UPDATE & STALE CACHE EVAPORATOR ---
 // Ensures mobile phones & desktop browsers automatically discard old code with ZERO user friction.
-const SUPERMAPS_BUILD = 'v3.2.0';
+const SUPERMAPS_BUILD = 'v3.3.0';
 (function runAutoUpdater() {
   try {
     const cachedBuild = localStorage.getItem('supermaps_build_version');
@@ -48,6 +48,8 @@ let destMarker = null;
 let currentHeading = 0;
 let userLngLat = CONFIG.DEFAULT_LNG_LAT;
 let isNavigating = false;
+let userInteractedWithMap = false;
+let hasDoorstepCentered = false;
 let activeVehicleMode = 'car';
 let activeDestination = null;
 let verifiedShops = [];
@@ -289,6 +291,13 @@ function initMapEngine() {
   // Navigation controls
   map.addControl(new maplibregl.NavigationControl({ showCompass: true, showZoom: false }), 'bottom-right');
 
+  // Track user manual gestures so GPS never hijacks the camera when panning/zooming
+  map.on('dragstart', () => { userInteractedWithMap = true; });
+  map.on('zoomstart', (e) => { if (e && e.originalEvent) userInteractedWithMap = true; });
+  map.on('rotatestart', () => { userInteractedWithMap = true; });
+  map.on('pitchstart', () => { userInteractedWithMap = true; });
+  map.on('touchstart', () => { userInteractedWithMap = true; });
+
   // 1-tap on map → drop destination pin
   map.on('click', (e) => {
     closeBottomPanel();
@@ -328,7 +337,9 @@ function initMapEngine() {
         try { localStorage.setItem('supermaps_last_location', JSON.stringify(userLngLat)); } catch(e){}
         const accuracyMeters = pos.coords.accuracy;
 
-        map.flyTo({ center: userLngLat, zoom: 15 });
+        if (!userInteractedWithMap) {
+          map.flyTo({ center: userLngLat, zoom: 15 });
+        }
         createUserMarker(userLngLat);
         drawAccuracyCircle(userLngLat, accuracyMeters);
         hideSplashLoader();
@@ -361,8 +372,9 @@ function initMapEngine() {
           createUserMarker(userLngLat);
           drawAccuracyCircle(userLngLat, accuracy);
 
-          // Update camera smoothly to real satellite doorstep if user isn't navigating
-          if (!isNavigating) {
+          // Only auto-center camera on doorstep ONCE on initial lock if user hasn't panned/zoomed away
+          if (!isNavigating && !userInteractedWithMap && !hasDoorstepCentered) {
+            hasDoorstepCentered = true;
             map.flyTo({ center: userLngLat, zoom: 16 });
           }
 
@@ -408,8 +420,10 @@ function createUserMarker(lngLat) {
 
   const el = document.createElement('div');
   el.id = 'nav-arrow-wrapper';
+  el.style.width = '28px';
+  el.style.height = '28px';
   el.innerHTML = `
-    <div style="width: 28px; height: 28px; background: #06b6d4; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 16px #06b6d4; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+    <div id="nav-arrow-icon" style="width: 28px; height: 28px; background: #06b6d4; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 16px #06b6d4; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.12s linear;">
       <div style="width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 10px solid #fff; margin-top: -3px;"></div>
     </div>
   `;
@@ -425,14 +439,23 @@ let _lastCompassAngle = -999;
 function updateCompassHeading(heading) {
   if (isNaN(heading)) return;
   const now = performance.now();
-  if (now - _lastCompassTime < 120) return; // throttle to max ~8fps to avoid CPU churn
+  if (now - _lastCompassTime < 100) return; // throttle to ~10fps to avoid CPU churn
   if (Math.abs(heading - _lastCompassAngle) < 3) return; // ignore micro-jitter
   _lastCompassTime = now;
   _lastCompassAngle = heading;
 
   currentHeading = heading;
-  const arrow = document.getElementById('nav-arrow-wrapper');
-  if (arrow) arrow.style.transform = `rotate(${currentHeading}deg)`;
+  
+  // CRITICAL FIX: NEVER set transform on marker root (#nav-arrow-wrapper)!
+  // MapLibre uses style.transform = translate3d(...) to place the marker on the screen.
+  // Overwriting wrapper transform strips screen coordinates, causing the arrow to glitch to (0,0) (top-left).
+  // Instead, rotate the INNER icon (#nav-arrow-icon) or use MapLibre's native setRotation():
+  const icon = document.getElementById('nav-arrow-icon');
+  if (icon) {
+    icon.style.transform = `rotate(${currentHeading}deg)`;
+  } else if (userMarker && typeof userMarker.setRotation === 'function') {
+    userMarker.setRotation(currentHeading);
+  }
   
   if (isNavigating) {
     map.rotateTo(currentHeading, { duration: 250 });
@@ -1138,6 +1161,7 @@ function closeBottomPanel() { document.getElementById('bottom-panel').classList.
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function recenterGps() {
+  userInteractedWithMap = false;
   if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
