@@ -13,6 +13,93 @@
   }
 
   var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
+  var SYNC_QUEUE_KEY = 'rydealot_persistent_sync_queue';
+
+  function getSyncQueue() {
+    try {
+      return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY) || '[]');
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function saveSyncQueue(queue) {
+    try {
+      localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue.slice(-100)));
+    } catch(e) {}
+  }
+
+  function queueFailedMutation(target, path, method, body) {
+    var queue = getSyncQueue();
+    var isDup = queue.some(function(item) {
+      return item.target === target && item.path === path && item.method === method && JSON.stringify(item.body) === JSON.stringify(body) && (Date.now() - item.timestamp < 5000);
+    });
+    if (isDup) return;
+
+    queue.push({
+      id: 'sync_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      target: target,
+      path: path,
+      method: method,
+      body: body,
+      timestamp: Date.now(),
+      retries: 0
+    });
+    saveSyncQueue(queue);
+  }
+
+  var isSyncingQueue = false;
+  async function processPersistentSyncQueue() {
+    if (isSyncingQueue || !navigator.onLine) return;
+    var queue = getSyncQueue();
+    if (!queue.length) return;
+
+    isSyncingQueue = true;
+    var remaining = [];
+
+    for (var i = 0; i < queue.length; i++) {
+      var item = queue[i];
+      var success = false;
+      try {
+        if (item.target === 'planB') {
+          var res = await fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + item.path, {
+            method: item.method,
+            headers: { 'Content-Type': 'application/json' },
+            body: item.body ? JSON.stringify(item.body) : undefined
+          });
+          if (res.ok) success = true;
+        } else if (item.target === 'planA') {
+          var headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          };
+          var res = await fetch(SUPABASE_URL + '/rest/v1/' + item.path, {
+            method: item.method,
+            headers: headers,
+            body: item.body ? JSON.stringify(item.body) : undefined
+          });
+          if (res.ok) success = true;
+        }
+      } catch(err) {
+        success = false;
+      }
+
+      if (!success) {
+        item.retries = (item.retries || 0) + 1;
+        if (item.retries < 20) {
+          remaining.push(item);
+        }
+      }
+    }
+
+    saveSyncQueue(remaining);
+    isSyncingQueue = false;
+  }
+
+  setInterval(processPersistentSyncQueue, 10000);
+  window.addEventListener('online', processPersistentSyncQueue);
 
   async function d1PostgrestCall(path, opts) {
     try {
@@ -26,6 +113,10 @@
       try { return text ? JSON.parse(text) : null; } catch(e) { return text; }
     } catch(e) {
       console.warn('[D1 Call Failed]:', e);
+      var m = ((opts && opts.method) || 'GET').toUpperCase();
+      if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
+        queueFailedMutation('planB', path, m, opts && opts.body);
+      }
       return null;
     }
   }
@@ -48,12 +139,18 @@
       // Asynchronous background mirror to Cloudflare D1
       var m = (opts.method || 'GET').toUpperCase();
       if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
-        d1PostgrestCall(path, { method: m, body: opts.body, keepalive: true });
+        d1PostgrestCall(path, { method: m, body: opts.body, keepalive: true }).catch(function(){
+          queueFailedMutation('planB', path, m, opts.body);
+        });
       }
       return data;
     } catch(err) {
       console.warn('[Rydealot Plan B Failover - Auth]: Routing to Cloudflare D1:', path, err.message);
       var fallback = await d1PostgrestCall(path, opts);
+      var m = (opts.method || 'GET').toUpperCase();
+      if (fallback && (m === 'POST' || m === 'PATCH' || m === 'DELETE')) {
+        queueFailedMutation('planA', path, m, opts.body);
+      }
       if (fallback) return fallback;
       throw err;
     }
@@ -1290,12 +1387,18 @@
       // Background asynchronous mirror to Cloudflare D1
       var m = (options.method || 'GET').toUpperCase();
       if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
-        d1PostgrestCall(path, { method: m, body: options.body, keepalive: true });
+        d1PostgrestCall(path, { method: m, body: options.body, keepalive: true }).catch(function(){
+          queueFailedMutation('planB', path, m, options.body);
+        });
       }
       return data;
     } catch(err) {
       console.warn('[Rydealot Plan B Failover - Rider]: Routing to Cloudflare D1:', path, err.message);
       var fallback = await d1PostgrestCall(path, options);
+      var m = (options.method || 'GET').toUpperCase();
+      if (fallback && (m === 'POST' || m === 'PATCH' || m === 'DELETE')) {
+        queueFailedMutation('planA', path, m, options.body);
+      }
       if (fallback) return fallback;
       throw err;
     }
@@ -3611,12 +3714,18 @@
       // Background asynchronous mirror to Cloudflare D1
       var m = (options.method || 'GET').toUpperCase();
       if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
-        d1PostgrestCall(path, { method: m, body: options.body, keepalive: true });
+        d1PostgrestCall(path, { method: m, body: options.body, keepalive: true }).catch(function(){
+          queueFailedMutation('planB', path, m, options.body);
+        });
       }
       return data;
     } catch(err) {
       console.warn('[Rydealot Plan B Failover - Customer]: Routing to Cloudflare D1:', path, err.message);
       var fallback = await d1PostgrestCall(path, options);
+      var m = (options.method || 'GET').toUpperCase();
+      if (fallback && (m === 'POST' || m === 'PATCH' || m === 'DELETE')) {
+        queueFailedMutation('planA', path, m, options.body);
+      }
       if (fallback) return fallback;
       throw err;
     }

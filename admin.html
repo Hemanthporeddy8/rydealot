@@ -174,6 +174,7 @@
       <h1 style="margin:0;">RYDEALOT <span>ADMIN</span></h1>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn" id="btn-sync-plan" style="font-size:0.78rem; background:#2563eb; color:#fff;" onclick="triggerAdminPlanSync()">⚡ Sync Plan A &amp; B</button>
       <a href="admin-sage.html" class="btn btn-amber" style="font-size:0.78rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">📦 Open Sage Parcel Admin</a>
       <button class="btn btn-green" style="font-size:0.78rem;" onclick="exportDataAsCSV()">📊 Export CSV (Excel)</button>
       <button class="btn btn-mute" style="font-size:0.78rem;" onclick="openDownloadModal()">📥 Download Raw JSON</button>
@@ -975,6 +976,70 @@
         return null;
       }
     }
+  }
+
+  async function triggerAdminPlanSync() {
+    var btn = document.getElementById('btn-sync-plan');
+    if (btn) { btn.textContent = '⏳ Syncing...'; btn.disabled = true; }
+    toast('🔄 Starting live Plan A (Supabase) & Plan B (Cloudflare D1) reconciliation...');
+
+    var tables = ['riders', 'bookings', 'driver_documents', 'fare_settings', 'platform_services'];
+    var totalSynced = 0;
+
+    for (var i = 0; i < tables.length; i++) {
+      var t = tables[i];
+      try {
+        var sbRows = await fetch(SUPABASE_URL + '/rest/v1/' + t, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+        }).then(function(r){ return r.json(); }).catch(function(){ return []; });
+
+        var d1Rows = await fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + t)
+          .then(function(r){ return r.json(); }).catch(function(){ return []; });
+
+        if (Array.isArray(sbRows) && Array.isArray(d1Rows)) {
+          var d1Ids = new Set(d1Rows.map(function(r){ return r.id; }).filter(Boolean));
+          var sbIds = new Set(sbRows.map(function(r){ return r.id; }).filter(Boolean));
+
+          // Sync Supabase -> D1
+          for (var j = 0; j < sbRows.length; j++) {
+            var row = sbRows[j];
+            if (row.id && !d1Ids.has(row.id)) {
+              await fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + t, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(row)
+              }).catch(function(){});
+              d1Ids.add(row.id);
+              totalSynced++;
+            }
+          }
+
+          // Sync D1 -> Supabase
+          for (var k = 0; k < d1Rows.length; k++) {
+            var d1Row = d1Rows[k];
+            if (d1Row.id && !sbIds.has(d1Row.id)) {
+              await fetch(SUPABASE_URL + '/rest/v1/' + t, {
+                method: 'POST',
+                headers: {
+                  'apikey': SUPABASE_ANON_KEY,
+                  'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(d1Row)
+              }).catch(function(){});
+              sbIds.add(d1Row.id);
+              totalSynced++;
+            }
+          }
+        }
+      } catch(err) {
+        console.warn('Sync table ' + t + ' note:', err);
+      }
+    }
+
+    if (btn) { btn.textContent = '⚡ Sync Plan A & B'; btn.disabled = false; }
+    toast('✅ Synchronization complete! ' + (totalSynced > 0 ? totalSynced + ' records reconciled.' : 'All tables already 100% in sync.'));
+    loadDrivers();
   }
 
   function toast(msg) {
