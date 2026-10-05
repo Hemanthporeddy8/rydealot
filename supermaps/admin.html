@@ -692,7 +692,12 @@
         isAuth = true;
       }
 
-      if (userVal && userVal !== expectedEmail) {
+      const coEmailsStr = localStorage.getItem('rydealot_authorized_admin_emails') || '';
+      const authList = [expectedEmail];
+      if (coEmailsStr) {
+        coEmailsStr.split(',').forEach(em => { const c = em.trim().toLowerCase(); if (c && !authList.includes(c)) authList.push(c); });
+      }
+      if (userVal && !authList.includes(userVal)) {
         isAuth = false;
       }
 

@@ -124,6 +124,9 @@
         <button type="button" id="toggle-new-pass-btn" onclick="togglePasswordVisibility('new-admin-pass', 'toggle-new-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem;" title="Show/Hide Password">👁️</button>
       </div>
 
+      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">AUTHORIZED CO-ADMIN EMAILS (OPTIONAL, COMMA-SEPARATED)</label>
+      <input type="text" id="co-admin-emails" name="co-emails" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.85rem; margin-bottom:16px;" placeholder="e.g. partner@gmail.com, manager@gmail.com">
+
       <div style="display:flex; gap:10px;">
         <button type="button" class="btn btn-mute" style="flex:1;" onclick="closeChangePassModal()">Cancel</button>
         <button type="submit" class="btn btn-amber" style="flex:1;">Save Changes</button>
@@ -1963,7 +1966,13 @@
     if (modal) {
       if (titleEl) titleEl.textContent = '📄 ' + (title || 'Driver Document');
 
-      var isRealImage = url && (url.startsWith('data:image') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:'));
+      var isRealImage = false;
+      if (typeof url === 'string') {
+        var cleanUrl = url.trim();
+        if (cleanUrl.startsWith('https://') || cleanUrl.startsWith('blob:') || (cleanUrl.startsWith('data:image/') && !cleanUrl.includes('svg+xml'))) {
+          isRealImage = true;
+        }
+      }
 
       if (isRealImage) {
         if (fallback) fallback.style.display = 'none';
@@ -2703,6 +2712,19 @@
     return localStorage.getItem('rydealot_admin_email') || DEFAULT_ADMIN_EMAIL;
   }
 
+  function getAuthorizedAdminEmails() {
+    var primary = (getSavedAdminEmail() || '').toLowerCase();
+    var list = [primary];
+    var custom = localStorage.getItem('rydealot_authorized_admin_emails');
+    if (custom) {
+      custom.split(',').forEach(function(em) {
+        var clean = em.trim().toLowerCase();
+        if (clean && !list.includes(clean)) list.push(clean);
+      });
+    }
+    return list;
+  }
+
   function getSavedAdminPassHash() {
     return localStorage.getItem('rydealot_admin_pass_hash') || '';
   }
@@ -2753,7 +2775,6 @@
       return;
     }
 
-    var expectedEmail = getSavedAdminEmail().toLowerCase();
     var savedHash = getSavedAdminPassHash();
     var legacyPass = localStorage.getItem('rydealot_admin_pass');
 
@@ -2771,8 +2792,9 @@
       isAuth = true;
     }
 
-    // Require valid username/email match if provided
-    if (emailVal && emailVal !== expectedEmail) {
+    // Require valid username/email match among authorized admin emails
+    var authorizedEmails = getAuthorizedAdminEmails();
+    if (emailVal && !authorizedEmails.includes(emailVal)) {
       isAuth = false;
     }
 
@@ -2780,7 +2802,7 @@
       adminLoginAttempts = 0;
       adminLockUntil = 0;
       sessionStorage.setItem('rydealot_admin_authed', 'true');
-      sessionStorage.setItem('rydealot_admin_email', emailVal || expectedEmail);
+      sessionStorage.setItem('rydealot_admin_email', emailVal || getSavedAdminEmail());
       errEl.style.display = 'none';
       checkAdminAuth();
     } else {
@@ -2799,6 +2821,8 @@
 
   function openChangePassModal() {
     document.getElementById('new-admin-email').value = getSavedAdminEmail();
+    var coInput = document.getElementById('co-admin-emails');
+    if (coInput) coInput.value = localStorage.getItem('rydealot_authorized_admin_emails') || '';
     document.getElementById('curr-admin-pass').value = '';
     document.getElementById('new-admin-pass').value = '';
     document.getElementById('change-pass-overlay').style.display = 'flex';
@@ -2810,6 +2834,7 @@
 
   async function saveNewAdminCredentials() {
     var newEmail = (document.getElementById('new-admin-email').value || '').trim();
+    var coEmails = (document.getElementById('co-admin-emails') ? document.getElementById('co-admin-emails').value : '').trim();
     var currPass = (document.getElementById('curr-admin-pass').value || '').trim();
     var newPass = (document.getElementById('new-admin-pass').value || '').trim();
 
@@ -2837,10 +2862,15 @@
 
     var newHash = await sha256Hex(newPass);
     localStorage.setItem('rydealot_admin_email', newEmail);
+    if (coEmails) {
+      localStorage.setItem('rydealot_authorized_admin_emails', coEmails);
+    } else {
+      localStorage.removeItem('rydealot_authorized_admin_emails');
+    }
     localStorage.setItem('rydealot_admin_pass_hash', newHash);
     localStorage.removeItem('rydealot_admin_pass');
     
-    toast('✅ Admin credentials updated & secured with SHA-256!');
+    toast('✅ Admin credentials & authorized emails updated!');
     closeChangePassModal();
   }
 

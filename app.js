@@ -1845,23 +1845,109 @@
   var CLOUDINARY_CLOUD_NAME = 'tozbcn77';
   var CLOUDINARY_UPLOAD_PRESET = 'rydealot_upload';
 
-  // Upload an image (File, Blob, or base64 Data URL) to Cloudinary
-  // Keeps Supabase DB 100% free of heavy image strings
+  // Allowed MIME types for legal driver documents (DL, RC, Aadhaar, Selfie)
+  var ALLOWED_DOC_MIMES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  var MAX_DOC_BYTES = 12 * 1024 * 1024; // 12 MB max raw input
+
+  // Client-side image sanitizer & compression engine
+  // Downscales phone camera photos (8MB+) to max 1600px & 82% JPEG quality (~250-400KB)
+  async function compressAndValidateImage(fileOrDataUrl, maxDim, quality) {
+    maxDim = maxDim || 1600;
+    quality = quality || 0.82;
+
+    if (!fileOrDataUrl) return null;
+
+    // Already a remote hosted HTTPS URL
+    if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('https://')) {
+      return fileOrDataUrl;
+    }
+
+    // Base64 Data URL validation
+    if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:')) {
+      var isAllowedData = ALLOWED_DOC_MIMES.some(function(m) {
+        return fileOrDataUrl.startsWith('data:' + m + ';');
+      });
+      if (!isAllowedData && !fileOrDataUrl.startsWith('data:image/')) {
+        throw new Error('Unsupported image encoding. Only JPG, PNG, and WebP are allowed.');
+      }
+      return fileOrDataUrl;
+    }
+
+    // File or Blob validation
+    if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
+      if (fileOrDataUrl.size > MAX_DOC_BYTES) {
+        throw new Error('File exceeds 12MB limit (' + (fileOrDataUrl.size / (1024*1024)).toFixed(1) + 'MB). Please choose a smaller photo.');
+      }
+      if (fileOrDataUrl.type && !ALLOWED_DOC_MIMES.includes(fileOrDataUrl.type.toLowerCase())) {
+        throw new Error('Invalid file format (' + fileOrDataUrl.type + '). Only JPG, PNG, and WebP images are permitted for KYC documents.');
+      }
+
+      // Perform canvas compression
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var img = new Image();
+          img.onload = function() {
+            try {
+              var width = img.width;
+              var height = img.height;
+
+              if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                  height = Math.round((height * maxDim) / width);
+                  width = maxDim;
+                } else {
+                  width = Math.round((width * maxDim) / height);
+                  height = maxDim;
+                }
+              }
+
+              var canvas = document.createElement('canvas');
+              canvas.width = width;
+              canvas.height = height;
+              var ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+
+              canvas.toBlob(function(blob) {
+                if (blob) resolve(blob);
+                else resolve(fileOrDataUrl);
+              }, 'image/jpeg', quality);
+            } catch(compErr) {
+              console.warn('Canvas downscaling note:', compErr);
+              resolve(fileOrDataUrl);
+            }
+          };
+          img.onerror = function() {
+            reject(new Error('Corrupt or unreadable image file.'));
+          };
+          img.src = e.target.result;
+        };
+        reader.onerror = function(err) { reject(err); };
+        reader.readAsDataURL(fileOrDataUrl);
+      });
+    }
+
+    return null;
+  }
+
+  // Upload an image (File, Blob, or base64 Data URL) to Cloudinary securely
   async function uploadToCloudinary(fileOrDataUrl, folder) {
     if (!fileOrDataUrl) return null;
     try {
+      var sanitizedPayload = await compressAndValidateImage(fileOrDataUrl);
+      if (!sanitizedPayload) return null;
+
+      if (typeof sanitizedPayload === 'string' && sanitizedPayload.startsWith('https://')) {
+        return sanitizedPayload;
+      }
+
       var formData = new FormData();
-      if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('http')) {
-        // Already a remote hosted URL
-        return fileOrDataUrl;
+      if (typeof sanitizedPayload === 'string') {
+        formData.append('file', sanitizedPayload);
+      } else if (sanitizedPayload instanceof Blob) {
+        formData.append('file', sanitizedPayload, 'doc_' + Date.now() + '.jpg');
       }
-      if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:')) {
-        formData.append('file', fileOrDataUrl);
-      } else if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
-        formData.append('file', fileOrDataUrl);
-      } else {
-        return null;
-      }
+
       formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
       if (folder) formData.append('folder', folder);
 
@@ -1887,15 +1973,30 @@
   }
   window.uploadToCloudinary = uploadToCloudinary;
 
-
-  // Visual status indicators on file selection (for DL, RC, Aadhaar)
+  // Visual status indicators on file selection with real-time format validation (DL, RC, Aadhaar)
   ['dl', 'rc', 'aadhaar'].forEach(function(type) {
     var input = document.getElementById('rd-doc-' + type);
     var status = document.getElementById('rd-doc-' + type + '-status');
     if (input && status) {
       input.addEventListener('change', function() {
         if (input.files && input.files[0]) {
-          status.textContent = '✅ ' + input.files[0].name + ' selected';
+          var f = input.files[0];
+          if (f.type && !ALLOWED_DOC_MIMES.includes(f.type.toLowerCase())) {
+            status.textContent = '❌ Invalid format: Only JPG, PNG, and WebP photos allowed';
+            status.style.color = 'var(--red)';
+            input.value = '';
+            toast('Only JPG, PNG, and WebP images are permitted');
+            return;
+          }
+          if (f.size > MAX_DOC_BYTES) {
+            status.textContent = '❌ File too large: Max 12MB allowed';
+            status.style.color = 'var(--red)';
+            input.value = '';
+            toast('File too large (max 12MB)');
+            return;
+          }
+          var mbSize = (f.size / (1024*1024)).toFixed(1);
+          status.textContent = '✅ ' + f.name + ' (' + mbSize + ' MB selected)';
           status.style.color = 'var(--green)';
         }
       });
@@ -1909,12 +2010,32 @@
     var name = document.getElementById('rd-rider-name').value.trim();
     var vtype = document.getElementById('rd-rider-vtype').value;
     var vlabel = document.getElementById('rd-rider-vlabel').value.trim();
-    var plate = document.getElementById('rd-rider-plate').value.trim();
-    var phone = document.getElementById('rd-rider-phone').value.trim();
-    if(!name || !vlabel || !plate){
-      toast('Please fill in name, vehicle model, and plate');
+    var plate = document.getElementById('rd-rider-plate').value.trim().toUpperCase();
+    var rawPhone = document.getElementById('rd-rider-phone').value.trim();
+
+    if(!name || name.length < 2){
+      toast('Please enter your full name (minimum 2 letters)');
       return;
     }
+    if(!vlabel || vlabel.length < 2){
+      toast('Please enter your vehicle model (e.g. Hero Splendor, Bajaj Auto)');
+      return;
+    }
+
+    // Vehicle Plate Validation (Indian Registration Format: TS 03 AB 1234)
+    var cleanPlate = plate.replace(/[^A-Z0-9]/ig, '');
+    if (cleanPlate.length < 6 || cleanPlate.length > 13) {
+      toast('Please enter a valid vehicle plate number (e.g. TS 03 AB 4521)');
+      return;
+    }
+
+    // Phone Number Validation (Indian 10-digit mobile starting with 6, 7, 8, 9)
+    var cleanPhone = rawPhone.replace(/[\s\-\+\(\)]/g, '').replace(/^91/, '');
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      toast('Please enter a valid 10-digit Indian mobile number (e.g. 98765 43210)');
+      return;
+    }
+
     // Satisfy PostgreSQL check constraint (riders_vehicle_type_check: 'bike','auto','auto_share','car')
     var dbVehicleType = (vtype === 'bike_and_sage' || vtype === 'sage_only') ? 'bike' : vtype;
     var cleanLabel = vlabel.replace(/\s*\[(BIKE_AND_SAGE|SAGE_ONLY|BIKE_ONLY)\]/ig, '').trim();
@@ -1923,7 +2044,7 @@
     else if (vtype === 'bike_and_sage') dbLabel += ' [BIKE_AND_SAGE]';
     else if (vtype === 'bike') dbLabel += ' [BIKE_ONLY]';
 
-    var payload = { name: name, vehicle_type: dbVehicleType, vehicle_label: dbLabel, plate: plate, phone: phone, status: 'offline' };
+    var payload = { name: name, vehicle_type: dbVehicleType, vehicle_label: dbLabel, plate: plate, phone: cleanPhone, status: 'offline' };
 
     var saveBtn = document.getElementById('rd-save-profile-btn');
     if (saveBtn) { saveBtn.textContent = '⏳ Saving documents...'; saveBtn.disabled = true; }
