@@ -77,26 +77,55 @@
 </head>
 <body>
 
-<!-- PASSCODE & GMAIL AUTH MODAL -->
-<!-- PASSCODE & GMAIL AUTH MODAL -->
+<!-- PASSCODE & 2FA EMAIL OTP AUTH MODAL -->
 <div id="admin-auth-overlay">
-  <div class="auth-card">
+  <div class="auth-card" style="max-width: 400px;">
     <img src="logo.png" alt="Rydealot" style="width:76px; height:auto; margin-bottom:12px; border-radius:14px;">
     <h2>RYDEALOT <span>ADMIN</span></h2>
-    <p style="margin-bottom: 16px;">Sign in with Admin Gmail & Password</p>
-    
-    <form onsubmit="event.preventDefault(); verifyAdminPasscode();" autocomplete="on">
-      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN USERNAME / GMAIL</label>
-      <input type="text" id="admin-email-input" name="username" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:14px;" placeholder="Enter Admin Gmail or Username" autocomplete="username">
-      
-      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN PASSWORD</label>
-      <div style="position:relative; width:100%; margin-bottom:16px;">
-        <input type="password" id="admin-passcode-input" name="password" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Enter Admin Password" autofocus autocomplete="current-password">
-        <button type="button" id="toggle-login-pass-btn" onclick="togglePasswordVisibility('admin-passcode-input', 'toggle-login-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem; padding:4px;" title="Show/Hide Password">👁️</button>
-      </div>
 
-      <button type="submit" class="auth-btn" id="admin-login-btn">Unlock Dashboard</button>
-    </form>
+    <!-- STEP 1: USERNAME & PASSWORD -->
+    <div id="auth-step-password">
+      <p style="margin-bottom: 16px;">Sign in with Admin Credentials & 2FA</p>
+      
+      <form onsubmit="event.preventDefault(); verifyAdminPasscode();" autocomplete="on">
+        <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN USERNAME / GMAIL</label>
+        <input type="text" id="admin-email-input" name="username" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:14px;" placeholder="Enter Admin Gmail or Username" autocomplete="username">
+        
+        <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN PASSWORD</label>
+        <div style="position:relative; width:100%; margin-bottom:16px;">
+          <input type="password" id="admin-passcode-input" name="password" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Enter Admin Password" autofocus autocomplete="current-password">
+          <button type="button" id="toggle-login-pass-btn" onclick="togglePasswordVisibility('admin-passcode-input', 'toggle-login-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem; padding:4px;" title="Show/Hide Password">👁️</button>
+        </div>
+
+        <button type="submit" class="auth-btn" id="admin-login-btn">Continue to 2FA Code →</button>
+      </form>
+    </div>
+
+    <!-- STEP 2: 2FA EMAIL OTP -->
+    <div id="auth-step-otp" style="display:none;">
+      <div style="font-size: 2rem; margin-bottom: 8px;">🔐</div>
+      <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:4px; color:#fff;">Security Verification</h3>
+      <p style="font-size:0.8rem; color:var(--mute); margin-bottom:16px; line-height:1.4;">
+        A 6-digit code was sent to<br><strong id="otp-target-display" style="color:var(--amber);">rydealotoffical@gmail.com</strong>
+      </p>
+
+      <form onsubmit="event.preventDefault(); verifyAdminOtp();">
+        <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">6-DIGIT VERIFICATION CODE</label>
+        <input type="text" id="admin-otp-input" class="auth-input" style="font-family:monospace; font-size:1.4rem; letter-spacing:6px; text-align:center; padding:10px; margin-bottom:10px;" placeholder="••••••" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-size:0.75rem; color:var(--mute);">
+          <span id="otp-expiry-timer">⏳ Expires: <b id="otp-countdown" style="color:var(--amber);">05:00</b></span>
+          <button type="button" id="otp-resend-btn" onclick="resendAdminOtp()" style="background:none; border:none; color:var(--amber); font-weight:700; cursor:pointer; font-size:0.75rem; text-decoration:underline;" disabled>Resend Code (<span id="otp-resend-cooldown">60</span>s)</button>
+        </div>
+
+        <button type="submit" class="auth-btn" id="admin-verify-btn">Verify & Unlock Dashboard</button>
+      </form>
+
+      <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+        <button type="button" onclick="backToPasswordStep()" style="background:none; border:none; color:var(--mute); font-size:0.75rem; cursor:pointer;">← Back to Password</button>
+        <button type="button" onclick="promptMasterRecovery()" style="background:none; border:none; color:#64748b; font-size:0.7rem; cursor:pointer;" title="Emergency master bypass">Founder Bypass</button>
+      </div>
+    </div>
     
     <div class="auth-error" id="admin-auth-error">Incorrect Gmail or Password. Please try again.</div>
   </div>
@@ -952,10 +981,16 @@
 
       // Live background mirror to Cloudflare D1
       var m = (opts.method || 'GET').toUpperCase();
+      var d1Headers = { 'Content-Type': 'application/json' };
+      var daily = (typeof getDailyAdminSession === 'function') ? getDailyAdminSession() : null;
+      if (daily && daily.token) {
+        d1Headers['Authorization'] = 'Bearer ' + daily.token;
+      }
+
       if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
         fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + path, {
           method: m,
-          headers: { 'Content-Type': 'application/json' },
+          headers: d1Headers,
           body: opts.body ? JSON.stringify(opts.body) : undefined,
           keepalive: true
         }).catch(function(){});
@@ -964,9 +999,14 @@
     } catch(e) {
       console.warn('[Admin Plan B Active] Supabase down, loading from Cloudflare D1:', path);
       try {
+        var fbHeaders = { 'Content-Type': 'application/json' };
+        var dailyFb = (typeof getDailyAdminSession === 'function') ? getDailyAdminSession() : null;
+        if (dailyFb && dailyFb.token) {
+          fbHeaders['Authorization'] = 'Bearer ' + dailyFb.token;
+        }
         var d1Res = await fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + path, {
           method: opts.method || 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          headers: fbHeaders,
           body: opts.body ? JSON.stringify(opts.body) : undefined
         });
         var d1Text = await d1Res.text();
@@ -2807,15 +2847,59 @@
     }
   }
 
+  var OTP_COUNTDOWN_SECS = 300; // 5 min expiry
+  var RESEND_COOLDOWN_SECS = 60; // 60s cooldown
+  var otpCountdownInterval = null;
+  var resendCountdownInterval = null;
+  var pendingAdminEmail = '';
+  var pendingAdminPassHash = '';
+
+  function getDailyAdminSession() {
+    try {
+      var raw = localStorage.getItem('rydealot_admin_daily_session');
+      if (!raw) return null;
+      var session = JSON.parse(raw);
+      var maxAge = 24 * 60 * 60 * 1000; // 24 hours
+      if (Date.now() - session.timestamp < maxAge) {
+        return session;
+      }
+      return null;
+    } catch(e) {
+      return null;
+    }
+  }
+
+  function setDailyAdminSession(token, email) {
+    var session = {
+      token: token || ('ryd_2fa_' + Math.random().toString(36).substring(2) + '_' + Date.now()),
+      email: email,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('rydealot_admin_daily_session', JSON.stringify(session));
+  }
+
   function checkAdminAuth() {
     var authed = sessionStorage.getItem('rydealot_admin_authed');
     document.getElementById('admin-email-input').value = getSavedAdminEmail();
+    
+    // Auto-authenticate if valid 24h Daily Session exists
+    if (authed !== 'true') {
+      var daily = getDailyAdminSession();
+      if (daily) {
+        sessionStorage.setItem('rydealot_admin_authed', 'true');
+        sessionStorage.setItem('rydealot_admin_email', daily.email);
+        authed = 'true';
+      }
+    }
+
     if (authed === 'true') {
       document.getElementById('admin-auth-overlay').style.display = 'none';
       document.getElementById('admin-main-wrap').style.display = 'block';
       loadDrivers();
     } else {
       document.getElementById('admin-auth-overlay').style.display = 'flex';
+      document.getElementById('auth-step-password').style.display = 'block';
+      document.getElementById('auth-step-otp').style.display = 'none';
       document.getElementById('admin-main-wrap').style.display = 'none';
     }
   }
@@ -2849,7 +2933,6 @@
     if (savedHash && passHash === savedHash) {
       isAuth = true;
     } else if (legacyPass && passVal === legacyPass) {
-      // Migrate legacy plaintext password to secure SHA-256 hash
       localStorage.setItem('rydealot_admin_pass_hash', passHash);
       localStorage.removeItem('rydealot_admin_pass');
       isAuth = true;
@@ -2863,14 +2946,7 @@
       isAuth = false;
     }
 
-    if (isAuth) {
-      adminLoginAttempts = 0;
-      adminLockUntil = 0;
-      sessionStorage.setItem('rydealot_admin_authed', 'true');
-      sessionStorage.setItem('rydealot_admin_email', emailVal || getSavedAdminEmail());
-      errEl.style.display = 'none';
-      checkAdminAuth();
-    } else {
+    if (!isAuth) {
       adminLoginAttempts++;
       if (adminLoginAttempts >= 5) {
         adminLockUntil = Date.now() + 30000;
@@ -2881,6 +2957,206 @@
       errEl.style.display = 'block';
       document.getElementById('admin-passcode-input').value = '';
       document.getElementById('admin-passcode-input').focus();
+      return;
+    }
+
+    // CREDENTIALS VALID!
+    adminLoginAttempts = 0;
+    adminLockUntil = 0;
+    errEl.style.display = 'none';
+
+    // Check if daily 2FA session is active (< 24 hrs)
+    var daily = getDailyAdminSession();
+    if (daily) {
+      sessionStorage.setItem('rydealot_admin_authed', 'true');
+      sessionStorage.setItem('rydealot_admin_email', emailVal || getSavedAdminEmail());
+      checkAdminAuth();
+      toast('🛡️ Daily 2FA Session Active');
+      return;
+    }
+
+    // Step 2: Request 2FA OTP
+    pendingAdminEmail = emailVal || getSavedAdminEmail();
+    pendingAdminPassHash = passHash;
+
+    var loginBtn = document.getElementById('admin-login-btn');
+    if (loginBtn) {
+      loginBtn.disabled = true;
+      loginBtn.textContent = '⏳ Dispatching Security Code...';
+    }
+
+    await requestOtpDispatch();
+  }
+
+  async function requestOtpDispatch() {
+    var errEl = document.getElementById('admin-auth-error');
+    var loginBtn = document.getElementById('admin-login-btn');
+    try {
+      var res = await fetch(CLOUDFLARE_D1_WORKER + '/api/admin/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingAdminEmail, passwordHash: pendingAdminPassHash })
+      });
+      var data = await res.json().catch(function(){ return {}; });
+
+      if (data && data.ok) {
+        document.getElementById('auth-step-password').style.display = 'none';
+        document.getElementById('auth-step-otp').style.display = 'block';
+        document.getElementById('otp-target-display').textContent = data.targetEmail || 'rydealotoffical@gmail.com';
+        errEl.style.display = 'none';
+        startOtpCountdowns();
+        setTimeout(function(){
+          var otpIn = document.getElementById('admin-otp-input');
+          if (otpIn) { otpIn.value = ''; otpIn.focus(); }
+        }, 100);
+      } else if (data && data.cooldown) {
+        document.getElementById('auth-step-password').style.display = 'none';
+        document.getElementById('auth-step-otp').style.display = 'block';
+        startOtpCountdowns();
+        errEl.textContent = data.error;
+        errEl.style.display = 'block';
+      } else {
+        var msg = (data && data.error) ? data.error : 'Security code dispatch failed. You can use Founder Bypass.';
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+        document.getElementById('auth-step-password').style.display = 'none';
+        document.getElementById('auth-step-otp').style.display = 'block';
+        startOtpCountdowns();
+      }
+    } catch(err) {
+      console.warn('[OTP Request Error]:', err);
+      document.getElementById('auth-step-password').style.display = 'none';
+      document.getElementById('auth-step-otp').style.display = 'block';
+      startOtpCountdowns();
+    } finally {
+      if (loginBtn) {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Continue to 2FA Code →';
+      }
+    }
+  }
+
+  function startOtpCountdowns() {
+    clearInterval(otpCountdownInterval);
+    clearInterval(resendCountdownInterval);
+
+    var expireRemaining = OTP_COUNTDOWN_SECS;
+    var cooldownRemaining = RESEND_COOLDOWN_SECS;
+
+    var countdownEl = document.getElementById('otp-countdown');
+    var resendBtn = document.getElementById('otp-resend-btn');
+    var resendSpan = document.getElementById('otp-resend-cooldown');
+
+    if (resendBtn) resendBtn.disabled = true;
+
+    otpCountdownInterval = setInterval(function() {
+      expireRemaining--;
+      if (expireRemaining <= 0) {
+        clearInterval(otpCountdownInterval);
+        if (countdownEl) countdownEl.textContent = 'EXPIRED';
+        var errEl = document.getElementById('admin-auth-error');
+        errEl.textContent = 'Verification code expired. Please click Resend Code.';
+        errEl.style.display = 'block';
+      } else {
+        var m = Math.floor(expireRemaining / 60);
+        var s = expireRemaining % 60;
+        if (countdownEl) countdownEl.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      }
+    }, 1000);
+
+    resendCountdownInterval = setInterval(function() {
+      cooldownRemaining--;
+      if (cooldownRemaining <= 0) {
+        clearInterval(resendCountdownInterval);
+        if (resendBtn) {
+          resendBtn.disabled = false;
+          resendBtn.textContent = 'Resend Code Now';
+        }
+      } else {
+        if (resendSpan) resendSpan.textContent = cooldownRemaining;
+      }
+    }, 1000);
+  }
+
+  async function resendAdminOtp() {
+    var resendBtn = document.getElementById('otp-resend-btn');
+    if (resendBtn) {
+      resendBtn.disabled = true;
+      resendBtn.textContent = 'Resending...';
+    }
+    await requestOtpDispatch();
+  }
+
+  function backToPasswordStep() {
+    document.getElementById('auth-step-password').style.display = 'block';
+    document.getElementById('auth-step-otp').style.display = 'none';
+    document.getElementById('admin-auth-error').style.display = 'none';
+    clearInterval(otpCountdownInterval);
+    clearInterval(resendCountdownInterval);
+  }
+
+  async function verifyAdminOtp() {
+    var errEl = document.getElementById('admin-auth-error');
+    var codeVal = (document.getElementById('admin-otp-input').value || '').trim();
+    if (!codeVal) {
+      errEl.textContent = 'Please enter the 6-digit verification code.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Emergency Founder Master Recovery Passcode Bypass (982026)
+    if (codeVal === '982026') {
+      setDailyAdminSession('founder_bypass_' + Date.now(), pendingAdminEmail);
+      sessionStorage.setItem('rydealot_admin_authed', 'true');
+      sessionStorage.setItem('rydealot_admin_email', pendingAdminEmail);
+      errEl.style.display = 'none';
+      checkAdminAuth();
+      toast('👑 Master Bypass Verified. Welcome, Founder!');
+      return;
+    }
+
+    var verifyBtn = document.getElementById('admin-verify-btn');
+    if (verifyBtn) {
+      verifyBtn.disabled = true;
+      verifyBtn.textContent = 'Verifying Code...';
+    }
+
+    try {
+      var res = await fetch(CLOUDFLARE_D1_WORKER + '/api/admin/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingAdminEmail, code: codeVal })
+      });
+      var data = await res.json().catch(function(){ return {}; });
+
+      if (data && data.ok) {
+        setDailyAdminSession(data.sessionToken, pendingAdminEmail);
+        sessionStorage.setItem('rydealot_admin_authed', 'true');
+        sessionStorage.setItem('rydealot_admin_email', pendingAdminEmail);
+        errEl.style.display = 'none';
+        checkAdminAuth();
+        toast('✅ 2FA Verified! Daily Admin Session Active.');
+      } else {
+        errEl.textContent = (data && data.error) ? data.error : 'Invalid verification code. Please check your email.';
+        errEl.style.display = 'block';
+      }
+    } catch(err) {
+      console.warn('[Verify OTP Error]:', err);
+      errEl.textContent = 'Connection error. You may use Founder Bypass if needed.';
+      errEl.style.display = 'block';
+    } finally {
+      if (verifyBtn) {
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = 'Verify & Unlock Dashboard';
+      }
+    }
+  }
+
+  function promptMasterRecovery() {
+    var code = prompt('Enter Founder Master Emergency Passcode:');
+    if (code) {
+      document.getElementById('admin-otp-input').value = code.trim();
+      verifyAdminOtp();
     }
   }
 
@@ -2940,10 +3216,12 @@
   }
 
   function adminLogout() {
+    localStorage.removeItem('rydealot_admin_daily_session');
     sessionStorage.removeItem('rydealot_admin_authed');
     sessionStorage.removeItem('rydealot_sage_admin_authed');
     sessionStorage.removeItem('rydealot_aw_admin_authed');
     checkAdminAuth();
+    toast('🔒 Logged out securely. 2FA required on next sign-in.');
   }
 
   document.getElementById('admin-passcode-input').addEventListener('keypress', function(e) {

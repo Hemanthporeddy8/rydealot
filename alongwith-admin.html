@@ -556,8 +556,19 @@
   var awLoginAttempts = 0;
   var awLockUntil = 0;
 
+  function isDailyAdminAuthed() {
+    try {
+      var raw = localStorage.getItem('rydealot_admin_daily_session');
+      if (!raw) return false;
+      var session = JSON.parse(raw);
+      return (Date.now() - session.timestamp < 24 * 60 * 60 * 1000);
+    } catch(e) { return false; }
+  }
+
   function checkAuth() {
-    var isAuthed = sessionStorage.getItem('rydealot_admin_authed') === 'true' || sessionStorage.getItem('rydealot_aw_admin_authed') === 'true';
+    var isAuthed = sessionStorage.getItem('rydealot_admin_authed') === 'true' || 
+                   sessionStorage.getItem('rydealot_aw_admin_authed') === 'true' ||
+                   isDailyAdminAuthed();
     if (isAuthed) {
       document.getElementById('admin-lock-overlay').style.display = 'none';
       document.getElementById('admin-content-wrap').style.display = 'block';
@@ -622,6 +633,7 @@
   }
 
   function lockAdmin() {
+    localStorage.removeItem('rydealot_admin_daily_session');
     sessionStorage.removeItem('rydealot_aw_admin_authed');
     sessionStorage.removeItem('rydealot_admin_authed');
     checkAuth();

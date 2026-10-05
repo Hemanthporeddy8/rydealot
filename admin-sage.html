@@ -579,6 +579,7 @@
   }
 
   function logoutSageAdmin() {
+    localStorage.removeItem('rydealot_admin_daily_session');
     sessionStorage.removeItem('rydealot_sage_admin_authed');
     sessionStorage.removeItem('rydealot_admin_authed');
     location.reload();
@@ -1029,9 +1030,20 @@
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
+  function isDailyAdminAuthed() {
+    try {
+      var raw = localStorage.getItem('rydealot_admin_daily_session');
+      if (!raw) return false;
+      var session = JSON.parse(raw);
+      return (Date.now() - session.timestamp < 24 * 60 * 60 * 1000);
+    } catch(e) { return false; }
+  }
+
   // On page load check session
   window.onload = function() {
-    if (sessionStorage.getItem('rydealot_sage_admin_authed') === 'true' || sessionStorage.getItem('rydealot_admin_authed') === 'true') {
+    if (sessionStorage.getItem('rydealot_sage_admin_authed') === 'true' || 
+        sessionStorage.getItem('rydealot_admin_authed') === 'true' ||
+        isDailyAdminAuthed()) {
       document.getElementById('admin-auth-overlay').style.display = 'none';
       document.getElementById('sage-main-wrap').style.display = 'block';
       loadSageParcels();

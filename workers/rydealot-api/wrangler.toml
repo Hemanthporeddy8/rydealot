@@ -1,0 +1,16 @@
+name = "rydealot-api"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+# Cloudflare D1 Database Binding for Plan B
+[[d1_databases]]
+binding = "DB"
+database_name = "rydealot-db"
+database_id = "ce594711-0b80-4304-8774-08c7414025ac"
+
+[vars]
+ENVIRONMENT = "production"
+SERVICE_NAME = "Rydealot Plan B & Admin 2FA Gateway"
+ADMIN_EMAIL = "rydealotoffical@gmail.com"
+# Note: Add RESEND_API_KEY as an encrypted secret in Cloudflare Dashboard -> Workers -> rydealot-api -> Settings -> Variables
+

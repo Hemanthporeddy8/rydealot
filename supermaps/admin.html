@@ -643,8 +643,17 @@
     let smLoginAttempts = 0;
     let smLockUntil = 0;
 
+    function isDailyAdminAuthed() {
+      try {
+        const raw = localStorage.getItem('rydealot_admin_daily_session');
+        if (!raw) return false;
+        const session = JSON.parse(raw);
+        return (Date.now() - session.timestamp < 24 * 60 * 60 * 1000);
+      } catch(e) { return false; }
+    }
+
     function checkSupermapsAuth() {
-      const isAuthed = sessionStorage.getItem('rydealot_admin_authed') === 'true';
+      const isAuthed = sessionStorage.getItem('rydealot_admin_authed') === 'true' || isDailyAdminAuthed();
       const overlay = document.getElementById('supermaps-auth-overlay');
       const userInput = document.getElementById('sm-admin-user');
       if (userInput && !userInput.value) {
