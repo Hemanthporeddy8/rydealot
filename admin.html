@@ -87,9 +87,9 @@
     <div id="auth-step-password">
       <p style="margin-bottom: 16px;">Sign in with Admin Credentials & 2FA</p>
       
-      <form onsubmit="event.preventDefault(); verifyAdminPasscode();" autocomplete="on">
+      <form onsubmit="event.preventDefault(); verifyAdminPasscode();" autocomplete="off">
         <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN USERNAME / GMAIL</label>
-        <input type="text" id="admin-email-input" name="username" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:14px;" placeholder="Enter Admin Gmail or Username" autocomplete="username">
+        <input type="text" id="admin-email-input" name="admin_user_field" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.9rem; margin-bottom:14px;" placeholder="Enter Admin Gmail or Username" autocomplete="off" value="">
         
         <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">ADMIN PASSWORD</label>
         <div style="position:relative; width:100%; margin-bottom:16px;">
@@ -2814,7 +2814,12 @@
   }
 
   function getSavedAdminEmail() {
-    return localStorage.getItem('rydealot_admin_email') || DEFAULT_ADMIN_EMAIL;
+    var saved = localStorage.getItem('rydealot_admin_email');
+    if (saved && saved.toLowerCase().includes('hemanth')) {
+      localStorage.removeItem('rydealot_admin_email');
+      saved = null;
+    }
+    return saved || DEFAULT_ADMIN_EMAIL;
   }
 
   function getAuthorizedAdminEmails() {
@@ -2880,7 +2885,14 @@
 
   function checkAdminAuth() {
     var authed = sessionStorage.getItem('rydealot_admin_authed');
-    document.getElementById('admin-email-input').value = getSavedAdminEmail();
+    // Keep email input 100% empty by default on load
+    var emailInp = document.getElementById('admin-email-input');
+    if (emailInp) emailInp.value = '';
+
+    // Clear legacy hemanth email from browser localStorage if stored
+    if (localStorage.getItem('rydealot_admin_email') && localStorage.getItem('rydealot_admin_email').toLowerCase().includes('hemanth')) {
+      localStorage.removeItem('rydealot_admin_email');
+    }
     
     // Auto-authenticate if valid 24h Daily Session exists
     if (authed !== 'true') {

@@ -656,9 +656,7 @@
       const isAuthed = sessionStorage.getItem('rydealot_admin_authed') === 'true' || isDailyAdminAuthed();
       const overlay = document.getElementById('supermaps-auth-overlay');
       const userInput = document.getElementById('sm-admin-user');
-      if (userInput && !userInput.value) {
-        userInput.value = localStorage.getItem('rydealot_admin_email') || 'rydealotoffical@gmail.com';
-      }
+      if (userInput) userInput.value = '';
       if (isAuthed) {
         if (overlay) overlay.style.display = 'none';
         if (adminMap) setTimeout(() => { adminMap.invalidateSize(); }, 200);
