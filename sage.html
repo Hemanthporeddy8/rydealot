@@ -1017,21 +1017,42 @@
       .catch(function(){});
   }
 
-  // Draw OSRM Road Route & Calculate Live Distance
+  // Draw Road Route & Calculate Live Distance with Multi-Provider Failover
   var routeDistanceKm = 5.2; // default fallback
-  function fetchRoute() {
+  async function fetchRoute() {
     if (!pickupCoords || !dropCoords || !sageMap) return;
 
-    var url = 'https://router.project-osrm.org/route/v1/driving/' + pickupCoords.lng + ',' + pickupCoords.lat + ';' + dropCoords.lng + ',' + dropCoords.lat + '?overview=full&geometries=geojson';
+    var query = '?overview=full&geometries=geojson';
+    var coords = pickupCoords.lng + ',' + pickupCoords.lat + ';' + dropCoords.lng + ',' + dropCoords.lat;
 
-    fetch(url)
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if (data.routes && data.routes.length > 0) {
-          var route = data.routes[0];
-          var distKm = (route.distance / 1000).toFixed(1);
-          var durationMins = Math.round(route.duration / 60);
-          routeDistanceKm = parseFloat(distKm);
+    var endpoints = [
+      'https://rydealot-supermaps-api.rydealotmaps.workers.dev/route/v1/driving/' + coords + query,
+      'https://routing.openstreetmap.de/routed-car/route/v1/driving/' + coords + query,
+      'https://router.project-osrm.org/route/v1/driving/' + coords + query
+    ];
+
+    var data = null;
+    for (var i = 0; i < endpoints.length; i++) {
+      try {
+        var controller = new AbortController();
+        var timeoutId = setTimeout(function() { controller.abort(); }, 3200);
+        var res = await fetch(endpoints[i], { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res && res.ok) {
+          var parsed = await res.json();
+          if (parsed && parsed.routes && parsed.routes.length > 0) {
+            data = parsed;
+            break;
+          }
+        }
+      } catch(e) {}
+    }
+
+    if (data && data.routes && data.routes.length > 0) {
+      var route = data.routes[0];
+      var distKm = (route.distance / 1000).toFixed(1);
+      var durationMins = Math.round(route.duration / 60);
+      routeDistanceKm = parseFloat(distKm);
 
           var coords = route.geometry.coordinates;
           var latLngs = coords.map(function(c) { return [c[1], c[0]]; });

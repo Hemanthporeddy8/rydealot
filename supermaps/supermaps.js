@@ -7,7 +7,7 @@ const CONFIG = {
   // Your Verified Cloud-Hosted 2.42 GB India Map Archive
   PMTILES_SOURCE: 'https://huggingface.co/datasets/RydealotMaps/rydealot-maps/resolve/main/india.pmtiles',
   D1_WORKER: 'https://rydealot-supermaps-api.rydealotmaps.workers.dev',
-  OSRM_ROUTING: 'https://router.project-osrm.org/route/v1/driving/',
+  OSRM_ROUTING: 'https://rydealot-supermaps-api.rydealotmaps.workers.dev/route/v1/driving/',
   DEFAULT_LNG_LAT: [78.4867, 17.3850], // Hyderabad [lng, lat]
   INDIA_BOUNDS: [
     [68.1, 7.9],  // Southwest [lng, lat]
@@ -822,14 +822,32 @@ async function calculateActiveRoute(destLng, destLat, destName) {
   document.getElementById('route-dist').innerText = 'Finding best route';
 
   try {
-    // OSRM public demo only supports 'driving' and 'foot' — bike uses driving geometry
-    const osrmProfile = activeVehicleMode === 'walk' ? 'foot' : 'driving';
-    const osrmBase = activeVehicleMode === 'walk'
-      ? 'https://router.project-osrm.org/route/v1/foot/'
-      : CONFIG.OSRM_ROUTING;
-    const url = `${osrmBase}${startCoord[0]},${startCoord[1]};${destLng},${destLat}?overview=full&geometries=geojson&steps=true`;
-    const res = await fetch(url);
-    const data = await res.json();
+    const profile = activeVehicleMode === 'walk' ? 'foot' : 'driving';
+    const coords = `${startCoord[0]},${startCoord[1]};${destLng},${destLat}`;
+    const query = `?overview=full&geometries=geojson&steps=true`;
+
+    const backends = [
+      `https://rydealot-supermaps-api.rydealotmaps.workers.dev/route/v1/${profile}/${coords}${query}`,
+      `https://routing.openstreetmap.de/routed-car/route/v1/driving/${coords}${query}`,
+      `https://router.project-osrm.org/route/v1/${profile}/${coords}${query}`
+    ];
+
+    let data = null;
+    for (let b of backends) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const res = await fetch(b, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res && res.ok) {
+          const parsed = await res.json();
+          if (parsed && parsed.routes && parsed.routes.length > 0) {
+            data = parsed;
+            break;
+          }
+        }
+      } catch(e) {}
+    }
 
     if (!data.routes || data.routes.length === 0) {
       document.getElementById('route-eta').innerText = 'No route';

@@ -575,17 +575,29 @@
 
     map.fitBounds(L.latLngBounds([[pLat, pLng], [dLat, dLng]]), { padding: [50, 50] });
 
-    // Draw OSRM route line
-    var routeUrl = 'https://router.project-osrm.org/route/v1/driving/' + pLng + ',' + pLat + ';' + dLng + ',' + dLat + '?overview=full&geometries=geojson';
-    fetch(routeUrl)
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if (d.routes && d.routes.length > 0) {
-          var pts = d.routes[0].geometry.coordinates.map(function(c){ return [c[1], c[0]]; });
-          if (routeLine) map.removeLayer(routeLine);
-          routeLine = L.polyline(pts, { color: '#38BDF8', weight: 4, opacity: 0.85 }).addTo(map);
-        }
-      }).catch(function(){});
+    // Draw route line with Multi-Provider Failover
+    var rCoords = pLng + ',' + pLat + ';' + dLng + ',' + dLat;
+    var rEndpoints = [
+      'https://rydealot-supermaps-api.rydealotmaps.workers.dev/route/v1/driving/' + rCoords + '?overview=full&geometries=geojson',
+      'https://routing.openstreetmap.de/routed-car/route/v1/driving/' + rCoords + '?overview=full&geometries=geojson',
+      'https://router.project-osrm.org/route/v1/driving/' + rCoords + '?overview=full&geometries=geojson'
+    ];
+    (async function fetchTrackRoute() {
+      for (var i = 0; i < rEndpoints.length; i++) {
+        try {
+          var res = await fetch(rEndpoints[i]);
+          if (res && res.ok) {
+            var d = await res.json();
+            if (d && d.routes && d.routes.length > 0) {
+              var pts = d.routes[0].geometry.coordinates.map(function(c){ return [c[1], c[0]]; });
+              if (routeLine) map.removeLayer(routeLine);
+              routeLine = L.polyline(pts, { color: '#38BDF8', weight: 4, opacity: 0.85 }).addTo(map);
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+    })();
 
     // ── START REAL 10-SECOND POLLING ──
     startLiveLocationPolling();

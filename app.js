@@ -3986,6 +3986,37 @@
     });
   }
 
+  // ── RESILIENT MULTI-PROVIDER ROUTING ENGINE (Zero Rate Limits & Auto-Failover) ──
+  async function fetchRydealotRoute(pLng, pLat, dLng, dLat, options) {
+    var opts = options || {};
+    var profile = opts.profile || 'driving';
+    var overview = opts.overview || 'full';
+    var query = '?overview=' + overview + '&geometries=geojson' + (opts.steps ? '&steps=true' : '');
+    var coords = pLng + ',' + pLat + ';' + dLng + ',' + dLat;
+
+    var endpoints = [
+      'https://rydealot-supermaps-api.rydealotmaps.workers.dev/route/v1/' + profile + '/' + coords + query,
+      'https://routing.openstreetmap.de/routed-car/route/v1/driving/' + coords + query,
+      'https://router.project-osrm.org/route/v1/driving/' + coords + query
+    ];
+
+    for (var i = 0; i < endpoints.length; i++) {
+      try {
+        var controller = new AbortController();
+        var timeoutId = setTimeout(function() { controller.abort(); }, 3200);
+        var res = await fetch(endpoints[i], { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (res && res.ok) {
+          var data = await res.json();
+          if (data && data.routes && data.routes.length > 0) {
+            return data;
+          }
+        }
+      } catch(e) {}
+    }
+    return null;
+  }
+
   function updateSetupMapMarkers() {
     if (!state.destMap) return;
 
@@ -4033,20 +4064,16 @@
       if (state.lat && state.lng) updateMapAddressPill(state.lat, state.lng);
     }
 
-    // 3. Polyline and Bounds Fitting (Actual Street Routing using OSRM)
+    // 3. Polyline and Bounds Fitting (Actual Street Routing using Multi-Provider Router)
     if (state.lat && state.lng && state.destLat && state.destLng) {
-      var url = 'https://router.project-osrm.org/route/v1/driving/' + state.lng + ',' + state.lat + ';' + state.destLng + ',' + state.destLat + '?overview=full&geometries=geojson';
-      
-      fetch(url)
-        .then(function(res) { return res.json(); })
+      fetchRydealotRoute(state.lng, state.lat, state.destLng, state.destLat, { overview: 'full' })
         .then(function(data) {
-          if (data.routes && data.routes.length > 0) {
+          if (data && data.routes && data.routes.length > 0) {
             var coords = data.routes[0].geometry.coordinates;
             var path = coords.map(function(c) { return [c[1], c[0]]; }); // Convert [lng, lat] to [lat, lng]
             
             if (state.setupPolyline) {
               state.setupPolyline.setLatLngs(path);
-              // Reset path options to solid line
               state.setupPolyline.setStyle({ color: 'var(--accent)', dashArray: null, weight: 4 });
             } else {
               state.setupPolyline = L.polyline(path, {
@@ -5606,12 +5633,10 @@
       state.tripDistanceKm = Math.max(1.0, Math.round(hDist * 1.35 * 10) / 10);
       state.tripDurationMin = Math.max(3, Math.round(state.tripDistanceKm * 3));
 
-      // Try OSRM Real Street Route
+      // Try Multi-Provider Real Street Route (Cloudflare Edge -> OSM Mirror -> OSRM)
       try {
-        var url = 'https://router.project-osrm.org/route/v1/driving/' + state.lng + ',' + state.lat + ';' + state.destLng + ',' + state.destLat + '?overview=false';
-        var res = await fetch(url);
-        var data = await res.json();
-        if (data.routes && data.routes.length > 0) {
+        var data = await fetchRydealotRoute(state.lng, state.lat, state.destLng, state.destLat, { overview: 'false' });
+        if (data && data.routes && data.routes.length > 0) {
           var r = data.routes[0];
           state.tripDistanceKm = Math.max(1.0, Math.round((r.distance / 1000) * 10) / 10);
           state.tripDurationMin = Math.max(2, Math.round(r.duration / 60));
