@@ -99,34 +99,6 @@
     </form>
     
     <div class="auth-error" id="admin-auth-error">Incorrect Gmail or Password. Please try again.</div>
-    
-    <div style="margin-top:14px; pt-10; border-top:1px solid var(--border);">
-      <button type="button" onclick="openForgotPassModal()" style="background:none; border:none; color:var(--amber); font-size:0.8rem; font-weight:700; cursor:pointer; text-decoration:underline;">Forgot / Reset Admin Password?</button>
-    </div>
-  </div>
-</div>
-
-<!-- FORGOT / RESET PASSWORD MODAL -->
-<div id="forgot-pass-overlay" style="display:none; position:fixed; inset:0; background:rgba(11,12,15,0.95); backdrop-filter:blur(8px); z-index:10002; align-items:center; justify-content:center; padding:20px;">
-  <div class="auth-card" style="text-align:left; max-width:380px;">
-    <h3 style="font-size:1.2rem; font-weight:900; margin-bottom:6px;">🔄 Reset Admin Password</h3>
-    <p style="font-size:0.8rem; color:var(--mute); margin-bottom:18px;">Set your new Admin Gmail and Password directly below.</p>
-    
-    <form onsubmit="event.preventDefault(); confirmResetAdminCredentials();">
-      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">NEW ADMIN GMAIL</label>
-      <input type="email" id="reset-admin-email" name="email" class="auth-input" style="text-align:left; letter-spacing:0; font-size:0.88rem; margin-bottom:12px;" placeholder="e.g. hemanth@gmail.com" value="hemanth@gmail.com">
-      
-      <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; margin-bottom:4px;">NEW ADMIN PASSWORD</label>
-      <div style="position:relative; width:100%; margin-bottom:16px;">
-        <input type="password" id="reset-admin-pass" name="new-password" class="auth-input" style="margin-bottom:0; text-align:left; letter-spacing:1px; padding-right:45px;" placeholder="Set New Password (min 4 chars)">
-        <button type="button" id="toggle-reset-pass-btn" onclick="togglePasswordVisibility('reset-admin-pass', 'toggle-reset-pass-btn')" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--mute); cursor:pointer; font-size:1.1rem;" title="Show/Hide Password">👁️</button>
-      </div>
-
-      <div style="display:flex; gap:10px;">
-        <button type="button" class="btn btn-mute" style="flex:1;" onclick="closeForgotPassModal()">Cancel</button>
-        <button type="submit" class="btn btn-amber" style="flex:1;">Save & Unlock</button>
-      </div>
-    </form>
   </div>
 </div>
 
@@ -2702,12 +2674,37 @@
   }
 
   // ===== ADMIN AUTHENTICATION & CREDENTIAL MANAGEMENT =====
-  function getSavedAdminEmail() {
-    return localStorage.getItem('rydealot_admin_email') || 'hemanth@gmail.com';
+  var DEFAULT_ADMIN_EMAIL = 'hemanth@gmail.com';
+  // Standard SHA-256 hash for default master passcode 'rydealot2026'
+  var DEFAULT_ADMIN_PASS_HASH = '6106884493f4ca240105f396ef67b4a41ff34037744e2b7337da4be7f1019db0';
+
+  async function sha256Hex(message) {
+    if (window.crypto && crypto.subtle) {
+      try {
+        var msgBuffer = new TextEncoder().encode(message);
+        var hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        var hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+      } catch (e) {
+        console.warn('Crypto API fallback', e);
+      }
+    }
+    // Deterministic fallback hash if SubtleCrypto is unavailable
+    var h1 = 0xdeadbeef, h2 = 0x41c64e6d;
+    for (var i = 0; i < message.length; i++) {
+      var ch = message.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    return (h1 >>> 0).toString(16) + (h2 >>> 0).toString(16);
   }
 
-  function getSavedAdminPasscode() {
-    return localStorage.getItem('rydealot_admin_pass') || 'rydealot2026';
+  function getSavedAdminEmail() {
+    return localStorage.getItem('rydealot_admin_email') || DEFAULT_ADMIN_EMAIL;
+  }
+
+  function getSavedAdminPassHash() {
+    return localStorage.getItem('rydealot_admin_pass_hash') || '';
   }
 
   function togglePasswordVisibility(inputId, btnId) {
@@ -2736,51 +2733,68 @@
     }
   }
 
-  function verifyAdminPasscode() {
+  var adminLoginAttempts = 0;
+  var adminLockUntil = 0;
+
+  async function verifyAdminPasscode() {
+    var errEl = document.getElementById('admin-auth-error');
+    if (Date.now() < adminLockUntil) {
+      var waitSecs = Math.ceil((adminLockUntil - Date.now()) / 1000);
+      errEl.textContent = '⛔ Too many failed attempts. Locked for ' + waitSecs + 's.';
+      errEl.style.display = 'block';
+      return;
+    }
+
     var emailVal = (document.getElementById('admin-email-input').value || '').trim().toLowerCase();
     var passVal = (document.getElementById('admin-passcode-input').value || '').trim();
-    var errEl = document.getElementById('admin-auth-error');
-    
-    var expectedEmail = getSavedAdminEmail().toLowerCase();
-    var expectedPass = getSavedAdminPasscode();
+    if (!passVal) {
+      errEl.textContent = 'Please enter your admin password.';
+      errEl.style.display = 'block';
+      return;
+    }
 
-    // Match saved password or master overrides (123456, 000000, rydealot2026)
-    if (passVal === expectedPass || passVal === '123456' || passVal === '000000' || passVal === 'rydealot2026' || (emailVal === expectedEmail && passVal === expectedPass)) {
-      if (emailVal) localStorage.setItem('rydealot_admin_email', emailVal);
+    var expectedEmail = getSavedAdminEmail().toLowerCase();
+    var savedHash = getSavedAdminPassHash();
+    var legacyPass = localStorage.getItem('rydealot_admin_pass');
+
+    var passHash = await sha256Hex(passVal);
+    var isAuth = false;
+
+    if (savedHash && passHash === savedHash) {
+      isAuth = true;
+    } else if (legacyPass && passVal === legacyPass) {
+      // Migrate legacy plaintext password to secure SHA-256 hash
+      localStorage.setItem('rydealot_admin_pass_hash', passHash);
+      localStorage.removeItem('rydealot_admin_pass');
+      isAuth = true;
+    } else if (!savedHash && !legacyPass && passHash === DEFAULT_ADMIN_PASS_HASH) {
+      isAuth = true;
+    }
+
+    // Require valid username/email match if provided
+    if (emailVal && emailVal !== expectedEmail) {
+      isAuth = false;
+    }
+
+    if (isAuth) {
+      adminLoginAttempts = 0;
+      adminLockUntil = 0;
       sessionStorage.setItem('rydealot_admin_authed', 'true');
+      sessionStorage.setItem('rydealot_admin_email', emailVal || expectedEmail);
       errEl.style.display = 'none';
       checkAdminAuth();
     } else {
+      adminLoginAttempts++;
+      if (adminLoginAttempts >= 5) {
+        adminLockUntil = Date.now() + 30000;
+        errEl.textContent = '⛔ Too many failed attempts. Locked for 30 seconds.';
+      } else {
+        errEl.textContent = 'Incorrect Gmail or Password (' + (5 - adminLoginAttempts) + ' attempts remaining).';
+      }
       errEl.style.display = 'block';
       document.getElementById('admin-passcode-input').value = '';
       document.getElementById('admin-passcode-input').focus();
     }
-  }
-
-  function openForgotPassModal() {
-    document.getElementById('reset-admin-email').value = getSavedAdminEmail();
-    document.getElementById('reset-admin-pass').value = '';
-    document.getElementById('forgot-pass-overlay').style.display = 'flex';
-  }
-
-  function closeForgotPassModal() {
-    document.getElementById('forgot-pass-overlay').style.display = 'none';
-  }
-
-  function confirmResetAdminCredentials() {
-    var newEmail = (document.getElementById('reset-admin-email').value || '').trim();
-    var newPass = document.getElementById('reset-admin-pass').value;
-
-    if (!newEmail) { alert('Please enter a valid Admin Gmail.'); return; }
-    if (!newPass || newPass.length < 4) { alert('New password must be at least 4 characters long.'); return; }
-
-    localStorage.setItem('rydealot_admin_email', newEmail);
-    localStorage.setItem('rydealot_admin_pass', newPass);
-
-    sessionStorage.setItem('rydealot_admin_authed', 'true');
-    closeForgotPassModal();
-    checkAdminAuth();
-    toast('✅ Admin password updated and dashboard unlocked!');
   }
 
   function openChangePassModal() {
@@ -2794,24 +2808,46 @@
     document.getElementById('change-pass-overlay').style.display = 'none';
   }
 
-  function saveNewAdminCredentials() {
+  async function saveNewAdminCredentials() {
     var newEmail = (document.getElementById('new-admin-email').value || '').trim();
-    var currPass = document.getElementById('curr-admin-pass').value;
-    var newPass = document.getElementById('new-admin-pass').value;
+    var currPass = (document.getElementById('curr-admin-pass').value || '').trim();
+    var newPass = (document.getElementById('new-admin-pass').value || '').trim();
 
     if (!newEmail) { alert('Please enter a valid Admin Gmail.'); return; }
-    if (currPass !== getSavedAdminPasscode()) { alert('Incorrect current password.'); return; }
-    if (!newPass || newPass.length < 4) { alert('New password must be at least 4 characters long.'); return; }
+    if (!currPass) { alert('Please enter your current password.'); return; }
+    if (!newPass || newPass.length < 6) { alert('New password must be at least 6 characters long.'); return; }
 
+    var savedHash = getSavedAdminPassHash();
+    var legacyPass = localStorage.getItem('rydealot_admin_pass');
+    var currHash = await sha256Hex(currPass);
+    var isCurrValid = false;
+
+    if (savedHash && currHash === savedHash) {
+      isCurrValid = true;
+    } else if (legacyPass && currPass === legacyPass) {
+      isCurrValid = true;
+    } else if (!savedHash && !legacyPass && currHash === DEFAULT_ADMIN_PASS_HASH) {
+      isCurrValid = true;
+    }
+
+    if (!isCurrValid) {
+      alert('Incorrect current password.');
+      return;
+    }
+
+    var newHash = await sha256Hex(newPass);
     localStorage.setItem('rydealot_admin_email', newEmail);
-    localStorage.setItem('rydealot_admin_pass', newPass);
+    localStorage.setItem('rydealot_admin_pass_hash', newHash);
+    localStorage.removeItem('rydealot_admin_pass');
     
-    toast('Admin credentials updated successfully!');
+    toast('✅ Admin credentials updated & secured with SHA-256!');
     closeChangePassModal();
   }
 
   function adminLogout() {
     sessionStorage.removeItem('rydealot_admin_authed');
+    sessionStorage.removeItem('rydealot_sage_admin_authed');
+    sessionStorage.removeItem('rydealot_aw_admin_authed');
     checkAdminAuth();
   }
 

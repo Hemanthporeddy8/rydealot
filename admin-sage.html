@@ -480,19 +480,91 @@
     setTimeout(function() { t.classList.remove('show'); }, 2500);
   }
 
-  // Auth Verification (Master override passwords match main admin: 123456, 000000, rydealot2026)
-  function verifySageAdmin() {
-    var user = (document.getElementById('sage-admin-user').value || '').trim();
-    var pass = document.getElementById('sage-admin-pass').value;
-    var savedPass = localStorage.getItem('rydealot_admin_pass') || '123456';
+  // Master SHA-256 hash for default master passcode 'rydealot2026'
+  var DEFAULT_ADMIN_PASS_HASH = '6106884493f4ca240105f396ef67b4a41ff34037744e2b7337da4be7f1019db0';
 
-    if (pass === savedPass || pass === '123456' || pass === '000000' || pass === 'rydealot2026') {
+  async function sha256Hex(message) {
+    if (window.crypto && crypto.subtle) {
+      try {
+        var msgBuffer = new TextEncoder().encode(message);
+        var hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        var hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+      } catch (e) {
+        console.warn('Crypto API fallback', e);
+      }
+    }
+    var h1 = 0xdeadbeef, h2 = 0x41c64e6d;
+    for (var i = 0; i < message.length; i++) {
+      var ch = message.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    return (h1 >>> 0).toString(16) + (h2 >>> 0).toString(16);
+  }
+
+  var sageLoginAttempts = 0;
+  var sageLockUntil = 0;
+
+  // Auth Verification (Hardened with SHA-256 & Rate Limiting)
+  async function verifySageAdmin() {
+    var errEl = document.getElementById('auth-err');
+    if (Date.now() < sageLockUntil) {
+      var waitSecs = Math.ceil((sageLockUntil - Date.now()) / 1000);
+      errEl.textContent = '⛔ Too many failed attempts. Locked for ' + waitSecs + 's.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    var user = (document.getElementById('sage-admin-user').value || '').trim().toLowerCase();
+    var pass = (document.getElementById('sage-admin-pass').value || '').trim();
+    if (!pass) {
+      errEl.textContent = 'Please enter admin password.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    var expectedEmail = (localStorage.getItem('rydealot_admin_email') || 'hemanth@gmail.com').toLowerCase();
+    var savedHash = localStorage.getItem('rydealot_admin_pass_hash') || '';
+    var legacyPass = localStorage.getItem('rydealot_admin_pass');
+
+    var passHash = await sha256Hex(pass);
+    var isAuth = false;
+
+    if (savedHash && passHash === savedHash) {
+      isAuth = true;
+    } else if (legacyPass && pass === legacyPass) {
+      localStorage.setItem('rydealot_admin_pass_hash', passHash);
+      localStorage.removeItem('rydealot_admin_pass');
+      isAuth = true;
+    } else if (!savedHash && !legacyPass && passHash === DEFAULT_ADMIN_PASS_HASH) {
+      isAuth = true;
+    }
+
+    if (user && user !== expectedEmail) {
+      isAuth = false;
+    }
+
+    if (isAuth) {
+      sageLoginAttempts = 0;
+      sageLockUntil = 0;
       sessionStorage.setItem('rydealot_sage_admin_authed', 'true');
+      sessionStorage.setItem('rydealot_admin_authed', 'true');
+      errEl.style.display = 'none';
       document.getElementById('admin-auth-overlay').style.display = 'none';
       document.getElementById('sage-main-wrap').style.display = 'block';
       loadSageParcels();
     } else {
-      document.getElementById('auth-err').style.display = 'block';
+      sageLoginAttempts++;
+      if (sageLoginAttempts >= 5) {
+        sageLockUntil = Date.now() + 30000;
+        errEl.textContent = '⛔ Too many failed attempts. Locked for 30 seconds.';
+      } else {
+        errEl.textContent = 'Incorrect credentials (' + (5 - sageLoginAttempts) + ' attempts remaining).';
+      }
+      errEl.style.display = 'block';
+      document.getElementById('sage-admin-pass').value = '';
+      document.getElementById('sage-admin-pass').focus();
     }
   }
 
@@ -503,6 +575,7 @@
 
   function logoutSageAdmin() {
     sessionStorage.removeItem('rydealot_sage_admin_authed');
+    sessionStorage.removeItem('rydealot_admin_authed');
     location.reload();
   }
 
@@ -953,7 +1026,7 @@
 
   // On page load check session
   window.onload = function() {
-    if (sessionStorage.getItem('rydealot_sage_admin_authed') === 'true') {
+    if (sessionStorage.getItem('rydealot_sage_admin_authed') === 'true' || sessionStorage.getItem('rydealot_admin_authed') === 'true') {
       document.getElementById('admin-auth-overlay').style.display = 'none';
       document.getElementById('sage-main-wrap').style.display = 'block';
       loadSageParcels();

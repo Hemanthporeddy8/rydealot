@@ -530,7 +530,32 @@
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
   var headers = { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
 
-  // ── AUTHENTICATION PROTECTION ──
+  // ── AUTHENTICATION PROTECTION (HARDENED SHA-256) ──
+  var DEFAULT_ADMIN_PASS_HASH = '6106884493f4ca240105f396ef67b4a41ff34037744e2b7337da4be7f1019db0';
+
+  async function sha256Hex(message) {
+    if (window.crypto && crypto.subtle) {
+      try {
+        var msgBuffer = new TextEncoder().encode(message);
+        var hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        var hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+      } catch (e) {
+        console.warn('Crypto API fallback', e);
+      }
+    }
+    var h1 = 0xdeadbeef, h2 = 0x41c64e6d;
+    for (var i = 0; i < message.length; i++) {
+      var ch = message.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    return (h1 >>> 0).toString(16) + (h2 >>> 0).toString(16);
+  }
+
+  var awLoginAttempts = 0;
+  var awLockUntil = 0;
+
   function checkAuth() {
     var isAuthed = sessionStorage.getItem('rydealot_admin_authed') === 'true' || sessionStorage.getItem('rydealot_aw_admin_authed') === 'true';
     if (isAuthed) {
@@ -543,19 +568,55 @@
     }
   }
 
-  function unlockAdmin() {
-    var pass = document.getElementById('admin-pin-input').value;
-    var masterPass = localStorage.getItem('rydealot_admin_pass') || 'rydealot2026';
-    
-    if (pass === masterPass || pass === 'rydealot2026' || pass === 'admin123' || pass === '1234') {
+  async function unlockAdmin() {
+    var errEl = document.getElementById('lock-error-msg');
+    if (Date.now() < awLockUntil) {
+      var waitSecs = Math.ceil((awLockUntil - Date.now()) / 1000);
+      errEl.textContent = '⛔ Too many failed attempts. Locked for ' + waitSecs + 's.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    var pass = (document.getElementById('admin-pin-input').value || '').trim();
+    if (!pass) {
+      errEl.textContent = '❌ Please enter admin password.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    var savedHash = localStorage.getItem('rydealot_admin_pass_hash') || '';
+    var legacyPass = localStorage.getItem('rydealot_admin_pass');
+    var passHash = await sha256Hex(pass);
+    var isAuth = false;
+
+    if (savedHash && passHash === savedHash) {
+      isAuth = true;
+    } else if (legacyPass && pass === legacyPass) {
+      localStorage.setItem('rydealot_admin_pass_hash', passHash);
+      localStorage.removeItem('rydealot_admin_pass');
+      isAuth = true;
+    } else if (!savedHash && !legacyPass && passHash === DEFAULT_ADMIN_PASS_HASH) {
+      isAuth = true;
+    }
+
+    if (isAuth) {
+      awLoginAttempts = 0;
+      awLockUntil = 0;
       sessionStorage.setItem('rydealot_aw_admin_authed', 'true');
       sessionStorage.setItem('rydealot_admin_authed', 'true');
-      document.getElementById('lock-error-msg').style.display = 'none';
+      errEl.style.display = 'none';
       document.getElementById('admin-lock-overlay').style.display = 'none';
       document.getElementById('admin-content-wrap').style.display = 'block';
       loadDashboard();
     } else {
-      document.getElementById('lock-error-msg').style.display = 'block';
+      awLoginAttempts++;
+      if (awLoginAttempts >= 5) {
+        awLockUntil = Date.now() + 30000;
+        errEl.textContent = '⛔ Too many failed attempts. Locked for 30 seconds.';
+      } else {
+        errEl.textContent = '❌ Incorrect password (' + (5 - awLoginAttempts) + ' attempts remaining).';
+      }
+      errEl.style.display = 'block';
       document.getElementById('admin-pin-input').select();
     }
   }

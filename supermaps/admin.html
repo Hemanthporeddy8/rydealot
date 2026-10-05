@@ -327,6 +327,33 @@
 </head>
 <body>
 
+  <!-- Supermaps Admin Authentication Overlay -->
+  <div id="supermaps-auth-overlay" style="position:fixed; inset:0; background:rgba(9,11,16,0.96); backdrop-filter:blur(10px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:#12151e; border:1px solid rgba(245,158,11,0.3); border-radius:18px; width:100%; max-width:400px; padding:32px 28px; box-shadow:0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(245,158,11,0.15); text-align:center;">
+      <div style="width:56px; height:56px; margin:0 auto 14px; background:linear-gradient(135deg, rgba(245,158,11,0.2), rgba(6,182,212,0.2)); border:1px solid rgba(245,158,11,0.4); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:28px;">
+        ⚡
+      </div>
+      <h2 style="font-size:1.3rem; font-weight:900; color:#f8fafc; letter-spacing:-0.5px; margin-bottom:4px;">SUPERMAPS <span style="color:#f59e0b;">GIS TOWER</span></h2>
+      <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:22px;">Restricted Administrative Access for Roads, 3D Buildings & Infrastructure</p>
+      
+      <form onsubmit="event.preventDefault(); verifySupermapsAdmin();" style="text-align:left;">
+        <label style="font-size:0.75rem; color:#94a3b8; font-weight:700; display:block; margin-bottom:6px;">ADMIN EMAIL / USERNAME</label>
+        <input type="text" id="sm-admin-user" style="width:100%; padding:11px 14px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:#090b10; color:#fff; font-size:0.9rem; margin-bottom:14px; outline:none; box-sizing:border-box;" placeholder="Admin Email" autocomplete="username">
+
+        <label style="font-size:0.75rem; color:#94a3b8; font-weight:700; display:block; margin-bottom:6px;">ADMIN MASTER PASSWORD</label>
+        <div style="position:relative; margin-bottom:18px;">
+          <input type="password" id="sm-admin-pass" style="width:100%; padding:11px 44px 11px 14px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:#090b10; color:#fff; font-size:0.9rem; outline:none; box-sizing:border-box;" placeholder="Enter Master Password" autofocus autocomplete="current-password">
+          <button type="button" onclick="toggleSmPassView()" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; cursor:pointer; font-size:1.05rem;" title="Toggle Password">👁️</button>
+        </div>
+
+        <button type="submit" style="width:100%; padding:12px; border-radius:10px; border:none; background:linear-gradient(135deg, #f59e0b, #d97706); color:#000; font-weight:800; font-size:0.95rem; cursor:pointer; transition:all 0.2s;">
+          🔓 Unlock GIS Control Tower
+        </button>
+      </form>
+      <div id="sm-auth-err" style="color:#ef4444; font-size:0.8rem; font-weight:700; margin-top:14px; display:none;">Incorrect credentials. Access denied.</div>
+    </div>
+  </div>
+
   <!-- Left Control Tower Sidebar -->
   <aside class="admin-sidebar">
     <div class="admin-header">
@@ -334,9 +361,10 @@
         <span>⚡</span>
         <span>SUPERMAPS GIS TOWER</span>
       </div>
-      <div style="display:flex; gap:10px; align-items:center;">
+      <div style="display:flex; gap:8px; align-items:center;">
         <button onclick="syncAllToPublicMap()" style="background:var(--gold); border:none; color:#000; font-weight:800; font-size:0.75rem; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Sync to Public Map">⚡ Sync Live</button>
         <a href="index.html" target="_blank" style="color:var(--muted); text-decoration:none; font-size:0.8rem; font-weight:700;">Public Map ↗</a>
+        <button onclick="lockSupermapsAdmin()" style="background:#261818; border:1px solid #5c2424; color:#f87171; font-weight:700; font-size:0.75rem; padding:6px 10px; border-radius:6px; cursor:pointer;" title="Lock Admin Tower">🔒 Lock</button>
       </div>
     </div>
 
@@ -589,7 +617,117 @@
       }
     ];
 
+    // ===== SUPERMAPS ADMIN AUTHENTICATION (HARDENED SHA-256) =====
+    const DEFAULT_ADMIN_PASS_HASH = '6106884493f4ca240105f396ef67b4a41ff34037744e2b7337da4be7f1019db0';
+
+    async function sha256Hex(message) {
+      if (window.crypto && crypto.subtle) {
+        try {
+          const msgBuffer = new TextEncoder().encode(message);
+          const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (e) {
+          console.warn('Crypto API fallback', e);
+        }
+      }
+      let h1 = 0xdeadbeef, h2 = 0x41c64e6d;
+      for (let i = 0; i < message.length; i++) {
+        let ch = message.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+      }
+      return (h1 >>> 0).toString(16) + (h2 >>> 0).toString(16);
+    }
+
+    let smLoginAttempts = 0;
+    let smLockUntil = 0;
+
+    function checkSupermapsAuth() {
+      const isAuthed = sessionStorage.getItem('rydealot_admin_authed') === 'true';
+      const overlay = document.getElementById('supermaps-auth-overlay');
+      const userInput = document.getElementById('sm-admin-user');
+      if (userInput && !userInput.value) {
+        userInput.value = localStorage.getItem('rydealot_admin_email') || 'hemanth@gmail.com';
+      }
+      if (isAuthed) {
+        if (overlay) overlay.style.display = 'none';
+        if (adminMap) setTimeout(() => { adminMap.invalidateSize(); }, 200);
+      } else {
+        if (overlay) overlay.style.display = 'flex';
+      }
+    }
+
+    async function verifySupermapsAdmin() {
+      const errEl = document.getElementById('sm-auth-err');
+      if (Date.now() < smLockUntil) {
+        const waitSecs = Math.ceil((smLockUntil - Date.now()) / 1000);
+        errEl.textContent = '⛔ Too many failed attempts. Locked for ' + waitSecs + 's.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      const userVal = (document.getElementById('sm-admin-user').value || '').trim().toLowerCase();
+      const passVal = (document.getElementById('sm-admin-pass').value || '').trim();
+      if (!passVal) {
+        errEl.textContent = 'Please enter admin password.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      const expectedEmail = (localStorage.getItem('rydealot_admin_email') || 'hemanth@gmail.com').toLowerCase();
+      const savedHash = localStorage.getItem('rydealot_admin_pass_hash') || '';
+      const legacyPass = localStorage.getItem('rydealot_admin_pass');
+
+      const passHash = await sha256Hex(passVal);
+      let isAuth = false;
+
+      if (savedHash && passHash === savedHash) {
+        isAuth = true;
+      } else if (legacyPass && passVal === legacyPass) {
+        localStorage.setItem('rydealot_admin_pass_hash', passHash);
+        localStorage.removeItem('rydealot_admin_pass');
+        isAuth = true;
+      } else if (!savedHash && !legacyPass && passHash === DEFAULT_ADMIN_PASS_HASH) {
+        isAuth = true;
+      }
+
+      if (userVal && userVal !== expectedEmail) {
+        isAuth = false;
+      }
+
+      if (isAuth) {
+        smLoginAttempts = 0;
+        smLockUntil = 0;
+        sessionStorage.setItem('rydealot_admin_authed', 'true');
+        errEl.style.display = 'none';
+        checkSupermapsAuth();
+      } else {
+        smLoginAttempts++;
+        if (smLoginAttempts >= 5) {
+          smLockUntil = Date.now() + 30000;
+          errEl.textContent = '⛔ Too many failed attempts. Locked for 30 seconds.';
+        } else {
+          errEl.textContent = '❌ Incorrect credentials (' + (5 - smLoginAttempts) + ' attempts remaining).';
+        }
+        errEl.style.display = 'block';
+        const passInp = document.getElementById('sm-admin-pass');
+        if (passInp) { passInp.value = ''; passInp.focus(); }
+      }
+    }
+
+    function toggleSmPassView() {
+      const inp = document.getElementById('sm-admin-pass');
+      if (inp) inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+
+    function lockSupermapsAdmin() {
+      sessionStorage.removeItem('rydealot_admin_authed');
+      checkSupermapsAuth();
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
+      checkSupermapsAuth();
       initAdminMap();
       loadStorageData();
       renderAllGisOverlays();
