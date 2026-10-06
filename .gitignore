@@ -4,3 +4,7 @@ node_modules/
 DATABASE_INFRASTRUCTURE.md
 *credentials*
 *secret*
+*.keystore
+*signing-key-info*
+*.aab
+Rydealot - Google Play package (1)/
