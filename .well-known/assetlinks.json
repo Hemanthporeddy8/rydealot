@@ -3,9 +3,19 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
+      "package_name": "com.rydealot.www.twa",
+      "sha256_cert_fingerprints": [
+        "F0:66:16:21:DD:89:EF:E1:A4:2E:80:C0:8E:5F:D4:26:81:76:C5:6F:19:75:FF:BA:04:C3:2F:E9:FD:1D:1A:A2"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
       "package_name": "com.rydealot.app",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_YOUR_PLAY_CONSOLE_SHA256_CERT_FINGERPRINT"
+        "F0:66:16:21:DD:89:EF:E1:A4:2E:80:C0:8E:5F:D4:26:81:76:C5:6F:19:75:FF:BA:04:C3:2F:E9:FD:1D:1A:A2"
       ]
     }
   }
