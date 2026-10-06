@@ -474,10 +474,17 @@
   var walletSection = document.getElementById('rd-wallet-section');
   var mainSection = document.getElementById('rd-main-section');
 
-  if (btnOpenWallet && walletSection && mainSection) {
-    btnOpenWallet.addEventListener('click', function() {
+  window.openDriverWallet = function() {
+    if (walletSection && mainSection) {
       mainSection.style.display = 'none';
       walletSection.style.display = 'flex';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  if (btnOpenWallet && walletSection && mainSection) {
+    btnOpenWallet.addEventListener('click', function() {
+      window.openDriverWallet();
     });
   }
   if (btnBackWallet && walletSection && mainSection) {
@@ -520,7 +527,7 @@
       
       // Insufficient Wallet Balance Check!
       if (!isPromoActive && curBal < price) {
-        window.openInsufficientBalModal(curBal, price, passName);
+        window.openInsufficientBalModal(curBal, price, passName, passType);
         return;
       }
 
@@ -2583,7 +2590,9 @@
     var activePlan = localStorage.getItem('rydealot_driver_active_plan');
     if (activePlan === 'daily' || activePlan === 'weekly' || activePlan === 'monthly') {
       var expiry = localStorage.getItem('rydealot_driver_pass_expiry');
-      if (!expiry || new Date(expiry).getTime() > Date.now()) {
+      if (!expiry) return { active: true, plan: activePlan };
+      var expMs = !isNaN(Number(expiry)) ? Number(expiry) : new Date(expiry).getTime();
+      if (expMs > Date.now()) {
         return { active: true, plan: activePlan };
       }
     }
@@ -3466,10 +3475,20 @@
                 setPill('available');
               }
 
-              // 3. Credit fare to Driver Wallet
+              // 3. Credit fare to Driver Wallet (0% commission for pass holders)
               var fareNum = parseFloat(p.fare || 0);
               var curBal = parseFloat(localStorage.getItem('rydealot_driver_wallet_balance') || '0');
-              var newBal = curBal + fareNum;
+              var passInfo = isDriverPassActive();
+              var commFee = 0;
+              if (passInfo.active) {
+                // Pass Active: 0% commission
+                commFee = 0;
+              } else {
+                var commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{"perTrip":25}');
+                commFee = Math.min(Math.round(fareNum * 0.1), commCfg.perTrip || 25);
+              }
+              var netEarning = Math.max(0, fareNum - commFee);
+              var newBal = curBal + netEarning;
               localStorage.setItem('rydealot_driver_wallet_balance', newBal.toFixed(0));
 
               var balDisplay = document.getElementById('rd-wallet-balance-display');
@@ -3482,7 +3501,11 @@
                 window.incrementDailySprintCount();
               }
 
-              toast('🎉 Delivery Complete! ₹' + fareNum + ' added to your Driver Wallet!', 5000);
+              if (commFee === 0) {
+                toast('🎉 Delivery Complete! Full ₹' + fareNum + ' earned (0% Commission Pass Active)!', 5000);
+              } else {
+                toast('🎉 Delivery Complete! ₹' + netEarning + ' added to wallet (Platform fee: ₹' + commFee + ').', 5000);
+              }
               if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
               fetchSageParcels();
             } catch(e) {
@@ -3576,6 +3599,19 @@
           }
           if (currentActiveSageParcel) {
             toast('⚠️ You already have an active parcel delivery in progress!');
+            return;
+          }
+
+          var passInfo = isDriverPassActive();
+          var subCfg = JSON.parse(localStorage.getItem('rydealot_sub_config') || '{"daily":25,"weekly":150,"promo":"active"}');
+          var isPromo = subCfg.promo === 'active';
+          var curBal = parseFloat(localStorage.getItem('rydealot_driver_wallet_balance') || '0');
+
+          if (!passInfo.active && !isPromo && curBal < (subCfg.daily || 25)) {
+            toast('⚠️ Active Delivery Pass required to accept Sage Parcels! Activate Daily Pass (₹25) or Weekly Pass (₹150).', 4500);
+            if (typeof window.openDriverWallet === 'function') {
+              window.openDriverWallet();
+            }
             return;
           }
 
@@ -5039,10 +5075,12 @@
   }
 
   // ===== INSIDE-WEBSITE MODAL HANDLERS =====
-  window.openInsufficientBalModal = function(curBal, reqPrice, passName) {
+  window.openInsufficientBalModal = function(curBal, reqPrice, passName, passType) {
     var modal = document.getElementById('rd-insufficient-bal-modal');
     var desc = document.getElementById('insufficient-bal-desc');
     if (desc) desc.textContent = 'Your current wallet balance is ₹' + curBal + '. You need ₹' + reqPrice + ' to activate ' + passName + '.';
+    window._pendingPassPrice = reqPrice;
+    window._pendingPassType = passType || (reqPrice === 150 ? 'weekly' : 'daily');
     if (modal) modal.style.display = 'flex';
   };
 
@@ -5051,8 +5089,13 @@
     if (modal) modal.style.display = 'none';
   };
 
-  window.promptRazorpayRecharge = function() {
+  window.promptRazorpayRecharge = function(suggestedAmt) {
     var modal = document.getElementById('rd-rzp-amount-modal');
+    var amt = suggestedAmt || window._pendingPassPrice;
+    if (amt) {
+      var inp = document.getElementById('input-rzp-custom-amount');
+      if (inp) inp.value = amt;
+    }
     if (modal) modal.style.display = 'flex';
   };
 
@@ -5128,6 +5171,25 @@
 
         var balDisplay = document.getElementById('rd-wallet-balance-display');
         if (balDisplay) balDisplay.textContent = '₹' + newBal;
+        var balHero = document.getElementById('rd-wallet-total-balance');
+        if (balHero) balHero.textContent = '₹' + newBal;
+
+        // Auto-activate pass if recharge was initiated to activate a pass
+        if (window._pendingPassType && window._pendingPassPrice && newBal >= window._pendingPassPrice) {
+          var pType = window._pendingPassType;
+          var durMs = pType === 'weekly' ? (7 * 24 * 3600 * 1000) : (24 * 3600 * 1000);
+          var finalBal = newBal - window._pendingPassPrice;
+          localStorage.setItem('rydealot_driver_wallet_balance', finalBal);
+          if (balDisplay) balDisplay.textContent = '₹' + finalBal;
+          if (balHero) balHero.textContent = '₹' + finalBal;
+          localStorage.setItem('rydealot_driver_active_plan', pType);
+          localStorage.setItem('rydealot_driver_pass_expiry', Date.now() + durMs);
+          window._pendingPassType = null;
+          window._pendingPassPrice = null;
+          if (typeof updateDriverPassTimerUI === 'function') updateDriverPassTimerUI();
+          toast('🎉 Razorpay Payment Confirmed! ' + pType.toUpperCase() + ' Pass Activated Instantly!', 5000);
+          return;
+        }
 
         toast('🎉 Instant Auto-Recharge Successful! ₹' + amount + ' credited to your wallet!');
       },

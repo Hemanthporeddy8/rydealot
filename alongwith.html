@@ -1946,7 +1946,7 @@
 
   function calculateBookingFare() {
     var total = parseFloat(document.getElementById('book-fare-amount').value) || 0;
-    var tokenFee = (currentSenderLoadMode === 'full' ? 99 : 49);
+    var tokenFee = 49; // Fixed flat ₹49 platform booking token for every delivery
     var drvShare = Math.max(0, total - tokenFee);
 
     document.getElementById('calc-driver-share').textContent = '₹' + drvShare;
@@ -1958,7 +1958,7 @@
     var commCfg = {};
     try { commCfg = JSON.parse(localStorage.getItem('rydealot_comm_config') || '{}'); } catch(e) {}
     var rzpKey = commCfg.rzpKey || 'rzp_test_TP8cQcN108C2KZ';
-    var tokenAmt = (bookingData.isFullTruck ? 99 : 49);
+    var tokenAmt = 49; // Fixed flat ₹49 platform booking token for every delivery
 
     if (typeof Razorpay === 'undefined') {
       // Fallback if script blocked
@@ -1968,10 +1968,10 @@
 
     var options = {
       "key": rzpKey,
-      "amount": tokenAmt * 100, // Amount in paise (₹49 = 4900, ₹99 = 9900)
+      "amount": tokenAmt * 100, // Amount in paise (₹49 = 4900)
       "currency": "INR",
       "name": "Rydealot Along With",
-      "description": "Platform Booking Token (₹" + tokenAmt + ") — " + (isWarehouse ? "Warehouse Load" : "Freight Bay"),
+      "description": "Platform Booking Token (₹49) — " + (isWarehouse ? "Warehouse Load" : "Freight Bay"),
       "config": {
         "display": {
           "blocks": {
@@ -2067,7 +2067,7 @@
     }
 
     var isFull = (currentSenderLoadMode === 'full');
-    var tokenFee = (isFull ? 99 : 49);
+    var tokenFee = 49; // Fixed flat ₹49 platform booking token for every delivery
     var drvShare = Math.max(0, total - tokenFee);
 
     var cleanDigits = phone.replace(/\D/g, '').slice(-10);
@@ -2100,7 +2100,7 @@
       isFullTruck: isFull
     };
 
-    // Open Razorpay UPI checkout for flat ₹49 or ₹99 token
+    // Open Razorpay UPI checkout for flat ₹49 token
     launchRazorpayBookingCheckout(bookingData, false, function(paymentResponse) {
       btn.textContent = '⏳ Confirming Booking...';
 
@@ -3110,7 +3110,7 @@
     }
 
     var isFull = (currentWarehouseMeasureMode === 'full');
-    var tokenFee = (isFull ? 99 : 49);
+    var tokenFee = 49; // Fixed flat ₹49 platform booking token for every delivery
     var driverEarn = Math.max(0, price - tokenFee);
 
     var elEarn = document.getElementById('wh-post-driver-earn');
@@ -3142,7 +3142,7 @@
     }
 
     var isFull = (currentWarehouseMeasureMode === 'full');
-    var tokenFee = (isFull ? 99 : 49);
+    var tokenFee = 49; // Fixed flat ₹49 platform booking token for every delivery
     var driverEarn = Math.max(0, price - tokenFee);
 
     try {
@@ -3172,7 +3172,7 @@
       isFullTruck: isFull
     };
 
-    // Open Razorpay UPI for flat ₹49 / ₹99 token
+    // Open Razorpay UPI for flat ₹49 token
     launchRazorpayBookingCheckout(whData, true, function(paymentResponse) {
       btn.textContent = '⏳ Dropping in Warehouse...';
 

@@ -233,7 +233,7 @@
       <img src="logo.png" alt="Rydealot" style="width:40px; height:40px; object-fit:contain; border-radius:10px;">
       <div>
         <h1 class="admin-title" style="margin:0;"><span>RYDEALOT</span> Along With Admin</h1>
-        <p style="font-size: 12px; color: var(--text-mute); margin-top: 2px;">Cargo Return-Trip Matching, Freight Volume & 15% Platform Commission</p>
+        <p style="font-size: 12px; color: var(--text-mute); margin-top: 2px;">Cargo Return-Trip Matching, Freight Volume & Flat ₹49 Platform Booking Token</p>
       </div>
     </div>
     <div class="nav-links">
@@ -279,7 +279,7 @@
     </div>
     <div class="kpi-card">
       <div class="kpi-num" id="stat-commission" style="color: #facc15;">₹0</div>
-      <div class="kpi-label">Rydealot Commission (15%)</div>
+      <div class="kpi-label">Platform Tokens Earned (₹49/bk)</div>
     </div>
   </div>
 
@@ -840,7 +840,7 @@
       alert('No cargo bookings data available to export.');
       return;
     }
-    var headers = ['Booking ID', 'Sender Name', 'Sender Phone', 'Weight (KG)', 'Cargo Description', 'Pickup Address', 'Drop Address', 'Total Fare (INR)', 'Rydealot Commission 15% (INR)', 'Status', 'Date'];
+    var headers = ['Booking ID', 'Sender Name', 'Sender Phone', 'Weight (KG)', 'Cargo Description', 'Pickup Address', 'Drop Address', 'Total Fare (INR)', 'Rydealot Booking Token (INR)', 'Status', 'Date'];
     var rows = allBookings.map(function(b) {
       return [
         b.id || '',

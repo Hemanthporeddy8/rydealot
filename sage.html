@@ -1063,36 +1063,34 @@
       var durationMins = Math.round(route.duration / 60);
       routeDistanceKm = parseFloat(distKm);
 
-          var coords = route.geometry.coordinates;
-          var latLngs = coords.map(function(c) { return [c[1], c[0]]; });
+      var routeCoords = route.geometry.coordinates;
+      var latLngs = routeCoords.map(function(c) { return [c[1], c[0]]; });
 
-          if (routeLine) {
-            routeLine.setLatLngs(latLngs);
-          } else {
-            routeLine = L.polyline(latLngs, {
-              color: '#2563EB',
-              weight: 4,
-              opacity: 0.85
-            }).addTo(sageMap);
-          }
+      if (routeLine) {
+        routeLine.setLatLngs(latLngs);
+      } else {
+        routeLine = L.polyline(latLngs, {
+          color: '#2563EB',
+          weight: 4,
+          opacity: 0.85
+        }).addTo(sageMap);
+      }
 
-          sageMap.fitBounds(L.latLngBounds(latLngs), { padding: [35, 35] });
+      sageMap.fitBounds(L.latLngBounds(latLngs), { padding: [35, 35] });
 
-          // Update badges
-          var badge = document.getElementById('map-route-badge');
-          if (badge) badge.style.display = 'flex';
-          document.getElementById('route-dist-text').textContent = distKm + ' km';
-          document.getElementById('route-time-text').textContent = '~' + Math.max(10, durationMins) + ' mins';
+      // Update badges
+      var badge = document.getElementById('map-route-badge');
+      if (badge) badge.style.display = 'flex';
+      document.getElementById('route-dist-text').textContent = distKm + ' km';
+      document.getElementById('route-time-text').textContent = '~' + Math.max(10, durationMins) + ' mins';
 
-          recalculateFare();
-        }
-      })
-      .catch(function() {
-        // Fallback straight line
-        var latLngs = [[pickupCoords.lat, pickupCoords.lng], [dropCoords.lat, dropCoords.lng]];
-        if (routeLine) routeLine.setLatLngs(latLngs);
-        else routeLine = L.polyline(latLngs, { color: '#2563EB', dashArray: '6, 6', weight: 3 }).addTo(sageMap);
-      });
+      recalculateFare();
+    } else {
+      // Fallback straight line
+      var fallbackLatLngs = [[pickupCoords.lat, pickupCoords.lng], [dropCoords.lat, dropCoords.lng]];
+      if (routeLine) routeLine.setLatLngs(fallbackLatLngs);
+      else routeLine = L.polyline(fallbackLatLngs, { color: '#2563EB', dashArray: '6, 6', weight: 3 }).addTo(sageMap);
+    }
   }
 
   // Dynamic Fare Formula: base category price + (km * ₹8/km)
