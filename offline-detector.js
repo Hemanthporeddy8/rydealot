@@ -352,4 +352,15 @@
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     document.documentElement.classList.add('app-is-offline');
   }
+
+  // Universal Service Worker Registration across all pages
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    if (document.readyState === 'complete') {
+      navigator.serviceWorker.register('./sw.js').catch(function(){});
+    } else {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./sw.js').catch(function(){});
+      });
+    }
+  }
 })();

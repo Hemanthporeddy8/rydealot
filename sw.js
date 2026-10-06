@@ -1,4 +1,4 @@
-var CACHE_NAME = 'rydealot-v43';
+var CACHE_NAME = 'rydealot-v44';
 var urlsToCache = [
   './',
   './index.html',
@@ -19,6 +19,9 @@ var urlsToCache = [
   './app.js',
   './offline-detector.js',
   './icon.svg',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-maskable-512.png',
   './manifest.json',
   './logo.png',
   './assets/mascot-namaste.png',

@@ -1,7 +1,7 @@
 {
-  "name": "Rydealot - Bike Taxi & Deliveries",
+  "name": "Rydealot - Deliveries & Freight",
   "short_name": "Rydealot",
-  "description": "Rydealot Bike Taxi and Quick Delivery Platform",
+  "description": "Rydealot Along With Freight and Sage Parcel Delivery Platform",
   "id": "/?source=pwa",
   "start_url": "./index.html",
   "scope": "./",
@@ -12,19 +12,19 @@
   "categories": ["travel", "transportation", "lifestyle"],
   "icons": [
     {
-      "src": "./logo.png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./logo.png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./logo.png",
+      "src": "./icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -34,6 +34,39 @@
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "./screenshot-mobile.png",
+      "sizes": "679x1058",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Sage Parcel Delivery & Tracking"
+    },
+    {
+      "src": "./screenshot-desktop.png",
+      "sizes": "1024x559",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Along With Freight & Return-Trip Matching"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Along With Freight",
+      "url": "./alongwith.html",
+      "description": "Book truck freight bays and return trips"
+    },
+    {
+      "name": "Sage Parcels",
+      "url": "./sage.html",
+      "description": "Send packages and local couriers"
+    },
+    {
+      "name": "Driver Portal",
+      "url": "./driver.html",
+      "description": "Delivery captain orders and wallet"
     }
   ]
 }
