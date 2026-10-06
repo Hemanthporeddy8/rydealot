@@ -6,10 +6,18 @@
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "prefer_related_applications": false,
   "background_color": "#16181c",
   "theme_color": "#16181c",
   "orientation": "portrait-primary",
   "categories": ["travel", "transportation", "lifestyle"],
+  "serviceworker": {
+    "src": "./sw.js",
+    "scope": "./",
+    "type": "classic",
+    "update_via_cache": "none"
+  },
   "icons": [
     {
       "src": "./icon-192.png",

@@ -9,6 +9,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Rydealot</title>
 <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(function(){});
+  }
   if (!localStorage.getItem('rydealot_user_session')) {
     window.location.replace('login.html');
   }
