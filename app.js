@@ -162,15 +162,80 @@
     currentUser: null
   };
 
+  // Branded Native In-App Confirmation Modal (Replaces browser confirm() dialogs)
+  function showAppConfirmModal(opts) {
+    return new Promise(function(resolve) {
+      opts = opts || {};
+      var existing = document.getElementById('rydealot-confirm-modal');
+      if (existing) existing.remove();
+
+      var modal = document.createElement('div');
+      modal.id = 'rydealot-confirm-modal';
+      modal.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,0.72); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:9999999; display:flex; align-items:center; justify-content:center; padding:18px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; animation:fadeIn 0.2s cubic-bezier(0.16,1,0.3,1);';
+
+      var icon = opts.icon || '👋';
+      var title = opts.title || 'Confirm Action';
+      var message = opts.message || 'Are you sure you want to proceed?';
+      var confirmText = opts.confirmText || 'Confirm';
+      var cancelText = opts.cancelText || 'Cancel';
+      var isDanger = opts.danger !== false;
+
+      var confirmBg = isDanger ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #2563eb, #1d4ed8)';
+      var iconBg = isDanger ? '#fee2e2' : '#e0e7ff';
+      var iconBorder = isDanger ? '#fecaca' : '#c7d2fe';
+
+      modal.innerHTML = 
+        '<div style="background:#ffffff; border-radius:24px; max-width:340px; width:100%; padding:24px 20px 20px; text-align:center; box-shadow:0 25px 60px rgba(0,0,0,0.3);">' +
+          '<div style="width:58px; height:58px; margin:0 auto 14px; border-radius:50%; background:' + iconBg + '; border:2px solid ' + iconBorder + '; display:flex; align-items:center; justify-content:center; font-size:26px;">' + icon + '</div>' +
+          '<h3 style="font-size:18px; font-weight:900; color:#0f172a; margin:0 0 8px; line-height:1.25;">' + title + '</h3>' +
+          '<p style="font-size:13px; color:#64748b; line-height:1.5; margin:0 0 20px;">' + message + '</p>' +
+          '<div style="display:flex; flex-direction:column; gap:8px;">' +
+            '<button type="button" id="btn-app-modal-confirm" style="width:100%; padding:13px; background:' + confirmBg + '; color:#fff; border:none; border-radius:14px; font-weight:800; font-size:13.5px; cursor:pointer; box-shadow:0 4px 14px rgba(239,68,68,0.25);">' +
+              confirmText +
+            '</button>' +
+            '<button type="button" id="btn-app-modal-cancel" style="width:100%; padding:12px; background:#f1f5f9; color:#475569; border:none; border-radius:14px; font-weight:700; font-size:13px; cursor:pointer;">' +
+              cancelText +
+            '</button>' +
+          '</div>' +
+        '</div>';
+
+      document.body.appendChild(modal);
+
+      var cleanup = function(confirmed) {
+        modal.remove();
+        if (confirmed) {
+          if (opts.onConfirm) opts.onConfirm();
+          resolve(true);
+        } else {
+          if (opts.onCancel) opts.onCancel();
+          resolve(false);
+        }
+      };
+
+      document.getElementById('btn-app-modal-cancel').onclick = function() { cleanup(false); };
+      document.getElementById('btn-app-modal-confirm').onclick = function() { cleanup(true); };
+      modal.onclick = function(e) { if (e.target === modal) cleanup(false); };
+    });
+  }
+  window.showAppConfirmModal = showAppConfirmModal;
+
   // Auth UI & App Header Initialization
   function initAuthUI() {
     var logoutBtn = document.getElementById('btn-app-logout');
     if (logoutBtn) {
       logoutBtn.onclick = function() {
-        if (confirm('Are you sure you want to log out of Rydealot?')) {
-          localStorage.removeItem('rydealot_user_session');
-          window.location.href = 'login.html';
-        }
+        showAppConfirmModal({
+          icon: '🚪',
+          title: 'Log Out of Rydealot?',
+          message: 'Are you sure you want to log out? You will need to sign in again to book rides.',
+          confirmText: 'Yes, Log Out',
+          cancelText: 'Stay Logged In',
+          danger: true,
+          onConfirm: function() {
+            localStorage.removeItem('rydealot_user_session');
+            window.location.href = 'login.html';
+          }
+        });
       };
     }
   }
@@ -2741,25 +2806,34 @@
     var cancelTripBtn = document.getElementById('rd-btn-cancel-trip');
     
     if (cancelTripBtn) {
-      cancelTripBtn.addEventListener('click', async function(){
-        if(!confirm('Are you sure you want to cancel this trip?')) return;
-        if(b.status === 'in_progress' || b.status === 'completed') {
-          toast('⚠️ You cannot cancel a trip that is already in progress. Please complete the trip.');
-          return;
-        }
-        try {
-          if (window.RydealotChat) window.RydealotChat.stopChat();
-          await sbFetch('bookings?id=eq.' + b.id + '&rider_id=eq.' + state.riderId + '&status=in.(accepted,arrived)', { method: 'PATCH', body: { status: 'cancelled' } });
-          await sbFetch('riders?id=eq.' + state.riderId, { method: 'PATCH', body: { status: 'available' } });
-          setPill('available');
-          toast('Trip cancelled');
-          destroyRiderMap();
-          document.getElementById('rd-tracking-section').style.display = 'none';
-          document.getElementById('rd-main-section').style.display = 'block';
-          fetchBookings();
-        } catch(err) {
-          toast('Could not cancel trip: ' + err.message);
-        }
+      cancelTripBtn.addEventListener('click', function(){
+        showAppConfirmModal({
+          icon: '⚠️',
+          title: 'Cancel this Trip?',
+          message: 'Are you sure you want to cancel? This will release the ride back to other drivers.',
+          confirmText: 'Yes, Cancel Trip',
+          cancelText: 'Keep Trip',
+          danger: true,
+          onConfirm: async function() {
+            if(b.status === 'in_progress' || b.status === 'completed') {
+              toast('⚠️ You cannot cancel a trip that is already in progress. Please complete the trip.');
+              return;
+            }
+            try {
+              if (window.RydealotChat) window.RydealotChat.stopChat();
+              await sbFetch('bookings?id=eq.' + b.id + '&rider_id=eq.' + state.riderId + '&status=in.(accepted,arrived)', { method: 'PATCH', body: { status: 'cancelled' } });
+              await sbFetch('riders?id=eq.' + state.riderId, { method: 'PATCH', body: { status: 'available' } });
+              setPill('available');
+              toast('Trip cancelled');
+              destroyRiderMap();
+              document.getElementById('rd-tracking-section').style.display = 'none';
+              document.getElementById('rd-main-section').style.display = 'block';
+              fetchBookings();
+            } catch(err) {
+              toast('Could not cancel trip: ' + err.message);
+            }
+          }
+        });
       });
     }
     
@@ -3519,25 +3593,34 @@
         // Wire cancel delivery button
         var cancelDelBtn = document.getElementById('rd-btn-sage-cancel-del');
         if (cancelDelBtn) {
-          cancelDelBtn.addEventListener('click', async function() {
-            if (!confirm('Are you sure you want to cancel this parcel delivery?')) return;
-            try {
-              await sbFetch('sage_parcels?id=eq.' + p.id, {
-                method: 'PATCH',
-                body: { status: 'pending', driver_id: null, driver_name: null, driver_phone: null, driver_vehicle: null }
-              });
-              if (state.riderId) {
-                await sbFetch('riders?id=eq.' + state.riderId, {
-                  method: 'PATCH',
-                  body: { status: 'available', updated_at: new Date().toISOString() }
-                });
-                setPill('available');
+          cancelDelBtn.addEventListener('click', function() {
+            showAppConfirmModal({
+              icon: '📦',
+              title: 'Cancel Parcel Delivery?',
+              message: 'Are you sure you want to cancel this parcel delivery? It will be released for another captain.',
+              confirmText: 'Yes, Cancel Delivery',
+              cancelText: 'Keep Delivery',
+              danger: true,
+              onConfirm: async function() {
+                try {
+                  await sbFetch('sage_parcels?id=eq.' + p.id, {
+                    method: 'PATCH',
+                    body: { status: 'pending', driver_id: null, driver_name: null, driver_phone: null, driver_vehicle: null }
+                  });
+                  if (state.riderId) {
+                    await sbFetch('riders?id=eq.' + state.riderId, {
+                      method: 'PATCH',
+                      body: { status: 'available', updated_at: new Date().toISOString() }
+                    });
+                    setPill('available');
+                  }
+                  toast('Delivery cancelled and released for dispatch.');
+                  fetchSageParcels();
+                } catch(e) {
+                  toast('Could not cancel: ' + e.message);
+                }
               }
-              toast('Delivery cancelled and released for dispatch.');
-              fetchSageParcels();
-            } catch(e) {
-              alert('Could not cancel: ' + e.message);
-            }
+            });
           });
         }
       } else {
