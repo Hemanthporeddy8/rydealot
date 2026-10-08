@@ -4,25 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#16181c">
-<title>Download Rydealot App for Android</title>
+<title>Download Rydealot App • Android APK</title>
 <link rel="icon" href="logo.png" type="image/png">
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0F172A;
-    --card: #1E293B;
-    --border: #334155;
-    --text: #F8FAFC;
-    --text-mute: #94A3B8;
-    --green: #10B981;
-    --green-dark: #059669;
-    --amber: #F59E0B;
+    --bg: #0b0f19;
+    --card: #131927;
+    --border: #222d42;
+    --accent: #2563eb;
+    --amber: #f59e0b;
+    --green: #10b981;
+    --text: #f8fafc;
+    --mute: #94a3b8;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -30,130 +32,223 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 24px 16px;
-    text-align: center;
+    padding: 24px 16px 40px;
+    -webkit-font-smoothing: antialiased;
   }
-  .download-box {
+  .container {
     max-width: 420px;
     width: 100%;
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-radius: 28px;
-    padding: 36px 24px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: center;
   }
-  .app-icon {
+  .logo-box {
     width: 96px;
     height: 96px;
-    border-radius: 22px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    margin-bottom: 20px;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 24px;
+    padding: 8px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.4), 0 0 20px rgba(37,99,235,0.2);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .logo-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 18px;
   }
   h1 {
     font-family: 'Manrope', sans-serif;
     font-size: 26px;
     font-weight: 900;
-    margin-bottom: 6px;
-    color: #fff;
     letter-spacing: -0.5px;
+    margin-bottom: 6px;
   }
-  .subtitle {
+  .tagline {
     font-size: 13px;
-    color: var(--text-mute);
-    margin-bottom: 24px;
-    line-height: 1.5;
+    color: var(--mute);
+    margin-bottom: 20px;
   }
-  .download-btn {
+  .badge-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .pill {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .pill.verified {
+    border-color: rgba(16,185,129,0.3);
+    color: #34d399;
+    background: rgba(16,185,129,0.1);
+  }
+  .download-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
     width: 100%;
-    background: linear-gradient(135deg, var(--green), var(--green-dark));
-    color: #fff;
-    text-decoration: none;
-    font-weight: 900;
-    font-size: 16px;
-    padding: 16px 20px;
-    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    margin-bottom: 20px;
+  }
+  .btn-download {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
-    transition: transform 0.15s ease;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 15px;
+    padding: 16px 20px;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(37,99,235,0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+    width: 100%;
   }
-  .download-btn:active {
+  .btn-download:active {
     transform: scale(0.98);
   }
   .file-meta {
     font-size: 11px;
-    color: var(--text-mute);
+    color: var(--mute);
     margin-top: 10px;
-    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
   }
-  .instructions {
-    margin-top: 28px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border);
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .feat-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .feat-item .icon { font-size: 18px; margin-bottom: 4px; }
+  .feat-item .title { font-size: 12px; font-weight: 800; color: #fff; }
+  .feat-item .desc { font-size: 10.5px; color: var(--mute); margin-top: 2px; }
+  .guide-box {
+    background: rgba(245,158,11,0.08);
+    border: 1px dashed rgba(245,158,11,0.3);
+    border-radius: 14px;
+    padding: 14px;
     width: 100%;
     text-align: left;
-    font-size: 12px;
-    color: var(--text-mute);
+    margin-bottom: 24px;
   }
-  .instructions h3 {
-    font-size: 13px;
+  .guide-title {
+    font-size: 11.5px;
     font-weight: 800;
-    color: #fff;
-    margin-bottom: 12px;
+    color: var(--amber);
+    margin-bottom: 6px;
     display: flex;
     align-items: center;
     gap: 6px;
   }
-  .instructions ol {
-    padding-left: 20px;
-    line-height: 1.8;
-  }
-  .instructions ol li strong {
-    color: #fff;
-  }
-  .badge-pwa {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: rgba(16, 185, 129, 0.15);
-    color: #34D399;
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    padding: 4px 10px;
-    border-radius: 99px;
+  .guide-steps {
     font-size: 11px;
-    font-weight: 800;
-    margin-bottom: 16px;
-    text-transform: uppercase;
+    color: #cbd5e1;
+    line-height: 1.6;
+    padding-left: 16px;
+  }
+  .footer-links {
+    font-size: 12px;
+    color: var(--mute);
+    display: flex;
+    gap: 14px;
+  }
+  .footer-links a {
+    color: #60a5fa;
+    text-decoration: none;
+    font-weight: 600;
   }
 </style>
 </head>
 <body>
 
-<div class="download-box">
-  <img src="logo.png" alt="Rydealot" class="app-icon">
-  <div class="badge-pwa">🛡️ Official Android Release</div>
-  <h1>Rydealot</h1>
-  <p class="subtitle">Along With Freight, Sage Parcels & Supermaps Navigation</p>
+<div class="container">
+  <div class="logo-box">
+    <img src="logo.png" alt="Rydealot Logo">
+  </div>
 
-  <a href="rydealot.apk" class="download-btn" download="Rydealot.apk">
-    <span style="font-size:20px;">⬇️</span>
-    <span>Download APK (3.9 MB)</span>
-  </a>
-  <div class="file-meta">Version 1.0 • Built for Android 8.0+ • Virus-Free Verified</div>
+  <h1>Rydealot for Android</h1>
+  <p class="tagline">Along With Freight, Trucks & Sage Parcel Delivery</p>
 
-  <div class="instructions">
-    <h3>📱 How to Install:</h3>
-    <ol>
-      <li>Tap <strong>Download APK</strong> above.</li>
-      <li>If Chrome shows <em>"File might be harmful"</em>, tap <strong>Download anyway</strong> (this is normal for direct APK downloads).</li>
-      <li>When download finishes, tap <strong>Open</strong> &rarr; <strong>Install</strong>.</li>
-      <li>Enjoy Rydealot in full-screen native mode!</li>
+  <div class="badge-row">
+    <span class="pill verified">✓ Official APK</span>
+    <span class="pill">Android 8.0+</span>
+    <span class="pill">v1.0.0</span>
+  </div>
+
+  <div class="download-card">
+    <a href="rydealot.apk" download="rydealot.apk" class="btn-download">
+      <span>📲</span> Download Android App (APK)
+    </a>
+    <div class="file-meta">rydealot.apk • 3.7 MB • Fast Install</div>
+  </div>
+
+  <div class="features-grid">
+    <div class="feat-item">
+      <div class="icon">🚚</div>
+      <div class="title">Along With Freight</div>
+      <div class="desc">Truck return trips with flat ₹49 booking token.</div>
+    </div>
+    <div class="feat-item">
+      <div class="icon">📦</div>
+      <div class="title">Sage Parcels</div>
+      <div class="desc">Instant bike courier dispatch & PIN security.</div>
+    </div>
+    <div class="feat-item">
+      <div class="icon">🗺️</div>
+      <div class="title">Supermaps GPS</div>
+      <div class="desc">3D HUD live turn-by-turn road navigation.</div>
+    </div>
+    <div class="feat-item">
+      <div class="icon">🛡️</div>
+      <div class="title">100% Native Mode</div>
+      <div class="desc">Fast standalone app with offline support.</div>
+    </div>
+  </div>
+
+  <div class="guide-box">
+    <div class="guide-title">
+      <span>💡</span> Quick Install Guide (3 Steps)
+    </div>
+    <ol class="guide-steps">
+      <li>Tap <strong>Download Android App</strong> above.</li>
+      <li>If Chrome prompts <em>"File might be harmful"</em>, tap <strong>Download anyway</strong> (standard for direct APK installs).</li>
+      <li>Open the file when done & tap <strong>Install</strong>.</li>
     </ol>
+  </div>
+
+  <div class="footer-links">
+    <a href="index.html">← Open Web Portal</a>
+    <span>•</span>
+    <a href="privacy.html">Privacy Policy</a>
+    <span>•</span>
+    <a href="terms.html">Terms</a>
   </div>
 </div>
 
