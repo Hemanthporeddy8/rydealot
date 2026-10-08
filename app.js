@@ -7053,8 +7053,21 @@
     });
   }
 
+  // Loop prevention: completely suppress install prompts when running inside the installed APK / PWA
+  var isInstalledApp = (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches))
+    || window.navigator.standalone 
+    || (document.referrer && document.referrer.indexOf('android-app://') !== -1)
+    || (window.location && window.location.search.indexOf('source=pwa') !== -1);
+
   var deferredPrompt = null;
   var installButtons = document.querySelectorAll('.pwa-install-btn');
+
+  if (isInstalledApp) {
+    installButtons.forEach(function(btn) {
+      btn.style.display = 'none';
+    });
+    return;
+  }
 
   window.addEventListener('beforeinstallprompt', function(e) {
     e.preventDefault();
