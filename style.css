@@ -14,6 +14,13 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,san
   background:none; border:none; font-size:12.5px; font-weight:600;
   color:#6b7076; text-decoration:underline; cursor:pointer; padding:6px;
 }
+
+/* ===================== standalone app / pwa rules ===================== */
+@media all and (display-mode: standalone), all and (display-mode: fullscreen) {
+  .apk-download-container, .apk-download-btn, .pwa-install-btn {
+    display: none !important;
+  }
+}
   #rider-app-root{
     --bg:#F3F1EC; --card:#fff; --text:#14171A; --text-mute:#6B6F73; --text-faint:#9a9fa5;
     --accent:#14171A; --signal:#FFB020; --green:#1d9e75; --red:#d23c3c; --amber:#c97a17; --border:#DAD6CC;

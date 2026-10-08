@@ -35,6 +35,11 @@
   html.app-is-offline body > *:not(#rydealot-offline-overlay) {
     display: none !important;
   }
+  @media all and (display-mode: standalone), all and (display-mode: fullscreen) {
+    .apk-download-container, .apk-download-btn {
+      display: none !important;
+    }
+  }
 </style>
 <script src="offline-detector.js"></script>
 <style>
@@ -586,6 +591,14 @@
 
   <!-- Status Alert Banner -->
   <div id="status-box" class="status-box" style="display:none;"></div>
+</div>
+
+<!-- 1-Click Official Android App Download Button (Auto-hidden in installed APK) -->
+<div class="apk-download-container" style="margin-top: 18px; text-align: center;">
+  <a href="rydealot.apk" download="rydealot.apk" class="apk-download-btn" style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; color: #2563eb; text-decoration: none; padding: 11px 22px; background: #ffffff; border: 1.5px solid rgba(37,99,235,0.25); border-radius: 99px; box-shadow: 0 4px 14px rgba(37,99,235,0.12); transition: transform 0.15s ease;">
+    <span>📲</span> <span>Download Official Android App (APK)</span>
+    <span style="font-size:10.5px; color:#64748b; background:rgba(37,99,235,0.08); padding:2px 7px; border-radius:99px; font-family:monospace; font-weight:700;">3.9 MB</span>
+  </a>
 </div>
 
 <script>
@@ -1245,6 +1258,19 @@ document.getElementById('email-form').addEventListener('submit', async function(
 if (urlParams.get('mode') === 'signup') {
   setMode(true);
 }
+
+// Loop prevention: hide APK download button inside installed standalone app
+(function() {
+  var isInstalled = (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches))
+    || window.navigator.standalone 
+    || (document.referrer && document.referrer.indexOf('android-app://') !== -1)
+    || (window.location && window.location.search.indexOf('source=pwa') !== -1);
+  if (isInstalled) {
+    document.querySelectorAll('.apk-download-container, .apk-download-btn').forEach(function(el) {
+      el.style.display = 'none';
+    });
+  }
+})();
 </script>
 </body>
 </html>

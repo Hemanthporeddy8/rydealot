@@ -7061,10 +7061,14 @@
 
   var deferredPrompt = null;
   var installButtons = document.querySelectorAll('.pwa-install-btn');
+  var apkDownloadEls = document.querySelectorAll('.apk-download-container, .apk-download-btn');
 
   if (isInstalledApp) {
     installButtons.forEach(function(btn) {
       btn.style.display = 'none';
+    });
+    apkDownloadEls.forEach(function(el) {
+      el.style.display = 'none';
     });
     return;
   }
