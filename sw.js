@@ -1,4 +1,4 @@
-var CACHE_NAME = 'rydealot-v45';
+var CACHE_NAME = 'rydealot-v47';
 var urlsToCache = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ var urlsToCache = [
   './sandbox.html',
   './style.css',
   './app.js',
+  './geofence.js',
   './offline-detector.js',
   './icon.svg',
   './icon-192.png',

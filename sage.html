@@ -767,6 +767,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="geofence.js"></script>
 <script>
   var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
@@ -1365,6 +1366,15 @@
     if (policyAgree && !policyAgree.checked) {
       alert('⚠️ Please accept the Safety & Prohibited Goods Policy to proceed with your booking.');
       return;
+    }
+
+    // Geofencing & Operational Service Radius Check
+    if (window.RydealotGeofence) {
+      var vResult = window.RydealotGeofence.validateTrip('sage', pickupCoords, dropCoords, routeDistanceKm);
+      if (!vResult.allowed) {
+        window.RydealotGeofence.showGeofenceModal(vResult);
+        return;
+      }
     }
 
     // Generate random 4-digit pickup PIN for each order

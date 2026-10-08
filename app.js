@@ -6273,6 +6273,18 @@
   // app to accept it — plays realistic vehicle departure animation before switching screens
   async function confirmBooking(id, rider, type, price){
     if(state.activeBookingId || state.isBookingInProgress) return;
+
+    // Operational Geofencing & Service Radius Check
+    if (window.RydealotGeofence) {
+      var pCoords = (state.lat && state.lng) ? { lat: state.lat, lng: state.lng } : null;
+      var dCoords = (state.destLat && state.destLng) ? { lat: state.destLat, lng: state.destLng } : null;
+      var vResult = window.RydealotGeofence.validateTrip('rides', pCoords, dCoords, state.tripDistanceKm);
+      if (!vResult.allowed) {
+        window.RydealotGeofence.showGeofenceModal(vResult);
+        return;
+      }
+    }
+
     state.isBookingInProgress = true;
 
     var btn = document.getElementById('book-btn');

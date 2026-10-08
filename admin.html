@@ -526,6 +526,108 @@
       </div>
     </div>
 
+    <!-- GEOFENCING & OPERATIONAL SERVICE RADIUS CONTROLS -->
+    <div style="background:var(--bg); border:1.5px solid var(--border); border-radius:14px; padding:18px; margin-bottom:24px; box-shadow:0 4px 16px rgba(0,0,0,0.04);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <div>
+          <h3 style="font-size:1rem; font-weight:800; margin:0; color:var(--text); display:flex; align-items:center; gap:8px;">
+            <span>🗺️ Geofencing &amp; Service Radius Engine</span>
+            <span style="font-size:0.7rem; background:#64748b; color:#fff; padding:2px 8px; border-radius:99px; font-weight:800;" id="geofence-status-badge">TESTING MODE (BYPASS)</span>
+          </h3>
+          <p style="font-size:0.8rem; color:var(--mute); margin:4px 0 0;">Enforce trip distance limits and launch city boundaries. Turn OFF anytime for unrestricted simulation &amp; testing.</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <select id="geofence-master-toggle" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateGeofenceUI()">
+            <option value="false">🟡 TEST MODE (Bypass Limits)</option>
+            <option value="true">🟢 ENFORCE GEOFENCING</option>
+          </select>
+          <button type="button" class="btn btn-amber" style="padding:6px 14px; font-size:0.8rem;" onclick="saveGeofenceSettings()">💾 Save Geofence</button>
+        </div>
+      </div>
+
+      <!-- Service Radius Grid -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px; margin-bottom:14px;">
+        <!-- 1. Sage Parcels Radius -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>📦 Sage Parcels Radius</span>
+            </div>
+            <select id="geofence-toggle-sage" class="auth-input" style="width:auto; padding:4px 8px; font-size:0.75rem; font-weight:800;" onchange="updateGeofenceUI()">
+              <option value="true">🟢 ACTIVE</option>
+              <option value="false">⚪ OFF (Test)</option>
+            </select>
+          </div>
+          <div style="font-size:0.75rem; color:var(--mute); margin-bottom:8px;">Max intra-city delivery distance</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <input type="range" id="geofence-sage-slider" min="5" max="40" step="1" value="18" style="flex:1;" oninput="document.getElementById('geofence-sage-val').textContent = this.value + ' km'">
+            <span id="geofence-sage-val" style="font-size:0.85rem; font-weight:900; color:var(--amber); min-width:50px; text-align:right;">18 km</span>
+          </div>
+        </div>
+
+        <!-- 2. Passenger Rides Radius -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>🛵 Passenger Rides Radius</span>
+            </div>
+            <select id="geofence-toggle-rides" class="auth-input" style="width:auto; padding:4px 8px; font-size:0.75rem; font-weight:800;" onchange="updateGeofenceUI()">
+              <option value="true">🟢 ACTIVE</option>
+              <option value="false">⚪ OFF (Test)</option>
+            </select>
+          </div>
+          <div style="font-size:0.75rem; color:var(--mute); margin-bottom:8px;">Max bike taxi trip distance</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <input type="range" id="geofence-rides-slider" min="5" max="50" step="1" value="25" style="flex:1;" oninput="document.getElementById('geofence-rides-val').textContent = this.value + ' km'">
+            <span id="geofence-rides-val" style="font-size:0.85rem; font-weight:900; color:var(--amber); min-width:50px; text-align:right;">25 km</span>
+          </div>
+        </div>
+
+        <!-- 3. Along With Cargo / Freight Radius -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>🚚 Along With Cargo Radius</span>
+            </div>
+            <select id="geofence-toggle-cargo" class="auth-input" style="width:auto; padding:4px 8px; font-size:0.75rem; font-weight:800;" onchange="updateGeofenceUI()">
+              <option value="true">🟢 ACTIVE</option>
+              <option value="false">⚪ OFF (Test)</option>
+            </select>
+          </div>
+          <div style="font-size:0.75rem; color:var(--mute); margin-bottom:8px;">Max commercial return-trip distance</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <input type="range" id="geofence-cargo-slider" min="20" max="500" step="10" value="250" style="flex:1;" oninput="document.getElementById('geofence-cargo-val').textContent = this.value + ' km'">
+            <span id="geofence-cargo-val" style="font-size:0.85rem; font-weight:900; color:var(--amber); min-width:50px; text-align:right;">250 km</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- City Hub Boundary Settings -->
+      <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <div style="font-size:0.88rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>📍 Launch City Operating Boundary</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--mute);">Restrict pickup origins to city boundaries (Default: Hyderabad &amp; Cyberabad)</div>
+          </div>
+          <select id="geofence-toggle-hub" class="auth-input" style="width:auto; padding:4px 8px; font-size:0.75rem; font-weight:800;" onchange="updateGeofenceUI()">
+            <option value="false">⚪ OFF (Anywhere / Testing)</option>
+            <option value="true">🟢 ENFORCE CITY BOUNDARY</option>
+          </select>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; align-items:center;">
+          <input type="text" id="geofence-hub-name" class="auth-input" placeholder="Hub Name" value="Hyderabad Metropolitan Area" style="font-size:0.8rem; padding:6px 10px;">
+          <input type="number" id="geofence-hub-lat" class="auth-input" placeholder="Lat" value="17.3850" step="0.0001" style="font-size:0.8rem; padding:6px 10px;">
+          <input type="number" id="geofence-hub-lng" class="auth-input" placeholder="Lng" value="78.4867" step="0.0001" style="font-size:0.8rem; padding:6px 10px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <input type="number" id="geofence-hub-radius" class="auth-input" placeholder="Radius (km)" value="40" style="font-size:0.8rem; padding:6px 10px; width:70px;">
+            <span style="font-size:0.75rem; color:var(--mute);">km radius</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Fares Table Grid -->
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:14px; margin-bottom:24px;">
       
@@ -956,6 +1058,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="driver-compliance.js"></script>
+<script src="geofence.js"></script>
 <script>
   var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
@@ -1685,6 +1788,7 @@
         }
         updateServiceBadge();
       }
+      loadGeofenceSettings();
     } catch(err){}
   }
 
@@ -1728,6 +1832,87 @@
         toast('✅ Service switches saved locally in browser!');
       }
     }
+  }
+
+  // ===== GEOFENCING & SERVICE RADIUS ENGINE (ADMIN) =====
+  function updateGeofenceUI() {
+    var masterEl = document.getElementById('geofence-master-toggle');
+    if (!masterEl) return;
+    var master = masterEl.value === 'true';
+    var badge = document.getElementById('geofence-status-badge');
+    if (badge) {
+      if (master) {
+        badge.textContent = 'GEOFENCE ENFORCED';
+        badge.style.background = '#10b981';
+      } else {
+        badge.textContent = 'TESTING MODE (BYPASS)';
+        badge.style.background = '#64748b';
+      }
+    }
+  }
+
+  function loadGeofenceSettings() {
+    if (typeof RydealotGeofence === 'undefined') return;
+    var cfg = RydealotGeofence.getConfig();
+    if (document.getElementById('geofence-master-toggle')) {
+      document.getElementById('geofence-master-toggle').value = cfg.masterEnabled ? 'true' : 'false';
+    }
+    if (document.getElementById('geofence-toggle-sage')) {
+      document.getElementById('geofence-toggle-sage').value = (cfg.sage && cfg.sage.enabled) ? 'true' : 'false';
+      document.getElementById('geofence-sage-slider').value = (cfg.sage && cfg.sage.maxDistanceKm) || 18;
+      document.getElementById('geofence-sage-val').textContent = ((cfg.sage && cfg.sage.maxDistanceKm) || 18) + ' km';
+    }
+    if (document.getElementById('geofence-toggle-rides')) {
+      document.getElementById('geofence-toggle-rides').value = (cfg.rides && cfg.rides.enabled) ? 'true' : 'false';
+      document.getElementById('geofence-rides-slider').value = (cfg.rides && cfg.rides.maxDistanceKm) || 25;
+      document.getElementById('geofence-rides-val').textContent = ((cfg.rides && cfg.rides.maxDistanceKm) || 25) + ' km';
+    }
+    if (document.getElementById('geofence-toggle-cargo')) {
+      document.getElementById('geofence-toggle-cargo').value = (cfg.cargo && cfg.cargo.enabled) ? 'true' : 'false';
+      document.getElementById('geofence-cargo-slider').value = (cfg.cargo && cfg.cargo.maxDistanceKm) || 250;
+      document.getElementById('geofence-cargo-val').textContent = ((cfg.cargo && cfg.cargo.maxDistanceKm) || 250) + ' km';
+    }
+    if (document.getElementById('geofence-toggle-hub')) {
+      document.getElementById('geofence-toggle-hub').value = (cfg.hub && cfg.hub.enabled) ? 'true' : 'false';
+      document.getElementById('geofence-hub-name').value = (cfg.hub && cfg.hub.name) || 'Hyderabad Metropolitan Area';
+      document.getElementById('geofence-hub-lat').value = (cfg.hub && cfg.hub.lat) || 17.3850;
+      document.getElementById('geofence-hub-lng').value = (cfg.hub && cfg.hub.lng) || 78.4867;
+      document.getElementById('geofence-hub-radius').value = (cfg.hub && cfg.hub.radiusKm) || 40;
+    }
+    updateGeofenceUI();
+  }
+
+  async function saveGeofenceSettings() {
+    if (typeof RydealotGeofence === 'undefined') {
+      toast('❌ Geofence engine not loaded.');
+      return;
+    }
+    var cfg = {
+      masterEnabled: document.getElementById('geofence-master-toggle').value === 'true',
+      hub: {
+        enabled: document.getElementById('geofence-toggle-hub').value === 'true',
+        name: document.getElementById('geofence-hub-name').value.trim() || 'Hyderabad Metropolitan Area',
+        lat: parseFloat(document.getElementById('geofence-hub-lat').value) || 17.3850,
+        lng: parseFloat(document.getElementById('geofence-hub-lng').value) || 78.4867,
+        radiusKm: parseFloat(document.getElementById('geofence-hub-radius').value) || 40
+      },
+      sage: {
+        enabled: document.getElementById('geofence-toggle-sage').value === 'true',
+        maxDistanceKm: parseFloat(document.getElementById('geofence-sage-slider').value) || 18
+      },
+      rides: {
+        enabled: document.getElementById('geofence-toggle-rides').value === 'true',
+        maxDistanceKm: parseFloat(document.getElementById('geofence-rides-slider').value) || 25
+      },
+      cargo: {
+        enabled: document.getElementById('geofence-toggle-cargo').value === 'true',
+        maxDistanceKm: parseFloat(document.getElementById('geofence-cargo-slider').value) || 250
+      }
+    };
+
+    RydealotGeofence.saveConfig(cfg);
+    updateGeofenceUI();
+    toast('🗺️ Geofence & Service Radius saved & synced!');
   }
 
   // ===== CUSTOMER COUPON & PROMO MANAGEMENT =====

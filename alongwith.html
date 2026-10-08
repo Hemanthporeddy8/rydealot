@@ -1484,6 +1484,7 @@
 <div class="toast" id="toast"></div>
 
 <!-- ==================== LOGIC JAVASCRIPT ==================== -->
+<script src="geofence.js"></script>
 <script>
   var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
   var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
@@ -2064,6 +2065,16 @@
     if (!name || !phone || !total || !pickup || !drop) {
       showToast('⚠️ Please fill all required fields');
       return;
+    }
+
+    // Geofencing & Operational Service Radius Check
+    if (window.RydealotGeofence) {
+      var cargoDist = (activeTripForBooking && activeTripForBooking.trip_distance_km) || 0;
+      var vResult = window.RydealotGeofence.validateTrip('cargo', null, null, cargoDist);
+      if (!vResult.allowed) {
+        window.RydealotGeofence.showGeofenceModal(vResult);
+        return;
+      }
     }
 
     var isFull = (currentSenderLoadMode === 'full');
@@ -3139,6 +3150,15 @@
     if (!name || !phone || !price || !pickup || !drop) {
       showToast('⚠️ Please fill all required fields');
       return;
+    }
+
+    // Geofencing & Operational Service Radius Check
+    if (window.RydealotGeofence) {
+      var vResult = window.RydealotGeofence.validateTrip('cargo', null, null, null);
+      if (!vResult.allowed) {
+        window.RydealotGeofence.showGeofenceModal(vResult);
+        return;
+      }
     }
 
     var isFull = (currentWarehouseMeasureMode === 'full');
