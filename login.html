@@ -678,7 +678,9 @@ async function sbFetch(endpoint, options) {
 // ── Find user by email ──
 async function findUserByEmail(email) {
   try {
-    var rows = await sbFetch('riders?email=eq.' + encodeURIComponent(email) + '&select=*&limit=1');
+    if (!email) return null;
+    var cleanEmail = String(email).trim().toLowerCase();
+    var rows = await sbFetch('riders?email=ilike.' + encodeURIComponent(cleanEmail) + '&select=*&limit=1');
     if (Array.isArray(rows) && rows.length > 0) return rows[0];
   } catch (e) { console.warn('findUserByEmail:', e); }
   return null;
@@ -687,7 +689,9 @@ async function findUserByEmail(email) {
 // ── Find user by phone ──
 async function findUserByPhone(phone) {
   try {
-    var rows = await sbFetch('riders?phone=eq.' + encodeURIComponent(phone) + '&select=*&limit=1');
+    if (!phone) return null;
+    var cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
+    var rows = await sbFetch('riders?phone=ilike.*' + encodeURIComponent(cleanPhone) + '*&select=*&limit=1');
     if (Array.isArray(rows) && rows.length > 0) return rows[0];
   } catch (e) { console.warn('findUserByPhone:', e); }
   return null;
@@ -737,7 +741,12 @@ async function syncUserToDatabase(user) {
 
 // ── Complete Auth Session & Redirect ──
 async function completeAuth(user) {
-  showStatus('Welcome, ' + user.name + '! Redirecting…', true);
+  var isReturning = Boolean(user.isReturning);
+  if (isReturning) {
+    showStatus('Welcome back, ' + user.name + '! 👋', true);
+  } else {
+    showStatus('Welcome, ' + user.name + '! 🚀', true);
+  }
   syncUserToDatabase(user);
 
   var session = {
@@ -914,7 +923,8 @@ async function verifyOTP() {
         email: existing.email || '',
         phone: phone,
         avatar: existing.avatar_url || '',
-        provider: 'phone'
+        provider: 'phone',
+        isReturning: true
       };
       await completeAuth(user);
     } else {
@@ -1070,10 +1080,10 @@ window.handleGoogleResponse = async function(response) {
   if (existing) {
     user.name = existing.name || user.name;
     user.id = existing.id || user.id;
-    await completeAuth(user);
-  } else {
-    showUsernameModal(user);
+    user.isReturning = true;
   }
+  // Google 1-Tap already gives verified real name and email — log in directly without modal interruption
+  await completeAuth(user);
 };
 
 
@@ -1115,11 +1125,16 @@ function loginWithFacebook() {
           if (existing) {
             user.name = existing.name || user.name;
             user.id = existing.id || user.id;
+            user.isReturning = true;
             await completeAuth(user);
             return;
           }
         }
-        showUsernameModal(user);
+        if (user.name) {
+          await completeAuth(user);
+        } else {
+          showUsernameModal(user);
+        }
       });
     } else {
       showStatus("Facebook sign-in was cancelled.", false);
@@ -1242,7 +1257,8 @@ document.getElementById('email-form').addEventListener('submit', async function(
         name: existing.name || email.split('@')[0],
         email: email,
         avatar: existing.avatar_url || '',
-        provider: 'email'
+        provider: 'email',
+        isReturning: true
       };
       await completeAuth(user);
     }
