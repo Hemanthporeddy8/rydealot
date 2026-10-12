@@ -18,7 +18,7 @@
 
   <!-- PWA Manifest & App Stylesheet -->
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=3.6">
+  <link rel="stylesheet" href="style.css?v=3.7">
   <meta name="theme-color" content="#0a0b0e">
 
   <!-- iOS Add to Home Screen -->
@@ -340,7 +340,6 @@
         <div class="nav-action-text" id="nav-hud-action">Driving Route Active</div>
       </div>
       <div style="display:flex; gap:8px; align-items:center;">
-        <button type="button" class="btn-sim-nav" id="btn-sim-nav" onclick="toggleSimulation()" title="Test Live Drive Simulation">Simulate</button>
         <button type="button" class="btn-stop-nav" onclick="stopNavigation()">Stop</button>
       </div>
     </div>
@@ -464,7 +463,7 @@
       <form id="form-claim-shop" onsubmit="submitShopkeeperClaim(event)">
         <div class="form-group">
           <label class="form-label">Business Name</label>
-          <input type="text" id="shop-input-name" class="form-input" placeholder="e.g. Sri Balaji Kirana and General Store" required>
+          <input type="text" id="shop-input-name" class="form-input" placeholder="e.g. Local Grocery Store / Coffee Shop" required>
         </div>
 
         <div class="form-group">
@@ -549,12 +548,12 @@
 
       <div class="form-group">
         <label class="form-label">Place or House Name</label>
-        <input type="text" id="share-input-name" class="form-input" placeholder="e.g. Ramesh House / Villa 142 / Sri Balaji Kirana">
+        <input type="text" id="share-input-name" class="form-input" placeholder="e.g. My Home / Gate 2 / My Shop / Office">
       </div>
 
       <div class="form-group">
         <label class="form-label">Doorstep / Landmark Clue (Optional)</label>
-        <input type="text" id="share-input-clue" class="form-input" placeholder="e.g. Blue iron gate, opposite park, black Swift outside">
+        <input type="text" id="share-input-clue" class="form-input" placeholder="e.g. Blue gate, opposite park, near big tree">
       </div>
 
       <div class="form-group">
@@ -609,6 +608,6 @@
   </div>
 
   <!-- Master Engine Script -->
-  <script src="supermaps.js?v=3.6"></script>
+  <script src="supermaps.js?v=3.7"></script>
 </body>
 </html>
