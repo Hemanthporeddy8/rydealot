@@ -1517,14 +1517,24 @@ body.daylight-theme .leaflet-tile {
   border-color: var(--accent-cyan);
 }
 
-.dock-btn.eco-btn {
-  color: #10b981;
+.dock-btn.power-btn {
+  color: #f59e0b;
 }
-.dock-btn.eco-btn.active {
-  background: linear-gradient(135deg, #10b981, #059669);
+.dock-btn.power-btn.active {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: #000;
-  border-color: #10b981;
-  box-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
+  border-color: #f59e0b;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.6);
+}
+
+.dock-btn.data-btn {
+  color: #06b6d4;
+}
+.dock-btn.data-btn.active {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  color: #000;
+  border-color: #06b6d4;
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.6);
 }
 
 /* POWER SAVER TRUE AMOLED BLACK THEME */
@@ -1885,6 +1895,54 @@ body.power-saver-active .pulse-indicator {
   font-weight: 700;
   text-align: center;
 }
+
+/* =========================================================================
+   IN-APP NATIVE FLOATING TOAST NOTIFICATION
+   ========================================================================= */
+.supermaps-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-110px);
+  background: rgba(15, 17, 23, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--accent-gold);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 9999;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  opacity: 0;
+  white-space: nowrap;
+}
+.supermaps-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+.supermaps-toast.success {
+  border-color: #10b981;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.35);
+}
+.supermaps-toast.info {
+  border-color: #06b6d4;
+  box-shadow: 0 10px 30px rgba(6, 182, 212, 0.35);
+}
+.toast-icon {
+  font-size: 1rem;
+}
+.toast-text {
+  font-family: var(--font-sans);
+  letter-spacing: 0.2px;
+}
+
 
 
 

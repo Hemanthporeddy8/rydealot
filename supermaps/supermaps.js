@@ -1178,7 +1178,7 @@ function toggleSimulation() {
   }
 
   if (!_activeNavRoute || !_activeNavRoute.coordinates || _activeNavRoute.coordinates.length < 2) {
-    alert('No active route geometry to simulate.');
+    showSupermapsToast('No active route geometry to simulate.', 'ℹ️', 'info');
     return;
   }
 
@@ -1192,7 +1192,7 @@ function toggleSimulation() {
       clearInterval(navSimInterval);
       navSimInterval = null;
       if (btn) btn.classList.remove('active');
-      alert('You have reached your destination!');
+      showSupermapsToast('You have reached your destination!', '🏁', 'success');
       stopNavigation();
       return;
     }
@@ -1408,13 +1408,13 @@ async function submitShopkeeperClaim(event) {
     });
     if (res.ok) {
       closeModal('modal-shop-claim');
-      alert(`Business "${name}" published successfully! It will appear on the map shortly.`);
+      showSupermapsToast(`Business "${name}" published! Appearing shortly.`, '🎉', 'success');
       loadGoldenShops(); // Refresh pins
     } else {
-      alert('Could not publish business. Please try again.');
+      showSupermapsToast('Could not publish business. Try again.', '⚠️', 'info');
     }
   } catch (err) {
-    alert('No internet connection. Please try again when online.');
+    showSupermapsToast('No internet. Try again when online.', '⚠️', 'info');
   } finally {
     submitBtn.textContent = 'Publish Business Now';
     submitBtn.disabled = false;
@@ -1877,6 +1877,22 @@ function copyShareLink() {
   }
 }
 
+function copyShareLink() {
+  const { url } = buildFullShareLink();
+  const btnText = document.getElementById('copy-btn-text');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      if (btnText) {
+        btnText.innerText = '✓ Copied!';
+        setTimeout(() => { btnText.innerText = 'Copy Link'; }, 2500);
+      }
+      showSupermapsToast('Share link copied to clipboard!', '📋', 'success');
+    }).catch(() => fallbackCopy(url, btnText));
+  } else {
+    fallbackCopy(url, btnText);
+  }
+}
+
 function fallbackCopy(text, btnText) {
   const tempInput = document.createElement('textarea');
   tempInput.value = text;
@@ -1888,8 +1904,9 @@ function fallbackCopy(text, btnText) {
       btnText.innerText = '✓ Copied!';
       setTimeout(() => { btnText.innerText = 'Copy Link'; }, 2500);
     }
+    showSupermapsToast('Share link copied to clipboard!', '📋', 'success');
   } catch (e) {
-    alert('Link ready to copy:\n' + text.substring(0, 80) + '...');
+    showSupermapsToast('Could not copy automatically. Please copy manually.', '⚠️', 'info');
   }
   document.body.removeChild(tempInput);
 }
@@ -1942,27 +1959,66 @@ function closeDoorstepLightbox() {
 function initEcoPowerSaver() {
   if (isPowerSaverActive) {
     document.body.classList.add('power-saver-active');
-    const btn = document.getElementById('dock-btn-eco');
-    if (btn) btn.classList.add('active');
+    const pBtn = document.getElementById('dock-btn-power');
+    if (pBtn) pBtn.classList.add('active');
+  }
+  if (isDataSaverActive) {
+    const dBtn = document.getElementById('dock-btn-data');
+    if (dBtn) dBtn.classList.add('active');
   }
 }
 
-function toggleEcoMode() {
+function togglePowerSaver() {
   isPowerSaverActive = !isPowerSaverActive;
-  isDataSaverActive = isPowerSaverActive;
   localStorage.setItem('rydealot_power_saver', isPowerSaverActive ? 'true' : 'false');
-  localStorage.setItem('rydealot_data_saver', isDataSaverActive ? 'true' : 'false');
-
   document.body.classList.toggle('power-saver-active', isPowerSaverActive);
-  const btn = document.getElementById('dock-btn-eco');
-  if (btn) btn.classList.toggle('active', isPowerSaverActive);
+  const pBtn = document.getElementById('dock-btn-power');
+  if (pBtn) pBtn.classList.toggle('active', isPowerSaverActive);
 
   if (isPowerSaverActive) {
     if (map) map.easeTo({ pitch: 0, duration: 400 });
-    alert('⚡ Power Saver Active: AMOLED true black + Data Saver enabled to keep phone cool on long rides.');
+    showSupermapsToast('⚡ Power Saver ON: AMOLED Black active', '⚡', 'success');
   } else {
-    alert('Standard Display Mode restored.');
+    showSupermapsToast('Standard Display restored', '☀️', 'info');
   }
+}
+
+function toggleDataSaver() {
+  isDataSaverActive = !isDataSaverActive;
+  localStorage.setItem('rydealot_data_saver', isDataSaverActive ? 'true' : 'false');
+  const dBtn = document.getElementById('dock-btn-data');
+  if (dBtn) dBtn.classList.toggle('active', isDataSaverActive);
+
+  if (isDataSaverActive) {
+    showSupermapsToast('📶 Data Saver ON: Low bandwidth routing', '📶', 'success');
+  } else {
+    showSupermapsToast('Standard Data Mode restored', '🌐', 'info');
+  }
+}
+
+// Legacy alias
+function toggleEcoMode() {
+  togglePowerSaver();
+}
+
+// =========================================================================
+// 10. IN-APP NATIVE FLOATING TOAST NOTIFICATION ENGINE (ZERO BROWSER ALERTS)
+// =========================================================================
+let _toastTimer = null;
+function showSupermapsToast(msg, icon = '✓', type = 'info') {
+  const toast = document.getElementById('supermaps-toast');
+  const textEl = document.getElementById('toast-text');
+  const iconEl = document.getElementById('toast-icon');
+  if (!toast || !textEl) return;
+
+  textEl.innerText = msg;
+  if (iconEl) iconEl.innerText = icon;
+  toast.className = `supermaps-toast ${type} show`;
+
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2600);
 }
 
 

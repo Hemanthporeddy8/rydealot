@@ -18,7 +18,7 @@
 
   <!-- PWA Manifest & App Stylesheet -->
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=3.5">
+  <link rel="stylesheet" href="style.css?v=3.6">
   <meta name="theme-color" content="#0a0b0e">
 
   <!-- iOS Add to Home Screen -->
@@ -175,9 +175,17 @@
         <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
       </svg>
     </button>
-    <button class="dock-btn eco-btn" id="dock-btn-eco" onclick="toggleEcoMode()" title="Power & Data Saver (100km Cool Mode)">
+    <button class="dock-btn power-btn" id="dock-btn-power" onclick="togglePowerSaver()" title="⚡ Power Saver (AMOLED Black • 100km Cool Mode)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+      </svg>
+    </button>
+    <button class="dock-btn data-btn" id="dock-btn-data" onclick="toggleDataSaver()" title="📶 Data Saver (Low Bandwidth • Offline Priority)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+        <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
       </svg>
     </button>
     <button class="dock-btn" onclick="openThemePicker()" title="Map Themes (Gold, Night, Neon, Chai, Heritage)">
@@ -389,7 +397,7 @@
         </div>
 
         <!-- Edit Profile Button -->
-        <button class="profile-edit-btn" onclick="alert('Sign-in coming soon')">Edit Profile</button>
+        <button class="profile-edit-btn" onclick="showSupermapsToast('Sign-in coming soon', '👤', 'info')">Edit Profile</button>
       </div>
 
       <!-- Stats Row -->
@@ -500,6 +508,8 @@
         </button>
       </form>
     </div>
+  </div>
+
   <!-- Floating Doorstep Visual Verification Arrival Card -->
   <div class="doorstep-arrival-card" id="doorstep-arrival-card" style="display:none;">
     <div class="doorstep-card-header">
@@ -592,7 +602,13 @@
     </div>
   </div>
 
+  <!-- In-App Floating Toast Notification -->
+  <div class="supermaps-toast" id="supermaps-toast">
+    <span class="toast-icon" id="toast-icon">⚡</span>
+    <span class="toast-text" id="toast-text">Notification</span>
+  </div>
+
   <!-- Master Engine Script -->
-  <script src="supermaps.js?v=3.5"></script>
+  <script src="supermaps.js?v=3.6"></script>
 </body>
 </html>
