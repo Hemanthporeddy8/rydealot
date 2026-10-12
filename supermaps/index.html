@@ -18,7 +18,7 @@
 
   <!-- PWA Manifest & App Stylesheet -->
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=3.7">
+  <link rel="stylesheet" href="style.css?v=3.8">
   <meta name="theme-color" content="#0a0b0e">
 
   <!-- iOS Add to Home Screen -->
@@ -547,8 +547,8 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">Place or House Name</label>
-        <input type="text" id="share-input-name" class="form-input" placeholder="e.g. My Home / Gate 2 / My Shop / Office">
+        <label class="form-label">Place or House Name (Optional)</label>
+        <input type="text" id="share-input-name" class="form-input" placeholder="e.g. My Home / Gate 2 / My Shop (or leave blank)">
       </div>
 
       <div class="form-group">
@@ -579,6 +579,7 @@
         </div>
       </div>
 
+      <!-- Primary Sharing Actions (Flagship WhatsApp + Doorstep Photo Link) -->
       <div class="share-actions-grid">
         <button type="button" class="btn-share-whatsapp" onclick="shareOnWhatsApp()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
@@ -589,6 +590,12 @@
           <span id="copy-btn-text">Copy Link</span>
         </button>
       </div>
+
+      <!-- Secondary Quick Share (Native System Sheet like Google Maps) -->
+      <button type="button" class="btn-quick-share-secondary" onclick="quickShareSystem()" title="Quick 1-tap share via phone system sheet">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        <span>⚡ Quick Share (Other Apps &amp; Nearby)</span>
+      </button>
     </div>
   </div>
 
@@ -608,6 +615,6 @@
   </div>
 
   <!-- Master Engine Script -->
-  <script src="supermaps.js?v=3.7"></script>
+  <script src="supermaps.js?v=3.8"></script>
 </body>
 </html>

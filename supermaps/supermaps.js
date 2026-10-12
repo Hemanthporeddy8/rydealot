@@ -1829,7 +1829,9 @@ function getShareTargetCoords() {
 
 function buildFullShareLink() {
   const coords = getShareTargetCoords();
-  const name = document.getElementById('share-input-name')?.value?.trim() || 'My Location';
+  const inputName = document.getElementById('share-input-name')?.value?.trim();
+  const defaultName = _shareSourceMode === 'pin' ? (activeDestination?.name || 'Pinned Location') : 'My Location';
+  const name = inputName || defaultName;
   const clue = document.getElementById('share-input-clue')?.value?.trim() || '';
 
   const hashParams = new URLSearchParams();
@@ -1848,6 +1850,27 @@ function buildFullShareLink() {
     clue,
     hasPhoto: !!_compressedDoorstepPhotoDataUrl
   };
+}
+
+async function quickShareSystem() {
+  const { url, name } = buildFullShareLink();
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `Rydealot Supermaps — ${name}`,
+        text: `📍 Navigate to ${name} on Rydealot Supermaps:\n${url}`,
+        url: url
+      });
+      showSupermapsToast('Shared successfully!', '⚡', 'success');
+      return;
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        copyShareLink();
+      }
+      return;
+    }
+  }
+  copyShareLink();
 }
 
 function shareOnWhatsApp() {

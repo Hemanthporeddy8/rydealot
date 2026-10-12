@@ -1749,6 +1749,29 @@ body.power-saver-active .pulse-indicator {
   background: rgba(255, 255, 255, 0.14);
 }
 
+.btn-quick-share-secondary {
+  width: 100%;
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-quick-share-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
 /* =========================================================================
    DOORSTEP ARRIVAL FLOATING CARD (LAST 100 METERS & DEEP LINK PREVIEW)
    ========================================================================= */
