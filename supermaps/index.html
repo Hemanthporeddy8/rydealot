@@ -18,7 +18,7 @@
 
   <!-- PWA Manifest & App Stylesheet -->
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=3.0">
+  <link rel="stylesheet" href="style.css?v=3.5">
   <meta name="theme-color" content="#0a0b0e">
 
   <!-- iOS Add to Home Screen -->
@@ -165,6 +165,20 @@
   <div class="controls-dock">
     <button class="dock-btn" onclick="openModal('modal-profile')" title="My Profile">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <button class="dock-btn share-btn" onclick="openShareLocationModal()" title="Share Location & Doorstep Pin">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"></circle>
+        <circle cx="6" cy="12" r="3"></circle>
+        <circle cx="18" cy="19" r="3"></circle>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+      </svg>
+    </button>
+    <button class="dock-btn eco-btn" id="dock-btn-eco" onclick="toggleEcoMode()" title="Power & Data Saver (100km Cool Mode)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+      </svg>
     </button>
     <button class="dock-btn" onclick="openThemePicker()" title="Map Themes (Gold, Night, Neon, Chai, Heritage)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -342,6 +356,9 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 12L21 12M15 6L21 12L15 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Navigate</span>
       </button>
+      <button class="btn-nav-secondary" id="btn-share-place" onclick="openShareForCurrentPlace()" title="Share Place & Doorstep Photo">
+        <span>Share</span>
+      </button>
       <button class="btn-nav-secondary" id="btn-wa-place">
         <span>WhatsApp</span>
       </button>
@@ -483,9 +500,99 @@
         </button>
       </form>
     </div>
+  <!-- Floating Doorstep Visual Verification Arrival Card -->
+  <div class="doorstep-arrival-card" id="doorstep-arrival-card" style="display:none;">
+    <div class="doorstep-card-header">
+      <span class="doorstep-badge">DOORSTEP VISUAL VERIFICATION</span>
+      <button type="button" class="doorstep-close-btn" onclick="closeDoorstepCard()" title="Close">✕</button>
+    </div>
+    <div class="doorstep-card-content">
+      <img id="doorstep-card-img" src="" alt="Doorstep" class="doorstep-thumb" onclick="openDoorstepLightbox()">
+      <div class="doorstep-card-text">
+        <div class="doorstep-title" id="doorstep-card-title">Destination</div>
+        <div class="doorstep-clue" id="doorstep-card-clue">Visual clue will appear here</div>
+        <button type="button" class="btn-doorstep-zoom" onclick="openDoorstepLightbox()">🔍 Tap to Zoom Photo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Share Location & Doorstep Pin (100% In-Link, Zero-Cloud) -->
+  <div class="modal-overlay" id="modal-share-location">
+    <div class="modal-container share-modal-container">
+      <div class="modal-header-row">
+        <div class="modal-title">Share Location &amp; Doorstep Pin</div>
+        <button type="button" class="modal-close-btn" onclick="closeModal('modal-share-location')">✕</button>
+      </div>
+
+      <div class="privacy-notice-pill">
+        <span>🔒 100% In-Link Privacy • Zero Cloud Storage • No Server Tracking</span>
+      </div>
+
+      <div class="share-source-switcher">
+        <button type="button" class="source-chip active" id="chip-source-gps" onclick="setShareSource('gps')">
+          📍 Current GPS
+        </button>
+        <button type="button" class="source-chip" id="chip-source-pin" onclick="setShareSource('pin')">
+          📌 Selected Pin
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Place or House Name</label>
+        <input type="text" id="share-input-name" class="form-input" placeholder="e.g. Ramesh House / Villa 142 / Sri Balaji Kirana">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Doorstep / Landmark Clue (Optional)</label>
+        <input type="text" id="share-input-clue" class="form-input" placeholder="e.g. Blue iron gate, opposite park, black Swift outside">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">📸 Gate, Nameplate or Shop Photo (Optional)</label>
+        <div class="photo-hint-text">
+          Photo is compressed in pure JavaScript into the link. It is never stored on our servers or database!
+        </div>
+
+        <div class="photo-picker-box" id="photo-picker-box">
+          <label for="share-photo-input" class="btn-photo-pick">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Take / Choose Doorstep Photo</span>
+          </label>
+          <input type="file" id="share-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="handleDoorstepPhotoSelected(event)">
+        </div>
+
+        <div class="photo-preview-wrap" id="photo-preview-wrap" style="display:none;">
+          <img id="share-photo-preview" src="" alt="Doorstep Preview" class="photo-preview-img" onclick="openDoorstepLightbox(this.src)">
+          <div class="photo-preview-meta">
+            <span class="photo-size-badge" id="photo-size-badge">In-Link WebP</span>
+            <button type="button" class="btn-remove-photo" onclick="removeDoorstepPhoto()">✕ Remove</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="share-actions-grid">
+        <button type="button" class="btn-share-whatsapp" onclick="shareOnWhatsApp()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+          <span>Share via WhatsApp</span>
+        </button>
+        <button type="button" class="btn-share-copy" id="btn-copy-share" onclick="copyShareLink()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span id="copy-btn-text">Copy Link</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Photo Lightbox Modal -->
+  <div class="modal-overlay photo-lightbox-overlay" id="modal-photo-lightbox" onclick="if(event.target===this)closeDoorstepLightbox()">
+    <div class="lightbox-container">
+      <button type="button" class="lightbox-close-btn" onclick="closeDoorstepLightbox()">✕</button>
+      <img id="lightbox-img" src="" alt="Doorstep Full View" class="lightbox-img">
+      <div class="lightbox-caption" id="lightbox-caption"></div>
+    </div>
   </div>
 
   <!-- Master Engine Script -->
-  <script src="supermaps.js?v=3.0"></script>
+  <script src="supermaps.js?v=3.5"></script>
 </body>
 </html>

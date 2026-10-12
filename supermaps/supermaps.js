@@ -58,6 +58,13 @@ let verifiedShops = [];
 let _styleReloadPending = false;
 let _pendingRouteGeometry = null;
 
+// In-Link Zero-Cloud Doorstep Sharing & Eco Mode State
+let _compressedDoorstepPhotoDataUrl = null;
+let _shareSourceMode = 'gps'; // 'gps' or 'pin'
+let isPowerSaverActive = localStorage.getItem('rydealot_power_saver') === 'true';
+let isDataSaverActive = localStorage.getItem('rydealot_data_saver') === 'true';
+let _hasShownArrivalDoorstep = false;
+
 // ── THEME DEFINITIONS ──────────────────────────────────────────────────────────
 // Official Protomaps flavor palettes. Guaranteed 100% valid MapLibre layers with zero validation errors.
 const THEMES = {
@@ -234,6 +241,7 @@ function toggleMapTheme() { openThemePicker(); }
 
 // 1. INITIALIZE MAPLIBRE WITH PMTILES PROTOCOL
 window.addEventListener('DOMContentLoaded', () => {
+  initEcoPowerSaver();
   initMapEngine();
   registerServiceWorker();
   initNetworkListeners();
@@ -834,8 +842,14 @@ function handleMapDestinationClick(lngLat) {
   calculateActiveRoute(lngLat.lng, lngLat.lat, label);
 }
 
-async function calculateActiveRoute(destLng, destLat, destName, autoNav = false) {
-  activeDestination = { lng: destLng, lat: destLat, name: destName };
+async function calculateActiveRoute(destLng, destLat, destName, autoNav = false, doorstepMeta = null) {
+  activeDestination = {
+    lng: destLng,
+    lat: destLat,
+    name: destName,
+    clue: (doorstepMeta && doorstepMeta.clue) || (activeDestination && activeDestination.clue) || '',
+    img: (doorstepMeta && doorstepMeta.img) || (activeDestination && activeDestination.img) || ''
+  };
   const startCoord = originLngLat || userLngLat;
 
   // Show loading state
@@ -849,7 +863,9 @@ async function calculateActiveRoute(destLng, destLat, destName, autoNav = false)
   try {
     const profile = activeVehicleMode === 'walk' ? 'foot' : 'driving';
     const coords = `${startCoord[0]},${startCoord[1]};${destLng},${destLat}`;
-    const query = `?overview=full&geometries=geojson&steps=true`;
+    const query = isDataSaverActive
+      ? `?overview=simplified&geometries=geojson&steps=false`
+      : `?overview=full&geometries=geojson&steps=true`;
 
     const backends = [
       `https://rydealot-supermaps-api.rydealotmaps.workers.dev/route/v1/${profile}/${coords}${query}`,
@@ -931,19 +947,57 @@ async function calculateActiveRoute(destLng, destLat, destName, autoNav = false)
   }
 }
 
-// Check if Supermaps was launched via deep-link from Rydealot Taxi / Driver App
+// Check if Supermaps was launched via deep-link from Rydealot Taxi / Driver App or shared WhatsApp link
 function checkUrlLaunchParameters() {
   try {
-    const params = new URLSearchParams(window.location.search);
+    let params = null;
+    let hasHash = false;
+    if (window.location.hash && window.location.hash.length > 1) {
+      params = new URLSearchParams(window.location.hash.substring(1));
+      hasHash = true;
+    } else if (window.location.search && window.location.search.length > 1) {
+      params = new URLSearchParams(window.location.search.substring(1));
+    }
+
+    if (!params) return;
+
     const destLat = parseFloat(params.get('destLat') || params.get('lat'));
     const destLng = parseFloat(params.get('destLng') || params.get('lng'));
     const destName = params.get('destName') || params.get('name') || 'Destination';
+    const destClue = params.get('clue') || '';
+    const destImg = params.get('img') || '';
     const isNav = params.get('nav') === 'true' || params.get('autoNav') === 'true';
 
     if (!isNaN(destLat) && !isNaN(destLng)) {
       console.log(`[Supermaps Launch] Received destination: ${destName} (${destLat}, ${destLng}) - autoNav: ${isNav}`);
+
+      const doorstepMeta = {
+        name: destName,
+        clue: destClue,
+        img: destImg,
+        lat: destLat,
+        lng: destLng
+      };
+
+      // If image is present, cache locally and render arrival card preview
+      if (destImg) {
+        try {
+          localStorage.setItem('rydealot_cached_doorstep', JSON.stringify({
+            name: destName, clue: destClue, img: destImg, lat: destLat, lng: destLng, time: Date.now()
+          }));
+        } catch (e) {}
+
+        renderDoorstepCard(doorstepMeta);
+      }
+
+      // Clean up long hash from the address bar immediately so browser bar is clean & uncluttered
+      if (hasHash && window.history && window.history.replaceState) {
+        const cleanUrl = `${window.location.pathname}?dest=${encodeURIComponent(destName)}&lat=${destLat.toFixed(4)}&lng=${destLng.toFixed(4)}`;
+        window.history.replaceState(null, '', cleanUrl);
+      }
+
       setTimeout(() => {
-        calculateActiveRoute(destLng, destLat, destName, isNav);
+        calculateActiveRoute(destLng, destLat, destName, isNav, doorstepMeta);
       }, 800);
     }
   } catch (e) {
@@ -1051,6 +1105,7 @@ document.addEventListener('visibilitychange', async () => {
 function startNavigation(destLng, destLat, destName, routeGeom) {
   isNavigating = true;
   _activeNavRoute = routeGeom;
+  _hasShownArrivalDoorstep = false;
   requestScreenWakeLock();
 
   // Show HUD
@@ -1059,11 +1114,12 @@ function startNavigation(destLng, destLat, destName, routeGeom) {
   const initialDist = document.getElementById('route-dist')?.innerText?.split('·')[0]?.trim() || 'Active Route';
   document.getElementById('nav-hud-dist').innerText = initialDist;
 
-  // Tilt camera into 3D navigation perspective
+  // Tilt camera into navigation perspective (2D flat in Eco Mode for GPU thermal savings)
+  const navPitch = isPowerSaverActive ? 0 : 50;
   map.easeTo({
     center: userLngLat,
     zoom: 17,
-    pitch: 50,
+    pitch: navPitch,
     bearing: currentHeading || 0,
     duration: 1200
   });
@@ -1089,7 +1145,7 @@ function startNavigation(destLng, destLat, destName, routeGeom) {
           currentHeading = headingToUse;
           const icon = document.getElementById('nav-arrow-icon');
           if (icon) icon.style.transform = `rotate(${currentHeading}deg)`;
-          map.easeTo({ center: userLngLat, bearing: currentHeading, pitch: 45, duration: 600 });
+          map.easeTo({ center: userLngLat, bearing: currentHeading, pitch: navPitch, duration: 600 });
         } else {
           map.panTo(userLngLat);
         }
@@ -1097,6 +1153,12 @@ function startNavigation(destLng, destLat, destName, routeGeom) {
         // Calculate remaining straight-line distance to destination
         const d = calculateDistanceKm(userLngLat[1], userLngLat[0], destLat, destLng);
         document.getElementById('nav-hud-dist').innerText = `${d.toFixed(1)} KM`;
+
+        // Auto-popup Doorstep Photo verification when entering final 100 meters
+        if (d <= 0.1 && !_hasShownArrivalDoorstep && activeDestination && activeDestination.img) {
+          _hasShownArrivalDoorstep = true;
+          renderDoorstepCard(activeDestination);
+        }
       },
       (err) => console.warn('Nav GPS watch error:', err),
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 6000 }
@@ -1123,6 +1185,7 @@ function toggleSimulation() {
   if (btn) btn.classList.add('active');
   const coords = _activeNavRoute.coordinates;
   let idx = 0;
+  _hasShownArrivalDoorstep = false;
 
   navSimInterval = setInterval(() => {
     if (idx >= coords.length) {
@@ -1151,6 +1214,12 @@ function toggleSimulation() {
     const totalSteps = coords.length;
     const estRemainingKm = ((remainingSteps / totalSteps) * 5.0).toFixed(1);
     document.getElementById('nav-hud-dist').innerText = `${estRemainingKm} KM`;
+
+    // Auto-popup Doorstep Photo verification in final steps
+    if (remainingSteps <= 4 && !_hasShownArrivalDoorstep && activeDestination && activeDestination.img) {
+      _hasShownArrivalDoorstep = true;
+      renderDoorstepCard(activeDestination);
+    }
 
     idx += 2; // advance along route
   }, 400);
@@ -1639,4 +1708,261 @@ function updateGisOverlaysData() {
     });
   }
 }
+
+// =========================================================================
+// 8. ZERO-CLOUD IN-LINK DOORSTEP PHOTO & LOCATION SHARING ENGINE
+// =========================================================================
+
+// Compress Doorstep Photo via in-memory HTML5 Canvas into ultra-compact WebP Base64
+function handleDoorstepPhotoSelected(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      // 180x135 px provides optimal balance of clear gate details / nameplates with compact URL length
+      const maxW = 180;
+      const maxH = 135;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxW || h > maxH) {
+        const ratio = Math.min(maxW / w, maxH / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'medium';
+      ctx.drawImage(img, 0, 0, w, h);
+
+      // WebP with 0.40 quality; graceful fallback to JPEG
+      let dataUrl = canvas.toDataURL('image/webp', 0.40);
+      if (!dataUrl.startsWith('data:image/webp')) {
+        dataUrl = canvas.toDataURL('image/jpeg', 0.40);
+      }
+
+      _compressedDoorstepPhotoDataUrl = dataUrl;
+
+      // Update UI preview
+      const previewWrap = document.getElementById('photo-preview-wrap');
+      const previewImg = document.getElementById('share-photo-preview');
+      const sizeBadge = document.getElementById('photo-size-badge');
+      if (previewImg) previewImg.src = dataUrl;
+      if (previewWrap) previewWrap.style.display = 'flex';
+
+      const approxKb = (dataUrl.length * 0.75 / 1024).toFixed(1);
+      if (sizeBadge) sizeBadge.innerText = `In-Link WebP: ~${approxKb} KB`;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeDoorstepPhoto() {
+  _compressedDoorstepPhotoDataUrl = null;
+  const fileInput = document.getElementById('share-photo-input');
+  if (fileInput) fileInput.value = '';
+  const previewWrap = document.getElementById('photo-preview-wrap');
+  if (previewWrap) previewWrap.style.display = 'none';
+}
+
+function openShareLocationModal() {
+  _shareSourceMode = 'gps';
+  updateShareSourceUI();
+
+  const nameInput = document.getElementById('share-input-name');
+  if (nameInput) {
+    if (activeDestination && activeDestination.name) {
+      nameInput.value = activeDestination.name;
+    } else {
+      nameInput.value = '';
+    }
+  }
+
+  openModal('modal-share-location');
+}
+
+function openShareForCurrentPlace() {
+  _shareSourceMode = 'pin';
+  updateShareSourceUI();
+
+  const nameInput = document.getElementById('share-input-name');
+  const placeTitle = document.getElementById('place-title');
+  if (nameInput && placeTitle) {
+    nameInput.value = placeTitle.innerText || '';
+  }
+  closeBottomPanel();
+  openModal('modal-share-location');
+}
+
+function setShareSource(mode) {
+  _shareSourceMode = mode;
+  updateShareSourceUI();
+}
+
+function updateShareSourceUI() {
+  const gpsChip = document.getElementById('chip-source-gps');
+  const pinChip = document.getElementById('chip-source-pin');
+  if (gpsChip) gpsChip.classList.toggle('active', _shareSourceMode === 'gps');
+  if (pinChip) pinChip.classList.toggle('active', _shareSourceMode === 'pin');
+}
+
+function getShareTargetCoords() {
+  if (_shareSourceMode === 'pin' && activeDestination) {
+    return { lat: activeDestination.lat, lng: activeDestination.lng };
+  }
+  if (userLngLat) {
+    return { lat: userLngLat[1], lng: userLngLat[0] };
+  }
+  if (map) {
+    const center = map.getCenter();
+    return { lat: center.lat, lng: center.lng };
+  }
+  return { lat: 17.3850, lng: 78.4867 };
+}
+
+function buildFullShareLink() {
+  const coords = getShareTargetCoords();
+  const name = document.getElementById('share-input-name')?.value?.trim() || 'My Location';
+  const clue = document.getElementById('share-input-clue')?.value?.trim() || '';
+
+  const hashParams = new URLSearchParams();
+  hashParams.set('lat', coords.lat.toFixed(5));
+  hashParams.set('lng', coords.lng.toFixed(5));
+  if (name) hashParams.set('name', name);
+  if (clue) hashParams.set('clue', clue);
+  if (_compressedDoorstepPhotoDataUrl) {
+    hashParams.set('img', _compressedDoorstepPhotoDataUrl);
+  }
+
+  const baseUrl = `${window.location.origin}${window.location.pathname}`;
+  return {
+    url: `${baseUrl}#${hashParams.toString()}`,
+    name,
+    clue,
+    hasPhoto: !!_compressedDoorstepPhotoDataUrl
+  };
+}
+
+function shareOnWhatsApp() {
+  const { url, name, clue, hasPhoto } = buildFullShareLink();
+  let msg = `📍 *Rydealot Supermaps Location*\n`;
+  msg += `🏠 *Destination:* ${name}\n`;
+  if (clue) msg += `🔍 *Clue:* ${clue}\n`;
+  if (hasPhoto) msg += `📸 *Doorstep Photo Attached*\n`;
+  msg += `\n👉 Tap link to open & navigate:\n${url}`;
+
+  const waLink = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(waLink, '_blank');
+}
+
+function copyShareLink() {
+  const { url } = buildFullShareLink();
+  const btnText = document.getElementById('copy-btn-text');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      if (btnText) {
+        btnText.innerText = '✓ Copied!';
+        setTimeout(() => { btnText.innerText = 'Copy Link'; }, 2500);
+      }
+    }).catch(() => fallbackCopy(url, btnText));
+  } else {
+    fallbackCopy(url, btnText);
+  }
+}
+
+function fallbackCopy(text, btnText) {
+  const tempInput = document.createElement('textarea');
+  tempInput.value = text;
+  document.body.appendChild(tempInput);
+  tempInput.select();
+  try {
+    document.execCommand('copy');
+    if (btnText) {
+      btnText.innerText = '✓ Copied!';
+      setTimeout(() => { btnText.innerText = 'Copy Link'; }, 2500);
+    }
+  } catch (e) {
+    alert('Link ready to copy:\n' + text.substring(0, 80) + '...');
+  }
+  document.body.removeChild(tempInput);
+}
+
+// Doorstep Arrival Card & Lightbox Display
+function renderDoorstepCard(meta) {
+  if (!meta || !meta.img) return;
+  const card = document.getElementById('doorstep-arrival-card');
+  const imgEl = document.getElementById('doorstep-card-img');
+  const titleEl = document.getElementById('doorstep-card-title');
+  const clueEl = document.getElementById('doorstep-card-clue');
+
+  if (imgEl) imgEl.src = meta.img;
+  if (titleEl) titleEl.innerText = meta.name || 'Destination';
+  if (clueEl) clueEl.innerText = meta.clue ? `🔍 ${meta.clue}` : 'Doorstep visual verification';
+  if (card) card.style.display = 'block';
+}
+
+function closeDoorstepCard() {
+  const card = document.getElementById('doorstep-arrival-card');
+  if (card) card.style.display = 'none';
+}
+
+function openDoorstepLightbox(customSrc) {
+  const lightbox = document.getElementById('modal-photo-lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  const caption = document.getElementById('lightbox-caption');
+
+  const src = customSrc || document.getElementById('doorstep-card-img')?.src || _compressedDoorstepPhotoDataUrl;
+  if (!src || !lightbox || !lightboxImg) return;
+
+  lightboxImg.src = src;
+  if (caption) {
+    const title = activeDestination?.name || 'Doorstep Verification';
+    const clue = activeDestination?.clue || '';
+    caption.innerText = clue ? `${title} — ${clue}` : title;
+  }
+  lightbox.classList.add('active');
+}
+
+function closeDoorstepLightbox() {
+  const lightbox = document.getElementById('modal-photo-lightbox');
+  if (lightbox) lightbox.classList.remove('active');
+}
+
+// =========================================================================
+// 9. POWER SAVER (AMOLED COOL MODE) & DATA SAVER ENGINE
+// =========================================================================
+
+function initEcoPowerSaver() {
+  if (isPowerSaverActive) {
+    document.body.classList.add('power-saver-active');
+    const btn = document.getElementById('dock-btn-eco');
+    if (btn) btn.classList.add('active');
+  }
+}
+
+function toggleEcoMode() {
+  isPowerSaverActive = !isPowerSaverActive;
+  isDataSaverActive = isPowerSaverActive;
+  localStorage.setItem('rydealot_power_saver', isPowerSaverActive ? 'true' : 'false');
+  localStorage.setItem('rydealot_data_saver', isDataSaverActive ? 'true' : 'false');
+
+  document.body.classList.toggle('power-saver-active', isPowerSaverActive);
+  const btn = document.getElementById('dock-btn-eco');
+  if (btn) btn.classList.toggle('active', isPowerSaverActive);
+
+  if (isPowerSaverActive) {
+    if (map) map.easeTo({ pitch: 0, duration: 400 });
+    alert('⚡ Power Saver Active: AMOLED true black + Data Saver enabled to keep phone cool on long rides.');
+  } else {
+    alert('Standard Display Mode restored.');
+  }
+}
+
 
