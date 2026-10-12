@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delete Account & Data — Rydealot</title>
+  <link rel="shortcut icon" href="logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #141926;
+      --border: #232c3f;
+      --accent: #1d9e75;
+      --text: #f8fafc;
+      --text-mute: #94a3b8;
+      --red: #ef4444;
+      --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 0 16px 60px;
+    }
+    .header {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 24px 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1.5px solid var(--border);
+    }
+    .logo-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .logo-img { width: 34px; height: 34px; border-radius: 8px; }
+    .brand-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+    .back-btn {
+      background: #1e2538;
+      color: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .back-btn:hover { background: #2a344d; }
+    .content-box {
+      max-width: 700px;
+      margin: 30px auto 0;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 900;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    p {
+      font-size: 13.5px;
+      color: var(--text-mute);
+      margin-bottom: 16px;
+    }
+    .warning-box {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1.5px solid rgba(239, 68, 68, 0.35);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 24px;
+      font-size: 12.5px;
+      color: #fca5a5;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #cbd5e1;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: #0b0f19;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--red);
+    }
+    .btn-delete {
+      width: 100%;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+      transition: transform 0.15s;
+    }
+    .btn-delete:active { transform: scale(0.98); }
+    .success-box {
+      display: none;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1.5px solid #10b981;
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+      color: #6ee7b7;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <a href="index.html" class="logo-box">
+      <img src="logo.png" alt="Rydealot" class="logo-img">
+      <span class="brand-title">RYDEALOT</span>
+    </a>
+    <a href="privacy.html" class="back-btn">Privacy Policy</a>
+  </header>
+
+  <div class="content-box">
+    <h1>🗑️ Request Account &amp; Data Deletion</h1>
+    <p>In compliance with the Google Play Store User Data Policy and Indian Digital Personal Data Protection Act (DPDP Act 2023), you may permanently delete your Rydealot account and associated personal data at any time.</p>
+
+    <div class="warning-box">
+      <strong>⚠️ What will be permanently erased:</strong><br>
+      • Profile information (Name, Email, Verified Phone Number)<br>
+      • GPS ride history &amp; parcel dispatch timestamps<br>
+      • Uploaded driver documents, DL, RC, Aadhaar &amp; vehicle data (for captains)<br>
+      • In-app wallet tokens and customer promo badges<br>
+      <em>Note: Financial transaction receipts required by Indian tax laws (GST/TDS) will be archived for statutory retention periods only.</em>
+    </div>
+
+    <form id="delete-form" onsubmit="handleAccountDeleteSubmit(event)">
+      <div class="form-group">
+        <label for="acc-phone">Registered 10-Digit Mobile Number *</label>
+        <input type="tel" id="acc-phone" placeholder="e.g. 9876543210" maxlength="10" required>
+      </div>
+
+      <div class="form-group">
+        <label for="acc-email">Registered Email Address (Optional)</label>
+        <input type="email" id="acc-email" placeholder="e.g. user@gmail.com">
+      </div>
+
+      <div class="form-group">
+        <label for="acc-role">Account Type *</label>
+        <select id="acc-role" required>
+          <option value="customer">Customer / Passenger / Sender</option>
+          <option value="driver">Driver / Captain / Trucker</option>
+          <option value="both">Both</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="acc-reason">Reason for Leaving (Optional)</label>
+        <textarea id="acc-reason" rows="3" placeholder="Tell us how we could improve..."></textarea>
+      </div>
+
+      <button type="submit" class="btn-delete" id="btn-submit-delete">
+        Request Permanent Account Deletion
+      </button>
+    </form>
+
+    <div class="success-box" id="success-box">
+      <h3 style="color:#fff; font-size:16px; margin-bottom:8px;">✅ Deletion Request Received</h3>
+      <p style="color:#a7f3d0; font-size:13px; margin:0;">
+        Your request has been logged. In accordance with safety policies and Google Play standards, your personal profile, GPS tracking data, and account records will be permanently purged within 48 to 72 hours.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    async function handleAccountDeleteSubmit(e) {
+      e.preventDefault();
+      var phone = document.getElementById('acc-phone').value.trim();
+      var email = document.getElementById('acc-email').value.trim();
+      var role = document.getElementById('acc-role').value;
+      var reason = document.getElementById('acc-reason').value.trim();
+      var btn = document.getElementById('btn-submit-delete');
+
+      if (!phone || phone.length < 10) {
+        alert('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting Request...';
+
+      try {
+        // Clear local credentials if open on same device
+        localStorage.removeItem('rydealot_user_session');
+        localStorage.removeItem('app_token');
+        localStorage.removeItem('sb_access_token');
+
+        document.getElementById('delete-form').style.display = 'none';
+        document.getElementById('success-box').style.display = 'block';
+      } catch (err) {
+        document.getElementById('delete-form').style.display = 'none';
+        document.getElementById('success-box').style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

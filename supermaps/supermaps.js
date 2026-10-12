@@ -48,6 +48,8 @@ let destMarker = null;
 let currentHeading = 0;
 let userLngLat = CONFIG.DEFAULT_LNG_LAT;
 let isNavigating = false;
+let tapToSelectMode = false;
+let mainGpsWatchId = null;
 let userInteractedWithMap = false;
 let hasDoorstepCentered = false;
 let activeVehicleMode = 'car';
@@ -284,9 +286,10 @@ function initMapEngine() {
     pixelRatio: Math.min(window.devicePixelRatio || 1, 2) // Cap to 2.0 to eliminate 3X retina lag on Android
   });
 
-  // Smoothly fade out splash screen once initial tiles are painted
+  // Smoothly fade out splash screen as soon as map canvas is painted
+  map.once('load', hideSplashLoader);
   map.once('idle', hideSplashLoader);
-  setTimeout(hideSplashLoader, 3500); // Safety fallback
+  setTimeout(hideSplashLoader, 1500); // Fast safety fallback
 
   // Navigation controls
   map.addControl(new maplibregl.NavigationControl({ showCompass: true, showZoom: false }), 'bottom-right');
@@ -298,11 +301,14 @@ function initMapEngine() {
   map.on('pitchstart', () => { userInteractedWithMap = true; });
   map.on('touchstart', () => { userInteractedWithMap = true; });
 
-  // 1-tap on map → drop destination pin
+  // Map click handler (Accidental tap lock: only sets destination if user clicked Tap-to-Select)
   map.on('click', (e) => {
     closeBottomPanel();
     document.getElementById('search-dropdown').style.display = 'none';
-    handleMapDestinationClick(e.lngLat);
+    if (tapToSelectMode && !isNavigating) {
+      handleMapDestinationClick(e.lngLat);
+      toggleTapToSelect(false); // Automatically lock selection after dropping pin
+    }
   });
 
   // Initial load — apply theme overrides + GIS overlays + check deep-link URL params
@@ -361,8 +367,9 @@ function initMapEngine() {
     // 2. High-Accuracy Satellite GPS Watcher (< 60m)
     // Snaps from coarse cell tower to exact doorstep when satellites acquire lock
     let hasSatelliteLock = false;
-    navigator.geolocation.watchPosition(
+    mainGpsWatchId = navigator.geolocation.watchPosition(
       (pos) => {
+        if (isNavigating) return; // Navigation watcher handles tracking during active drive
         const accuracy = pos.coords.accuracy;
         const newCoords = [pos.coords.longitude, pos.coords.latitude];
 
@@ -395,6 +402,7 @@ function initMapEngine() {
 // ── ROLLING 5KM BUFFER & OFFLINE RESILIENCE ──────────────────────────────────
 let _lastBufferedCoords = null;
 function cacheSafetyBuffer5Km(lngLat) {
+  if (isNavigating) return; // Freeze tile pre-buffering during active ride to save battery & prevent heating
   if (!lngLat || !Array.isArray(lngLat)) return;
   if (_lastBufferedCoords) {
     const d = calculateDistanceKm(_lastBufferedCoords[1], _lastBufferedCoords[0], lngLat[1], lngLat[0]);
@@ -457,10 +465,8 @@ function updateCompassHeading(heading) {
   } else if (userMarker && typeof userMarker.setRotation === 'function') {
     userMarker.setRotation(currentHeading);
   }
-  
-  if (isNavigating) {
-    map.rotateTo(currentHeading, { duration: 250 });
-  }
+  // Camera rotation in active navigation is driven smoothly by GPS road trajectory,
+  // NOT by handlebar vibration sensor churn, preventing thermal throttling.
 }
 
 function setupCompassHeading() {
@@ -758,11 +764,27 @@ function toggleDirectionsMode(show) {
     searchBox.style.display = 'none';
     dirCard.style.display = 'flex';
   } else {
+    toggleTapToSelect(false);
     dirCard.style.display = 'none';
     searchBox.style.display = 'flex';
     clearActiveRoute();
     activeDestination = null;
     originLngLat = null;
+  }
+}
+
+function toggleTapToSelect(enable) {
+  if (isNavigating) return;
+  tapToSelectMode = (typeof enable === 'boolean') ? enable : !tapToSelectMode;
+
+  const btn = document.getElementById('btn-tap-select-mode');
+  const banner = document.getElementById('tap-select-banner');
+
+  if (btn) btn.classList.toggle('active', tapToSelectMode);
+  if (banner) banner.style.display = tapToSelectMode ? 'flex' : 'none';
+
+  if (map && map.getCanvas()) {
+    map.getCanvas().style.cursor = tapToSelectMode ? 'crosshair' : '';
   }
 }
 
@@ -993,9 +1015,43 @@ let navWatchId = null;
 let navSimInterval = null;
 let _activeNavRoute = null;
 
+// Screen WakeLock: Keeps mobile display alive throughout navigation
+let screenWakeLock = null;
+
+async function requestScreenWakeLock() {
+  try {
+    if ('wakeLock' in navigator && navigator.wakeLock.request) {
+      screenWakeLock = await navigator.wakeLock.request('screen');
+      screenWakeLock.addEventListener('release', () => {
+        console.log('[Supermaps] Screen WakeLock released');
+      });
+      console.log('[Supermaps] Screen WakeLock ACTIVE — Display kept awake for navigation');
+    }
+  } catch (err) {
+    console.warn('[Supermaps] Screen WakeLock error:', err);
+  }
+}
+
+async function releaseScreenWakeLock() {
+  if (screenWakeLock !== null) {
+    try {
+      await screenWakeLock.release();
+    } catch (e) {}
+    screenWakeLock = null;
+  }
+}
+
+// Re-acquire WakeLock if driver minimizes and returns to app during navigation
+document.addEventListener('visibilitychange', async () => {
+  if (isNavigating && document.visibilityState === 'visible') {
+    await requestScreenWakeLock();
+  }
+});
+
 function startNavigation(destLng, destLat, destName, routeGeom) {
   isNavigating = true;
   _activeNavRoute = routeGeom;
+  requestScreenWakeLock();
 
   // Show HUD
   document.getElementById('nav-hud').style.display = 'flex';
@@ -1017,10 +1073,27 @@ function startNavigation(destLng, destLat, destName, routeGeom) {
     if (navWatchId) navigator.geolocation.clearWatch(navWatchId);
     navWatchId = navigator.geolocation.watchPosition(
       (pos) => {
-        userLngLat = [pos.coords.longitude, pos.coords.latitude];
+        const newCoords = [pos.coords.longitude, pos.coords.latitude];
+        let headingToUse = (typeof pos.coords.heading === 'number' && !isNaN(pos.coords.heading) && pos.coords.heading > 0) ? pos.coords.heading : null;
+        if (headingToUse === null && userLngLat) {
+          const distMoved = calculateDistanceKm(userLngLat[1], userLngLat[0], newCoords[1], newCoords[0]);
+          if (distMoved > 0.004) { // moved > 4 meters
+            headingToUse = calculateBearing(userLngLat[1], userLngLat[0], newCoords[1], newCoords[0]);
+          }
+        }
+
+        userLngLat = newCoords;
         createUserMarker(userLngLat);
-        if (pos.coords.heading) updateCompassHeading(pos.coords.heading);
-        map.panTo(userLngLat);
+
+        if (headingToUse !== null) {
+          currentHeading = headingToUse;
+          const icon = document.getElementById('nav-arrow-icon');
+          if (icon) icon.style.transform = `rotate(${currentHeading}deg)`;
+          map.easeTo({ center: userLngLat, bearing: currentHeading, pitch: 45, duration: 600 });
+        } else {
+          map.panTo(userLngLat);
+        }
+
         // Calculate remaining straight-line distance to destination
         const d = calculateDistanceKm(userLngLat[1], userLngLat[0], destLat, destLng);
         document.getElementById('nav-hud-dist').innerText = `${d.toFixed(1)} KM`;
@@ -1104,6 +1177,7 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
 
 function stopNavigation() {
   isNavigating = false;
+  releaseScreenWakeLock();
   if (navWatchId) {
     navigator.geolocation.clearWatch(navWatchId);
     navWatchId = null;
@@ -1460,19 +1534,22 @@ function renderAdminGisOverlays() {
     data: bldgsGeoJson
   });
 
+  // Clean, lightweight 2D building footprints (GPU-friendly, zero thermal overhead)
   map.addLayer({
     id: 'custom-buildings-3d',
-    type: 'fill-extrusion',
+    type: 'fill',
     source: 'supermaps-custom-buildings',
     paint: {
-      'fill-extrusion-color': [
+      'fill-color': [
+        'case',
+        ['==', ['get', 'status'], 'demolished'], 'rgba(239, 68, 68, 0.45)',
+        'rgba(245, 158, 11, 0.35)'
+      ],
+      'fill-outline-color': [
         'case',
         ['==', ['get', 'status'], 'demolished'], '#ef4444',
         '#f59e0b'
-      ],
-      'fill-extrusion-height': ['get', 'height_meters'],
-      'fill-extrusion-base': 0,
-      'fill-extrusion-opacity': 0.85
+      ]
     }
   });
 

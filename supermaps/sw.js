@@ -2,7 +2,7 @@
 // RYDEALOT SUPERMAPS — SERVICE WORKER (Network-First Auto-Updating Engine)
 // =========================================================================
 
-const CACHE_NAME = 'supermaps-v3.3';
+const CACHE_NAME = 'supermaps-v3.4';
 const TILE_CACHE = 'supermaps-rolling-tiles';
 const MAX_CACHED_TILES = 120;
 
@@ -11,7 +11,11 @@ const STATIC_ASSETS = [
   './index.html',
   './style.css',
   './supermaps.js',
-  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap'
+  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap',
+  'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css',
+  'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js',
+  'https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js',
+  'https://unpkg.com/@protomaps/basemaps@5.2.0/dist/basemaps.js'
 ];
 
 // Install: Cache current assets & activate immediately
@@ -82,7 +86,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Network-First Strategy for App Assets (Prevents stale code bugs)
+  // 2. Cache-First for Third-Party Vendor Libraries (MapLibre, PMTiles, Basemaps, Google Fonts)
+  if (url.hostname.includes('unpkg.com') || url.hostname.includes('fonts.gstatic.com') || url.hostname.includes('fonts.googleapis.com')) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        });
+      })
+    );
+    return;
+  }
+
+  // 3. Network-First Strategy for App Assets (Prevents stale code bugs)
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
