@@ -8,13 +8,13 @@ All assets, package files, and store descriptions prepared for publishing to the
 
 * **App Title (Max 30 chars):**
   ```text
-  Rydealot: Supermaps & Parcels
+  Rydealot: Maps & Deliveries
   ```
-  *(Alternative: `Rydealot Supermaps & Delivery`)*
+  *(Alternative: `Rydealot: Navigation & Parcels`)*
 
 * **Short Description (Max 80 chars):**
   ```text
-  Offline vector navigation, private doorstep photo pin sharing & local parcels.
+  Smart navigation with Supermaps, doorstep visual pins & fast local parcels.
   ```
 
 * **Category:**
@@ -28,9 +28,9 @@ All assets, package files, and store descriptions prepared for publishing to the
 ## 2. Full Store Description (Copy-Paste Ready)
 
 ```text
-Welcome to Rydealot — India's high-performance offline vector navigation, doorstep visual pin sharing, and instant local parcel delivery engine designed for real Indian roads.
+Welcome to Rydealot — India's smart mobility, navigation, and doorstep delivery app built for real Indian roads.
 
-Whether navigating signal dead-zones in rural villages or finding tricky colony addresses in busy cities, Rydealot gets you there faster, cooler, and with zero confusion.
+Whether exploring routes with Supermaps offline navigation or sending parcels across town, Rydealot connects you to every doorstep faster, smoother, and with zero confusion.
 
 🗺️ 1. RYDEALOT SUPERMAPS — THE MAP THAT NEVER DIES
 • High-performance 60 FPS vector map powered by local PMTiles.
