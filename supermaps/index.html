@@ -109,6 +109,9 @@
         </button>
       </div>
 
+      <!-- Alternative Route Selector (Up to 3 routes with ETA comparisons) -->
+      <div class="alt-routes-selector" id="alt-routes-selector" style="display:none;"></div>
+
       <!-- Route Summary -->
       <div class="route-summary-banner" id="route-summary-banner" style="display:none;">
         <div>
@@ -341,6 +344,32 @@
       </div>
       <div style="display:flex; gap:8px; align-items:center;">
         <button type="button" class="btn-stop-nav" onclick="stopNavigation()">Stop</button>
+      </div>
+    </div>
+
+    <!-- Color-Coded Flyover Elevation Guidance (Flat 2D, Zero Battery Overhead) -->
+    <div class="nav-flyover-card" id="nav-flyover-card" style="display:none;">
+      <div class="flyover-badge">
+        <span>🟡</span>
+        <span id="flyover-badge-text">FLYOVER / HIGHWAY RAMP</span>
+      </div>
+      <div class="flyover-instruction" id="flyover-instruction">Follow Yellow: Take Flyover Ramp</div>
+      <div class="flyover-sub" id="flyover-sub">Service Road: Stay on Gray (Below)</div>
+    </div>
+
+    <!-- Community Shortcut Banner with One-Tap Closure Report -->
+    <div class="nav-shortcut-card" id="nav-shortcut-card" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.2rem;">⚡</span>
+          <div>
+            <div style="font-weight:800; font-size:0.84rem; color:#f59e0b;" id="nav-sc-title">Community Shortcut Active</div>
+            <div style="font-size:0.7rem; color:#94a3b8;" id="nav-sc-desc">Saves ~5 mins · Discovered by Rider</div>
+          </div>
+        </div>
+        <button type="button" class="btn-report-closed-sm" onclick="reportActiveShortcutClosed()" title="Report Locked Gate or Blocked Road">
+          ⚠️ Report Closed
+        </button>
       </div>
     </div>
   </div>

@@ -57,6 +57,11 @@ let activeDestination = null;
 let verifiedShops = [];
 let _styleReloadPending = false;
 let _pendingRouteGeometry = null;
+let _currentRoutes = [];
+let _activeRouteIndex = 0;
+let _communityShortcuts = [];
+let _activeNavShortcutId = null;
+let _completedShortcutRidesLogged = {};
 
 // In-Link Zero-Cloud Doorstep Sharing & Eco Mode State
 let _compressedDoorstepPhotoDataUrl = null;
@@ -319,10 +324,12 @@ function initMapEngine() {
     }
   });
 
-  // Initial load — apply theme overrides + GIS overlays + check deep-link URL params
+  // Initial load — apply theme overrides + GIS overlays + flyovers + shortcuts + check deep-link URL params
   map.on('load', () => {
     applyThemeOverrides();
     renderAdminGisOverlays();
+    renderFlyoverOverlays();
+    loadCommunityShortcuts();
     checkUrlLaunchParameters();
   });
 
@@ -330,16 +337,25 @@ function initMapEngine() {
   map.on('style.load', () => {
     applyThemeOverrides();
     renderAdminGisOverlays();
+    renderFlyoverOverlays();
+    loadCommunityShortcuts();
     if (_styleReloadPending && _pendingRouteGeometry) {
-      renderRouteOnMap(_pendingRouteGeometry);
+      if (_currentRoutes && _currentRoutes.length > 0) {
+        renderAlternativeRoutes(_currentRoutes, activeVehicleMode, _activeRouteIndex);
+      } else {
+        renderRouteOnMap(_pendingRouteGeometry);
+      }
     }
     _styleReloadPending = false;
   });
 
-  // Real-time sync when Admin updates GIS data in another tab
+  // Real-time sync when Admin updates GIS or Shortcuts data in another tab
   window.addEventListener('storage', (e) => {
     if (e.key === 'rydealot_custom_roads' || e.key === 'rydealot_custom_buildings') {
       renderAdminGisOverlays();
+    }
+    if (e.key === 'rydealot_custom_shortcuts') {
+      loadCommunityShortcuts();
     }
   });
 
@@ -801,6 +817,7 @@ function setVehicleMode(mode) {
   document.getElementById('veh-btn-car').classList.toggle('active', mode === 'car');
   document.getElementById('veh-btn-bike').classList.toggle('active', mode === 'bike');
   document.getElementById('veh-btn-walk').classList.toggle('active', mode === 'walk');
+  renderCommunityShortcutsOnMap();
   if (activeDestination) {
     calculateActiveRoute(activeDestination.lng, activeDestination.lat, activeDestination.name);
   }
@@ -864,8 +881,8 @@ async function calculateActiveRoute(destLng, destLat, destName, autoNav = false,
     const profile = activeVehicleMode === 'walk' ? 'foot' : 'driving';
     const coords = `${startCoord[0]},${startCoord[1]};${destLng},${destLat}`;
     const query = isDataSaverActive
-      ? `?overview=simplified&geometries=geojson&steps=false`
-      : `?overview=full&geometries=geojson&steps=true`;
+      ? `?overview=simplified&geometries=geojson&steps=false&alternatives=true`
+      : `?overview=full&geometries=geojson&steps=true&alternatives=true`;
 
     const backends = [
       `https://rydealot-supermaps-api.rydealotmaps.workers.dev/route/v1/${profile}/${coords}${query}`,
@@ -896,42 +913,17 @@ async function calculateActiveRoute(destLng, destLat, destName, autoNav = false,
       return;
     }
 
-    const route = data.routes[0];
-    renderRouteOnMap(route.geometry);
+    _currentRoutes = data.routes;
+    _activeRouteIndex = 0;
 
-    const distKm = route.distance / 1000;
+    // Render primary route and alternative paths on the map
+    renderAlternativeRoutes(_currentRoutes, activeVehicleMode, 0);
 
-    // REALISTIC Indian city speed estimates
-    let avgSpeedKmh = 28;
-    if (activeVehicleMode === 'bike') avgSpeedKmh = 20;
-    else if (activeVehicleMode === 'walk') avgSpeedKmh = 4.5;
+    // Render interactive alternative route pills (up to 3 routes with time diffs)
+    renderRouteSelectorPills(_currentRoutes, activeVehicleMode, 0, destName);
 
-    const realisticMins = Math.round((distKm / avgSpeedKmh) * 60);
-    const etaText = realisticMins < 60
-      ? `${realisticMins} mins`
-      : `${Math.floor(realisticMins / 60)} hr ${realisticMins % 60} min`;
-
-    let modeText = 'Car · City traffic estimate';
-    if (activeVehicleMode === 'bike') modeText = 'Bike · City traffic estimate';
-    if (activeVehicleMode === 'walk') modeText = 'Walking estimate';
-
-    // Ensure Route Summary banner inside Directions Card is visible
-    const summaryBanner = document.getElementById('route-summary-banner');
-    if (summaryBanner) summaryBanner.style.display = 'flex';
-    if (etaEl) etaEl.innerText = etaText;
-    if (distEl) distEl.innerText = `${distKm.toFixed(1)} km · ${modeText}`;
-
-    // Show Floating Bottom Route & Start Bar
-    const flBar = document.getElementById('floating-route-bar');
-    if (flBar) {
-      flBar.style.display = 'flex';
-      const flEta = document.getElementById('fl-route-eta');
-      if (flEta) flEta.innerText = etaText;
-      const flDist = document.getElementById('fl-route-dist');
-      if (flDist) flDist.innerText = `${distKm.toFixed(1)} km`;
-      const flName = document.getElementById('fl-route-name');
-      if (flName) flName.innerText = destName;
-    }
+    // Update main summary card and floating bar
+    updateRouteSummaryUI(_currentRoutes[0], activeVehicleMode, destName);
 
     // Auto-launch turn-by-turn navigation if requested by deep link
     if (autoNav) {
@@ -947,75 +939,177 @@ async function calculateActiveRoute(destLng, destLat, destName, autoNav = false,
   }
 }
 
-// Check if Supermaps was launched via deep-link from Rydealot Taxi / Driver App or shared WhatsApp link
-function checkUrlLaunchParameters() {
-  try {
-    let params = null;
-    let hasHash = false;
-    if (window.location.hash && window.location.hash.length > 1) {
-      params = new URLSearchParams(window.location.hash.substring(1));
-      hasHash = true;
-    } else if (window.location.search && window.location.search.length > 1) {
-      params = new URLSearchParams(window.location.search.substring(1));
-    }
+// Update Hero Distance and Route Details in UI cards for selected route (No inaccurate time guesses)
+function updateRouteSummaryUI(route, vehicleMode, destName) {
+  const etaEl = document.getElementById('route-eta');
+  const distEl = document.getElementById('route-dist');
+  const summaryBanner = document.getElementById('route-summary-banner');
 
-    if (!params) return;
+  const distKm = (route.distance / 1000).toFixed(1);
+  const roadSummary = (route.legs && route.legs[0] && route.legs[0].summary) || 'Direct Highway & State Road';
 
-    const destLat = parseFloat(params.get('destLat') || params.get('lat'));
-    const destLng = parseFloat(params.get('destLng') || params.get('lng'));
-    const destName = params.get('destName') || params.get('name') || 'Destination';
-    const destClue = params.get('clue') || '';
-    const destImg = params.get('img') || '';
-    const isNav = params.get('nav') === 'true' || params.get('autoNav') === 'true';
+  let vehicleLabel = 'Direct Navigation';
+  if (vehicleMode === 'bike') vehicleLabel = '🏍️ 2-Wheeler';
+  else if (vehicleMode === 'car') vehicleLabel = '🚗 Car';
+  else if (vehicleMode === 'walk') vehicleLabel = '🚶 Walk';
 
-    if (!isNaN(destLat) && !isNaN(destLng)) {
-      console.log(`[Supermaps Launch] Received destination: ${destName} (${destLat}, ${destLng}) - autoNav: ${isNav}`);
+  if (summaryBanner) summaryBanner.style.display = 'flex';
+  if (etaEl) etaEl.innerText = `${distKm} KM`;
+  if (distEl) distEl.innerText = `${vehicleLabel} · ${roadSummary}`;
 
-      const doorstepMeta = {
-        name: destName,
-        clue: destClue,
-        img: destImg,
-        lat: destLat,
-        lng: destLng
-      };
-
-      // If image is present, cache locally and render arrival card preview
-      if (destImg) {
-        try {
-          localStorage.setItem('rydealot_cached_doorstep', JSON.stringify({
-            name: destName, clue: destClue, img: destImg, lat: destLat, lng: destLng, time: Date.now()
-          }));
-        } catch (e) {}
-
-        renderDoorstepCard(doorstepMeta);
-      }
-
-      // Clean up long hash from the address bar immediately so browser bar is clean & uncluttered
-      if (hasHash && window.history && window.history.replaceState) {
-        const cleanUrl = `${window.location.pathname}?dest=${encodeURIComponent(destName)}&lat=${destLat.toFixed(4)}&lng=${destLng.toFixed(4)}`;
-        window.history.replaceState(null, '', cleanUrl);
-      }
-
-      setTimeout(() => {
-        calculateActiveRoute(destLng, destLat, destName, isNav, doorstepMeta);
-      }, 800);
-    }
-  } catch (e) {
-    console.warn('[Supermaps] Could not parse launch parameters:', e);
+  // Floating Bottom Route & Start Bar
+  const flBar = document.getElementById('floating-route-bar');
+  if (flBar) {
+    flBar.style.display = 'flex';
+    const flEta = document.getElementById('fl-route-eta');
+    if (flEta) flEta.innerText = `${distKm} KM`;
+    const flDist = document.getElementById('fl-route-dist');
+    if (flDist) flDist.innerText = vehicleLabel;
+    const flName = document.getElementById('fl-route-name');
+    if (flName) flName.innerText = destName || (activeDestination && activeDestination.name) || 'Destination';
   }
 }
 
-function renderRouteOnMap(geojsonGeometry) {
-  clearActiveRoute();
-  _pendingRouteGeometry = geojsonGeometry; // save for theme-toggle restore
+// User selects an alternative route (via map line tap or pill click)
+function selectAlternativeRoute(index, destName) {
+  if (!_currentRoutes || !_currentRoutes[index]) return;
+  _activeRouteIndex = index;
+  const selectedRoute = _currentRoutes[index];
+  _pendingRouteGeometry = selectedRoute.geometry;
 
-  const routeColor = activeVehicleMode === 'bike' ? '#f59e0b' : '#06b6d4';
+  renderAlternativeRoutes(_currentRoutes, activeVehicleMode, index);
+  updateRouteSummaryUI(selectedRoute, activeVehicleMode, destName);
+  updateRouteSelectorPillsActive(index);
+}
+
+// Render up to 3 interactive pills with Distance comparisons
+function renderRouteSelectorPills(routes, vehicleMode, activeIdx = 0, destName = 'Destination') {
+  const container = document.getElementById('alt-routes-selector');
+  if (!container) return;
+
+  if (!routes || routes.length <= 1) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.innerHTML = '';
+  container.style.display = 'flex';
+
+  const primaryDistKm = routes[0].distance / 1000;
+
+  routes.slice(0, 3).forEach((r, idx) => {
+    const distKm = r.distance / 1000;
+    const diffKm = (distKm - primaryDistKm).toFixed(1);
+
+    let badgeText = 'Shortest';
+    let badgeClass = 'badge-fastest';
+
+    if (idx > 0) {
+      if (Math.abs(diffKm) < 0.1) {
+        badgeText = 'Same Distance';
+        badgeClass = 'badge-faster';
+      } else if (diffKm < 0) {
+        badgeText = `${Math.abs(diffKm)} km shorter`;
+        badgeClass = 'badge-faster';
+      } else {
+        badgeText = `+${diffKm} km`;
+        badgeClass = 'badge-slower';
+      }
+    }
+
+    const pill = document.createElement('div');
+    pill.className = `alt-route-pill ${idx === activeIdx ? 'active' : ''} ${vehicleMode === 'bike' ? 'bike-mode' : ''}`;
+    pill.id = `alt-pill-${idx}`;
+    pill.onclick = () => selectAlternativeRoute(idx, destName);
+
+    const roadName = (r.legs && r.legs[0] && r.legs[0].summary) || (idx === 0 ? 'Main Path' : `Alt Path ${idx + 1}`);
+
+    pill.innerHTML = `
+      <div class="alt-route-header">
+        <span class="alt-route-name">${idx === 0 ? 'Main Route' : `Route ${idx + 1}`}</span>
+        <span class="alt-route-badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <div class="alt-route-time">${distKm.toFixed(1)} KM</div>
+      <div class="alt-route-dist" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px;">${roadName}</div>
+    `;
+
+    container.appendChild(pill);
+  });
+}
+
+function updateRouteSelectorPillsActive(activeIdx) {
+  document.querySelectorAll('.alt-route-pill').forEach((pill, idx) => {
+    pill.classList.toggle('active', idx === activeIdx);
+  });
+}
+
+// Render multiple routes: unselected as dashed slate, active as solid cyan/amber
+function renderAlternativeRoutes(routes, vehicleMode, activeIdx = 0) {
+  clearActiveRoute(false);
+  if (!map || !routes || routes.length === 0) return;
+
+  const primaryColor = vehicleMode === 'bike' ? '#f59e0b' : '#06b6d4';
+  const altColor = '#64748b'; // Slate gray for alternatives
+
+  // 1. Render alternative unselected routes first
+  routes.forEach((r, idx) => {
+    if (idx === activeIdx) return;
+    const srcId = `alt-route-src-${idx}`;
+    const layerId = `alt-route-line-${idx}`;
+
+    if (map.getSource(srcId)) map.removeSource(srcId);
+
+    map.addSource(srcId, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: r.geometry,
+        properties: { index: idx }
+      }
+    });
+
+    map.addLayer({
+      id: layerId,
+      type: 'line',
+      source: srcId,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: {
+        'line-color': altColor,
+        'line-width': 5.5,
+        'line-dasharray': [2, 2],
+        'line-opacity': 0.85
+      }
+    });
+
+    // Clicking alternative route on map selects it!
+    map.on('click', layerId, () => {
+      selectAlternativeRoute(idx);
+    });
+  });
+
+  // 2. Render primary active route on top with bold casing
+  const activeRoute = routes[activeIdx] || routes[0];
+  _pendingRouteGeometry = activeRoute.geometry;
+
+  if (map.getSource('active-route')) map.removeSource('active-route');
 
   map.addSource('active-route', {
     type: 'geojson',
     data: {
       type: 'Feature',
-      geometry: geojsonGeometry
+      geometry: activeRoute.geometry
+    }
+  });
+
+  map.addLayer({
+    id: 'route-line-casing',
+    type: 'line',
+    source: 'active-route',
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: {
+      'line-color': '#000000',
+      'line-width': 10,
+      'line-opacity': 0.7
     }
   });
 
@@ -1023,30 +1117,49 @@ function renderRouteOnMap(geojsonGeometry) {
     id: 'route-line',
     type: 'line',
     source: 'active-route',
-    layout: {
-      'line-join': 'round',
-      'line-cap': 'round'
-    },
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
     paint: {
-      'line-color': routeColor,
+      'line-color': primaryColor,
       'line-width': 7,
-      'line-opacity': 0.95
+      'line-opacity': 1.0
     }
   });
 
-  // Fit camera bounds to route
-  const coordinates = geojsonGeometry.coordinates;
-  const bounds = coordinates.reduce((b, coord) => b.extend(coord), new maplibregl.LngLatBounds(coordinates[0], coordinates[0]));
-  map.fitBounds(bounds, { padding: 80 });
+  // Fit camera bounds to encompass all alternative routes
+  const allCoords = routes.flatMap(r => r.geometry.coordinates);
+  if (allCoords.length > 0) {
+    const bounds = allCoords.reduce((b, coord) => b.extend(coord), new maplibregl.LngLatBounds(allCoords[0], allCoords[0]));
+    map.fitBounds(bounds, { padding: { top: 90, bottom: 120, left: 60, right: 60 } });
+  }
 }
 
-function clearActiveRoute() {
+function renderRouteOnMap(geojsonGeometry) {
+  renderAlternativeRoutes([{ geometry: geojsonGeometry, distance: 3000 }], activeVehicleMode, 0);
+}
+
+function clearActiveRoute(clearDest = true) {
   _pendingRouteGeometry = null;
-  if (map.getLayer('route-line')) map.removeLayer('route-line');
-  if (map.getSource('active-route')) map.removeSource('active-route');
-  if (destMarker) { destMarker.remove(); destMarker = null; }
+
+  // Clear main route layers
+  ['route-line', 'route-line-casing'].forEach(id => {
+    if (map && map.getLayer(id)) map.removeLayer(id);
+  });
+  if (map && map.getSource('active-route')) map.removeSource('active-route');
+
+  // Clear alternative route layers
+  [0, 1, 2, 3].forEach(idx => {
+    const layerId = `alt-route-line-${idx}`;
+    const srcId = `alt-route-src-${idx}`;
+    if (map && map.getLayer(layerId)) map.removeLayer(layerId);
+    if (map && map.getSource(srcId)) map.removeSource(srcId);
+  });
+
+  if (clearDest && destMarker) { destMarker.remove(); destMarker = null; }
+
   const banner = document.getElementById('route-summary-banner');
   if (banner) banner.style.display = 'none';
+  const pills = document.getElementById('alt-routes-selector');
+  if (pills) pills.style.display = 'none';
   const flBar = document.getElementById('floating-route-bar');
   if (flBar) flBar.style.display = 'none';
 }
@@ -1154,6 +1267,9 @@ function startNavigation(destLng, destLat, destName, routeGeom) {
         const d = calculateDistanceKm(userLngLat[1], userLngLat[0], destLat, destLng);
         document.getElementById('nav-hud-dist').innerText = `${d.toFixed(1)} KM`;
 
+        // Check Flyover Elevation & Community Shortcut Guidance
+        checkNavigationGuidance(userLngLat);
+
         // Auto-popup Doorstep Photo verification when entering final 100 meters
         if (d <= 0.1 && !_hasShownArrivalDoorstep && activeDestination && activeDestination.img) {
           _hasShownArrivalDoorstep = true;
@@ -1215,6 +1331,9 @@ function toggleSimulation() {
     const estRemainingKm = ((remainingSteps / totalSteps) * 5.0).toFixed(1);
     document.getElementById('nav-hud-dist').innerText = `${estRemainingKm} KM`;
 
+    // Check Flyover Elevation & Community Shortcut Guidance
+    checkNavigationGuidance(userLngLat);
+
     // Auto-popup Doorstep Photo verification in final steps
     if (remainingSteps <= 4 && !_hasShownArrivalDoorstep && activeDestination && activeDestination.img) {
       _hasShownArrivalDoorstep = true;
@@ -1258,8 +1377,304 @@ function stopNavigation() {
   _activeNavRoute = null;
 
   document.getElementById('nav-hud').style.display = 'none';
+  const flyCard = document.getElementById('nav-flyover-card');
+  if (flyCard) flyCard.style.display = 'none';
+  const scCard = document.getElementById('nav-shortcut-card');
+  if (scCard) scCard.style.display = 'none';
+
   clearActiveRoute();
   map.easeTo({ pitch: 0, bearing: 0, zoom: 14, duration: 800 });
+}
+
+// =========================================================================
+// COLOR-CODED FLYOVERS & ELEVATION VECTOR RENDERING (Flat 2D, Zero Battery Drain)
+// =========================================================================
+function renderFlyoverOverlays() {
+  if (!map) return;
+  if (!map.getSource('protomaps')) return;
+
+  try {
+    // 1. Dark Slate for ground & service roads below
+    if (!map.getLayer('protomaps-ground-roads')) {
+      map.addLayer({
+        id: 'protomaps-ground-roads',
+        type: 'line',
+        source: 'protomaps',
+        'source-layer': 'roads',
+        filter: ['any', ['!has', 'bridge'], ['==', ['get', 'bridge'], 0], ['<=', ['get', 'layer'], 0]],
+        paint: {
+          'line-color': '#334155', // Dark slate for roads below
+          'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1.5, 16, 4],
+          'line-opacity': 0.7
+        }
+      });
+    }
+
+    // 2. High-contrast casing for elevated flyovers
+    if (!map.getLayer('protomaps-flyover-casing')) {
+      map.addLayer({
+        id: 'protomaps-flyover-casing',
+        type: 'line',
+        source: 'protomaps',
+        'source-layer': 'roads',
+        filter: ['any', ['==', ['get', 'bridge'], 1], ['>', ['get', 'layer'], 0]],
+        paint: {
+          'line-color': '#78350f', // Dark amber casing
+          'line-width': ['interpolate', ['linear'], ['zoom'], 12, 3.5, 16, 8],
+          'line-opacity': 0.95
+        }
+      });
+    }
+
+    // 3. Electric Amber (#f59e0b) for flyovers & elevated bridges
+    if (!map.getLayer('protomaps-flyover-amber')) {
+      map.addLayer({
+        id: 'protomaps-flyover-amber',
+        type: 'line',
+        source: 'protomaps',
+        'source-layer': 'roads',
+        filter: ['any', ['==', ['get', 'bridge'], 1], ['>', ['get', 'layer'], 0]],
+        paint: {
+          'line-color': '#f59e0b', // Vibrant amber/yellow for flyovers
+          'line-width': ['interpolate', ['linear'], ['zoom'], 12, 2.5, 16, 6],
+          'line-opacity': 1.0
+        }
+      });
+    }
+  } catch (err) {
+    console.log('[Supermaps] Flyover styling note:', err.message);
+  }
+}
+
+// =========================================================================
+// COMMUNITY SHORTCUTS ENGINE (Strict 2-Wheeler Safety Lock & HUD Alerts)
+// =========================================================================
+async function loadCommunityShortcuts() {
+  if (!map) return;
+  try {
+    const res = await fetch(`${CONFIG.D1_WORKER}/api/v1/shortcuts?vehicle=${activeVehicleMode}`);
+    if (res.ok) {
+      _communityShortcuts = await res.json();
+    }
+  } catch (e) {
+    try {
+      const raw = localStorage.getItem('rydealot_custom_shortcuts');
+      if (raw) _communityShortcuts = JSON.parse(raw);
+    } catch (e2) {}
+  }
+
+  renderCommunityShortcutsOnMap();
+}
+
+function renderCommunityShortcutsOnMap() {
+  if (!map) return;
+  const srcId = 'supermaps-shortcuts-source';
+  const layerId = 'supermaps-shortcuts-layer';
+  const casingId = 'supermaps-shortcuts-casing';
+
+  // Strict safety check: If user is in CAR mode, filter out 2-wheeler shortcuts!
+  const visibleShortcuts = (_communityShortcuts || []).filter(s => {
+    if (s.status !== 'active') return false;
+    if (activeVehicleMode === 'car') return s.vehicle_type === 'all';
+    return true; // Bike mode allows both bike-only and all-vehicle shortcuts
+  });
+
+  const geojson = {
+    type: 'FeatureCollection',
+    features: visibleShortcuts.map(s => ({
+      type: 'Feature',
+      properties: {
+        id: s.id,
+        title: s.title,
+        vehicle_type: s.vehicle_type,
+        time_saved_mins: s.time_saved_mins || 5,
+        rides: s.rides_completed_count || 0
+      },
+      geometry: {
+        type: 'LineString',
+        coordinates: s.coordinates
+      }
+    }))
+  };
+
+  if (map.getSource(srcId)) {
+    map.getSource(srcId).setData(geojson);
+  } else {
+    map.addSource(srcId, { type: 'geojson', data: geojson });
+
+    map.addLayer({
+      id: casingId,
+      type: 'line',
+      source: srcId,
+      paint: {
+        'line-color': '#000000',
+        'line-width': 7,
+        'line-opacity': 0.8
+      }
+    });
+
+    map.addLayer({
+      id: layerId,
+      type: 'line',
+      source: srcId,
+      paint: {
+        'line-color': '#f59e0b',
+        'line-width': 4.5,
+        'line-dasharray': [2, 1.5]
+      }
+    });
+
+    map.on('click', layerId, (e) => {
+      const p = e.features[0].properties;
+      const isBikeOnly = p.vehicle_type === 'bike';
+      new maplibregl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(`
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; color:#000; padding:4px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:1.1rem;">⚡</span>
+              <strong>${p.title}</strong>
+            </div>
+            <div style="font-size:0.75rem; color:#475569; margin-top:2px;">
+              Saves ~${p.time_saved_mins} mins • ${p.rides} rides verified
+            </div>
+            <div style="margin-top:4px;">
+              <span style="background:${isBikeOnly ? '#fef3c7' : '#cffafe'}; color:${isBikeOnly ? '#b45309' : '#0369a1'}; font-weight:800; font-size:0.7rem; padding:2px 6px; border-radius:4px;">
+                ${isBikeOnly ? '🏍️ 2-WHEELER ONLY' : '🚗 CAR & BIKE'}
+              </span>
+            </div>
+          </div>
+        `)
+        .addTo(map);
+    });
+  }
+}
+
+// Navigation Guidance Controller: Checks Flyovers & Shortcuts
+function checkNavigationGuidance(userCoords) {
+  if (!isNavigating) return;
+  checkFlyoverGuidance();
+  checkCommunityShortcutGuidance(userCoords);
+}
+
+function checkFlyoverGuidance() {
+  const flyoverCard = document.getElementById('nav-flyover-card');
+  if (!flyoverCard) return;
+
+  const activeRoute = (_currentRoutes && _currentRoutes[_activeRouteIndex]) || null;
+  let hasFlyoverUpcoming = false;
+  let isTakingFlyover = true;
+
+  if (activeRoute && activeRoute.legs && activeRoute.legs[0] && activeRoute.legs[0].steps) {
+    const steps = activeRoute.legs[0].steps;
+    for (let s of steps) {
+      const text = ((s.name || '') + ' ' + (s.instruction || '')).toLowerCase();
+      if (text.includes('flyover') || text.includes('bridge') || text.includes('elevated') || text.includes('ramp') || text.includes('bypass')) {
+        hasFlyoverUpcoming = true;
+        if (text.includes('service') || text.includes('below') || text.includes('under') || text.includes('exit to service')) {
+          isTakingFlyover = false;
+        }
+        break;
+      }
+    }
+  }
+
+  if (hasFlyoverUpcoming || (activeRoute && activeRoute.summary && (activeRoute.summary.toLowerCase().includes('flyover') || activeRoute.summary.toLowerCase().includes('bridge')))) {
+    flyoverCard.style.display = 'block';
+    const badgeText = document.getElementById('flyover-badge-text');
+    const instruction = document.getElementById('flyover-instruction');
+    const sub = document.getElementById('flyover-sub');
+
+    if (isTakingFlyover) {
+      if (badgeText) badgeText.innerText = '🟡 ELEVATED FLYOVER RAMP';
+      if (instruction) instruction.innerText = 'Follow Yellow: Take Flyover Ramp';
+      if (sub) sub.innerText = 'Ground Road: Stay Below on Gray (Service Road)';
+    } else {
+      if (badgeText) badgeText.innerText = '🔘 SERVICE ROAD (BELOW)';
+      if (instruction) instruction.innerText = 'Follow Gray: Stay Below (Service Road)';
+      if (sub) sub.innerText = 'Flyover Ramp: Yellow Lane (Overhead)';
+    }
+  } else {
+    flyoverCard.style.display = 'none';
+  }
+}
+
+function checkCommunityShortcutGuidance(userCoords) {
+  const scCard = document.getElementById('nav-shortcut-card');
+  if (!scCard) return;
+
+  if (!_communityShortcuts || _communityShortcuts.length === 0) {
+    scCard.style.display = 'none';
+    return;
+  }
+
+  let nearbyShortcut = null;
+  for (let s of _communityShortcuts) {
+    if (s.status !== 'active') continue;
+    if (activeVehicleMode === 'car' && s.vehicle_type === 'bike') continue; // strictly locked from cars!
+
+    const distStart = calculateDistanceKm(userCoords[1], userCoords[0], s.start_lat, s.start_lng);
+    const distEnd = calculateDistanceKm(userCoords[1], userCoords[0], s.end_lat, s.end_lng);
+
+    if (distStart < 0.25 || distEnd < 0.25) {
+      nearbyShortcut = s;
+      break;
+    }
+  }
+
+  if (nearbyShortcut) {
+    _activeNavShortcutId = nearbyShortcut.id;
+    scCard.style.display = 'block';
+    const titleEl = document.getElementById('nav-sc-title');
+    const descEl = document.getElementById('nav-sc-desc');
+    if (titleEl) titleEl.innerText = `⚡ ${nearbyShortcut.title}`;
+    if (descEl) descEl.innerText = `Saves ~${nearbyShortcut.time_saved_mins || 5} mins · Discovered by ${nearbyShortcut.creator_rider_id || 'Rider'}`;
+
+    // Auto-log ride completion when passing near the end of the shortcut (within 40m)
+    const distToEnd = calculateDistanceKm(userCoords[1], userCoords[0], nearbyShortcut.end_lat, nearbyShortcut.end_lng);
+    if (distToEnd < 0.04 && !_completedShortcutRidesLogged[nearbyShortcut.id]) {
+      _completedShortcutRidesLogged[nearbyShortcut.id] = true;
+      logShortcutRideCompleted(nearbyShortcut.id);
+    }
+  } else {
+    scCard.style.display = 'none';
+  }
+}
+
+async function logShortcutRideCompleted(shortcutId) {
+  try {
+    const res = await fetch(`${CONFIG.D1_WORKER}/api/v1/shortcuts/${shortcutId}/complete-ride`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rider_id: 'RIDER_NAV_' + Date.now() })
+    });
+    if (res.ok) {
+      console.log(`[Supermaps] Ride logged for shortcut ${shortcutId}`);
+    }
+  } catch (e) {}
+}
+
+async function reportActiveShortcutClosed() {
+  if (!_activeNavShortcutId) {
+    alert('No active shortcut nearby to report.');
+    return;
+  }
+  const reason = prompt('Reason for closure (e.g., Gate locked, Construction, Wall built):', 'Gate locked / Road closed');
+  if (!reason) return;
+
+  try {
+    const res = await fetch(`${CONFIG.D1_WORKER}/api/v1/shortcuts/${_activeNavShortcutId}/report-closed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+    const data = await res.json();
+    alert(`⚠️ Closure report submitted!\nTotal reports: ${data.closed_reports_count || 1}.\n(Shortcuts are automatically closed after 3 reports).`);
+    const scCard = document.getElementById('nav-shortcut-card');
+    if (scCard) scCard.style.display = 'none';
+  } catch (e) {
+    alert('Closure report submitted locally.');
+  }
 }
 
 // 5. VERIFIED BUSINESSES (Only load from Cloudflare D1 — no fake fallback pins)

@@ -535,6 +535,156 @@ body.daylight-theme .leaflet-tile {
 }
 
 /* =========================================================================
+   ALTERNATIVE ROUTES SELECTOR (UP TO 3 ROUTES WITH TIME DIFFERENCE BADGES)
+   ========================================================================= */
+.alt-routes-selector {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 8px 2px;
+  margin-top: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+.alt-routes-selector::-webkit-scrollbar { display: none; }
+
+.alt-route-pill {
+  flex: 1;
+  min-width: 105px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.alt-route-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.alt-route-pill.active {
+  background: rgba(6, 182, 212, 0.15);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.25);
+}
+.alt-route-pill.active.bike-mode {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
+}
+
+.alt-route-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.alt-route-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.alt-route-pill.active .alt-route-name {
+  color: #fff;
+}
+.alt-route-time {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+}
+.alt-route-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.badge-fastest {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+.badge-faster {
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+}
+.badge-slower {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+.alt-route-dist {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* =========================================================================
+   COLOR-CODED FLYOVER GUIDANCE (FLAT 2D, ZERO THERMAL/BATTERY OVERHEAD)
+   ========================================================================= */
+.nav-flyover-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(15, 18, 25, 0.95));
+  border: 1.5px solid #f59e0b;
+  border-radius: 14px;
+  padding: 10px 14px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  animation: pulseFlyover 2s infinite ease-in-out;
+}
+@keyframes pulseFlyover {
+  0%, 100% { border-color: #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.25); }
+  50% { border-color: #fbbf24; box-shadow: 0 0 25px rgba(245, 158, 11, 0.45); }
+}
+.flyover-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+.flyover-instruction {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fef08a;
+}
+.flyover-sub {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* =========================================================================
+   COMMUNITY SHORTCUT HUD CARD & ONE-TAP CLOSED REPORT
+   ========================================================================= */
+.nav-shortcut-card {
+  background: #12151f;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+.btn-report-closed-sm {
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.btn-report-closed-sm:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* =========================================================================
    VERIFIED BUSINESS PIN (PULSING MAP MARKER)
    ========================================================================= */
 .golden-shop-pin {

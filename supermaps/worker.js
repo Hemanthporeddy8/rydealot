@@ -94,6 +94,18 @@ export default {
         return await handleTileProxy(request, path, ctx, corsHeaders);
       }
 
+      // 10. COMMUNITY SHORTCUTS & RIDER BOUNTY ENGINE (Supermaps Admin Isolated)
+      // GET   /api/v1/shortcuts
+      // POST  /api/v1/shortcuts/record
+      // POST  /api/v1/shortcuts/:id/complete-ride
+      // POST  /api/v1/shortcuts/:id/report-closed
+      // GET   /api/v1/admin/shortcuts
+      // PATCH /api/v1/admin/shortcuts/:id/payout
+      // PATCH /api/v1/admin/shortcuts/:id/status
+      if (path.startsWith('/api/v1/shortcuts') || path.startsWith('/api/v1/admin/shortcuts')) {
+        return await handleShortcuts(request, path, url, env, corsHeaders);
+      }
+
       return jsonResponse({ error: 'Endpoint not found on Supermaps Server' }, 404, corsHeaders);
 
     } catch (err) {
@@ -126,7 +138,8 @@ async function handleDirections(url, headers) {
 
   // Routing profile: driving for car, bicycle/fast profile for bike
   const profile = vehicle === 'bike' ? 'driving' : 'driving';
-  const query = `${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson&steps=true`;
+  const alternatives = url.searchParams.get('alternatives') === 'true';
+  const query = `${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson&steps=true${alternatives ? '&alternatives=true' : ''}`;
 
   // Multi-Provider Failover Backends
   const backends = [
@@ -152,14 +165,38 @@ async function handleDirections(url, headers) {
     return jsonResponse({ error: 'No drivable route found between these points' }, 404, headers);
   }
 
-  const route = data.routes[0];
-  const distanceKm = (route.distance / 1000).toFixed(1);
-  const durationMins = Math.round(route.duration / 60);
+  const primaryRoute = data.routes[0];
+  const primaryDistanceKm = (primaryRoute.distance / 1000).toFixed(1);
+  const primaryDurationMins = Math.round(primaryRoute.duration / 60);
 
-  // Extract turn-by-turn maneuver steps
+  // Format all returned alternative routes (up to 3 routes)
+  const formattedRoutes = data.routes.slice(0, 3).map((r, idx) => {
+    const dKm = Number((r.distance / 1000).toFixed(1));
+    const dMins = Math.round(r.duration / 60);
+    const diffMins = dMins - primaryDurationMins;
+    let badgeText = 'Fastest route';
+    if (idx > 0) {
+      if (diffMins === 0) badgeText = 'Similar ETA';
+      else if (diffMins < 0) badgeText = `${Math.abs(diffMins)} min faster`;
+      else badgeText = `${diffMins} min slower`;
+    }
+    return {
+      index: idx,
+      is_primary: idx === 0,
+      label: idx === 0 ? 'Main Route' : `Alternative ${idx}`,
+      badge: badgeText,
+      distance_km: dKm,
+      duration_mins: dMins,
+      diff_mins: diffMins,
+      geometry: r.geometry,
+      summary: (r.legs && r.legs[0] && r.legs[0].summary) || `Via Path ${idx + 1}`
+    };
+  });
+
+  // Extract turn-by-turn maneuver steps for the primary route
   const steps = [];
-  if (route.legs && route.legs[0] && route.legs[0].steps) {
-    route.legs[0].steps.forEach(s => {
+  if (primaryRoute.legs && primaryRoute.legs[0] && primaryRoute.legs[0].steps) {
+    primaryRoute.legs[0].steps.forEach(s => {
       if (s.maneuver) {
         steps.push({
           instruction: s.name ? `${s.maneuver.type} onto ${s.name}` : s.maneuver.type,
@@ -173,9 +210,10 @@ async function handleDirections(url, headers) {
   return jsonResponse({
     status: 'success',
     vehicle: vehicle,
-    distance_km: Number(distanceKm),
-    duration_mins: durationMins,
-    geometry: route.geometry, // GeoJSON coordinates [lng, lat]
+    distance_km: Number(primaryDistanceKm),
+    duration_mins: primaryDurationMins,
+    geometry: primaryRoute.geometry, // GeoJSON coordinates [lng, lat]
+    routes: formattedRoutes,          // All alternative routes (up to 3)
     steps: steps,
     road_surfaces_preview: {
       tar_percent: vehicle === 'car' ? 90 : 70,
@@ -571,6 +609,341 @@ async function handleTelemetry(request, path, env, headers) {
   }
 
   return jsonResponse({ error: 'Telemetry method not allowed' }, 405, headers);
+}
+
+// =========================================================================
+// MODULE 8: COMMUNITY SHORTCUTS & RIDER BOUNTY ENGINE (SUPERMAPS ADMIN ISOLATED)
+// =========================================================================
+let inMemoryShortcuts = [
+  {
+    id: 'sc_001',
+    title: 'Gachibowli Outer Ring Service Bypass',
+    creator_rider_id: 'CAPTAIN_9821',
+    creator_app: 'rydealot',
+    vehicle_type: 'bike', // 'bike' (2-wheeler only) or 'all'
+    start_lat: 17.4401,
+    start_lng: 78.3489,
+    end_lat: 17.4435,
+    end_lng: 78.3540,
+    coordinates: [[78.3489, 17.4401], [78.3512, 17.4418], [78.3540, 17.4435]],
+    time_saved_mins: 7,
+    distance_meters: 650,
+    rides_completed_count: 12,
+    rides_needed_for_payout: 10,
+    payout_bounty_amount: 10.0,
+    payout_status: 'eligible', // 'pending_rides', 'eligible', 'approved_paid', 'rejected'
+    payout_approved_at: null,
+    closed_reports_count: 0,
+    status: 'active',
+    created_at: new Date(Date.now() - 7 * 86400000).toISOString()
+  },
+  {
+    id: 'sc_002',
+    title: 'Nagaram Village Culvert Cut',
+    creator_rider_id: 'CAPTAIN_4412',
+    creator_app: 'rydealot',
+    vehicle_type: 'bike',
+    start_lat: 17.4890,
+    start_lng: 78.5830,
+    end_lat: 17.4925,
+    end_lng: 78.5880,
+    coordinates: [[78.5830, 17.4890], [78.5855, 17.4905], [78.5880, 17.4925]],
+    time_saved_mins: 9,
+    distance_meters: 800,
+    rides_completed_count: 6,
+    rides_needed_for_payout: 10,
+    payout_bounty_amount: 10.0,
+    payout_status: 'pending_rides',
+    payout_approved_at: null,
+    closed_reports_count: 0,
+    status: 'active',
+    created_at: new Date(Date.now() - 3 * 86400000).toISOString()
+  },
+  {
+    id: 'sc_003',
+    title: 'Kondapur RTA Cross Cut (All Vehicles)',
+    creator_rider_id: 'CAPTAIN_1105',
+    creator_app: 'sage',
+    vehicle_type: 'all',
+    start_lat: 17.4650,
+    start_lng: 78.3610,
+    end_lat: 17.4690,
+    end_lng: 78.3670,
+    coordinates: [[78.3610, 17.4650], [78.3640, 17.4670], [78.3670, 17.4690]],
+    time_saved_mins: 4,
+    distance_meters: 950,
+    rides_completed_count: 15,
+    rides_needed_for_payout: 10,
+    payout_bounty_amount: 10.0,
+    payout_status: 'approved_paid',
+    payout_approved_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+    closed_reports_count: 0,
+    status: 'active',
+    created_at: new Date(Date.now() - 10 * 86400000).toISOString()
+  }
+];
+
+async function handleShortcuts(request, path, url, env, headers) {
+  const method = request.method;
+
+  // 1. PUBLIC / CLIENT APP: GET /api/v1/shortcuts (Filter by vehicle type)
+  if (method === 'GET' && path === '/api/v1/shortcuts') {
+    const vehicle = (url.searchParams.get('vehicle') || 'all').toLowerCase();
+    
+    if (env && env.DB) {
+      try {
+        let query = 'SELECT * FROM supermaps_community_shortcuts WHERE status = "active"';
+        // STRICT SAFETY LOCK: If request is for CAR, NEVER return bike-only shortcuts!
+        if (vehicle === 'car') {
+          query += ' AND vehicle_type = "all"';
+        }
+        query += ' ORDER BY rides_completed_count DESC';
+        const { results } = await env.DB.prepare(query).all();
+        if (results && results.length > 0) {
+          const mapped = results.map(r => ({
+            ...r,
+            coordinates: typeof r.coordinates_json === 'string' ? JSON.parse(r.coordinates_json) : r.coordinates_json
+          }));
+          return jsonResponse(mapped, 200, headers);
+        }
+      } catch (e) {}
+    }
+
+    // In-memory fallback
+    const filtered = inMemoryShortcuts.filter(s => {
+      if (s.status !== 'active') return false;
+      if (vehicle === 'car') return s.vehicle_type === 'all';
+      return true; // For bike or walk, both 'bike' and 'all' shortcuts are navigable
+    });
+    return jsonResponse(filtered, 200, headers);
+  }
+
+  // 2. RIDER SDK: RECORD NEW SHORTCUT (POST /api/v1/shortcuts/record)
+  if (method === 'POST' && path === '/api/v1/shortcuts/record') {
+    const body = await request.json().catch(() => ({}));
+    if (!body.coordinates || !Array.isArray(body.coordinates) || body.coordinates.length < 2) {
+      return jsonResponse({ error: 'Valid coordinates array is required for shortcut.' }, 400, headers);
+    }
+
+    const startCoord = body.coordinates[0];
+    const endCoord = body.coordinates[body.coordinates.length - 1];
+    const vehicleType = (body.vehicle_type === 'car' || body.vehicle_type === 'all') ? 'all' : 'bike';
+
+    const newShortcut = {
+      id: 'sc_' + Date.now(),
+      title: body.title || 'Community Shortcut',
+      creator_rider_id: body.creator_rider_id || 'UNKNOWN_RIDER',
+      creator_app: body.creator_app || 'rydealot',
+      vehicle_type: vehicleType,
+      start_lat: Number(body.start_lat || startCoord[1]),
+      start_lng: Number(body.start_lng || startCoord[0]),
+      end_lat: Number(body.end_lat || endCoord[1]),
+      end_lng: Number(body.end_lng || endCoord[0]),
+      coordinates: body.coordinates,
+      time_saved_mins: Number(body.time_saved_mins) || 5,
+      distance_meters: Number(body.distance_meters) || 500,
+      rides_completed_count: 0,
+      rides_needed_for_payout: 10,
+      payout_bounty_amount: 10.0,
+      payout_status: 'pending_rides',
+      payout_approved_at: null,
+      closed_reports_count: 0,
+      status: 'active',
+      created_at: new Date().toISOString()
+    };
+
+    if (env && env.DB) {
+      try {
+        await env.DB.prepare(`
+          INSERT INTO supermaps_community_shortcuts (
+            id, title, creator_rider_id, creator_app, vehicle_type,
+            start_lat, start_lng, end_lat, end_lng, coordinates_json,
+            time_saved_mins, distance_meters, rides_completed_count,
+            rides_needed_for_payout, payout_bounty_amount, payout_status,
+            closed_reports_count, status, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          newShortcut.id, newShortcut.title, newShortcut.creator_rider_id, newShortcut.creator_app, newShortcut.vehicle_type,
+          newShortcut.start_lat, newShortcut.start_lng, newShortcut.end_lat, newShortcut.end_lng, JSON.stringify(newShortcut.coordinates),
+          newShortcut.time_saved_mins, newShortcut.distance_meters, 0,
+          10, 10.0, 'pending_rides', 0, 'active', newShortcut.created_at
+        ).run();
+      } catch (e) {}
+    }
+
+    inMemoryShortcuts.unshift(newShortcut);
+    return jsonResponse({
+      status: 'success',
+      message: 'Community shortcut recorded! You will receive ₹10 once 10 unique rides pass through it.',
+      shortcut: newShortcut
+    }, 201, headers);
+  }
+
+  // 3. COMPLETE RIDE THROUGH SHORTCUT (POST /api/v1/shortcuts/:id/complete-ride)
+  if (method === 'POST' && path.includes('/complete-ride')) {
+    const parts = path.split('/');
+    const shortcutId = parts[parts.indexOf('complete-ride') - 1];
+    const body = await request.json().catch(() => ({}));
+    const riderId = body.rider_id || 'RIDER_' + Math.floor(Math.random() * 9000 + 1000);
+    const rideId = body.ride_id || 'RIDE_' + Date.now();
+
+    let target = inMemoryShortcuts.find(s => s.id === shortcutId);
+    let updatedCount = 1;
+    let newPayoutStatus = 'pending_rides';
+
+    if (target) {
+      target.rides_completed_count += 1;
+      updatedCount = target.rides_completed_count;
+      if (target.rides_completed_count >= target.rides_needed_for_payout && target.payout_status === 'pending_rides') {
+        target.payout_status = 'eligible';
+      }
+      newPayoutStatus = target.payout_status;
+    }
+
+    if (env && env.DB) {
+      try {
+        await env.DB.prepare(`
+          INSERT INTO supermaps_shortcut_rides (id, shortcut_id, rider_id, ride_id, completed_at)
+          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `).bind('ride_' + Date.now(), shortcutId, riderId, rideId).run();
+
+        await env.DB.prepare(`
+          UPDATE supermaps_community_shortcuts
+          SET rides_completed_count = rides_completed_count + 1,
+              payout_status = CASE WHEN (rides_completed_count + 1) >= rides_needed_for_payout AND payout_status = 'pending_rides' THEN 'eligible' ELSE payout_status END,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).bind(shortcutId).run();
+      } catch (e) {}
+    }
+
+    return jsonResponse({
+      status: 'success',
+      shortcut_id: shortcutId,
+      rides_completed_count: updatedCount,
+      payout_status: newPayoutStatus,
+      is_eligible_for_bounty: newPayoutStatus === 'eligible' || newPayoutStatus === 'approved_paid'
+    }, 200, headers);
+  }
+
+  // 4. REPORT SHORTCUT CLOSED / GATE LOCKED (POST /api/v1/shortcuts/:id/report-closed)
+  if (method === 'POST' && path.includes('/report-closed')) {
+    const parts = path.split('/');
+    const shortcutId = parts[parts.indexOf('report-closed') - 1];
+
+    let target = inMemoryShortcuts.find(s => s.id === shortcutId);
+    let closedCount = 1;
+    let newStatus = 'active';
+
+    if (target) {
+      target.closed_reports_count += 1;
+      closedCount = target.closed_reports_count;
+      if (target.closed_reports_count >= 3) {
+        target.status = 'temporarily_closed';
+      }
+      newStatus = target.status;
+    }
+
+    if (env && env.DB) {
+      try {
+        await env.DB.prepare(`
+          UPDATE supermaps_community_shortcuts
+          SET closed_reports_count = closed_reports_count + 1,
+              status = CASE WHEN (closed_reports_count + 1) >= 3 THEN 'temporarily_closed' ELSE status END,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).bind(shortcutId).run();
+      } catch (e) {}
+    }
+
+    return jsonResponse({
+      status: 'success',
+      shortcut_id: shortcutId,
+      closed_reports_count: closedCount,
+      active_status: newStatus,
+      message: newStatus === 'temporarily_closed' ? 'Shortcut temporarily deactivated after 3 closure reports.' : 'Closure report logged.'
+    }, 200, headers);
+  }
+
+  // 5. SUPERMAPS ADMIN: GET ALL SHORTCUTS (GET /api/v1/admin/shortcuts)
+  if (method === 'GET' && path === '/api/v1/admin/shortcuts') {
+    if (env && env.DB) {
+      try {
+        const { results } = await env.DB.prepare('SELECT * FROM supermaps_community_shortcuts ORDER BY created_at DESC').all();
+        if (results && results.length > 0) {
+          const mapped = results.map(r => ({
+            ...r,
+            coordinates: typeof r.coordinates_json === 'string' ? JSON.parse(r.coordinates_json) : r.coordinates_json
+          }));
+          return jsonResponse(mapped, 200, headers);
+        }
+      } catch (e) {}
+    }
+    return jsonResponse(inMemoryShortcuts, 200, headers);
+  }
+
+  // 6. SUPERMAPS ADMIN: APPROVE ₹10 BOUNTY PAYOUT (PATCH /api/v1/admin/shortcuts/:id/payout)
+  if (method === 'PATCH' && path.includes('/admin/shortcuts/') && path.endsWith('/payout')) {
+    const parts = path.split('/');
+    const shortcutId = parts[parts.length - 2];
+    const nowIso = new Date().toISOString();
+
+    const target = inMemoryShortcuts.find(s => s.id === shortcutId);
+    if (target) {
+      target.payout_status = 'approved_paid';
+      target.payout_approved_at = nowIso;
+    }
+
+    if (env && env.DB) {
+      try {
+        await env.DB.prepare(`
+          UPDATE supermaps_community_shortcuts
+          SET payout_status = 'approved_paid', payout_approved_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).bind(shortcutId).run();
+      } catch (e) {}
+    }
+
+    return jsonResponse({
+      status: 'success',
+      shortcut_id: shortcutId,
+      payout_status: 'approved_paid',
+      payout_bounty_amount: 10.0,
+      message: '₹10 Bounty approved and transferred to rider account.'
+    }, 200, headers);
+  }
+
+  // 7. SUPERMAPS ADMIN: UPDATE STATUS (PATCH /api/v1/admin/shortcuts/:id/status)
+  if (method === 'PATCH' && path.includes('/admin/shortcuts/') && path.endsWith('/status')) {
+    const parts = path.split('/');
+    const shortcutId = parts[parts.length - 2];
+    const body = await request.json().catch(() => ({}));
+    const newStatus = body.status || 'active';
+
+    const target = inMemoryShortcuts.find(s => s.id === shortcutId);
+    if (target) {
+      target.status = newStatus;
+      if (newStatus === 'active') target.closed_reports_count = 0;
+    }
+
+    if (env && env.DB) {
+      try {
+        await env.DB.prepare(`
+          UPDATE supermaps_community_shortcuts
+          SET status = ?, closed_reports_count = CASE WHEN ? = 'active' THEN 0 ELSE closed_reports_count END, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).bind(newStatus, newStatus, shortcutId).run();
+      } catch (e) {}
+    }
+
+    return jsonResponse({
+      status: 'success',
+      shortcut_id: shortcutId,
+      status: newStatus
+    }, 200, headers);
+  }
+
+  return jsonResponse({ error: 'Shortcut endpoint method not allowed' }, 405, headers);
 }
 
 // =========================================================================

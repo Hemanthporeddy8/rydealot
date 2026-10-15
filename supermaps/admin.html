@@ -371,6 +371,7 @@
     <!-- Tabs Navigation -->
     <div class="tabs-nav">
       <button class="tab-btn active" onclick="switchAdminTab('roads')">🛣️ Roads GIS</button>
+      <button class="tab-btn" onclick="switchAdminTab('shortcuts')">⚡ Shortcuts &amp; Bounties</button>
       <button class="tab-btn" onclick="switchAdminTab('buildings')">🏢 Buildings GIS</button>
       <button class="tab-btn" onclick="switchAdminTab('trails')">🚗 5-Car Alerts</button>
       <button class="tab-btn" onclick="switchAdminTab('shops')">⭐ Shops</button>
@@ -425,6 +426,86 @@
           <button onclick="clearAllRoads()" style="background:none; border:none; color:#f87171; font-size:0.7rem; font-weight:700; cursor:pointer;">Clear All</button>
         </div>
         <div class="items-list" id="custom-roads-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB: COMMUNITY SHORTCUTS & RIDER BOUNTY TOWER (SUPERMAPS ADMIN EXCLUSIVE) -->
+    <div class="tab-content" id="tab-shortcuts" style="display:none;">
+      <div class="info-box" style="background:rgba(245,158,11,0.08); border-color:rgba(245,158,11,0.3); color:#fef3c7;">
+        ⚡ <strong>Community Shortcuts Engine:</strong> Riders discover shortcuts via Supermaps SDK. 
+        <br><strong>Bounty Rule:</strong> ₹10 bounty unlocks <strong>ONLY after 10 unique trips</strong> pass through. 2-wheeler shortcuts are strictly locked from cars!
+      </div>
+
+      <!-- Live Metric Badges -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
+        <div style="background:#181d2a; border:1px solid var(--border); border-radius:10px; padding:10px; text-align:center;">
+          <div style="font-size:0.7rem; color:var(--muted); font-weight:700;">TOTAL SHORTCUTS</div>
+          <div id="sc-stat-total" style="font-size:1.3rem; font-weight:900; color:var(--gold); margin-top:2px;">0</div>
+        </div>
+        <div style="background:#181d2a; border:1px solid var(--border); border-radius:10px; padding:10px; text-align:center;">
+          <div style="font-size:0.7rem; color:var(--muted); font-weight:700;">BIKE-ONLY CUTS</div>
+          <div id="sc-stat-bike" style="font-size:1.3rem; font-weight:900; color:var(--cyan); margin-top:2px;">0</div>
+        </div>
+        <div style="background:#181d2a; border:1px solid var(--border); border-radius:10px; padding:10px; text-align:center;">
+          <div style="font-size:0.7rem; color:var(--muted); font-weight:700;">RIDES PASSED</div>
+          <div id="sc-stat-rides" style="font-size:1.3rem; font-weight:900; color:#fff; margin-top:2px;">0</div>
+        </div>
+        <div style="background:#181d2a; border:1px solid rgba(16,185,129,0.3); border-radius:10px; padding:10px; text-align:center; background:rgba(16,185,129,0.08);">
+          <div style="font-size:0.7rem; color:#6ee7b7; font-weight:700;">₹10 PAYOUTS READY</div>
+          <div id="sc-stat-payouts" style="font-size:1.3rem; font-weight:900; color:var(--green); margin-top:2px;">0</div>
+        </div>
+      </div>
+
+      <!-- Shortcut Drawing Badge -->
+      <div id="sc-status-badge" class="drawing-badge" style="display:none;">
+        <span>⚡</span>
+        <span id="sc-points-count">0 coordinates recorded</span>
+      </div>
+
+      <!-- Add / Draw Form -->
+      <div class="form-group">
+        <label class="form-label">Shortcut Title / Landmark</label>
+        <input type="text" id="sc-name-input" class="form-control" placeholder="e.g. Gachibowli Outer Ring Service Bypass">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Vehicle Access Lock (Safety Critical)</label>
+        <select id="sc-vehicle-select" class="form-control">
+          <option value="bike">🏍️ 2-Wheeler (Bike / Scooter Only) — Locked from Cars</option>
+          <option value="all">🚗 All Vehicles (Car &amp; Bike Accessible)</option>
+        </select>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="form-group">
+          <label class="form-label">Est. Time Saved</label>
+          <input type="number" id="sc-time-input" class="form-control" value="5" placeholder="Mins">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Discovering Rider ID</label>
+          <input type="text" id="sc-rider-input" class="form-control" value="CAPTAIN_ADMIN" placeholder="Rider / Phone">
+        </div>
+      </div>
+
+      <button class="btn-act btn-act-publish" onclick="saveAdminShortcut()">
+        ⚡ Publish Community Shortcut
+      </button>
+
+      <!-- Filter Tabs -->
+      <div style="display:flex; gap:6px; margin-top:16px; margin-bottom:10px; overflow-x:auto;">
+        <button class="tab-btn active" style="font-size:0.72rem; padding:6px 10px;" id="filter-sc-all" onclick="filterShortcuts('all', this)">All</button>
+        <button class="tab-btn" style="font-size:0.72rem; padding:6px 10px;" id="filter-sc-bike" onclick="filterShortcuts('bike', this)">🏍️ Bike Only</button>
+        <button class="tab-btn" style="font-size:0.72rem; padding:6px 10px;" id="filter-sc-eligible" onclick="filterShortcuts('eligible', this)">💰 ₹10 Ready</button>
+        <button class="tab-btn" style="font-size:0.72rem; padding:6px 10px;" id="filter-sc-closed" onclick="filterShortcuts('closed', this)">⚠️ Closed</button>
+      </div>
+
+      <!-- Shortcuts List Container -->
+      <div style="margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:0.78rem; font-weight:800; color:var(--gold);">DISCOVERED SHORTCUTS &amp; BOUNTIES</span>
+          <button onclick="refreshShortcutsList()" style="background:none; border:none; color:var(--cyan); font-size:0.7rem; font-weight:700; cursor:pointer;">🔄 Refresh</button>
+        </div>
+        <div class="items-list" id="admin-shortcuts-list"></div>
       </div>
     </div>
 
@@ -550,6 +631,10 @@
         <span>🛣️</span>
         <span>Draw Road Line</span>
       </button>
+      <button class="dock-action-btn" onclick="startDrawShortcut()">
+        <span>⚡</span>
+        <span>Draw Shortcut</span>
+      </button>
       <button class="dock-action-btn" onclick="startDrawBlock()">
         <span>🚫</span>
         <span>Mark Road Blocked</span>
@@ -575,13 +660,17 @@
     let drawnItemsGroup;
     let currentDrawnLayer = null;
     let currentDrawingCoords = null;
+    let isDrawingShortcut = false;
+    let currentShortcutFilter = 'all';
 
     // Persistent GIS Databases
     let customRoads = [];
     let customBuildings = [];
+    let customShortcuts = [];
 
     const STORAGE_KEY_ROADS = 'rydealot_custom_roads';
     const STORAGE_KEY_BLDGS = 'rydealot_custom_buildings';
+    const STORAGE_KEY_SHORTCUTS = 'rydealot_custom_shortcuts';
 
     // Default Seed Roads & Buildings
     const DEFAULT_ROADS = [
@@ -614,6 +703,72 @@
         coordinates: [
           [[78.4870, 17.3860], [78.4880, 17.3860], [78.4880, 17.3870], [78.4870, 17.3870], [78.4870, 17.3860]]
         ]
+      }
+    ];
+
+    const DEFAULT_SHORTCUTS = [
+      {
+        id: 'sc_001',
+        title: 'Gachibowli Outer Ring Service Bypass',
+        creator_rider_id: 'CAPTAIN_9821',
+        creator_app: 'rydealot',
+        vehicle_type: 'bike',
+        start_lat: 17.4401,
+        start_lng: 78.3489,
+        end_lat: 17.4435,
+        end_lng: 78.3540,
+        coordinates: [[78.3489, 17.4401], [78.3512, 17.4418], [78.3540, 17.4435]],
+        time_saved_mins: 7,
+        distance_meters: 650,
+        rides_completed_count: 12,
+        rides_needed_for_payout: 10,
+        payout_bounty_amount: 10.0,
+        payout_status: 'eligible',
+        payout_approved_at: null,
+        closed_reports_count: 0,
+        status: 'active'
+      },
+      {
+        id: 'sc_002',
+        title: 'Nagaram Village Culvert Cut',
+        creator_rider_id: 'CAPTAIN_4412',
+        creator_app: 'rydealot',
+        vehicle_type: 'bike',
+        start_lat: 17.4890,
+        start_lng: 78.5830,
+        end_lat: 17.4925,
+        end_lng: 78.5880,
+        coordinates: [[78.5830, 17.4890], [78.5855, 17.4905], [78.5880, 17.4925]],
+        time_saved_mins: 9,
+        distance_meters: 800,
+        rides_completed_count: 6,
+        rides_needed_for_payout: 10,
+        payout_bounty_amount: 10.0,
+        payout_status: 'pending_rides',
+        payout_approved_at: null,
+        closed_reports_count: 0,
+        status: 'active'
+      },
+      {
+        id: 'sc_003',
+        title: 'Kondapur RTA Cross Cut (All Vehicles)',
+        creator_rider_id: 'CAPTAIN_1105',
+        creator_app: 'sage',
+        vehicle_type: 'all',
+        start_lat: 17.4650,
+        start_lng: 78.3610,
+        end_lat: 17.4690,
+        end_lng: 78.3670,
+        coordinates: [[78.3610, 17.4650], [78.3640, 17.4670], [78.3670, 17.4690]],
+        time_saved_mins: 4,
+        distance_meters: 950,
+        rides_completed_count: 15,
+        rides_needed_for_payout: 10,
+        payout_bounty_amount: 10.0,
+        payout_status: 'approved_paid',
+        payout_approved_at: '2026-10-12T10:00:00.000Z',
+        closed_reports_count: 0,
+        status: 'active'
       }
     ];
 
@@ -799,9 +954,16 @@
           const latlngs = currentDrawnLayer.getLatLngs();
           currentDrawingCoords = latlngs.map(ll => [Number(ll.lng.toFixed(6)), Number(ll.lat.toFixed(6))]);
           
-          switchAdminTab('roads');
-          document.getElementById('road-status-badge').style.display = 'flex';
-          document.getElementById('road-points-count').innerText = `✅ ${currentDrawingCoords.length} road coordinates captured! Enter name below.`;
+          if (isDrawingShortcut) {
+            switchAdminTab('shortcuts');
+            document.getElementById('sc-status-badge').style.display = 'flex';
+            document.getElementById('sc-points-count').innerText = `✅ ${currentDrawingCoords.length} shortcut coordinates captured! Complete details below.`;
+            isDrawingShortcut = false;
+          } else {
+            switchAdminTab('roads');
+            document.getElementById('road-status-badge').style.display = 'flex';
+            document.getElementById('road-points-count').innerText = `✅ ${currentDrawingCoords.length} road coordinates captured! Enter name below.`;
+          }
         } else if (e.layerType === 'polygon') {
           const latlngs = currentDrawnLayer.getLatLngs()[0];
           currentDrawingCoords = [latlngs.map(ll => [Number(ll.lng.toFixed(6)), Number(ll.lat.toFixed(6))])];
@@ -819,12 +981,20 @@
 
     // Quick dock draw triggers
     function startDrawRoad() {
+      isDrawingShortcut = false;
       switchAdminTab('roads');
       document.getElementById('road-action-select').value = 'active';
       new L.Draw.Polyline(adminMap, { shapeOptions: { color: '#06b6d4', weight: 6 } }).enable();
     }
 
+    function startDrawShortcut() {
+      isDrawingShortcut = true;
+      switchAdminTab('shortcuts');
+      new L.Draw.Polyline(adminMap, { shapeOptions: { color: '#f59e0b', weight: 6, dashArray: '6, 6' } }).enable();
+    }
+
     function startDrawBlock() {
+      isDrawingShortcut = false;
       switchAdminTab('roads');
       document.getElementById('road-action-select').value = 'blocked';
       document.getElementById('road-name-input').value = 'Closed / Demolished Road';
@@ -854,17 +1024,24 @@
 
         const storedBldgs = localStorage.getItem(STORAGE_KEY_BLDGS);
         customBuildings = storedBldgs ? JSON.parse(storedBldgs) : DEFAULT_BUILDINGS;
+
+        const storedShortcuts = localStorage.getItem(STORAGE_KEY_SHORTCUTS);
+        customShortcuts = storedShortcuts ? JSON.parse(storedShortcuts) : DEFAULT_SHORTCUTS;
       } catch (e) {
         customRoads = DEFAULT_ROADS;
         customBuildings = DEFAULT_BUILDINGS;
+        customShortcuts = DEFAULT_SHORTCUTS;
       }
+
+      renderShortcutsList();
 
       // Cloudflare D1 Background Sync
       if (D1_WORKER && navigator.onLine) {
         Promise.all([
           fetch(`${D1_WORKER}/api/v1/roads`).then(r => r.ok ? r.json() : []).catch(() => []),
-          fetch(`${D1_WORKER}/api/v1/buildings`).then(r => r.ok ? r.json() : []).catch(() => [])
-        ]).then(([d1Roads, d1Bldgs]) => {
+          fetch(`${D1_WORKER}/api/v1/buildings`).then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(`${D1_WORKER}/api/v1/admin/shortcuts`).then(r => r.ok ? r.json() : []).catch(() => [])
+        ]).then(([d1Roads, d1Bldgs, d1Shortcuts]) => {
           let updated = false;
 
           if (Array.isArray(d1Roads) && d1Roads.length > 0) {
@@ -894,6 +1071,15 @@
             updated = true;
           }
 
+          if (Array.isArray(d1Shortcuts) && d1Shortcuts.length > 0) {
+            customShortcuts = d1Shortcuts.map(s => ({
+              ...s,
+              coordinates: Array.isArray(s.coordinates) ? s.coordinates : (typeof s.coordinates_json === 'string' ? JSON.parse(s.coordinates_json) : [])
+            }));
+            localStorage.setItem(STORAGE_KEY_SHORTCUTS, JSON.stringify(customShortcuts));
+            renderShortcutsList();
+          }
+
           if (updated) {
             renderAllGisOverlays();
             renderSidebarLists();
@@ -905,6 +1091,7 @@
     function persistStorageData() {
       localStorage.setItem(STORAGE_KEY_ROADS, JSON.stringify(customRoads));
       localStorage.setItem(STORAGE_KEY_BLDGS, JSON.stringify(customBuildings));
+      localStorage.setItem(STORAGE_KEY_SHORTCUTS, JSON.stringify(customShortcuts));
     }
 
     // Render on Admin Map
@@ -1235,6 +1422,10 @@
 
       const content = document.getElementById(`tab-${tab}`);
       if (content) content.style.display = 'block';
+
+      if (tab === 'shortcuts') {
+        renderShortcutsList();
+      }
     }
 
     // 5-Car Alerts Helpers
@@ -1258,6 +1449,289 @@
       renderAllGisOverlays();
       renderSidebarLists();
       alert(`Road "${name}" approved & published as ${surface.toUpperCase()}!`);
+    }
+
+    // =========================================================================
+    // COMMUNITY SHORTCUTS & RIDER BOUNTY CONTROLLER (SUPERMAPS ADMIN ONLY)
+    // =========================================================================
+    function filterShortcuts(filterType, btnEl) {
+      currentShortcutFilter = filterType;
+      document.querySelectorAll('#tab-shortcuts .tab-btn').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      renderShortcutsList();
+    }
+
+    function refreshShortcutsList() {
+      if (D1_WORKER && navigator.onLine) {
+        fetch(`${D1_WORKER}/api/v1/admin/shortcuts`)
+          .then(r => r.ok ? r.json() : [])
+          .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+              customShortcuts = data.map(s => ({
+                ...s,
+                coordinates: Array.isArray(s.coordinates) ? s.coordinates : (typeof s.coordinates_json === 'string' ? JSON.parse(s.coordinates_json) : [])
+              }));
+              persistStorageData();
+            }
+            renderShortcutsList();
+          })
+          .catch(() => renderShortcutsList());
+      } else {
+        renderShortcutsList();
+      }
+    }
+
+    function renderShortcutsList() {
+      const listEl = document.getElementById('admin-shortcuts-list');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+
+      // Stats calculation
+      const totalCount = customShortcuts.length;
+      const bikeCount = customShortcuts.filter(s => s.vehicle_type === 'bike').length;
+      const totalRides = customShortcuts.reduce((sum, s) => sum + (s.rides_completed_count || 0), 0);
+      const eligibleCount = customShortcuts.filter(s => (s.rides_completed_count || 0) >= (s.rides_needed_for_payout || 10) && s.payout_status !== 'approved_paid').length;
+
+      const statTotalEl = document.getElementById('sc-stat-total');
+      const statBikeEl = document.getElementById('sc-stat-bike');
+      const statRidesEl = document.getElementById('sc-stat-rides');
+      const statPayoutsEl = document.getElementById('sc-stat-payouts');
+
+      if (statTotalEl) statTotalEl.innerText = totalCount;
+      if (statBikeEl) statBikeEl.innerText = bikeCount;
+      if (statRidesEl) statRidesEl.innerText = totalRides;
+      if (statPayoutsEl) statPayoutsEl.innerText = eligibleCount;
+
+      // Filter
+      const filtered = customShortcuts.filter(s => {
+        if (currentShortcutFilter === 'bike') return s.vehicle_type === 'bike';
+        if (currentShortcutFilter === 'eligible') {
+          return (s.rides_completed_count || 0) >= (s.rides_needed_for_payout || 10) && s.payout_status !== 'approved_paid';
+        }
+        if (currentShortcutFilter === 'closed') {
+          return s.status === 'temporarily_closed' || (s.closed_reports_count || 0) > 0;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div style="color:var(--muted); font-size:0.8rem; text-align:center; padding:16px;">No shortcuts match this filter.</div>';
+        return;
+      }
+
+      filtered.forEach(s => {
+        const item = document.createElement('div');
+        item.className = 'item-card';
+        item.style.flexDirection = 'column';
+        item.style.alignItems = 'stretch';
+        item.style.gap = '8px';
+
+        const rides = s.rides_completed_count || 0;
+        const needed = s.rides_needed_for_payout || 10;
+        const pct = Math.min(100, Math.round((rides / needed) * 100));
+        const isEligible = (rides >= needed) && s.payout_status !== 'approved_paid';
+        const isPaid = s.payout_status === 'approved_paid';
+        const isClosed = s.status === 'temporarily_closed';
+
+        const vehicleBadge = s.vehicle_type === 'bike'
+          ? '<span style="background:rgba(245,158,11,0.2); color:#f59e0b; padding:2px 7px; border-radius:5px; font-size:0.68rem; font-weight:800; border:1px solid rgba(245,158,11,0.3);">🏍️ 2-WHEELER ONLY</span>'
+          : '<span style="background:rgba(6,182,212,0.2); color:#06b6d4; padding:2px 7px; border-radius:5px; font-size:0.68rem; font-weight:800; border:1px solid rgba(6,182,212,0.3);">🚗 ALL VEHICLES</span>';
+
+        const statusTag = isClosed
+          ? '<span style="background:rgba(239,68,68,0.2); color:#f87171; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:800;">🚫 TEMPORARILY CLOSED</span>'
+          : '<span style="background:rgba(16,185,129,0.2); color:#10b981; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:800;">🟢 ACTIVE</span>';
+
+        item.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <div class="item-title" style="display:flex; align-items:center; gap:6px;">
+                <span>${s.title}</span>
+              </div>
+              <div class="item-meta">
+                Discovered by: <strong style="color:#fff;">${s.creator_rider_id || 'Rider'}</strong> (${(s.creator_app || 'Rydealot').toUpperCase()}) · Saves ~${s.time_saved_mins || 5} min
+              </div>
+            </div>
+            <div style="display:flex; gap:4px; align-items:center;">
+              ${vehicleBadge}
+              ${statusTag}
+            </div>
+          </div>
+
+          <!-- 10-Ride Bounty Progress Bar -->
+          <div style="background:#090b10; border-radius:6px; padding:6px 10px; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; font-size:0.72rem; margin-bottom:4px;">
+              <span style="color:var(--muted); font-weight:700;">Progress to ₹10 Bounty:</span>
+              <span style="color:${isEligible || isPaid ? '#10b981' : 'var(--gold)'}; font-weight:800;">
+                ${rides} / ${needed} Rides Completed
+              </span>
+            </div>
+            <div style="background:#1e293b; border-radius:4px; height:6px; overflow:hidden;">
+              <div style="background:linear-gradient(90deg, #f59e0b, #10b981); width:${pct}%; height:100%; transition:width 0.3s;"></div>
+            </div>
+          </div>
+
+          <!-- Payout and Hazard Status -->
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.73rem;">
+            <div>
+              ${isPaid 
+                ? '<span style="color:#10b981; font-weight:800;">✅ ₹10 Bounty Paid to Rider</span>' 
+                : isEligible 
+                  ? '<span style="color:#10b981; font-weight:800;">🎉 10 Rides Passed! Eligible for ₹10 Payout</span>'
+                  : `<span style="color:var(--muted);">⏳ Needs ${needed - rides} more unique rides for ₹10 payout</span>`
+              }
+            </div>
+            ${(s.closed_reports_count || 0) > 0 ? `<span style="color:#ef4444; font-weight:700;">⚠️ ${s.closed_reports_count} closure reports</span>` : ''}
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display:flex; gap:6px; margin-top:4px;">
+            ${isEligible ? `
+              <button onclick="approveBountyPayout('${s.id}')" style="flex:2; background:#10b981; color:#000; border:none; padding:7px 10px; border-radius:6px; font-weight:800; font-size:0.75rem; cursor:pointer;" title="Approve and disburse ₹10 bounty to rider">
+                💰 Approve ₹10 Bounty
+              </button>
+            ` : ''}
+            <button class="btn-del-sm" style="flex:1; background:#1e293b; color:#fff; border-color:var(--border);" onclick="zoomToShortcut('${s.id}')">
+              👁️ View Map
+            </button>
+            <button class="btn-del-sm" style="flex:1; background:${isClosed ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}; border-color:${isClosed ? 'var(--green)' : 'var(--red)'}; color:${isClosed ? '#34d399' : '#f87171'};" onclick="toggleShortcutStatus('${s.id}')">
+              ${isClosed ? '🟢 Activate' : '🚫 Close'}
+            </button>
+            <button class="btn-del-sm" onclick="deleteShortcutById('${s.id}')">
+              🗑️
+            </button>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    function saveAdminShortcut() {
+      const name = document.getElementById('sc-name-input').value.trim();
+      const vehicle = document.getElementById('sc-vehicle-select').value;
+      const timeSaved = parseInt(document.getElementById('sc-time-input').value) || 5;
+      const riderId = (document.getElementById('sc-rider-input').value || 'CAPTAIN_ADMIN').trim();
+
+      if (!name) return alert('Please enter shortcut title / landmark.');
+
+      let coords = currentDrawingCoords;
+      if (!coords || coords.length < 2) {
+        const center = adminMap.getCenter();
+        coords = [
+          [Number(center.lng.toFixed(6)), Number(center.lat.toFixed(6))],
+          [Number((center.lng + 0.003).toFixed(6)), Number((center.lat + 0.003).toFixed(6))]
+        ];
+      }
+
+      const newShortcut = {
+        id: 'sc_' + Date.now(),
+        title: name,
+        creator_rider_id: riderId,
+        creator_app: 'rydealot',
+        vehicle_type: vehicle,
+        start_lat: coords[0][1],
+        start_lng: coords[0][0],
+        end_lat: coords[coords.length - 1][1],
+        end_lng: coords[coords.length - 1][0],
+        coordinates: coords,
+        time_saved_mins: timeSaved,
+        distance_meters: Math.round(coords.length * 20),
+        rides_completed_count: 0,
+        rides_needed_for_payout: 10,
+        payout_bounty_amount: 10.0,
+        payout_status: 'pending_rides',
+        payout_approved_at: null,
+        closed_reports_count: 0,
+        status: 'active',
+        created_at: new Date().toISOString()
+      };
+
+      customShortcuts.unshift(newShortcut);
+      persistStorageData();
+      renderShortcutsList();
+
+      if (D1_WORKER && navigator.onLine) {
+        fetch(`${D1_WORKER}/api/v1/shortcuts/record`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newShortcut),
+          keepalive: true
+        }).catch(err => console.warn('D1 shortcut sync error:', err));
+      }
+
+      document.getElementById('sc-name-input').value = '';
+      document.getElementById('sc-status-badge').style.display = 'none';
+      currentDrawingCoords = null;
+
+      alert(`⚡ Community Shortcut "${name}" published!\nVehicle Lock: ${vehicle === 'bike' ? '🏍️ 2-Wheeler Only (Safe from Cars)' : '🚗 All Vehicles'}\nBounty Rule: ₹10 unlocks after 10 completed rides.`);
+    }
+
+    async function approveBountyPayout(id) {
+      const target = customShortcuts.find(s => s.id === id);
+      if (!target) return;
+
+      if (!confirm(`Confirm ₹10 Bounty Approval for Rider ${target.creator_rider_id}?\n\nTrip Count: ${target.rides_completed_count} rides completed.\nEstimated Rydealot revenue retained: ₹40 (10 rides × ₹5 fee = ₹50 revenue - ₹10 bounty = ₹40 profit).`)) {
+        return;
+      }
+
+      target.payout_status = 'approved_paid';
+      target.payout_approved_at = new Date().toISOString();
+      persistStorageData();
+      renderShortcutsList();
+
+      if (D1_WORKER && navigator.onLine) {
+        try {
+          await fetch(`${D1_WORKER}/api/v1/admin/shortcuts/${id}/payout`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'approve' })
+          });
+        } catch (e) {}
+      }
+
+      alert(`🎉 ₹10 Bounty Approved!\nCredited to rider: ${target.creator_rider_id}\nSupermaps Revenue: ₹40 retained.`);
+    }
+
+    function toggleShortcutStatus(id) {
+      const target = customShortcuts.find(s => s.id === id);
+      if (!target) return;
+      const nextStatus = target.status === 'active' ? 'temporarily_closed' : 'active';
+      target.status = nextStatus;
+      if (nextStatus === 'active') target.closed_reports_count = 0;
+      persistStorageData();
+      renderShortcutsList();
+
+      if (D1_WORKER && navigator.onLine) {
+        fetch(`${D1_WORKER}/api/v1/admin/shortcuts/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: nextStatus })
+        }).catch(() => {});
+      }
+    }
+
+    function deleteShortcutById(id) {
+      if (!confirm('Permanently delete this shortcut?')) return;
+      customShortcuts = customShortcuts.filter(s => s.id !== id);
+      persistStorageData();
+      renderShortcutsList();
+    }
+
+    function zoomToShortcut(id) {
+      const target = customShortcuts.find(s => s.id === id);
+      if (!target || !target.coordinates || target.coordinates.length < 2) return;
+      const latlngs = target.coordinates.map(c => [c[1], c[0]]);
+      const bounds = L.latLngBounds(latlngs);
+      adminMap.fitBounds(bounds, { padding: [80, 80] });
+
+      const highlight = L.polyline(latlngs, {
+        color: target.vehicle_type === 'bike' ? '#f59e0b' : '#06b6d4',
+        weight: 8,
+        dashArray: '8, 8'
+      }).addTo(drawnItemsGroup);
+
+      setTimeout(() => {
+        try { drawnItemsGroup.removeLayer(highlight); } catch (e) {}
+      }, 5000);
     }
   </script>
 </body>

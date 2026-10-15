@@ -75,3 +75,44 @@ CREATE TABLE IF NOT EXISTS supermaps_road_obstacles (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP
 );
+
+-- 5. COMMUNITY SHORTCUTS ENGINE (Bounty & Vehicle Intelligence - Supermaps Admin Managed)
+CREATE TABLE IF NOT EXISTS supermaps_community_shortcuts (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    creator_rider_id TEXT NOT NULL,
+    creator_app TEXT DEFAULT 'rydealot',   -- 'rydealot', 'sage', 'grocery', etc.
+    vehicle_type TEXT DEFAULT 'bike',      -- 'bike' (2-wheeler only) or 'all' (car & bike)
+    start_lat REAL NOT NULL,
+    start_lng REAL NOT NULL,
+    end_lat REAL NOT NULL,
+    end_lng REAL NOT NULL,
+    coordinates_json TEXT NOT NULL,        -- Array of [lng, lat]
+    time_saved_mins INTEGER DEFAULT 5,
+    distance_meters INTEGER DEFAULT 500,
+    rides_completed_count INTEGER DEFAULT 0, -- Counter of trips completed through shortcut
+    rides_needed_for_payout INTEGER DEFAULT 10, -- Fixed threshold: 10 rides
+    payout_bounty_amount REAL DEFAULT 10.0, -- ₹10 fixed bounty
+    payout_status TEXT DEFAULT 'pending_rides', -- 'pending_rides', 'eligible', 'approved_paid', 'rejected'
+    payout_approved_at TIMESTAMP,
+    closed_reports_count INTEGER DEFAULT 0, -- Rider reports: "Road closed / Gate locked"
+    status TEXT DEFAULT 'active',          -- 'active', 'temporarily_closed', 'deactivated'
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_shortcuts_coords 
+ON supermaps_community_shortcuts(start_lat, start_lng, status);
+
+CREATE INDEX IF NOT EXISTS idx_shortcuts_payout 
+ON supermaps_community_shortcuts(payout_status, rides_completed_count);
+
+CREATE TABLE IF NOT EXISTS supermaps_shortcut_rides (
+    id TEXT PRIMARY KEY,
+    shortcut_id TEXT NOT NULL,
+    rider_id TEXT NOT NULL,
+    ride_id TEXT,
+    completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
