@@ -646,13 +646,57 @@ function clearSearchInput() {
   document.getElementById('search-dropdown').style.display = 'none';
 }
 
+function restoreGPSLocationAsOrigin() {
+  originLngLat = null; // null defaults to device GPS userLngLat
+  const fromInput = document.getElementById('dir-from-input');
+  if (fromInput) fromInput.value = 'Your Location (GPS)';
+  const dropdown = document.getElementById('search-dropdown');
+  if (dropdown) dropdown.style.display = 'none';
+
+  if (activeDestination) {
+    calculateActiveRoute(activeDestination.lng, activeDestination.lat, activeDestination.name);
+  }
+}
+
+function showGpsPromptDropdown(targetType) {
+  const dropdown = document.getElementById('search-dropdown');
+  if (!dropdown) return;
+  dropdown.innerHTML = '';
+
+  if (targetType === 'from') {
+    const item = document.createElement('div');
+    item.className = 'search-item';
+    item.style.cssText = 'background: rgba(6,182,212,0.12); border-left: 3px solid #06b6d4; cursor:pointer;';
+    item.innerHTML = `
+      <div class="search-item-info">
+        <div class="search-item-name" style="color:#06b6d4; font-weight:700; display:flex; align-items:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
+          Use Current Location (GPS)
+        </div>
+        <div class="search-item-meta">Use device live GPS coordinates as starting point</div>
+      </div>
+      <span class="search-item-badge" style="background:#06b6d4; color:#fff; border-color:#06b6d4;">LIVE GPS</span>
+    `;
+    item.onclick = () => restoreGPSLocationAsOrigin();
+    dropdown.appendChild(item);
+    dropdown.style.display = 'block';
+  }
+}
+
+function handleDirectionInputFocus(targetType) {
+  if (targetType === 'from') {
+    showGpsPromptDropdown('from');
+  }
+}
+
 function clearDirectionInput(which) {
   if (which === 'from') {
     document.getElementById('dir-from-input').value = '';
     originLngLat = null;
+    showGpsPromptDropdown('from');
   } else {
     document.getElementById('dir-to-input').value = '';
-    clearActiveRoute();
+    clearActiveRoute(true, true);
     activeDestination = null;
   }
 }
@@ -660,6 +704,11 @@ function clearDirectionInput(which) {
 function handlePlaceInput(event, targetType) {
   const query = event.target.value.trim();
   clearTimeout(debounceTimer);
+
+  if (targetType === 'from' && query.length === 0) {
+    showGpsPromptDropdown('from');
+    return;
+  }
 
   if (query.length < 2) {
     document.getElementById('search-dropdown').style.display = 'none';
@@ -724,15 +773,50 @@ async function fetchPlaceSuggestions(query, targetType) {
     // both failed
   }
 
+  let gpsPromptHtml = '';
+  if (targetType === 'from') {
+    gpsPromptHtml = `
+      <div class="search-item" onclick="restoreGPSLocationAsOrigin()" style="background: rgba(6,182,212,0.12); border-left: 3px solid #06b6d4; cursor:pointer;">
+        <div class="search-item-info">
+          <div class="search-item-name" style="color:#06b6d4; font-weight:700; display:flex; align-items:center; gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
+            Use Current Location (GPS)
+          </div>
+          <div class="search-item-meta">Use device live GPS coordinates as starting point</div>
+        </div>
+        <span class="search-item-badge" style="background:#06b6d4; color:#fff; border-color:#06b6d4;">LIVE GPS</span>
+      </div>`;
+  }
+
   dropdown.innerHTML = `
+    ${gpsPromptHtml}
     <div style="padding:14px 16px;">
       <div style="font-size:0.88rem; font-weight:700; color:var(--text-main); margin-bottom:4px;">No results for "${query}"</div>
-      <div style="font-size:0.78rem; color:var(--text-muted);">Try adding city name — e.g. "Erragattugutta Hyderabad" — or tap on the map to drop a pin.</div>
+      <div style="font-size:0.78rem; color:var(--text-muted);">Try adding city name — e.g. "Erragattugutta Warangal" — or tap on the map to drop a pin.</div>
     </div>`;
 }
 
 function renderSearchResults(places, dropdown, targetType) {
   dropdown.innerHTML = '';
+
+  if (targetType === 'from') {
+    const gpsItem = document.createElement('div');
+    gpsItem.className = 'search-item';
+    gpsItem.style.cssText = 'background: rgba(6,182,212,0.12); border-left: 3px solid #06b6d4; cursor:pointer;';
+    gpsItem.innerHTML = `
+      <div class="search-item-info">
+        <div class="search-item-name" style="color:#06b6d4; font-weight:700; display:flex; align-items:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
+          Use Current Location (GPS)
+        </div>
+        <div class="search-item-meta">Use device live GPS coordinates as starting point</div>
+      </div>
+      <span class="search-item-badge" style="background:#06b6d4; color:#fff; border-color:#06b6d4;">LIVE GPS</span>
+    `;
+    gpsItem.onclick = () => restoreGPSLocationAsOrigin();
+    dropdown.appendChild(gpsItem);
+  }
+
   places.forEach(place => {
     const parts = place.display_name.split(',');
     const title = parts[0].trim();
@@ -976,10 +1060,16 @@ function selectAlternativeRoute(index, destName) {
   _activeRouteIndex = index;
   const selectedRoute = _currentRoutes[index];
   _pendingRouteGeometry = selectedRoute.geometry;
+  const finalDestName = destName || (activeDestination && activeDestination.name) || 'Destination';
 
   renderAlternativeRoutes(_currentRoutes, activeVehicleMode, index);
-  updateRouteSummaryUI(selectedRoute, activeVehicleMode, destName);
+  updateRouteSummaryUI(selectedRoute, activeVehicleMode, finalDestName);
   updateRouteSelectorPillsActive(index);
+
+  const pills = document.getElementById('alt-routes-selector');
+  if (pills && _currentRoutes.length > 1) {
+    pills.style.display = 'flex';
+  }
 }
 
 // Render up to 3 interactive pills with Distance comparisons
@@ -1045,7 +1135,7 @@ function updateRouteSelectorPillsActive(activeIdx) {
 
 // Render multiple routes: unselected as dashed slate, active as solid cyan/amber
 function renderAlternativeRoutes(routes, vehicleMode, activeIdx = 0) {
-  clearActiveRoute(false);
+  clearActiveRoute(false, false);
   if (!map || !routes || routes.length === 0) return;
 
   const primaryColor = vehicleMode === 'bike' ? '#f59e0b' : '#06b6d4';
@@ -1125,6 +1215,12 @@ function renderAlternativeRoutes(routes, vehicleMode, activeIdx = 0) {
     }
   });
 
+  // Keep alternative route pills visible if there are multiple routes
+  const pills = document.getElementById('alt-routes-selector');
+  if (pills && routes.length > 1) {
+    pills.style.display = 'flex';
+  }
+
   // Fit camera bounds to encompass all alternative routes
   const allCoords = routes.flatMap(r => r.geometry.coordinates);
   if (allCoords.length > 0) {
@@ -1137,7 +1233,7 @@ function renderRouteOnMap(geojsonGeometry) {
   renderAlternativeRoutes([{ geometry: geojsonGeometry, distance: 3000 }], activeVehicleMode, 0);
 }
 
-function clearActiveRoute(clearDest = true) {
+function clearActiveRoute(clearDest = true, clearPills = true) {
   _pendingRouteGeometry = null;
 
   // Clear main route layers
@@ -1156,12 +1252,14 @@ function clearActiveRoute(clearDest = true) {
 
   if (clearDest && destMarker) { destMarker.remove(); destMarker = null; }
 
-  const banner = document.getElementById('route-summary-banner');
-  if (banner) banner.style.display = 'none';
-  const pills = document.getElementById('alt-routes-selector');
-  if (pills) pills.style.display = 'none';
-  const flBar = document.getElementById('floating-route-bar');
-  if (flBar) flBar.style.display = 'none';
+  if (clearPills) {
+    const banner = document.getElementById('route-summary-banner');
+    if (banner) banner.style.display = 'none';
+    const pills = document.getElementById('alt-routes-selector');
+    if (pills) pills.style.display = 'none';
+    const flBar = document.getElementById('floating-route-bar');
+    if (flBar) flBar.style.display = 'none';
+  }
 }
 
 function startDrivingActiveRoute() {
