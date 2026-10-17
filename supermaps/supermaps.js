@@ -252,6 +252,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initNetworkListeners();
   loadGoldenShops();
   setupCompassHeading();
+  syncSupermapsUserProfile();
 });
 
 function hideSplashLoader() {
@@ -1864,8 +1865,128 @@ function initNetworkListeners() {
 
 function openBottomPanel() { document.getElementById('bottom-panel').classList.add('active'); }
 function closeBottomPanel() { document.getElementById('bottom-panel').classList.remove('active'); }
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+  if (id === 'modal-profile') {
+    syncSupermapsUserProfile();
+  }
+}
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('active');
+}
+
+function handleSupermapsAuthAction() {
+  let session = null;
+  try {
+    const raw = localStorage.getItem('rydealot_user_session');
+    if (raw) session = JSON.parse(raw);
+  } catch (e) {}
+
+  if (session && (session.name || session.phone)) {
+    // Navigate to full Rydealot Profile & Account settings
+    window.location.href = '../profile.html';
+  } else {
+    // Direct guest to login page with auto return parameter
+    window.location.href = '../login.html?redirect=supermaps/';
+  }
+}
+
+function syncSupermapsUserProfile() {
+  const nameEl = document.getElementById('profile-name-display');
+  const phoneEl = document.getElementById('profile-phone-display');
+  const authBtn = document.getElementById('profile-auth-action-btn');
+  const bizListEl = document.getElementById('profile-biz-list');
+  const statusDot = document.getElementById('profile-status-dot');
+
+  let session = null;
+  try {
+    const raw = localStorage.getItem('rydealot_user_session');
+    if (raw) session = JSON.parse(raw);
+  } catch (e) {}
+
+  if (!session) {
+    const phone = localStorage.getItem('rydealot_phone') || localStorage.getItem('user_phone');
+    const name = localStorage.getItem('rydealot_name') || localStorage.getItem('user_name');
+    if (phone || name) {
+      session = { name: name || 'Rydealot Member', phone: phone || '' };
+    }
+  }
+
+  if (session && (session.name || session.phone)) {
+    if (nameEl) nameEl.textContent = session.name || 'Rydealot Member';
+    if (phoneEl) phoneEl.textContent = session.phone || session.email || 'Verified Active Account';
+    if (statusDot) statusDot.style.background = '#10b981';
+    if (authBtn) {
+      authBtn.textContent = 'Account Profile ⚙️';
+      authBtn.style.background = 'linear-gradient(135deg, #2563eb, #1d4ed8)';
+      authBtn.style.color = '#fff';
+    }
+  } else {
+    if (nameEl) nameEl.textContent = 'Guest Rider';
+    if (phoneEl) phoneEl.textContent = 'Sign in to sync your businesses & trips';
+    if (statusDot) statusDot.style.background = '#f59e0b';
+    if (authBtn) {
+      authBtn.textContent = '⚡ Sign In / Register';
+      authBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+      authBtn.style.color = '#000';
+      authBtn.style.fontWeight = '800';
+    }
+  }
+
+  // Render user's registered business listings & transfer requests
+  if (bizListEl) {
+    let localTransfers = [];
+    try {
+      const rawT = localStorage.getItem('rydealot_shop_transfers');
+      if (rawT) localTransfers = JSON.parse(rawT);
+    } catch (e) {}
+
+    let localShops = [];
+    try {
+      const rawS = localStorage.getItem('rydealot_user_shops');
+      if (rawS) localShops = JSON.parse(rawS);
+    } catch (e) {}
+
+    const totalBizItems = [...localTransfers, ...localShops];
+    if (totalBizItems.length > 0) {
+      bizListEl.innerHTML = '';
+      bizListEl.style.display = 'flex';
+      bizListEl.style.flexDirection = 'column';
+      bizListEl.style.gap = '8px';
+
+      totalBizItems.forEach(item => {
+        const itemCard = document.createElement('div');
+        itemCard.style.background = '#181b22';
+        itemCard.style.padding = '10px 12px';
+        itemCard.style.borderRadius = '10px';
+        itemCard.style.border = '1px solid #2d3343';
+        itemCard.style.display = 'flex';
+        itemCard.style.justifyContent = 'space-between';
+        itemCard.style.alignItems = 'center';
+
+        const isTransfer = !!item.old_shop_name;
+        const name = isTransfer ? item.new_shop_name : item.name;
+        const statusText = isTransfer ? '⏳ 48h Dispute Active' : '⭐ Golden Pin Active';
+        const statusColor = isTransfer ? '#06b6d4' : '#f59e0b';
+        const sub = isTransfer ? `Replacing "${item.old_shop_name}"` : `${(item.category || 'Shop').toUpperCase()} • Active`;
+
+        itemCard.innerHTML = `
+          <div>
+            <div style="font-weight:700; color:#fff; font-size:0.85rem;">${name}</div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">${sub}</div>
+          </div>
+          <span style="font-size:0.7rem; font-weight:800; color:${statusColor}; background:rgba(255,255,255,0.06); padding:3px 7px; border-radius:6px;">${statusText}</span>
+        `;
+        bizListEl.appendChild(itemCard);
+      });
+    } else {
+      bizListEl.innerHTML = 'No business published yet. Tap "+ Add New" to list or "🔄 Transfer Shop" to claim a vacated store.';
+    }
+  }
+}
+
 function recenterGps() {
   userInteractedWithMap = false;
   if ('geolocation' in navigator) {
@@ -1920,9 +2041,18 @@ async function submitShopkeeperClaim(event) {
       body: JSON.stringify(payload)
     });
     if (res.ok) {
+      let userShops = [];
+      try {
+        const raw = localStorage.getItem('rydealot_user_shops');
+        if (raw) userShops = JSON.parse(raw);
+      } catch (e) {}
+      userShops.unshift(payload);
+      localStorage.setItem('rydealot_user_shops', JSON.stringify(userShops));
+
       closeModal('modal-shop-claim');
       showSupermapsToast(`Business "${name}" published! Appearing shortly.`, '🎉', 'success');
       loadGoldenShops(); // Refresh pins
+      syncSupermapsUserProfile();
     } else {
       showSupermapsToast('Could not publish business. Try again.', '⚠️', 'info');
     }
@@ -2012,6 +2142,7 @@ async function submitOwnershipTransfer(event) {
 
     closeModal('modal-shop-claim');
     showSupermapsToast(`🔄 Transfer for "${newName}" submitted! 48-hr dispute window active.`, '✅', 'success');
+    syncSupermapsUserProfile();
   } catch (err) {
     showSupermapsToast('Transfer request submitted locally.', '✅', 'success');
   } finally {

@@ -18,7 +18,7 @@
 
   <!-- PWA Manifest & App Stylesheet -->
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=3.8">
+  <link rel="stylesheet" href="style.css?v=4.2">
   <meta name="theme-color" content="#0a0b0e">
 
   <!-- iOS Add to Home Screen -->
@@ -420,18 +420,18 @@
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
         </button>
 
-        <div class="profile-avatar-large">
+        <div class="profile-avatar-large" id="profile-avatar-container">
           <svg width="44" height="44" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         </div>
 
         <div class="profile-hero-name" id="profile-name-display">Guest Rider</div>
         <div class="profile-hero-status">
-          <span class="profile-status-dot"></span>
-          <span id="profile-phone-display">Sign in to unlock all features</span>
+          <span class="profile-status-dot" id="profile-status-dot"></span>
+          <span id="profile-phone-display">Sign in with Rydealot to sync data</span>
         </div>
 
-        <!-- Edit Profile Button -->
-        <button class="profile-edit-btn" onclick="showSupermapsToast('Sign-in coming soon', '👤', 'info')">Edit Profile</button>
+        <!-- Dynamic Auth Button -->
+        <button class="profile-edit-btn" id="profile-auth-action-btn" onclick="handleSupermapsAuthAction()">Sign In / Register</button>
       </div>
 
       <!-- Stats Row -->
@@ -452,12 +452,15 @@
 
       <!-- My Business Section -->
       <div class="profile-section-block">
-        <div class="profile-section-header">
+        <div class="profile-section-header" style="display:flex; justify-content:space-between; align-items:center;">
           <span class="profile-section-label">My Business Listings</span>
-          <button class="profile-section-action" onclick="closeModal('modal-profile'); openModal('modal-shop-claim')">+ Add</button>
+          <div style="display:flex; gap:6px;">
+            <button class="profile-section-action" onclick="closeModal('modal-profile'); openModal('modal-shop-claim'); switchBizModalTab('new');" title="List a new business">+ Add New</button>
+            <button class="profile-section-action" style="background:rgba(6,182,212,0.15); color:#06b6d4; border-color:rgba(6,182,212,0.4);" onclick="closeModal('modal-profile'); openModal('modal-shop-claim'); switchBizModalTab('transfer');" title="Transfer ownership of a vacated shop">🔄 Transfer Shop</button>
+          </div>
         </div>
         <div class="profile-biz-empty" id="profile-biz-list">
-          No business published yet. Tap Add to list your business on the map.
+          No business published yet. Tap "+ Add New" to list or "🔄 Transfer Shop" to claim a vacated store.
         </div>
       </div>
 
@@ -474,9 +477,13 @@
 
       <!-- Quick Actions -->
       <div class="profile-quick-actions">
-        <button class="profile-quick-btn" onclick="closeModal('modal-profile'); openModal('modal-shop-claim')">
+        <button class="profile-quick-btn" onclick="closeModal('modal-profile'); openModal('modal-shop-claim'); switchBizModalTab('new');">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          Publish Business
+          New Business
+        </button>
+        <button class="profile-quick-btn" style="background:linear-gradient(135deg, #0891b2, #06b6d4); color:#fff; border:none;" onclick="closeModal('modal-profile'); openModal('modal-shop-claim'); switchBizModalTab('transfer');">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          Transfer Shop
         </button>
         <button class="profile-quick-btn outline-btn" onclick="closeModal('modal-profile')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 12L21 12M15 6L21 12L15 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -729,6 +736,6 @@
   </div>
 
   <!-- Master Engine Script -->
-  <script src="supermaps.js?v=3.8"></script>
+  <script src="supermaps.js?v=4.2"></script>
 </body>
 </html>
