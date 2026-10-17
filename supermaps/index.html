@@ -487,37 +487,57 @@
     </div>
   </div>
 
-  <!-- Modal: Publish Business -->
+  <!-- Modal: Publish or Transfer Business -->
   <div class="modal-overlay" id="modal-shop-claim">
     <div class="modal-container">
-      <div class="modal-title">Publish Your Business</div>
+      <div class="modal-title">
+        <span>Business Portal</span>
+      </div>
       <p class="modal-desc">
-        Put your business on the map. Promoted listings glow 24/7 so customers in your area discover you first.
+        List your business or transfer ownership of a relocated shop to claim your spot on Supermaps.
       </p>
 
+      <!-- Two-Mode Switcher Tabs -->
+      <div class="biz-modal-tabs">
+        <button type="button" class="biz-tab-btn active" id="tab-btn-biz-new" onclick="switchBizModalTab('new')">
+          <span>✨ New Listing</span>
+        </button>
+        <button type="button" class="biz-tab-btn transfer" id="tab-btn-biz-transfer" onclick="switchBizModalTab('transfer')">
+          <span>🔄 Ownership Transfer</span>
+        </button>
+      </div>
+
+      <!-- FORM 1: REGISTER NEW BUSINESS -->
       <form id="form-claim-shop" onsubmit="submitShopkeeperClaim(event)">
         <div class="form-group">
           <label class="form-label">Business Name</label>
-          <input type="text" id="shop-input-name" class="form-input" placeholder="e.g. Local Grocery Store / Coffee Shop" required>
+          <input type="text" id="shop-input-name" class="form-input" placeholder="e.g. Gayatri Grand Biryani / Apollo Pharmacy" required>
         </div>
 
         <div class="form-group">
           <label class="form-label">Business Category</label>
           <select id="shop-input-cat" class="form-select">
             <option value="food">Restaurant and Biryani</option>
-            <option value="tea">Tea Stall and Cafe</option>
+            <option value="tea">Tea Stall and Irani Chai</option>
             <option value="kirana">Kirana and Supermarket</option>
             <option value="salon">Salon and Beauty Parlour</option>
             <option value="medical">Medical Store</option>
             <option value="auto">Auto and Taxi Stand</option>
-            <option value="repair">Mobile and Bike Repair</option>
+            <option value="repair">Mobile, Bike and Auto Repair</option>
+            <option value="services">Opticals and Eye Care</option>
             <option value="services">Other Local Business</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Phone / WhatsApp Number</label>
+          <label class="form-label">Contact / WhatsApp Number (For Orders)</label>
           <input type="tel" id="shop-input-phone" class="form-input" placeholder="e.g. 9876543210" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Storefront Signboard Photo</label>
+          <input type="file" id="shop-input-photo" class="form-input" accept="image/*" capture="environment">
+          <small style="color:var(--text-muted); font-size:0.75rem; margin-top:2px;">Snap a photo of your shop flex banner or board.</small>
         </div>
 
         <label class="form-label">Promotion Plan</label>
@@ -528,7 +548,7 @@
             <div class="plan-period">Free for 3 Months</div>
           </div>
           <div class="plan-card" data-plan="annual_1y" onclick="selectPlanCard(this)">
-            <span class="plan-badge">BEST VALUE</span>
+            <span class="plan-badge">GOLDEN RADAR</span>
             <div class="plan-price">Rs 99</div>
             <div class="plan-period">Full 1 Year Listing</div>
           </div>
@@ -536,6 +556,65 @@
 
         <button type="submit" class="btn-submit-shop">
           Publish Business Now
+        </button>
+        <button type="button" class="btn-nav-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="closeModal('modal-shop-claim')">
+          Cancel
+        </button>
+      </form>
+
+      <!-- FORM 2: OWNERSHIP TRANSFER / REPLACE VACATED SHOP -->
+      <form id="form-transfer-shop" style="display:none;" onsubmit="submitOwnershipTransfer(event)">
+        <div style="background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.3); border-radius:12px; padding:12px; margin-bottom:14px; font-size:0.8rem; color:#a5f3fc; line-height:1.4;">
+          <strong>🔄 Location Ownership Transfer:</strong><br>
+          If your new shop is replacing an old, vacated, or relocated business, enter details below. A 48-hour dispute notice is sent to the previous contact. If undisputed, the listing transfers to you.
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Old / Vacated Shop Name (Being Replaced)</label>
+          <input type="text" id="transfer-input-old-name" class="form-input" placeholder="e.g. Raju Pipe Shop / Old Optical Store" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">New Business Name</label>
+          <input type="text" id="transfer-input-new-name" class="form-input" placeholder="e.g. Sri Balaji Bar and Restaurant" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">New Business Category</label>
+          <select id="transfer-input-cat" class="form-select">
+            <option value="food">Restaurant, Bar and Food</option>
+            <option value="kirana">Kirana and General Store</option>
+            <option value="medical">Medical Store</option>
+            <option value="tea">Tea Stall and Cafe</option>
+            <option value="services">Opticals and Clinic</option>
+            <option value="repair">Repair and Hardware</option>
+            <option value="services">Other Commercial Shop</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Proprietor PAN Card (Anti-Prank Verification)</label>
+          <input type="text" id="transfer-input-pan" class="form-input" placeholder="e.g. ABCDE1234F (10 Digits)" maxlength="10" style="text-transform:uppercase;" required>
+          <small style="color:var(--text-muted); font-size:0.74rem;">Proves real business identity. Prevents fake disputes.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">New WhatsApp / Mobile Number</label>
+          <input type="tel" id="transfer-input-phone" class="form-input" placeholder="e.g. 9848012345" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Photo of New Signboard / Flex Board</label>
+          <input type="file" id="transfer-input-photo" class="form-input" accept="image/*" capture="environment" required>
+          <small style="color:var(--text-muted); font-size:0.74rem;">Must clearly show the new shop name hanging outside shutter.</small>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; padding:10px; margin:10px 0; font-size:0.78rem; color:var(--text-muted);">
+          Verification Fee: <strong style="color:var(--accent-gold);">Rs 5</strong> (Deducted upon approval) · Verification SLA: <strong>24–48 Hours</strong>
+        </div>
+
+        <button type="submit" class="btn-submit-shop" style="background:linear-gradient(135deg, #06b6d4, #0891b2); color:#fff;">
+          Submit Ownership Transfer Request
         </button>
         <button type="button" class="btn-nav-secondary" style="width:100%; margin-top:8px; justify-content:center;" onclick="closeModal('modal-shop-claim')">
           Cancel

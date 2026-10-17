@@ -584,26 +584,46 @@
       </div>
     </div>
 
-    <!-- TAB 4: GOLDEN SHOPS -->
+    <!-- TAB 4: GOLDEN SHOPS & OWNERSHIP TRANSFERS -->
     <div class="tab-content" id="tab-shops" style="display:none;">
       <div class="info-box">
-        ⭐ <strong>Shopkeeper Radar Pins:</strong> Verified local shops glow with radar waves on public Rydealot Supermaps.
+        ⭐ <strong>Shopkeeper Radar Pins & Transfers:</strong> Manage verified local businesses, golden radar pins, and physical location ownership transfer disputes.
       </div>
 
-      <div class="items-list" id="admin-shops-list">
-        <div class="item-card">
-          <div>
-            <div class="item-title">Bawarchi Grand Biryani</div>
-            <div class="item-meta">₹99 / Year Plan • +91 9876543210</div>
-          </div>
-          <button class="btn-act" style="width:auto; padding:6px 12px; background:var(--green); color:#000;" onclick="alert('Subscription verified active.')">Active</button>
+      <!-- Pending Ownership Transfer Claims -->
+      <div style="margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:0.78rem; font-weight:800; color:#06b6d4;">🔄 PENDING LOCATION TRANSFERS (<span id="count-transfers">0</span>)</span>
+          <span style="font-size:0.7rem; color:var(--muted);">48-Hour Dispute Window</span>
         </div>
-        <div class="item-card">
-          <div>
-            <div class="item-title">Niloufer Irani Chai</div>
-            <div class="item-meta">3-Month Free Trial • +91 9123456780</div>
+        <div class="items-list" id="admin-transfers-list">
+          <div style="color:var(--muted); font-size:0.78rem; padding:12px; text-align:center; background:#12151e; border-radius:8px;">
+            No pending ownership transfer disputes.
           </div>
-          <button class="btn-act" style="width:auto; padding:6px 12px; background:var(--gold); color:#000;" onclick="alert('Trial active.')">Active</button>
+        </div>
+      </div>
+
+      <!-- Active Golden Shops List -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:0.78rem; font-weight:800; color:var(--gold);">⭐ ACTIVE GOLDEN SHOPS (<span id="count-shops">2</span>)</span>
+          <button onclick="refreshAdminShops()" style="background:none; border:none; color:var(--gold); font-size:0.72rem; font-weight:700; cursor:pointer;">Refresh</button>
+        </div>
+        <div class="items-list" id="admin-shops-list">
+          <div class="item-card">
+            <div>
+              <div class="item-title">Bawarchi Grand Biryani</div>
+              <div class="item-meta">₹99 / Year Plan • +91 9876543210</div>
+            </div>
+            <button class="btn-act" style="width:auto; padding:6px 12px; background:var(--green); color:#000;" onclick="alert('Subscription verified active.')">Active</button>
+          </div>
+          <div class="item-card">
+            <div>
+              <div class="item-title">Niloufer Irani Chai</div>
+              <div class="item-meta">3-Month Free Trial • +91 9123456780</div>
+            </div>
+            <button class="btn-act" style="width:auto; padding:6px 12px; background:var(--gold); color:#000;" onclick="alert('Trial active.')">Active</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1426,6 +1446,9 @@
       if (tab === 'shortcuts') {
         renderShortcutsList();
       }
+      if (tab === 'shops') {
+        renderAdminShopsAndTransfers();
+      }
     }
 
     // 5-Car Alerts Helpers
@@ -1732,6 +1755,184 @@
       setTimeout(() => {
         try { drawnItemsGroup.removeLayer(highlight); } catch (e) {}
       }, 5000);
+    }
+
+    // =========================================================================
+    // GOLDEN SHOPS & OWNERSHIP TRANSFER CONTROLLER
+    // =========================================================================
+    function refreshAdminShops() {
+      renderAdminShopsAndTransfers();
+      alert('Shops & Transfers refreshed.');
+    }
+
+    function renderAdminShopsAndTransfers() {
+      // 1. Render Transfers
+      const transfersListEl = document.getElementById('admin-transfers-list');
+      const countTransfersEl = document.getElementById('count-transfers');
+
+      let transfers = [];
+      try {
+        const raw = localStorage.getItem('rydealot_shop_transfers');
+        if (raw) transfers = JSON.parse(raw);
+      } catch (e) {}
+
+      function updateTransfersDisplay(list) {
+        if (countTransfersEl) countTransfersEl.innerText = list.length;
+        if (!transfersListEl) return;
+        if (list.length === 0) {
+          transfersListEl.innerHTML = `
+            <div style="color:var(--muted); font-size:0.78rem; padding:12px; text-align:center; background:#12151e; border-radius:8px;">
+              No pending ownership transfer disputes.
+            </div>
+          `;
+          return;
+        }
+
+        transfersListEl.innerHTML = '';
+        list.forEach(t => {
+          const card = document.createElement('div');
+          card.className = 'item-card';
+          card.style.flexDirection = 'column';
+          card.style.alignItems = 'stretch';
+          card.style.gap = '8px';
+
+          const isPending = t.status === 'dispute_window_48h';
+          const statusBadge = isPending
+            ? '<span style="background:rgba(6,182,212,0.2); color:#06b6d4; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:800;">48H DISPUTE WINDOW</span>'
+            : '<span style="background:rgba(16,185,129,0.2); color:#10b981; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:800;">APPROVED</span>';
+
+          card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <div class="item-title" style="color:#06b6d4;">${t.new_shop_name}</div>
+                <div class="item-meta">Replaces: <strong>${t.old_shop_name}</strong></div>
+                <div class="item-meta" style="color:var(--muted); font-size:0.72rem; margin-top:2px;">
+                  PAN: ${t.pan || 'N/A'} • Tel: ${t.phone || 'N/A'} • Fee: ₹${t.fee_amount || 5}
+                </div>
+              </div>
+              ${statusBadge}
+            </div>
+            <div style="display:flex; gap:6px; margin-top:6px;">
+              <button class="btn-act" style="background:var(--green); color:#000; font-weight:800; padding:6px 10px;" onclick="approveOwnershipTransfer('${t.id}')">
+                ✓ Approve Transfer
+              </button>
+              <button class="btn-act" style="background:#2d1515; color:#f87171; border:1px solid #5c2424; padding:6px 10px;" onclick="rejectOwnershipTransfer('${t.id}')">
+                ✕ Reject
+              </button>
+            </div>
+          `;
+          transfersListEl.appendChild(card);
+        });
+      }
+
+      updateTransfersDisplay(transfers);
+
+      // Fetch remote transfers from D1 worker if online
+      if (D1_WORKER && navigator.onLine) {
+        fetch(`${D1_WORKER}/api/v1/shops/transfer`)
+          .then(r => r.ok ? r.json() : [])
+          .then(remoteTransfers => {
+            if (Array.isArray(remoteTransfers) && remoteTransfers.length > 0) {
+              const localIds = new Set(transfers.map(t => t.id));
+              let updated = false;
+              remoteTransfers.forEach(rt => {
+                if (!localIds.has(rt.id)) {
+                  transfers.unshift(rt);
+                  updated = true;
+                }
+              });
+              if (updated) {
+                localStorage.setItem('rydealot_shop_transfers', JSON.stringify(transfers));
+                updateTransfersDisplay(transfers);
+              }
+            }
+          })
+          .catch(() => {});
+      }
+
+      // 2. Fetch and render Active Golden Shops from D1 if available
+      if (D1_WORKER && navigator.onLine) {
+        fetch(`${D1_WORKER}/api/v1/shops`)
+          .then(r => r.ok ? r.json() : [])
+          .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+              const shopsListEl = document.getElementById('admin-shops-list');
+              const countShopsEl = document.getElementById('count-shops');
+              if (countShopsEl) countShopsEl.innerText = data.length;
+              if (shopsListEl) {
+                shopsListEl.innerHTML = '';
+                data.forEach(shop => {
+                  const div = document.createElement('div');
+                  div.className = 'item-card';
+                  div.innerHTML = `
+                    <div>
+                      <div class="item-title">${shop.name}</div>
+                      <div class="item-meta">${shop.category.toUpperCase()} • ${shop.phone || 'No Phone'}</div>
+                    </div>
+                    <button class="btn-act" style="width:auto; padding:6px 12px; background:var(--green); color:#000;">Active</button>
+                  `;
+                  shopsListEl.appendChild(div);
+                });
+              }
+            }
+          })
+          .catch(() => {});
+      }
+    }
+
+    function approveOwnershipTransfer(id) {
+      let transfers = [];
+      try {
+        const raw = localStorage.getItem('rydealot_shop_transfers');
+        if (raw) transfers = JSON.parse(raw);
+      } catch (e) {}
+
+      const target = transfers.find(t => t.id === id);
+      if (!target) return;
+
+      if (!confirm(`Confirm Transfer Approval?\n\nNew Shop: ${target.new_shop_name}\nReplacing: ${target.old_shop_name}\nProprietor PAN: ${target.pan}\n\nThe old listing will be replaced on Supermaps.`)) {
+        return;
+      }
+
+      target.status = 'approved_transferred';
+      localStorage.setItem('rydealot_shop_transfers', JSON.stringify(transfers));
+
+      // Also publish the new shop as verified
+      const newShop = {
+        id: 'shop_' + Date.now(),
+        name: target.new_shop_name,
+        category: target.category,
+        latitude: target.latitude,
+        longitude: target.longitude,
+        phone: target.phone,
+        whatsapp: target.whatsapp,
+        tagline: `${target.category.toUpperCase()} • Verified Local Business`,
+        plan_tier: 'annual_1y',
+        is_golden_pin: true
+      };
+
+      if (D1_WORKER && navigator.onLine) {
+        fetch(`${D1_WORKER}/api/v1/shops`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newShop)
+        }).catch(() => {});
+      }
+
+      renderAdminShopsAndTransfers();
+      alert(`🎉 Transfer Approved!\n"${target.new_shop_name}" is now the active verified business at this location.`);
+    }
+
+    function rejectOwnershipTransfer(id) {
+      if (!confirm('Reject this ownership transfer dispute claim?')) return;
+      let transfers = [];
+      try {
+        const raw = localStorage.getItem('rydealot_shop_transfers');
+        if (raw) transfers = JSON.parse(raw);
+      } catch (e) {}
+      transfers = transfers.filter(t => t.id !== id);
+      localStorage.setItem('rydealot_shop_transfers', JSON.stringify(transfers));
+      renderAdminShopsAndTransfers();
     }
   </script>
 </body>

@@ -376,7 +376,79 @@ let inMemoryShopsFallback = [
   }
 ];
 
+let inMemoryTransfers = [
+  {
+    id: 'transfer_demo_01',
+    old_shop_name: 'Raju Electricals & Pipes',
+    new_shop_name: 'Sri Balaji Wines & Bar',
+    category: 'food',
+    pan: 'ABCDE1234F',
+    phone: '9848011223',
+    whatsapp: '9848011223',
+    latitude: 17.9942,
+    longitude: 79.5541,
+    status: 'dispute_window_48h',
+    fee_amount: 5.0,
+    requested_at: new Date(Date.now() - 14 * 3600 * 1000).toISOString()
+  }
+];
+
 async function handleShops(request, path, env, headers) {
+  // Sub-route: /api/v1/shops/transfer
+  if (path.includes('/transfer')) {
+    if (request.method === 'GET') {
+      if (env && env.DB) {
+        try {
+          const { results } = await env.DB.prepare('SELECT * FROM supermaps_shop_transfers ORDER BY requested_at DESC').all();
+          return jsonResponse(results, 200, headers);
+        } catch (e) {
+          return jsonResponse(inMemoryTransfers, 200, headers);
+        }
+      }
+      return jsonResponse(inMemoryTransfers, 200, headers);
+    }
+
+    if (request.method === 'POST') {
+      const body = await request.json();
+      const transfer = {
+        id: body.id || ('transfer_' + Date.now()),
+        old_shop_name: body.old_shop_name,
+        new_shop_name: body.new_shop_name,
+        category: body.category || 'services',
+        pan: body.pan || '',
+        phone: body.phone || '',
+        whatsapp: body.whatsapp || body.phone || '',
+        latitude: Number(body.latitude),
+        longitude: Number(body.longitude),
+        status: body.status || 'dispute_window_48h',
+        fee_amount: Number(body.fee_amount || 5.0),
+        requested_at: body.requested_at || new Date().toISOString()
+      };
+
+      if (env && env.DB) {
+        try {
+          await env.DB.prepare(`
+            INSERT INTO supermaps_shop_transfers (id, old_shop_name, new_shop_name, category, pan, phone, whatsapp, latitude, longitude, fee_amount, status, requested_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            transfer.id, transfer.old_shop_name, transfer.new_shop_name, transfer.category,
+            transfer.pan, transfer.phone, transfer.whatsapp, transfer.latitude, transfer.longitude,
+            transfer.fee_amount, transfer.status, transfer.requested_at
+          ).run();
+        } catch (e) {
+          inMemoryTransfers.unshift(transfer);
+        }
+      } else {
+        inMemoryTransfers.unshift(transfer);
+      }
+
+      return jsonResponse({ status: 'success', transfer }, 201, headers);
+    }
+
+    return jsonResponse({ error: 'Transfer method not allowed' }, 405, headers);
+  }
+
+  // Standard route: /api/v1/shops
   if (request.method === 'GET') {
     // If D1 is bound, query from D1; else serve fallback
     if (env && env.DB) {

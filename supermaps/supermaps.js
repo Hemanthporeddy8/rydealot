@@ -1934,16 +1934,466 @@ async function submitShopkeeperClaim(event) {
   }
 }
 
+// =========================================================================
+// 5B. BUSINESS MODAL TABS & OWNERSHIP TRANSFER ENGINE
+// =========================================================================
+
+function switchBizModalTab(tab) {
+  const isTransfer = tab === 'transfer';
+  const newBtn = document.getElementById('tab-btn-biz-new');
+  const transferBtn = document.getElementById('tab-btn-biz-transfer');
+  const newForm = document.getElementById('form-claim-shop');
+  const transferForm = document.getElementById('form-transfer-shop');
+
+  if (newBtn) newBtn.classList.toggle('active', !isTransfer);
+  if (transferBtn) transferBtn.classList.toggle('active', isTransfer);
+  if (newForm) newForm.style.display = isTransfer ? 'none' : 'block';
+  if (transferForm) transferForm.style.display = isTransfer ? 'block' : 'none';
+}
+
+async function submitOwnershipTransfer(event) {
+  event.preventDefault();
+  const oldName = document.getElementById('transfer-input-old-name')?.value?.trim();
+  const newName = document.getElementById('transfer-input-new-name')?.value?.trim();
+  const category = document.getElementById('transfer-input-cat')?.value;
+  const pan = (document.getElementById('transfer-input-pan')?.value || '').trim().toUpperCase();
+  const phone = document.getElementById('transfer-input-phone')?.value?.trim();
+  const submitBtn = event.target.querySelector('button[type="submit"]');
+
+  if (!oldName || !newName || !phone || !pan) {
+    showSupermapsToast('Please fill all mandatory fields.', '⚠️', 'info');
+    return;
+  }
+
+  // PAN card format validation (5 letters, 4 digits, 1 letter)
+  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+  if (!panRegex.test(pan)) {
+    showSupermapsToast('Please enter a valid 10-digit PAN number.', '⚠️', 'info');
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.textContent = 'Submitting Transfer Request...';
+    submitBtn.disabled = true;
+  }
+
+  const currentCoords = userLngLat || CONFIG.DEFAULT_LNG_LAT;
+  const transferPayload = {
+    id: 'transfer_' + Date.now(),
+    old_shop_name: oldName,
+    new_shop_name: newName,
+    category: category,
+    pan: pan,
+    phone: phone,
+    whatsapp: phone,
+    latitude: currentCoords[1],
+    longitude: currentCoords[0],
+    status: 'dispute_window_48h',
+    fee_amount: 5.0,
+    requested_at: new Date().toISOString()
+  };
+
+  try {
+    if (CONFIG.D1_WORKER) {
+      await fetch(`${CONFIG.D1_WORKER}/api/v1/shops/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(transferPayload)
+      }).catch(() => {});
+    }
+
+    let localTransfers = [];
+    try {
+      const raw = localStorage.getItem('rydealot_shop_transfers');
+      if (raw) localTransfers = JSON.parse(raw);
+    } catch(e){}
+    localTransfers.unshift(transferPayload);
+    localStorage.setItem('rydealot_shop_transfers', JSON.stringify(localTransfers));
+
+    closeModal('modal-shop-claim');
+    showSupermapsToast(`🔄 Transfer for "${newName}" submitted! 48-hr dispute window active.`, '✅', 'success');
+  } catch (err) {
+    showSupermapsToast('Transfer request submitted locally.', '✅', 'success');
+  } finally {
+    if (submitBtn) {
+      submitBtn.textContent = 'Submit Ownership Transfer Request';
+      submitBtn.disabled = false;
+    }
+  }
+}
+
+// =========================================================================
+// 5C. HIGH-ACCURACY CATEGORY POI DATABASE & PROXIMITY RADAR ENGINE
+// =========================================================================
+
+const _categoryPoiDb = [
+  // --- FOOD & BIRYANI (Warangal, Hanamkonda & Hyderabad) ---
+  {
+    id: 'poi_f1',
+    name: 'Gayatri Grand Biryani & Family Restaurant',
+    category: 'food',
+    tagline: 'Authentic Hyderabadi Dum Biryani & Kebabs',
+    lat: 17.9942,
+    lng: 79.5541,
+    phone: '9848011223',
+    whatsapp: '9848011223',
+    icon: '🍗',
+    address: 'Nayeemnagar Main Road, Hanamkonda'
+  },
+  {
+    id: 'poi_f2',
+    name: 'Hotel Ashoka Multi-Cuisine',
+    category: 'food',
+    tagline: 'North & South Indian Thali & Tandoori',
+    lat: 17.9868,
+    lng: 79.5620,
+    phone: '9848022334',
+    whatsapp: '9848022334',
+    icon: '🍗',
+    address: 'Main Road, Hanamkonda Bus Stand Area'
+  },
+  {
+    id: 'poi_f3',
+    name: 'Kritunga Rayalaseema Restaurant',
+    category: 'food',
+    tagline: 'Spicy Rayalaseema Biryani & Ragi Mudda',
+    lat: 17.9895,
+    lng: 79.5480,
+    phone: '9848033445',
+    whatsapp: '9848033445',
+    icon: '🍗',
+    address: 'Subedari Collectorate Road, Hanamkonda'
+  },
+  {
+    id: 'poi_f4',
+    name: 'Mandi House Arabian Nights',
+    category: 'food',
+    tagline: 'Juicy Mutton & Chicken Mandi Platters',
+    lat: 18.0060,
+    lng: 79.5585,
+    phone: '9848044556',
+    whatsapp: '9848044556',
+    icon: '🍗',
+    address: 'Kakatiya University 100ft Road, Hanamkonda'
+  },
+  {
+    id: 'poi_f5',
+    name: 'Bawarchi Dum Biryani Center',
+    category: 'food',
+    tagline: 'Quick Parcel & Dine-In Dum Biryani',
+    lat: 17.9780,
+    lng: 79.5165,
+    phone: '9848055667',
+    whatsapp: '9848055667',
+    icon: '🍗',
+    address: 'Station Road, Kazipet'
+  },
+  {
+    id: 'poi_f6',
+    name: 'Bawarchi Grand Biryani (RTC X Roads)',
+    category: 'food',
+    tagline: 'World Famous Hyderabadi Dum Biryani',
+    lat: 17.4018,
+    lng: 78.4908,
+    phone: '9876543210',
+    whatsapp: '9876543210',
+    icon: '🍗',
+    address: 'RTC X Roads, Hyderabad'
+  },
+
+  // --- IRANI CHAI & CAFES ---
+  {
+    id: 'poi_t1',
+    name: 'Lucky Irani Chai & Osmania Cafe',
+    category: 'tea',
+    tagline: 'Kadak Irani Chai, Samosa & Osmania Biscuits',
+    lat: 17.9880,
+    lng: 79.5605,
+    phone: '9848112233',
+    whatsapp: '9848112233',
+    icon: '☕',
+    address: 'Public Garden Road, Hanamkonda'
+  },
+  {
+    id: 'poi_t2',
+    name: 'New Milan Chai Point',
+    category: 'tea',
+    tagline: 'Ginger Lemon Tea & Fresh Bun Maska',
+    lat: 17.9950,
+    lng: 79.5530,
+    phone: '9848123456',
+    whatsapp: '9848123456',
+    icon: '☕',
+    address: 'Nayeemnagar Chowrasta, Hanamkonda'
+  },
+  {
+    id: 'poi_t3',
+    name: 'City Tea Stall & Snacks',
+    category: 'tea',
+    tagline: '24/7 Hot Irani Chai for Travellers',
+    lat: 17.9772,
+    lng: 79.5180,
+    phone: '9848134567',
+    whatsapp: '9848134567',
+    icon: '☕',
+    address: 'Kazipet Railway Station Entrance'
+  },
+  {
+    id: 'poi_t4',
+    name: 'Niloufer Cafe & Tea Lounge',
+    category: 'tea',
+    tagline: 'Signature Irani Chai & Maska Bun',
+    lat: 17.3970,
+    lng: 78.4682,
+    phone: '9123456780',
+    whatsapp: '9123456780',
+    icon: '☕',
+    address: 'Lakdikapul, Hyderabad'
+  },
+
+  // --- AUTO & TAXI STANDS ---
+  {
+    id: 'poi_a1',
+    name: 'Hanamkonda Bus Stand Auto Point',
+    category: 'auto',
+    tagline: 'City Autos to Kazipet, Parkal & Warangal',
+    lat: 17.9860,
+    lng: 79.5635,
+    phone: '',
+    whatsapp: '',
+    icon: '🛺',
+    address: 'Main Bus Station, Hanamkonda'
+  },
+  {
+    id: 'poi_a2',
+    name: 'Nayeemnagar Junction Auto Stand',
+    category: 'auto',
+    tagline: 'Autos to KU Campus, Mulugu Road & Subedari',
+    lat: 17.9955,
+    lng: 79.5525,
+    phone: '',
+    whatsapp: '',
+    icon: '🛺',
+    address: 'NH563 Chowrasta, Nayeemnagar'
+  },
+  {
+    id: 'poi_a3',
+    name: 'Kazipet Railway Station Auto Stand',
+    category: 'auto',
+    tagline: '24/7 Autos to Hanamkonda, NIT & Warangal',
+    lat: 17.9765,
+    lng: 79.5190,
+    phone: '',
+    whatsapp: '',
+    icon: '🛺',
+    address: 'Platform 1 Circulating Area, Kazipet'
+  },
+  {
+    id: 'poi_a4',
+    name: 'Subedari Collectorate Auto Stand',
+    category: 'auto',
+    tagline: 'Autos to District Courts, Arts College & Balasamudram',
+    lat: 17.9890,
+    lng: 79.5495,
+    phone: '',
+    whatsapp: '',
+    icon: '🛺',
+    address: 'Court Circle, Subedari'
+  },
+
+  // --- FUEL & EV CHARGING ---
+  {
+    id: 'poi_e1',
+    name: 'Indian Oil Petrol & EV Charging Station',
+    category: 'fuel',
+    tagline: 'Petrol, Diesel, Air & 60kW DC EV Fast Charger',
+    lat: 17.9910,
+    lng: 79.5510,
+    phone: '',
+    whatsapp: '',
+    icon: '⛽',
+    address: 'Subedari Main Road, Hanamkonda'
+  },
+  {
+    id: 'poi_e2',
+    name: 'HP Auto Fuel Station NH563',
+    category: 'fuel',
+    tagline: '24/7 Digital Fueling & Nitrogen Air',
+    lat: 18.0020,
+    lng: 79.5560,
+    phone: '',
+    whatsapp: '',
+    icon: '⛽',
+    address: 'Parkal Highway NH563, Nayeemnagar'
+  },
+  {
+    id: 'poi_e3',
+    name: 'Bharat Petroleum Kazipet Bypass',
+    category: 'fuel',
+    tagline: 'High Speed Fueling & Engine Oil Services',
+    lat: 17.9810,
+    lng: 79.5250,
+    phone: '',
+    whatsapp: '',
+    icon: '⛽',
+    address: 'Bypass Road, Kazipet'
+  },
+
+  // --- METRO & TRAIN STATIONS ---
+  {
+    id: 'poi_s1',
+    name: 'Kazipet Junction Railway Station (KZJ)',
+    category: 'station',
+    tagline: 'Major Indian Railways Junction (Telangana)',
+    lat: 17.9768,
+    lng: 79.5186,
+    phone: '139',
+    whatsapp: '',
+    icon: '🚆',
+    address: 'Kazipet, Hanumakonda District'
+  },
+  {
+    id: 'poi_s2',
+    name: 'Warangal Railway Station (WL)',
+    category: 'station',
+    tagline: 'Main Warangal City Rail Terminal',
+    lat: 17.9575,
+    lng: 79.6015,
+    phone: '139',
+    whatsapp: '',
+    icon: '🚆',
+    address: 'Station Road, Warangal'
+  },
+  {
+    id: 'poi_s3',
+    name: 'Hanamkonda Central Bus Terminal',
+    category: 'station',
+    tagline: 'TSRTC Express & Palle Velugu Bus Hub',
+    lat: 17.9855,
+    lng: 79.5640,
+    phone: '',
+    whatsapp: '',
+    icon: '🚌',
+    address: 'Bus Station Complex, Hanamkonda'
+  }
+];
+
+let activeCategoryMarkers = [];
+
 function setCategoryFilter(category, btnEl) {
-  // Highlight active chip
+  // 1. Highlight active chip
   document.querySelectorAll('.chip-btn').forEach(btn => btn.classList.remove('active'));
   if (btnEl) btnEl.classList.add('active');
-  // Filter visible shop markers by category
-  if (category === 'all') {
-    renderShopMarkers(verifiedShops);
-  } else {
-    renderShopMarkers(verifiedShops.filter(s => s.category === category));
+
+  // 2. Remove all previous category markers cleanly
+  activeCategoryMarkers.forEach(m => m.remove());
+  activeCategoryMarkers = [];
+
+  // 3. Gather all places
+  const allPlaces = [..._categoryPoiDb, ...verifiedShops];
+  const filtered = category === 'all'
+    ? allPlaces
+    : allPlaces.filter(p => p.category === category);
+
+  if (filtered.length === 0) {
+    showSupermapsToast('No places found for this category nearby.', '🔍', 'info');
+    return;
   }
+
+  // 4. Calculate distance from user GPS
+  const currentPos = userLngLat || CONFIG.DEFAULT_LNG_LAT;
+  const placesWithDist = filtered.map(p => {
+    const lat = Number(p.lat || p.latitude);
+    const lng = Number(p.lng || p.longitude);
+    const distKm = calculateDistanceKm(currentPos[1], currentPos[0], lat, lng);
+    return { ...p, lat, lng, distKm };
+  });
+
+  // Sort by closest distance
+  placesWithDist.sort((a, b) => a.distKm - b.distKm);
+
+  // 5. Render custom category pins on the map
+  const bounds = new maplibregl.LngLatBounds();
+  bounds.extend(currentPos);
+
+  const topPlaces = placesWithDist.slice(0, 10);
+  topPlaces.forEach(place => {
+    const el = document.createElement('div');
+    el.className = 'category-poi-pin';
+
+    let catClass = place.category || 'services';
+    let icon = place.icon || '📍';
+    if (!place.icon) {
+      if (catClass === 'food') icon = '🍗';
+      else if (catClass === 'tea') icon = '☕';
+      else if (catClass === 'auto') icon = '🛺';
+      else if (catClass === 'fuel') icon = '⛽';
+      else if (catClass === 'station') icon = '🚆';
+    }
+
+    const shortName = place.name.length > 18 ? place.name.substring(0, 16) + '..' : place.name;
+    const distLabel = place.distKm < 1.0 ? `${Math.round(place.distKm * 1000)}m` : `${place.distKm.toFixed(1)}km`;
+
+    el.innerHTML = `
+      <div class="category-poi-badge ${catClass}">
+        <span>${icon}</span>
+        <span>${shortName}</span>
+        <span style="opacity:0.85; font-size:0.7rem; margin-left:2px;">(${distLabel})</span>
+      </div>
+    `;
+
+    el.onclick = () => onCategoryPoiClicked(place);
+
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat([place.lng, place.lat])
+      .addTo(map);
+
+    activeCategoryMarkers.push(marker);
+    bounds.extend([place.lng, place.lat]);
+  });
+
+  // 6. Camera gently fits to encompass nearby places
+  if (topPlaces.length > 0 && map) {
+    map.fitBounds(bounds, { padding: { top: 120, bottom: 100, left: 50, right: 50 }, maxZoom: 15 });
+  }
+
+  // 7. Open bottom panel with the closest place
+  if (topPlaces.length > 0) {
+    onCategoryPoiClicked(topPlaces[0]);
+  }
+}
+
+function onCategoryPoiClicked(place) {
+  if (!place) return;
+  const distLabel = place.distKm ? (place.distKm < 1.0 ? `${Math.round(place.distKm * 1000)}m away` : `${place.distKm.toFixed(1)} km away`) : '';
+
+  document.getElementById('place-title').innerText = place.name;
+  document.getElementById('place-subtitle').innerText = place.tagline
+    ? `${place.tagline} ${distLabel ? '• ' + distLabel : ''}`
+    : `${place.address || (place.category.toUpperCase() + ' · Verified Spot')} ${distLabel ? '• ' + distLabel : ''}`;
+
+  const callBtn = document.getElementById('btn-call-place');
+  if (callBtn) {
+    callBtn.style.display = place.phone ? 'flex' : 'none';
+    callBtn.onclick = () => window.open(`tel:${place.phone}`);
+  }
+
+  const waBtn = document.getElementById('btn-wa-place');
+  if (waBtn) {
+    const waNum = place.whatsapp || place.phone;
+    waBtn.style.display = waNum ? 'flex' : 'none';
+    waBtn.onclick = () => window.open(`https://wa.me/${waNum}?text=Hi,%20I%20found%20your%20place%20on%20Rydealot%20Supermaps!`);
+  }
+
+  const navBtn = document.getElementById('btn-start-nav');
+  if (navBtn) {
+    navBtn.onclick = () => {
+      closeBottomPanel();
+      calculateActiveRoute(place.lng, place.lat, place.name);
+    };
+  }
+
+  openBottomPanel();
 }
 
 function registerServiceWorker() {

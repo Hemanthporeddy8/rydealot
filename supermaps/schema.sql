@@ -116,3 +116,22 @@ CREATE TABLE IF NOT EXISTS supermaps_shortcut_rides (
     completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 6. BUSINESS OWNERSHIP TRANSFER CLAIMS (48-Hour Dispute Engine)
+CREATE TABLE IF NOT EXISTS supermaps_shop_transfers (
+    id TEXT PRIMARY KEY,
+    old_shop_name TEXT NOT NULL,
+    new_shop_name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    pan TEXT NOT NULL,
+    phone TEXT,
+    whatsapp TEXT,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    fee_amount REAL DEFAULT 5.0,
+    status TEXT DEFAULT 'dispute_window_48h', -- 'dispute_window_48h', 'approved_transferred', 'rejected'
+    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_shop_transfers_status 
+ON supermaps_shop_transfers(status);
+
