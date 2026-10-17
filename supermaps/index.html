@@ -18,7 +18,7 @@
 
   <!-- PWA Manifest & App Stylesheet -->
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=4.2">
+  <link rel="stylesheet" href="style.css?v=4.5">
   <meta name="theme-color" content="#0a0b0e">
 
   <!-- iOS Add to Home Screen -->
@@ -547,17 +547,29 @@
           <small style="color:var(--text-muted); font-size:0.75rem; margin-top:2px;">Snap a photo of your shop flex banner or board.</small>
         </div>
 
-        <label class="form-label">Promotion Plan</label>
-        <div class="plan-picker-grid">
-          <div class="plan-card selected" data-plan="trial_3m" onclick="selectPlanCard(this)">
-            <span class="plan-badge">FREE LAUNCH</span>
-            <div class="plan-price">Rs 0</div>
-            <div class="plan-period">Free for 3 Months</div>
+        <div class="form-group">
+          <label class="form-label">Shop Entrance / Shutter Location</label>
+          <div class="pin-picker-box" id="new-shop-pin-box">
+            <div class="pin-picker-info">
+              <span style="font-size:1.1rem;">📍</span>
+              <span id="new-shop-coords-text">Using Current GPS Location</span>
+            </div>
+            <button type="button" class="pin-picker-btn" onclick="startShopPinDropper('new')">📍 Pin on Map</button>
           </div>
-          <div class="plan-card" data-plan="annual_1y" onclick="selectPlanCard(this)">
-            <span class="plan-badge">GOLDEN RADAR</span>
-            <div class="plan-price">Rs 99</div>
-            <div class="plan-period">Full 1 Year Listing</div>
+          <small style="color:var(--text-muted); font-size:0.74rem;">Tap "Pin on Map" to drag pin exactly over your shop entrance.</small>
+        </div>
+
+        <label class="form-label">Promotion &amp; Ranking Plan</label>
+        <div class="plan-picker-grid">
+          <div class="plan-card selected" data-plan="free_lifetime" onclick="selectPlanCard(this)">
+            <span class="plan-badge" style="color:#34d399;">PERMANENT FREE</span>
+            <div class="plan-price">₹0</div>
+            <div class="plan-period">Lifetime Map Listing</div>
+          </div>
+          <div class="plan-card" data-plan="sponsored_rank" onclick="selectPlanCard(this)">
+            <span class="plan-badge" style="color:var(--accent-gold);">⭐ TOP RANK #1</span>
+            <div class="plan-price">₹49</div>
+            <div class="plan-period">Sponsored Search Priority</div>
           </div>
         </div>
 
@@ -600,6 +612,18 @@
         </div>
 
         <div class="form-group">
+          <label class="form-label">Shop Shutter Location</label>
+          <div class="pin-picker-box" id="transfer-shop-pin-box">
+            <div class="pin-picker-info">
+              <span style="font-size:1.1rem;">📍</span>
+              <span id="transfer-coords-text">Using Current GPS Location</span>
+            </div>
+            <button type="button" class="pin-picker-btn" onclick="startShopPinDropper('transfer')">📍 Pin on Map</button>
+          </div>
+          <small style="color:var(--text-muted); font-size:0.74rem;">Pin directly over the building/shop being replaced.</small>
+        </div>
+
+        <div class="form-group">
           <label class="form-label">Proprietor PAN Card (Anti-Prank Verification)</label>
           <input type="text" id="transfer-input-pan" class="form-input" placeholder="e.g. ABCDE1234F (10 Digits)" maxlength="10" style="text-transform:uppercase;" required>
           <small style="color:var(--text-muted); font-size:0.74rem;">Proves real business identity. Prevents fake disputes.</small>
@@ -617,7 +641,7 @@
         </div>
 
         <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; padding:10px; margin:10px 0; font-size:0.78rem; color:var(--text-muted);">
-          Verification Fee: <strong style="color:var(--accent-gold);">Rs 5</strong> (Deducted upon approval) · Verification SLA: <strong>24–48 Hours</strong>
+          Verification Fee: <strong style="color:var(--accent-gold);">₹5</strong> (Deducted upon approval) · Verification SLA: <strong>24–48 Hours</strong>
         </div>
 
         <button type="submit" class="btn-submit-shop" style="background:linear-gradient(135deg, #06b6d4, #0891b2); color:#fff;">
@@ -628,6 +652,24 @@
         </button>
       </form>
     </div>
+  </div>
+
+  <!-- Floating Pin Dropper Map Mode Header -->
+  <div class="map-pin-dropper-bar" id="map-pin-dropper-bar">
+    <span style="font-size:1.1rem;">📍</span>
+    <span class="map-pin-dropper-text">Drag map to position pin on shop shutter</span>
+    <button type="button" class="map-pin-dropper-confirm-btn" onclick="confirmShopPinLocation()">✓ Set Shop Pin</button>
+    <button type="button" class="map-pin-dropper-cancel-btn" onclick="cancelShopPinDropper()">✕ Cancel</button>
+  </div>
+
+  <!-- Center Screen Fixed Crosshair Pin for Pin Dropper Mode -->
+  <div class="center-screen-crosshair" id="center-screen-crosshair">
+    <div class="crosshair-badge">SHOP SHUTTER</div>
+    <svg width="38" height="46" viewBox="0 0 24 30" fill="none">
+      <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 18 12 18s12-9 12-18c0-6.63-5.37-12-12-12z" fill="#f59e0b"/>
+      <circle cx="12" cy="11" r="5" fill="#000"/>
+      <circle cx="12" cy="11" r="2.5" fill="#fff"/>
+    </svg>
   </div>
 
   <!-- Floating Doorstep Visual Verification Arrival Card -->
@@ -736,6 +778,6 @@
   </div>
 
   <!-- Master Engine Script -->
-  <script src="supermaps.js?v=4.2"></script>
+  <script src="supermaps.js?v=4.5"></script>
 </body>
 </html>

@@ -2009,12 +2009,74 @@ function selectPlanCard(el) {
   el.classList.add('selected');
 }
 
+let _activePinDropperForm = 'new';
+let _selectedShopCoords = {
+  new: null,
+  transfer: null
+};
+
+function startShopPinDropper(formType) {
+  _activePinDropperForm = formType || 'new';
+  closeModal('modal-shop-claim');
+
+  const bar = document.getElementById('map-pin-dropper-bar');
+  const crosshair = document.getElementById('center-screen-crosshair');
+  if (bar) bar.classList.add('active');
+  if (crosshair) crosshair.classList.add('active');
+
+  const targetCoords = _selectedShopCoords[_activePinDropperForm] || userLngLat || CONFIG.DEFAULT_LNG_LAT;
+  if (map && targetCoords) {
+    map.flyTo({ center: targetCoords, zoom: 17 });
+  }
+
+  showSupermapsToast('🎯 Pan the map to position center pin over shop shutter.', '📍', 'info');
+}
+
+function confirmShopPinLocation() {
+  if (!map) return;
+  const center = map.getCenter();
+  const coords = [Number(center.lng.toFixed(6)), Number(center.lat.toFixed(6))];
+  _selectedShopCoords[_activePinDropperForm] = coords;
+
+  const bar = document.getElementById('map-pin-dropper-bar');
+  const crosshair = document.getElementById('center-screen-crosshair');
+  if (bar) bar.classList.remove('active');
+  if (crosshair) crosshair.classList.remove('active');
+
+  const coordsText = `${coords[1].toFixed(5)}°N, ${coords[0].toFixed(5)}°E (Shutter Pinned ✓)`;
+  if (_activePinDropperForm === 'new') {
+    const textEl = document.getElementById('new-shop-coords-text');
+    const boxEl = document.getElementById('new-shop-pin-box');
+    if (textEl) textEl.textContent = coordsText;
+    if (boxEl) boxEl.classList.add('pinned');
+  } else {
+    const textEl = document.getElementById('transfer-coords-text');
+    const boxEl = document.getElementById('transfer-shop-pin-box');
+    if (textEl) textEl.textContent = coordsText;
+    if (boxEl) boxEl.classList.add('pinned');
+  }
+
+  openModal('modal-shop-claim');
+  switchBizModalTab(_activePinDropperForm);
+  showSupermapsToast('📍 Exact shop shutter location locked!', '✅', 'success');
+}
+
+function cancelShopPinDropper() {
+  const bar = document.getElementById('map-pin-dropper-bar');
+  const crosshair = document.getElementById('center-screen-crosshair');
+  if (bar) bar.classList.remove('active');
+  if (crosshair) crosshair.classList.remove('active');
+
+  openModal('modal-shop-claim');
+  switchBizModalTab(_activePinDropperForm);
+}
+
 async function submitShopkeeperClaim(event) {
   event.preventDefault();
   const name = document.getElementById('shop-input-name').value.trim();
   const category = document.getElementById('shop-input-cat').value;
   const phone = document.getElementById('shop-input-phone').value.trim();
-  const plan = document.querySelector('.plan-card.selected')?.dataset?.plan || 'trial_3m';
+  const plan = document.querySelector('.plan-card.selected')?.dataset?.plan || 'free_lifetime';
   const submitBtn = event.target.querySelector('button[type="submit"]');
 
   if (!name || !phone) return;
@@ -2022,16 +2084,20 @@ async function submitShopkeeperClaim(event) {
   submitBtn.textContent = 'Publishing...';
   submitBtn.disabled = true;
 
+  const selectedCoords = _selectedShopCoords['new'] || userLngLat || CONFIG.DEFAULT_LNG_LAT;
+  const isSponsored = plan === 'sponsored_rank';
+
   const payload = {
     name,
     category,
     phone,
     whatsapp: phone,
-    tagline: `${category.toUpperCase()} · Verified Local Business`,
+    tagline: isSponsored ? `${category.toUpperCase()} • ⭐ TOP SPONSORED RANK` : `${category.toUpperCase()} • Verified Local Business`,
     plan_tier: plan,
-    is_golden_pin: plan !== 'trial_3m',
-    latitude: userLngLat[1],
-    longitude: userLngLat[0]
+    is_golden_pin: true,
+    is_sponsored: isSponsored,
+    latitude: selectedCoords[1],
+    longitude: selectedCoords[0]
   };
 
   try {
@@ -2107,7 +2173,7 @@ async function submitOwnershipTransfer(event) {
     submitBtn.disabled = true;
   }
 
-  const currentCoords = userLngLat || CONFIG.DEFAULT_LNG_LAT;
+  const currentCoords = _selectedShopCoords['transfer'] || userLngLat || CONFIG.DEFAULT_LNG_LAT;
   const transferPayload = {
     id: 'transfer_' + Date.now(),
     old_shop_name: oldName,
@@ -2440,10 +2506,17 @@ function setCategoryFilter(category, btnEl) {
     return { ...p, lat, lng, distKm };
   });
 
-  // Sort by closest distance
-  placesWithDist.sort((a, b) => a.distKm - b.distKm);
+  // 5. Sponsored Ranking Priority + Proximity Distance Algorithm
+  placesWithDist.sort((a, b) => {
+    const aSponsored = (a.is_sponsored || a.plan_tier === 'sponsored_rank') ? 1 : 0;
+    const bSponsored = (b.is_sponsored || b.plan_tier === 'sponsored_rank') ? 1 : 0;
+    if (aSponsored !== bSponsored) {
+      return bSponsored - aSponsored; // Sponsored places jump straight to Rank #1 / Top Priority!
+    }
+    return a.distKm - b.distKm; // Within same rank, closest distance first
+  });
 
-  // 5. Render custom category pins on the map
+  // 6. Render custom category pins on the map
   const bounds = new maplibregl.LngLatBounds();
   bounds.extend(currentPos);
 
@@ -2464,9 +2537,17 @@ function setCategoryFilter(category, btnEl) {
 
     const shortName = place.name.length > 18 ? place.name.substring(0, 16) + '..' : place.name;
     const distLabel = place.distKm < 1.0 ? `${Math.round(place.distKm * 1000)}m` : `${place.distKm.toFixed(1)}km`;
+    const isSponsored = place.is_sponsored || place.plan_tier === 'sponsored_rank';
+    const sponsoredTag = isSponsored
+      ? `<span style="background:var(--accent-gold); color:#000; font-size:0.62rem; font-weight:900; padding:1px 5px; border-radius:4px; margin-right:4px;">⭐ AD</span>`
+      : '';
+    const sponsoredStyle = isSponsored
+      ? 'border: 2px solid var(--accent-gold); box-shadow: 0 0 14px rgba(245,158,11,0.6);'
+      : '';
 
     el.innerHTML = `
-      <div class="category-poi-badge ${catClass}">
+      <div class="category-poi-badge ${catClass}" style="${sponsoredStyle}">
+        ${sponsoredTag}
         <span>${icon}</span>
         <span>${shortName}</span>
         <span style="opacity:0.85; font-size:0.7rem; margin-left:2px;">(${distLabel})</span>
@@ -2497,8 +2578,10 @@ function setCategoryFilter(category, btnEl) {
 function onCategoryPoiClicked(place) {
   if (!place) return;
   const distLabel = place.distKm ? (place.distKm < 1.0 ? `${Math.round(place.distKm * 1000)}m away` : `${place.distKm.toFixed(1)} km away`) : '';
+  const isSponsored = place.is_sponsored || place.plan_tier === 'sponsored_rank';
 
-  document.getElementById('place-title').innerText = place.name;
+  const titlePrefix = isSponsored ? '⭐ [SPONSORED #1] ' : '';
+  document.getElementById('place-title').innerText = titlePrefix + place.name;
   document.getElementById('place-subtitle').innerText = place.tagline
     ? `${place.tagline} ${distLabel ? '• ' + distLabel : ''}`
     : `${place.address || (place.category.toUpperCase() + ' · Verified Spot')} ${distLabel ? '• ' + distLabel : ''}`;

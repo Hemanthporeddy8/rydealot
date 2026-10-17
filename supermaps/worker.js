@@ -452,8 +452,17 @@ async function handleShops(request, path, env, headers) {
   if (request.method === 'GET') {
     // If D1 is bound, query from D1; else serve fallback
     if (env && env.DB) {
-      const { results } = await env.DB.prepare('SELECT * FROM supermaps_shops WHERE is_golden_pin = 1').all();
-      return jsonResponse(results, 200, headers);
+      try {
+        const { results } = await env.DB.prepare(`
+          SELECT * FROM supermaps_shops 
+          WHERE is_golden_pin = 1 
+          ORDER BY (CASE WHEN plan_tier = 'sponsored_rank' THEN 0 ELSE 1 END), created_at DESC
+        `).all();
+        return jsonResponse(results, 200, headers);
+      } catch (e) {
+        const { results } = await env.DB.prepare('SELECT * FROM supermaps_shops WHERE is_golden_pin = 1').all();
+        return jsonResponse(results, 200, headers);
+      }
     }
     return jsonResponse(inMemoryShopsFallback, 200, headers);
   }
@@ -468,9 +477,10 @@ async function handleShops(request, path, env, headers) {
       longitude: Number(body.longitude),
       phone: body.phone,
       whatsapp: body.phone ? body.phone.replace(/[^0-9]/g, '') : '',
-      tagline: body.tagline || 'Verified Local Shop',
-      plan_tier: body.plan_tier || 'trial_3m',
+      tagline: body.tagline || (body.plan_tier === 'sponsored_rank' ? '⭐ Sponsored #1 Local Business' : 'Verified Local Business'),
+      plan_tier: body.plan_tier || 'free_lifetime',
       is_golden_pin: true,
+      is_sponsored: body.plan_tier === 'sponsored_rank' || !!body.is_sponsored,
       created_at: new Date().toISOString()
     };
 

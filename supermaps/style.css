@@ -795,6 +795,133 @@ body.daylight-theme .leaflet-tile {
   border-color: var(--accent-gold);
 }
 
+.form-select option {
+  background: #16181f;
+  color: #f8fafc;
+  padding: 8px 12px;
+}
+
+/* Location Pin Picker Box */
+.pin-picker-box {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.pin-picker-box.pinned {
+  border-color: var(--accent-gold);
+  background: rgba(245, 158, 11, 0.08);
+}
+.pin-picker-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pin-picker-btn {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-gold);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.pin-picker-btn:hover {
+  background: var(--accent-gold);
+  color: #000;
+}
+
+/* Pin Dropper Map Mode Overlay Bar */
+.map-pin-dropper-bar {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(18, 21, 30, 0.96);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--accent-gold);
+  border-radius: 30px;
+  padding: 8px 18px;
+  display: none;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  max-width: 92vw;
+}
+.map-pin-dropper-bar.active {
+  display: flex;
+}
+.map-pin-dropper-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+.map-pin-dropper-confirm-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.map-pin-dropper-cancel-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+/* Center Screen Crosshair Pin */
+.center-screen-crosshair {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  z-index: 999;
+  pointer-events: none;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.8));
+}
+.center-screen-crosshair.active {
+  display: flex;
+}
+.crosshair-badge {
+  background: var(--accent-gold);
+  color: #000;
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 3px 8px;
+  border-radius: 10px;
+  margin-bottom: 2px;
+  letter-spacing: 0.5px;
+  animation: pulsePin 1.5s infinite;
+}
+@keyframes pulsePin {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
 .plan-picker-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
