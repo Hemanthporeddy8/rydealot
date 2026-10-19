@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0b0e">
+  <title>Rydealot Escort — Night Safety Guardian</title>
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root {
+      --bg: #07090e;
+      --card: #0f131c;
+      --card-border: #1b2333;
+      --text: #f8fafc;
+      --text-muted: #8b9bb4;
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.18);
+      --gold: #f59e0b;
+      --gold-glow: rgba(245, 158, 11, 0.16);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.16);
+      --red: #ef4444;
+      --red-glow: rgba(239, 68, 68, 0.2);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 40px;
+    }
+
+    .app-wrap {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Top Navigation */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      background: rgba(10, 13, 20, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-back-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-size: 1.1rem;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: -0.3px;
+    }
+    .nav-brand span.shield {
+      color: var(--cyan);
+    }
+    .nav-status-badge {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 99px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.3); }
+    }
+
+    .main-body {
+      padding: 18px 18px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: linear-gradient(145deg, #0f1626 0%, #0c121f 60%, rgba(6, 182, 212, 0.12) 100%);
+      border: 1.5px solid rgba(6, 182, 212, 0.35);
+      border-radius: 18px;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    .hero-title {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .hero-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Zero Fuel Stops & Intra City Rule Pills */
+    .rules-strip {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .rule-pill {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-size: 0.72rem;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1.25;
+    }
+
+    /* Plan Picker Grid */
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .plan-card {
+      background: var(--card);
+      border: 1.5px solid var(--card-border);
+      border-radius: 16px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .plan-card.selected {
+      border-color: var(--cyan);
+      background: linear-gradient(145deg, #0e1726, #091220);
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+    }
+    .plan-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .plan-tag {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      padding: 3px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+    }
+    .plan-tag.awake {
+      background: rgba(16, 185, 129, 0.18);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .plan-tag.vip {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+    .plan-price-block {
+      text-align: right;
+    }
+    .plan-price {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #fff;
+    }
+    .plan-name {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .plan-subtext {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+    .plan-features-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 6px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.75rem;
+      color: #cbd5e1;
+    }
+    .plan-features-list li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      list-style: none;
+    }
+
+    /* Live Autonomous Guardian Simulator */
+    .simulator-box {
+      background: #090d15;
+      border: 1.5px solid #1a2233;
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sim-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sim-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sim-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 8px;
+      border-radius: 6px;
+      color: var(--text-muted);
+    }
+    .sim-screen {
+      background: #0d121c;
+      border: 1px solid #182030;
+      border-radius: 12px;
+      padding: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.76rem;
+      color: #94a3b8;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 90px;
+      justify-content: center;
+    }
+    .sim-status-active {
+      color: #34d399;
+      font-weight: 700;
+    }
+    .sim-status-alert {
+      color: #f87171;
+      font-weight: 800;
+      animation: flashAlert 1s infinite alternate;
+    }
+    @keyframes flashAlert {
+      from { color: #f87171; }
+      to { color: #fbbf24; }
+    }
+
+    .sim-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .sim-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sim-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--cyan);
+    }
+
+    /* Activate Guardian Button */
+    .btn-activate-guardian {
+      background: linear-gradient(135deg, #06b6d4, #0891b2);
+      color: #000;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 0.95rem;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(6, 182, 212, 0.35);
+      transition: transform 0.15s;
+    }
+    .btn-activate-guardian:active {
+      transform: scale(0.98);
+    }
+
+    /* Standby Rider Link */
+    .captain-portal-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px dashed var(--card-border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+    .captain-portal-card strong {
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrap">
+
+    <!-- Top Navigation -->
+    <header class="top-nav">
+      <a href="index.html" class="nav-back-btn" title="Back to Rydealot">
+        <i class="ti ti-arrow-left"></i>
+      </a>
+      <div class="nav-brand">
+        <span class="shield">🛡️</span> Rydealot Escort
+      </div>
+      <div class="nav-status-badge">
+        <span class="pulse-dot"></span> Night Active
+      </div>
+    </header>
+
+    <main class="main-body">
+
+      <!-- Hero Banner -->
+      <section class="hero-banner">
+        <div class="hero-title">
+          <span>🛡️ Night Safety Guardian</span>
+        </div>
+        <p class="hero-desc">
+          Automated client-side route observation and standby rapid-response bike intercept for women traveling late at night.
+        </p>
+
+        <div class="rules-strip">
+          <div class="rule-pill">
+            <span style="font-size:1.1rem;">⛽</span>
+            <span><strong>Zero Fuel Stops</strong><br>Driver pre-confirmed full tank</span>
+          </div>
+          <div class="rule-pill">
+            <span style="font-size:1.1rem;">🏙️</span>
+            <span><strong>Intra-City v1</strong><br>Non-ORR bike legal routes</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Select Guardian Protection Plan -->
+      <div class="section-title">
+        <span>Select Protection Level</span>
+        <span style="color:var(--cyan); font-size:0.75rem;">Client-Side AI</span>
+      </div>
+
+      <!-- Plan 1: Conscious / Alert Passenger (₹29) -->
+      <div class="plan-card selected" id="card-plan-awake" onclick="selectGuardianPlan('awake')">
+        <div class="plan-header">
+          <span class="plan-tag awake">For Alert Passengers</span>
+          <div class="plan-price-block">
+            <div class="plan-price">₹29</div>
+          </div>
+        </div>
+        <div class="plan-name">
+          <span>🤖 Plan 1: AI Ride Observer</span>
+        </div>
+        <div class="plan-subtext">
+          Designed for alert solo girls or families who are awake and can tap their phone screen.
+        </div>
+        <ul class="plan-features-list">
+          <li><i class="ti ti-check" style="color:var(--emerald);"></i> Continuous 50m corridor route observation</li>
+          <li><i class="ti ti-check" style="color:var(--emerald);"></i> Native Telugu &amp; Hindi driver voice verification on stops</li>
+          <li><i class="ti ti-check" style="color:var(--emerald);"></i> Silent 1-tap "I am safe" passenger confirmation</li>
+        </ul>
+      </div>
+
+      <!-- Plan 2: Intoxicated / Sleeping Passenger (₹49 / ₹99) -->
+      <div class="plan-card" id="card-plan-vip" onclick="selectGuardianPlan('vip')">
+        <div class="plan-header">
+          <span class="plan-tag vip">Intoxicated / Sleeping / Late Party</span>
+          <div class="plan-price-block">
+            <div class="plan-price">₹49</div>
+          </div>
+        </div>
+        <div class="plan-name">
+          <span>🛡️ Plan 2: AI + Standby Rider Trigger</span>
+        </div>
+        <div class="plan-subtext">
+          For intoxicated, sleeping, or exhausted passengers who cannot monitor their phone.
+        </div>
+        <ul class="plan-features-list">
+          <li><i class="ti ti-check" style="color:var(--gold);"></i> Autonomous Guardian: Zero phone responses expected from passenger</li>
+          <li><i class="ti ti-check" style="color:var(--gold);"></i> 60-second driver verification window on dark stops</li>
+          <li><i class="ti ti-check" style="color:var(--gold);"></i> <strong>Instant Physical Dispatch:</strong> Standby bike captain intercepts if driver fails check!</li>
+          <li><i class="ti ti-check" style="color:var(--gold);"></i> Doorstep gate safety confirmation</li>
+        </ul>
+      </div>
+
+      <!-- Interactive Autonomous Guardian Simulator -->
+      <div class="simulator-box">
+        <div class="sim-header">
+          <div class="sim-title">
+            <i class="ti ti-device-desktop-analytics"></i>
+            <span>Live Autonomous Guardian Simulator</span>
+          </div>
+          <span class="sim-badge" id="sim-plan-badge">Plan 1 Active</span>
+        </div>
+
+        <div class="sim-screen" id="sim-screen-output">
+          <div class="sim-status-active">🟢 GPS Corridor: Safe on NH563 (34 km/h)</div>
+          <div>Car: TS03AB1234 · Planned Path Verified</div>
+        </div>
+
+        <div class="sim-controls">
+          <button type="button" class="sim-btn" onclick="simulateScenario('diversion')">
+            🚧 Test Diversion / Detour
+          </button>
+          <button type="button" class="sim-btn" onclick="simulateScenario('dark_stop')">
+            🛑 Test Dark Mystery Stop
+          </button>
+        </div>
+      </div>
+
+      <!-- Activate Button -->
+      <button type="button" class="btn-activate-guardian" onclick="activateNightGuardian()">
+        <span>🛡️ Activate Night Safety Guardian</span>
+      </button>
+
+      <!-- Link to Standby Escort Captain App -->
+      <a href="escortdriver.html" class="captain-portal-card">
+        <div>
+          <span>Are you a certified escort rider?</span><br>
+          <strong>Open Standby Escort Captain App &rarr;</strong>
+        </div>
+        <span style="font-size:1.3rem;">🏍️</span>
+      </a>
+
+    </main>
+  </div>
+
+  <script>
+    let activePlan = 'awake'; // 'awake' (₹29) or 'vip' (₹49)
+
+    function selectGuardianPlan(plan) {
+      activePlan = plan;
+      document.getElementById('card-plan-awake').classList.toggle('selected', plan === 'awake');
+      document.getElementById('card-plan-vip').classList.toggle('selected', plan === 'vip');
+      document.getElementById('sim-plan-badge').textContent = plan === 'awake' ? 'Plan 1 Active' : 'Plan 2 Active';
+      
+      const screen = document.getElementById('sim-screen-output');
+      screen.innerHTML = `
+        <div class="sim-status-active">🟢 Switched to ${plan === 'awake' ? 'Plan 1 (AI Observer)' : 'Plan 2 (AI + Standby Rider)'}</div>
+        <div>Ready to observe cab route and detect anomalies locally.</div>
+      `;
+    }
+
+    function simulateScenario(type) {
+      const screen = document.getElementById('sim-screen-output');
+
+      if (type === 'diversion') {
+        screen.innerHTML = `
+          <div style="color:#38bdf8; font-weight:800;">🚧 Detour Detected: Tree Fall / Diversion</div>
+          <div>Trajectory angle checking: Car moving forward at 28 km/h.</div>
+          <div style="color:#34d399; font-weight:700;">✓ Legitimate Road Diversion Verified. Zero Panic.</div>
+        `;
+        speakNativeVoice('Diversion detected. Route automatically updated.');
+      } else if (type === 'dark_stop') {
+        if (activePlan === 'awake') {
+          screen.innerHTML = `
+            <div class="sim-status-alert">🛑 Stop Detected on Dark Sector (>3 mins)</div>
+            <div>AI Native Call: "Bhaiya sab theek hai?"</div>
+            <div style="color:#fbbf24; font-weight:700;">📱 Passenger Screen: "Driver stopped. Tap if safe."</div>
+          `;
+          speakNativeVoice('Gaadi 3 minute se ruki hai. Sab theek hai bhaiya?');
+        } else {
+          screen.innerHTML = `
+            <div class="sim-status-alert">🚨 EMERGENCY TRIGGER (Plan 2 Incapacitated Mode)</div>
+            <div>Driver failed 60s voice verification. Passenger is asleep.</div>
+            <div style="color:#ef4444; font-weight:900;">⚡ DISPATCHING NEAREST STANDBY BIKE CAPTAIN!</div>
+          `;
+          speakNativeVoice('Emergency safety trigger. Standby escort captain dispatched.');
+        }
+      }
+    }
+
+    function speakNativeVoice(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 1.0;
+        utter.pitch = 1.0;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    function activateNightGuardian() {
+      const planName = activePlan === 'awake' ? 'Plan 1 (AI Ride Observer - ₹29)' : 'Plan 2 (AI + Standby Rider Dispatch - ₹49)';
+      alert(`🛡️ Rydealot Night Safety Guardian Activated!\n\nSelected: ${planName}\n\n• Fuel status pre-verified (Zero mid-trip stops)\n• 50m corridor tracking active on driver phone for ₹0 server bill.`);
+    }
+  </script>
+</body>
+</html>

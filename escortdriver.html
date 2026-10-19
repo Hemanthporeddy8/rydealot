@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#07090e">
+  <title>Rydealot Escort Captain — Standby Emergency Intercept</title>
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    :root {
+      --bg: #07090e;
+      --card: #0e131d;
+      --card-border: #1a2233;
+      --text: #f8fafc;
+      --text-muted: #8b9bb4;
+      --red: #ef4444;
+      --red-glow: rgba(239, 68, 68, 0.25);
+      --gold: #f59e0b;
+      --emerald: #10b981;
+      --cyan: #06b6d4;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 40px;
+    }
+
+    .app-wrap {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Header */
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      background: rgba(10, 13, 20, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.05rem;
+      font-weight: 900;
+    }
+    .duty-switch {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 5px 10px;
+      border-radius: 99px;
+      cursor: pointer;
+    }
+    .duty-switch.offline {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--card-border);
+      color: var(--text-muted);
+    }
+
+    .main-body {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Captain Status Card */
+    .captain-badge-card {
+      background: linear-gradient(145deg, #101625, #0c111c);
+      border: 1.5px solid var(--card-border);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .captain-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .captain-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #06b6d4, #0891b2);
+      color: #000;
+      font-weight: 900;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .captain-name {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .captain-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .pcc-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
+    /* Radar Monitor */
+    .radar-card {
+      background: var(--card);
+      border: 1.5px solid var(--card-border);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .radar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .radar-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .radar-screen {
+      background: #090c13;
+      border: 1px solid #1a2233;
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .radar-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .radar-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    /* EMERGENCY INTERCEPT MODAL / ALERT CARD */
+    .emergency-alert-card {
+      background: linear-gradient(145deg, #2b0f13, #19090b);
+      border: 2px solid var(--red);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 0 25px var(--red-glow);
+      animation: alertPulse 1.2s infinite alternate;
+    }
+    @keyframes alertPulse {
+      from { border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.2); }
+      to { border-color: #f87171; box-shadow: 0 0 30px rgba(239, 68, 68, 0.45); }
+    }
+    .alert-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fca5a5;
+      font-size: 0.85rem;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+    .alert-cab-title {
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: #fff;
+    }
+    .alert-details {
+      font-size: 0.8rem;
+      color: #e2e8f0;
+      line-height: 1.4;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .btn-accept-intercept {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 0.95rem;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+    }
+
+    /* Active Mission Checklist */
+    .mission-checklist-card {
+      background: var(--card);
+      border: 1.5px solid var(--card-border);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .check-step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+      color: #cbd5e1;
+    }
+
+    .btn-finish-mission {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #000;
+      border: none;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 0.9rem;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrap">
+
+    <header class="top-nav">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <a href="driver.html" style="background:rgba(255,255,255,0.06); border:1px solid var(--card-border); color:var(--text); width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; text-decoration:none; font-size:1.1rem;" title="Back to Captain App"><i class="ti ti-arrow-left"></i></a>
+        <div class="nav-brand">
+          <span style="color:var(--cyan);">🛡️</span> Escort Captain
+        </div>
+      </div>
+      <button type="button" class="duty-switch" id="duty-btn" onclick="toggleDuty()">
+        <span style="width:7px; height:7px; border-radius:50%; background:#34d399;"></span>
+        <span id="duty-text">ON STANDBY</span>
+      </button>
+    </header>
+
+    <main class="main-body">
+
+      <!-- Captain Identity & PCC Verified Badge -->
+      <div class="captain-badge-card">
+        <div class="captain-info">
+          <div class="captain-avatar">EC</div>
+          <div>
+            <div class="captain-name">Suresh Kumar (Captain)</div>
+            <div class="captain-meta">Bike: Pulsar 150 · Rating: 4.92 ★</div>
+          </div>
+        </div>
+        <div class="pcc-badge">✓ PCC VERIFIED</div>
+      </div>
+
+      <!-- Standby Radar Zone -->
+      <div class="radar-card">
+        <div class="radar-header">
+          <div class="radar-title">
+            <i class="ti ti-radar" style="color:var(--cyan);"></i>
+            <span>Night Standby Radar (3 km Sector)</span>
+          </div>
+          <span style="font-size:0.7rem; color:var(--text-muted);">2 Active Cabs Monitored</span>
+        </div>
+
+        <div class="radar-screen">
+          <div class="radar-item">
+            <div>
+              <strong style="color:#fff;">Cab #TS03AB1234</strong><br>
+              <span style="color:var(--text-muted); font-size:0.72rem;">Moving on Nayeemnagar Road · 32 km/h</span>
+            </div>
+            <span style="color:#34d399; font-weight:800; font-size:0.7rem;">PLAN 2 PROTECTED</span>
+          </div>
+          <div class="radar-item">
+            <div>
+              <strong style="color:#fff;">Cab #TS03XY9876</strong><br>
+              <span style="color:var(--text-muted); font-size:0.72rem;">Subedari Main Corridor · 28 km/h</span>
+            </div>
+            <span style="color:#34d399; font-weight:800; font-size:0.7rem;">PLAN 2 PROTECTED</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulated Trigger Dispatcher Button -->
+      <div style="display:flex; justify-content:center;">
+        <button type="button" onclick="triggerSimulatedEmergency()" style="background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.35); color:#f87171; font-size:0.75rem; font-weight:700; padding:8px 14px; border-radius:10px; cursor:pointer;">
+          🚨 Simulate Emergency Stop Trigger
+        </button>
+      </div>
+
+      <!-- EMERGENCY INTERCEPT DISPATCH CARD (Initially hidden or shown on trigger) -->
+      <div class="emergency-alert-card" id="intercept-card" style="display:none;">
+        <div class="alert-header">
+          <i class="ti ti-alarm-filled" style="font-size:1.2rem;"></i>
+          <span>EMERGENCY PHYSICAL INTERCEPT REQUIRED</span>
+        </div>
+        <div class="alert-cab-title">Cab #TS03AB1234 Stopped >3 Mins</div>
+        <div class="alert-details">
+          <strong>Location:</strong> Hunter Road Dark Stretch (Near Old Bridge)<br>
+          <strong>Status:</strong> Driver failed 60s voice check. Passenger is asleep/intoxicated.<br>
+          <strong>Mission Payout:</strong> ₹90 Safety Intercept Fee
+        </div>
+        <button type="button" class="btn-accept-intercept" onclick="acceptInterceptMission()">
+          <span>⚡ ACCEPT INTERCEPT MISSION</span>
+        </button>
+      </div>
+
+      <!-- ACTIVE MISSION CHECKLIST -->
+      <div class="mission-checklist-card" id="mission-card" style="display:none;">
+        <div style="font-weight:800; font-size:0.9rem; color:#fff; display:flex; justify-content:space-between;">
+          <span>Active Mission Protocol</span>
+          <span style="color:var(--gold); font-size:0.75rem;">IN TRANSIT</span>
+        </div>
+        <div class="check-step">
+          <input type="checkbox" id="chk-vest" checked disabled>
+          <label for="chk-vest">Wearing High-Visibility Rydealot Vest</label>
+        </div>
+        <div class="check-step">
+          <input type="checkbox" id="chk-hazard" checked disabled>
+          <label for="chk-hazard">Bike Hazard Flashers Active</label>
+        </div>
+        <div class="check-step">
+          <input type="checkbox" id="chk-doorstep">
+          <label for="chk-doorstep">Waited at Doorstep / Gate until Safe Inside</label>
+        </div>
+        <button type="button" class="btn-finish-mission" onclick="finishMission()">
+          <span>✓ Verify Passenger Safe &amp; Complete Mission</span>
+        </button>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    let isStandby = true;
+
+    function toggleDuty() {
+      isStandby = !isStandby;
+      const btn = document.getElementById('duty-btn');
+      const text = document.getElementById('duty-text');
+      if (isStandby) {
+        btn.className = 'duty-switch';
+        text.textContent = 'ON STANDBY';
+      } else {
+        btn.className = 'duty-switch offline';
+        text.textContent = 'OFFLINE';
+      }
+    }
+
+    function triggerSimulatedEmergency() {
+      const card = document.getElementById('intercept-card');
+      card.style.display = 'flex';
+      if ('navigator' in window && 'vibrate' in navigator) {
+        navigator.vibrate([300, 100, 300, 100, 500]);
+      }
+      alert('🚨 EMERGENCY ALERT SOUNDED!\nCab #TS03AB1234 stopped in dark zone.\nImmediate standby rider intercept triggered.');
+    }
+
+    function acceptInterceptMission() {
+      document.getElementById('intercept-card').style.display = 'none';
+      document.getElementById('mission-card').style.display = 'flex';
+      alert('⚡ Mission Accepted!\n\nSupermaps navigation opened to car coordinates.\n1. Ride behind vehicle with hazard lights\n2. Confirm safety at destination gate.');
+    }
+
+    function finishMission() {
+      const chk = document.getElementById('chk-doorstep');
+      if (!chk.checked) {
+        alert('Please confirm that you waited until the passenger entered their gate safely.');
+        return;
+      }
+      alert('🎉 Mission Completed!\n\nPassenger safely verified inside gate.\n₹90 Safety mission fee credited to your Escort wallet.');
+      document.getElementById('mission-card').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

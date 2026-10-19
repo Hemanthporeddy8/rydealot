@@ -523,6 +523,20 @@
             <option value="false">🔴 PAUSED / GATED</option>
           </select>
         </div>
+
+        <!-- 5. Night Safety Guardian & Escort -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>🛡️ Night Safety Guardian</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;">Plan 1 (₹29) AI Observer &amp; Plan 2 (₹49) Standby Intercept</div>
+          </div>
+          <select id="svc-toggle-escort" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+            <option value="true">🟢 ACTIVE</option>
+            <option value="false" selected>🔴 PAUSED (DORMANT)</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -1731,6 +1745,8 @@
     var trucks = document.getElementById('svc-toggle-trucks').value === 'true';
     var goodzEl = document.getElementById('svc-toggle-goodz');
     var goodz = goodzEl ? goodzEl.value === 'true' : true;
+    var escortEl = document.getElementById('svc-toggle-escort');
+    var escort = escortEl ? escortEl.value === 'true' : false;
     var badge = document.getElementById('admin-services-status-badge');
     var ridesDesc = document.getElementById('svc-rides-desc');
     var goodzDesc = document.getElementById('svc-goodz-desc');
@@ -1746,7 +1762,7 @@
 
     if (!badge) return;
     if (rides && parcels && trucks && goodz) {
-      badge.textContent = 'ALL ACTIVE';
+      badge.textContent = escort ? 'ALL ACTIVE + ESCORT' : 'ALL ACTIVE';
       badge.style.background = '#10b981';
     } else if (!rides && !parcels && !trucks && !goodz) {
       badge.textContent = 'ALL PAUSED';
@@ -1758,7 +1774,7 @@
   }
 
   async function loadPlatformServices() {
-    var def = { rides: true, parcels: true, trucks: true, goodz: true };
+    var def = { rides: true, parcels: true, trucks: true, goodz: true, escort: false };
     try {
       var saved = localStorage.getItem('rydealot_services_config');
       if (saved) {
@@ -1767,6 +1783,7 @@
         if (typeof p.parcels === 'boolean') def.parcels = p.parcels;
         if (typeof p.trucks === 'boolean') def.trucks = p.trucks;
         if (typeof p.goodz === 'boolean') def.goodz = p.goodz;
+        if (typeof p.escort === 'boolean') def.escort = p.escort;
       }
       try {
         var rows = await sb('platform_services?id=eq.default');
@@ -1775,6 +1792,7 @@
           if (typeof rows[0].parcels_enabled === 'boolean') def.parcels = rows[0].parcels_enabled;
           if (typeof rows[0].trucks_enabled === 'boolean') def.trucks = rows[0].trucks_enabled;
           if (typeof rows[0].goodz_enabled === 'boolean') def.goodz = rows[0].goodz_enabled;
+          if (typeof rows[0].escort_enabled === 'boolean') def.escort = rows[0].escort_enabled;
           localStorage.setItem('rydealot_services_config', JSON.stringify(def));
         }
       } catch(e){}
@@ -1785,6 +1803,9 @@
         document.getElementById('svc-toggle-trucks').value = def.trucks ? 'true' : 'false';
         if (document.getElementById('svc-toggle-goodz')) {
           document.getElementById('svc-toggle-goodz').value = def.goodz ? 'true' : 'false';
+        }
+        if (document.getElementById('svc-toggle-escort')) {
+          document.getElementById('svc-toggle-escort').value = def.escort ? 'true' : 'false';
         }
         updateServiceBadge();
       }
@@ -1797,7 +1818,8 @@
       rides: document.getElementById('svc-toggle-rides').value === 'true',
       parcels: document.getElementById('svc-toggle-parcels').value === 'true',
       trucks: document.getElementById('svc-toggle-trucks').value === 'true',
-      goodz: document.getElementById('svc-toggle-goodz') ? document.getElementById('svc-toggle-goodz').value === 'true' : true
+      goodz: document.getElementById('svc-toggle-goodz') ? document.getElementById('svc-toggle-goodz').value === 'true' : true,
+      escort: document.getElementById('svc-toggle-escort') ? document.getElementById('svc-toggle-escort').value === 'true' : false
     };
 
     localStorage.setItem('rydealot_services_config', JSON.stringify(cfg));
@@ -1811,6 +1833,7 @@
           parcels_enabled: cfg.parcels,
           trucks_enabled: cfg.trucks,
           goodz_enabled: cfg.goodz,
+          escort_enabled: cfg.escort,
           updated_at: new Date().toISOString()
         }
       });
@@ -1824,7 +1847,8 @@
             rides_enabled: cfg.rides,
             parcels_enabled: cfg.parcels,
             trucks_enabled: cfg.trucks,
-            goodz_enabled: cfg.goodz
+            goodz_enabled: cfg.goodz,
+            escort_enabled: cfg.escort
           }
         });
         toast('✅ Service switches initialized in cloud!');
