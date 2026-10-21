@@ -30,6 +30,16 @@
   }
 
   function queueFailedMutation(target, path, method, body) {
+    // OPTIMIZATION: Transient GPS / heartbeat pings must never enter persistent retry queues!
+    // Replaying stale location pings causes database write amplification.
+    if (path && path.indexOf('riders') !== -1 && body) {
+      var keys = Object.keys(body);
+      var isTransientGps = keys.length > 0 && keys.every(function(k) {
+        return k === 'lat' || k === 'lng' || k === 'updated_at';
+      });
+      if (isTransientGps) return; // Discard stale location retries
+    }
+
     var queue = getSyncQueue();
     var isDup = queue.some(function(item) {
       return item.target === target && item.path === path && item.method === method && JSON.stringify(item.body) === JSON.stringify(body) && (Date.now() - item.timestamp < 5000);
@@ -2443,19 +2453,92 @@
         });
     }
     
+    state.lastReportedLat = null;
+    state.lastReportedLng = null;
+    state.lastReportedTime = 0;
+    state.activeTripBreadcrumbs = [];
+
+    function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+      if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return 999999;
+      var R = 6371000; // meters
+      var dLat = (lat2 - lat1) * Math.PI / 180;
+      var dLon = (lon2 - lon1) * Math.PI / 180;
+      var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    // Ephemeral In-Memory Location Broadcaster (ZERO DISK WRITES!)
+    function streamEphemeralLocation(bookingId, riderId, lat, lng, heading, speed) {
+      if (!bookingId) return;
+      var payload = {
+        bookingId: String(bookingId),
+        riderId: riderId,
+        lat: lat,
+        lng: lng,
+        heading: heading || 0,
+        speed: speed || 0
+      };
+      // Send to Cloudflare Edge in-memory tracker (RAM broadcast)
+      fetch(CLOUDFLARE_D1_WORKER + '/api/track/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true
+      }).catch(function(){});
+    }
+
     function trackDriver(accuracy) {
       if (state.watchId) navigator.geolocation.clearWatch(state.watchId);
       
       state.watchId = navigator.geolocation.watchPosition(async function(pos){
         var lat = pos.coords.latitude, lng = pos.coords.longitude;
-        state.lat = lat; state.lng = lng; // Save driver position
-        document.getElementById('rd-display-location').textContent = 'Online: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
-        try{
-          await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } });
-        } catch(err){ console.error('location update failed', err); }
+        var heading = pos.coords.heading || 0;
+        var speed = pos.coords.speed || 0;
+        state.lat = lat; state.lng = lng; // Save driver position in memory
+
+        var displayEl = document.getElementById('rd-display-location');
+        if (displayEl) displayEl.textContent = 'Online: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+
+        var now = Date.now();
+        var dist = calculateHaversineDistance(state.lastReportedLat, state.lastReportedLng, lat, lng);
+
+        // CASE 1: ACTIVE TRIP IN PROGRESS (Rides, Sage Parcel, Along With Cargo)
+        // Stream live moving coordinates ephemerally (ZERO DISK WRITES!)
+        var activeB = state.currentBooking || state.activeBooking;
+        if (activeB && (activeB.status === 'accepted' || activeB.status === 'arrived' || activeB.status === 'in_progress')) {
+          // Collect breadcrumb locally in memory for final 1-write route polyline
+          state.activeTripBreadcrumbs.push([Number(lat.toFixed(6)), Number(lng.toFixed(6)), now]);
+
+          // Stream live dot to customer screen via Edge memory
+          streamEphemeralLocation(activeB.id, state.riderId, lat, lng, heading, speed);
+
+          // Throttled SQL write only if moved >150 meters or >3 minutes since last DB update
+          if (dist >= 150 || (now - state.lastReportedTime > 180000)) {
+            state.lastReportedLat = lat;
+            state.lastReportedLng = lng;
+            state.lastReportedTime = now;
+            sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } }).catch(function(){});
+          }
+          return;
+        }
+
+        // CASE 2: DRIVER AVAILABLE & IDLE (WAITING FOR BOOKINGS)
+        // Write to SQL database ONLY if driver actually moved >75 meters
+        // or if >3 minutes have elapsed (Prevents stationary drivers from burning quota)
+        if (dist >= 75 || (now - state.lastReportedTime > 180000)) {
+          state.lastReportedLat = lat;
+          state.lastReportedLng = lng;
+          state.lastReportedTime = now;
+          try{
+            await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } });
+          } catch(err){ console.warn('Throttled driver location sync note:', err.message); }
+        }
       }, function(err){
         if (accuracy && (err.code === 2 || err.code === 3)) {
-          document.getElementById('rd-display-location').textContent = 'GPS failed. Trying network location...';
+          var displayEl = document.getElementById('rd-display-location');
+          if (displayEl) displayEl.textContent = 'GPS failed. Trying network location...';
           trackDriver(false);
           return;
         }
@@ -2463,7 +2546,8 @@
         if(err.code !== 1){
           useIpLocationForDriver();
         } else {
-          document.getElementById('rd-display-location').textContent = '❌ Location blocked. Open site settings → allow Location for rydealot.vercel.app';
+          var displayEl = document.getElementById('rd-display-location');
+          if (displayEl) displayEl.textContent = '❌ Location blocked. Open site settings → allow Location for rydealot.vercel.app';
         }
       }, { enableHighAccuracy: accuracy, maximumAge: 10000, timeout: 12000 });
     }
@@ -2483,13 +2567,15 @@
 
   function startHeartbeat(){
     clearInterval(state.heartbeatTimer);
+    // Architect rule: Heartbeat must not trigger a SQL write merely to update timestamp on every cycle
+    // Fired every 90 seconds, only updates if driver is online and idle
     state.heartbeatTimer = setInterval(async function(){
-      if (state.riderId && state.online) {
+      if (state.riderId && state.online && !state.activeBooking) {
         try {
           await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ updated_at: new Date().toISOString() } });
-        } catch(err){ console.error('heartbeat update failed', err); }
+        } catch(err){ console.warn('Heartbeat note:', err.message); }
       }
-    }, 15000); // 15 seconds heartbeat ping for active presence
+    }, 90000); // 90 seconds
   }
 
   function stopHeartbeat(){
@@ -3171,6 +3257,32 @@
     });
   }
 
+  // Google Encoded Polyline algorithm for 1-write route compression
+  function encodePolyline(coords) {
+    if (!coords || !coords.length) return '';
+    var result = '';
+    var prevLat = 0;
+    var prevLng = 0;
+    function encodeNum(num) {
+      num = num < 0 ? ~(num << 1) : (num << 1);
+      var str = '';
+      while (num >= 0x20) {
+        str += String.fromCharCode((0x20 | (num & 0x1f)) + 63);
+        num >>= 5;
+      }
+      str += String.fromCharCode(num + 63);
+      return str;
+    }
+    for (var i = 0; i < coords.length; i++) {
+      var lat = Math.round(coords[i][0] * 1e5);
+      var lng = Math.round(coords[i][1] * 1e5);
+      result += encodeNum(lat - prevLat) + encodeNum(lng - prevLng);
+      prevLat = lat;
+      prevLng = lng;
+    }
+    return result;
+  }
+
   async function handleBookingAction(action, bookingId, enteredPin){
     var statusMap = { accept:'accepted', decline:'cancelled', arrived:'arrived', start:'in_progress', complete:'completed' };
     var newStatus = statusMap[action];
@@ -3187,6 +3299,10 @@
       if (mainS) mainS.style.display = 'block';
       state.online = true;
       setPill('available');
+    }
+
+    if(action === 'start' || action === 'accept'){
+      state.activeTripBreadcrumbs = [];
     }
 
     // ANTI-HIJACK & STATE-MACHINE ENFORCEMENT:
@@ -3213,7 +3329,36 @@
       if (action === 'accept') {
         patchBody.rider_id = state.riderId;
       }
-      var patchRes = await sbFetch(queryPath, { method:'PATCH', body: patchBody });
+      if (action === 'complete' && state.activeTripBreadcrumbs && state.activeTripBreadcrumbs.length > 0) {
+        try {
+          var poly = encodePolyline(state.activeTripBreadcrumbs);
+          if (poly) patchBody.route_polyline = poly;
+        } catch(e){}
+      }
+
+      var patchRes;
+      try {
+        patchRes = await sbFetch(queryPath, { method:'PATCH', body: patchBody });
+      } catch (err) {
+        if (patchBody.route_polyline) {
+          delete patchBody.route_polyline;
+          patchRes = await sbFetch(queryPath, { method:'PATCH', body: patchBody });
+        } else {
+          throw err;
+        }
+      }
+
+      // Cleanup ephemeral edge tracking session on completion/cancellation
+      if (action === 'complete' || action === 'decline') {
+        fetch(CLOUDFLARE_D1_WORKER + '/api/track/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: String(bookingId), ended: true, status: newStatus }),
+          keepalive: true
+        }).catch(function(){});
+        state.activeTripBreadcrumbs = [];
+      }
+
       var nowIso = new Date().toISOString();
       if(action === 'accept'){
         await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'busy', updated_at: nowIso } });
@@ -6686,13 +6831,25 @@
           });
         }
         
-        // Fetch and update driver live position
+        // In-Memory Edge Driver Live Position (ZERO DISK READS!)
         try {
-          var riderRows = await sbFetch('riders?id=eq.' + state.currentRider.dbId);
-          var r = riderRows[0];
-          if (r && r.lat != null && r.lng != null && state.map && state.driverMarker) {
-            state.driverMarker.setLatLng([r.lat, r.lng]);
-            var bounds = L.latLngBounds([[state.lat, state.lng], [r.lat, r.lng]]);
+          var livePos = null;
+          try {
+            var liveRes = await fetch(CLOUDFLARE_D1_WORKER + '/api/track/latest?bookingId=' + b.id);
+            var liveData = await liveRes.json();
+            if (liveData && liveData.found && liveData.data && liveData.data.lat != null) {
+              livePos = liveData.data;
+            }
+          } catch(e){}
+
+          if (!livePos) {
+            var riderRows = await sbFetch('riders?id=eq.' + state.currentRider.dbId);
+            livePos = riderRows && riderRows[0];
+          }
+
+          if (livePos && livePos.lat != null && livePos.lng != null && state.map && state.driverMarker) {
+            state.driverMarker.setLatLng([livePos.lat, livePos.lng]);
+            var bounds = L.latLngBounds([[state.lat, state.lng], [livePos.lat, livePos.lng]]);
             state.map.fitBounds(bounds, { padding: [30, 30] });
           }
         } catch (e) { console.error('Failed to update driver marker location', e); }
@@ -6732,13 +6889,25 @@
           });
         }
 
-        // Continue displaying live driver coordinates
+        // Continue displaying live driver coordinates from in-memory Edge broadcast
         try {
-          var riderRows = await sbFetch('riders?id=eq.' + state.currentRider.dbId);
-          var r = riderRows[0];
-          if (r && r.lat != null && r.lng != null && state.map && state.driverMarker) {
-            state.driverMarker.setLatLng([r.lat, r.lng]);
-            state.map.panTo([r.lat, r.lng]);
+          var livePos = null;
+          try {
+            var liveRes = await fetch(CLOUDFLARE_D1_WORKER + '/api/track/latest?bookingId=' + b.id);
+            var liveData = await liveRes.json();
+            if (liveData && liveData.found && liveData.data && liveData.data.lat != null) {
+              livePos = liveData.data;
+            }
+          } catch(e){}
+
+          if (!livePos) {
+            var riderRows = await sbFetch('riders?id=eq.' + state.currentRider.dbId);
+            livePos = riderRows && riderRows[0];
+          }
+
+          if (livePos && livePos.lat != null && livePos.lng != null && state.map && state.driverMarker) {
+            state.driverMarker.setLatLng([livePos.lat, livePos.lng]);
+            state.map.panTo([livePos.lat, livePos.lng]);
           }
         } catch (e) { console.error(e); }
 

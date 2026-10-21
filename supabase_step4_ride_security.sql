@@ -3,7 +3,7 @@
 -- Run this in your Supabase Dashboard: SQL Editor -> New Query -> Run
 -- ============================================================================
 
--- 1. Ensure pin_code and updated_at columns exist on bookings table
+-- 1. Ensure pin_code, updated_at, and route_polyline columns exist on bookings table
 DO $$ 
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='pin_code') THEN
@@ -11,6 +11,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='updated_at') THEN
     ALTER TABLE bookings ADD COLUMN updated_at timestamptz DEFAULT now();
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='route_polyline') THEN
+    ALTER TABLE bookings ADD COLUMN route_polyline text;
   END IF;
 END $$;
 

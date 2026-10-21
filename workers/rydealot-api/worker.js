@@ -56,7 +56,18 @@ export default {
         return await handleVerifyOtp(request, env, corsHeaders);
       }
 
-      // 4. PLAN B: POSTGREST EMULATOR FOR CLOUDFLARE D1
+      // 4. REALTIME IN-MEMORY GPS STREAMING & WEBSOCKET GATEWAY (ZERO DISK WRITES)
+      if (path === '/api/track/ws') {
+        return handleTrackingWebSocket(request, url, env, corsHeaders);
+      }
+      if (path === '/api/track/update' && method === 'POST') {
+        return await handleTrackingUpdate(request, env, corsHeaders);
+      }
+      if (path === '/api/track/latest' && method === 'GET') {
+        return handleTrackingLatest(request, url, env, corsHeaders);
+      }
+
+      // 5. PLAN B: POSTGREST EMULATOR FOR CLOUDFLARE D1
       // /rest/v1/:table
       if (path.startsWith('/rest/v1/')) {
         return await handlePostgrest(request, path, url, method, env, corsHeaders);
@@ -560,4 +571,145 @@ function jsonResponse(body, status = 200, corsHeaders = {}) {
       ...corsHeaders
     }
   });
+}
+
+// ============================================================================
+// MODULE 4: REALTIME IN-MEMORY GPS TRACKING GATEWAY (ZERO DISK WRITES)
+// ============================================================================
+const liveLocations = new Map(); // bookingId -> { bookingId, riderId, lat, lng, heading, speed, timestamp }
+const activeSockets = new Map(); // bookingId -> Set of WebSockets
+
+function handleTrackingWebSocket(request, url, env, corsHeaders) {
+  const upgradeHeader = request.headers.get('Upgrade');
+  if (!upgradeHeader || upgradeHeader.toLowerCase() !== 'websocket') {
+    return new Response('Expected Upgrade: websocket', { status: 426, headers: corsHeaders });
+  }
+
+  const bookingId = url.searchParams.get('bookingId');
+  if (!bookingId) {
+    return new Response('Missing bookingId query parameter', { status: 400, headers: corsHeaders });
+  }
+
+  const pair = new WebSocketPair();
+  const [client, server] = Object.values(pair);
+  server.accept();
+
+  const key = String(bookingId);
+  if (!activeSockets.has(key)) {
+    activeSockets.set(key, new Set());
+  }
+  activeSockets.get(key).add(server);
+
+  // Send latest cached location immediately upon connection if present
+  const latest = liveLocations.get(key);
+  if (latest) {
+    server.send(JSON.stringify({ type: 'location', data: latest }));
+  }
+
+  server.addEventListener('message', event => {
+    try {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'location' && msg.data) {
+        const payload = {
+          bookingId: key,
+          riderId: msg.data.riderId || null,
+          lat: Number(msg.data.lat),
+          lng: Number(msg.data.lng),
+          heading: Number(msg.data.heading || 0),
+          speed: Number(msg.data.speed || 0),
+          timestamp: Date.now()
+        };
+        liveLocations.set(key, payload);
+
+        // Broadcast to all listening clients on this booking
+        const sockets = activeSockets.get(key);
+        if (sockets) {
+          const out = JSON.stringify({ type: 'location', data: payload });
+          for (const s of sockets) {
+            if (s !== server) {
+              try { s.send(out); } catch(e) { sockets.delete(s); }
+            }
+          }
+        }
+      } else if (msg.type === 'ping') {
+        server.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+      }
+    } catch(e) {}
+  });
+
+  server.addEventListener('close', () => {
+    const s = activeSockets.get(key);
+    if (s) {
+      s.delete(server);
+      if (s.size === 0) activeSockets.delete(key);
+    }
+  });
+
+  return new Response(null, { status: 101, webSocket: client, headers: corsHeaders });
+}
+
+async function handleTrackingUpdate(request, env, corsHeaders) {
+  let body;
+  try {
+    body = await request.json();
+  } catch(e) {
+    return jsonResponse({ error: 'Invalid JSON payload' }, 400, corsHeaders);
+  }
+
+  if (!body || !body.bookingId) {
+    return jsonResponse({ error: 'bookingId is required' }, 400, corsHeaders);
+  }
+
+  const key = String(body.bookingId);
+
+  // If trip is ended/completed/cancelled, clear from memory and close sockets cleanly
+  if (body.ended || body.status === 'completed' || body.status === 'cancelled') {
+    liveLocations.delete(key);
+    const sockets = activeSockets.get(key);
+    if (sockets) {
+      const out = JSON.stringify({ type: 'ended', bookingId: key });
+      for (const ws of sockets) {
+        try { ws.send(out); ws.close(1000, 'Trip ended'); } catch(e){}
+      }
+      activeSockets.delete(key);
+    }
+    return jsonResponse({ ok: true, ended: true }, 200, corsHeaders);
+  }
+
+  const payload = {
+    bookingId: key,
+    riderId: body.riderId || null,
+    lat: Number(body.lat),
+    lng: Number(body.lng),
+    heading: Number(body.heading || 0),
+    speed: Number(body.speed || 0),
+    timestamp: Date.now()
+  };
+
+  liveLocations.set(key, payload);
+
+  // Broadcast to WebSockets
+  const sockets = activeSockets.get(key);
+  if (sockets && sockets.size > 0) {
+    const out = JSON.stringify({ type: 'location', data: payload });
+    for (const ws of sockets) {
+      try { ws.send(out); } catch(e) { sockets.delete(ws); }
+    }
+  }
+
+  return jsonResponse({ ok: true, timestamp: payload.timestamp }, 200, corsHeaders);
+}
+
+function handleTrackingLatest(request, url, env, corsHeaders) {
+  const bookingId = url.searchParams.get('bookingId');
+  if (!bookingId) {
+    return jsonResponse({ error: 'bookingId parameter required' }, 400, corsHeaders);
+  }
+
+  const loc = liveLocations.get(String(bookingId));
+  if (!loc) {
+    return jsonResponse({ found: false }, 200, corsHeaders);
+  }
+
+  return jsonResponse({ found: true, data: loc }, 200, corsHeaders);
 }

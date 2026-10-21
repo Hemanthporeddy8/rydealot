@@ -357,6 +357,8 @@
   var dropMarker = null;
   var pickupMarker = null;
   var routeLine = null;
+  var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotmaps.workers.dev';
+  var activeTrackId = null;
   var activeTrackingType = 'sage'; // 'sage' or 'cargo'
   var activeDriverPhone = '';
   var activeDropLat = 17.9784;
@@ -411,6 +413,7 @@
 
   async function loadShipmentData() {
     var trackId = getQueryParam('id') || getQueryParam('booking_id');
+    activeTrackId = trackId;
     var typeParam = getQueryParam('type'); // 'cargo' or 'sage'
     var phoneParam = getQueryParam('driver_phone') || '';
 
@@ -488,10 +491,10 @@
 
         setupMapPinsAndStartPolling(18.0073, 79.5583, 17.9784, 79.5080);
       } else {
-        renderFallbackDemo('cargo');
+        renderNotFoundState();
       }
     } catch(e) {
-      renderFallbackDemo('cargo');
+      renderNotFoundState();
     }
   }
 
@@ -537,10 +540,10 @@
         var dLng = p.drop_lng || 79.5080;
         setupMapPinsAndStartPolling(pLat, pLng, dLat, dLng);
       } else {
-        renderFallbackDemo('sage');
+        renderNotFoundState();
       }
     } catch(e) {
-      renderFallbackDemo('sage');
+      renderNotFoundState();
     }
   }
 
@@ -626,40 +629,57 @@
         return;
       }
 
-      var cleanPhone = activeDriverPhone.replace(/\D/g, '').slice(-10);
+      var foundLat = null;
+      var foundLng = null;
+      var updatedAt = null;
+
+      // 1. Query Edge RAM Broadcaster First (ZERO DATABASE READS / ZERO DISK WEAR!)
+      if (activeTrackId) {
+        try {
+          var liveRes = await fetch(CLOUDFLARE_D1_WORKER + '/api/track/latest?bookingId=' + encodeURIComponent(activeTrackId));
+          var liveData = await liveRes.json();
+          if (liveData && liveData.found && liveData.data && liveData.data.lat != null) {
+            foundLat = parseFloat(liveData.data.lat);
+            foundLng = parseFloat(liveData.data.lng);
+            updatedAt = new Date(liveData.data.timestamp).toISOString();
+          }
+        } catch(e) {}
+      }
+
+      // 2. Fallback to SQL database if Edge memory does not have active live coordinate
+      if (foundLat == null && activeDriverPhone) {
+        var cleanPhone = activeDriverPhone.replace(/\D/g, '').slice(-10);
+        try {
+          // Query riders table for driver's live GPS
+          var res = await fetch(SUPABASE_URL + '/rest/v1/riders?phone=ilike.*' + encodeURIComponent(cleanPhone) + '*&select=lat,lng,updated_at,name,status&limit=1', {
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+            }
+          });
+          var riders = await res.json();
+
+          if (Array.isArray(riders) && riders.length > 0 && riders[0].lat && riders[0].lng) {
+            foundLat = parseFloat(riders[0].lat);
+            foundLng = parseFloat(riders[0].lng);
+            updatedAt = riders[0].updated_at;
+            if (riders[0].name) driverName = riders[0].name;
+          } else {
+            // Check cargo_trips table fallback
+            var tripCheck = await fetch(SUPABASE_URL + '/rest/v1/cargo_trips?driver_phone=ilike.*' + encodeURIComponent(cleanPhone) + '*&select=driver_lat,driver_lng,updated_at&limit=1', {
+              headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+            });
+            var cTrips = await tripCheck.json();
+            if (Array.isArray(cTrips) && cTrips.length > 0 && cTrips[0].driver_lat && cTrips[0].driver_lng) {
+              foundLat = parseFloat(cTrips[0].driver_lat);
+              foundLng = parseFloat(cTrips[0].driver_lng);
+              updatedAt = cTrips[0].updated_at;
+            }
+          }
+        } catch(e) {}
+      }
 
       try {
-        // Query riders table for driver's live GPS
-        var res = await fetch(SUPABASE_URL + '/rest/v1/riders?phone=ilike.*' + encodeURIComponent(cleanPhone) + '*&select=lat,lng,updated_at,name,status&limit=1', {
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
-          }
-        });
-        var riders = await res.json();
-
-        var foundLat = null;
-        var foundLng = null;
-        var updatedAt = null;
-
-        if (Array.isArray(riders) && riders.length > 0 && riders[0].lat && riders[0].lng) {
-          foundLat = parseFloat(riders[0].lat);
-          foundLng = parseFloat(riders[0].lng);
-          updatedAt = riders[0].updated_at;
-          if (riders[0].name) driverName = riders[0].name;
-        } else {
-          // Check cargo_trips table fallback
-          var tripCheck = await fetch(SUPABASE_URL + '/rest/v1/cargo_trips?driver_phone=ilike.*' + encodeURIComponent(cleanPhone) + '*&select=driver_lat,driver_lng,updated_at&limit=1', {
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
-          });
-          var cTrips = await tripCheck.json();
-          if (Array.isArray(cTrips) && cTrips.length > 0 && cTrips[0].driver_lat && cTrips[0].driver_lng) {
-            foundLat = parseFloat(cTrips[0].driver_lat);
-            foundLng = parseFloat(cTrips[0].driver_lng);
-            updatedAt = cTrips[0].updated_at;
-          }
-        }
-
         if (foundLat && foundLng) {
           // Move vehicle marker smoothly
           vehicleMarker.setLatLng([foundLat, foundLng]);
@@ -707,16 +727,18 @@
     pollTimer = setInterval(pollDriverGps, 10000);
   }
 
-  function renderFallbackDemo(type) {
-    document.getElementById('sender-display').textContent = 'Sender: Warangal Hub';
-    document.getElementById('pickup-addr-display').textContent = 'Hanamkonda Main Chowrasta';
-    document.getElementById('receiver-display').textContent = 'Receiver: Kazipet Office';
-    document.getElementById('drop-addr-display').textContent = 'Kazipet Station Road';
-    document.getElementById('track-pin-display').textContent = '4829';
-    document.getElementById('capt-name').textContent = type === 'cargo' ? 'Driver Rajesh' : 'Captain Suresh';
-    document.getElementById('capt-vehicle').textContent = type === 'cargo' ? 'Tata Ace (TS03 XY 4567)' : 'Hero Splendor (TS03 AB 1234)';
-    activeDriverPhone = '6309155124';
-    setupMapPinsAndStartPolling(18.0073, 79.5583, 17.9784, 79.5080);
+  function renderNotFoundState() {
+    var statusTextEl = document.getElementById('floating-status-text');
+    var syncStatusEl = document.getElementById('gps-sync-status');
+    if (statusTextEl) statusTextEl.textContent = 'Tracking session not found or concluded';
+    if (syncStatusEl) syncStatusEl.textContent = '❌ Invalid or expired tracking session';
+    document.getElementById('sender-display').textContent = 'Shipment Ended';
+    document.getElementById('pickup-addr-display').textContent = 'N/A';
+    document.getElementById('receiver-display').textContent = 'N/A';
+    document.getElementById('drop-addr-display').textContent = 'N/A';
+    document.getElementById('track-pin-display').textContent = '----';
+    document.getElementById('capt-name').textContent = 'Completed';
+    document.getElementById('capt-vehicle').textContent = 'No live tracking active';
   }
 
   function shareSelfTracking() {
