@@ -530,12 +530,33 @@
             <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
               <span>🛡️ Night Safety Guardian</span>
             </div>
-            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;">Plan 1 (₹29) AI Observer &amp; Plan 2 (₹49) Standby Intercept</div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="svc-escort-desc">Plan 1 (₹29) AI Observer &amp; Plan 2 (₹49) Standby Intercept</div>
           </div>
           <select id="svc-toggle-escort" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
             <option value="true">🟢 ACTIVE</option>
             <option value="false" selected>🔴 PAUSED (DORMANT)</option>
           </select>
+        </div>
+      </div>
+
+      <!-- TESTER SANDBOX: NIGHT SAFETY GUARDIAN (ZERO DATABASE POLLUTION) -->
+      <div style="margin-top:16px; background:linear-gradient(135deg, #0f1626, #090d16); border:1.5px solid rgba(6,182,212,0.3); border-radius:12px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div style="flex:1; min-width:260px;">
+          <div style="font-size:0.88rem; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:8px;">
+            <span>🧪 Escort &amp; Night Guardian Sandbox (Zero Database)</span>
+            <span style="font-size:0.65rem; background:rgba(6,182,212,0.2); color:#38bdf8; border:1px solid rgba(6,182,212,0.4); padding:2px 6px; border-radius:99px; font-weight:800;">TESTING SANDBOX</span>
+          </div>
+          <div style="font-size:0.75rem; color:#94a3b8; margin-top:3px; line-height:1.4;">
+            Simulate AI corridor tracking, native audio prompts in Telugu/Hindi, and standby captain intercepts locally in browser. Zero database writes, zero server bills.
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <a href="escort.html" target="_blank" style="background:rgba(6,182,212,0.15); border:1.5px solid #06b6d4; color:#38bdf8; text-decoration:none; padding:7px 12px; border-radius:8px; font-size:0.78rem; font-weight:800; display:flex; align-items:center; gap:5px; transition:all 0.15s ease;">
+            <span>🛡️ Passenger Portal</span> &rarr;
+          </a>
+          <a href="escortdriver.html" target="_blank" style="background:rgba(239,68,68,0.15); border:1.5px solid #ef4444; color:#f87171; text-decoration:none; padding:7px 12px; border-radius:8px; font-size:0.78rem; font-weight:800; display:flex; align-items:center; gap:5px; transition:all 0.15s ease;">
+            <span>🏍️ Standby Captain App</span> &rarr;
+          </a>
         </div>
       </div>
     </div>
@@ -1746,6 +1767,35 @@
     var goodzEl = document.getElementById('svc-toggle-goodz');
     var goodz = goodzEl ? goodzEl.value === 'true' : true;
     var escortEl = document.getElementById('svc-toggle-escort');
+    var escortDesc = document.getElementById('svc-escort-desc');
+
+    // Rule: Escort is a child of Passenger Rides (Only testable in sandbox otherwise)
+    if (!rides) {
+      if (escortEl) {
+        escortEl.value = 'false';
+        escortEl.disabled = true;
+        escortEl.style.opacity = '0.45';
+        escortEl.style.cursor = 'not-allowed';
+      }
+      if (escortDesc) {
+        escortDesc.textContent = '🔒 Locked (Requires Passenger Rides Active • Test in Sandbox below)';
+        escortDesc.style.color = '#ef4444';
+      }
+    } else {
+      if (escortEl) {
+        escortEl.disabled = false;
+        escortEl.style.opacity = '1';
+        escortEl.style.cursor = 'pointer';
+      }
+      if (escortDesc) {
+        var isEscortOn = escortEl && escortEl.value === 'true';
+        escortDesc.textContent = isEscortOn 
+          ? '🟢 Active with Passenger Rides (Plan 1 ₹29 / Plan 2 ₹49)' 
+          : '🔴 Paused (Sandbox Testing Only)';
+        escortDesc.style.color = isEscortOn ? '#10b981' : 'var(--mute)';
+      }
+    }
+
     var escort = escortEl ? escortEl.value === 'true' : false;
     var badge = document.getElementById('admin-services-status-badge');
     var ridesDesc = document.getElementById('svc-rides-desc');
@@ -1805,7 +1855,7 @@
           document.getElementById('svc-toggle-goodz').value = def.goodz ? 'true' : 'false';
         }
         if (document.getElementById('svc-toggle-escort')) {
-          document.getElementById('svc-toggle-escort').value = def.escort ? 'true' : 'false';
+          document.getElementById('svc-toggle-escort').value = (def.rides && def.escort) ? 'true' : 'false';
         }
         updateServiceBadge();
       }
@@ -1814,12 +1864,16 @@
   }
 
   async function savePlatformServices() {
+    var ridesVal = document.getElementById('svc-toggle-rides').value === 'true';
+    var escortEl = document.getElementById('svc-toggle-escort');
+    var escortVal = (ridesVal && escortEl) ? (escortEl.value === 'true') : false;
+
     var cfg = {
-      rides: document.getElementById('svc-toggle-rides').value === 'true',
+      rides: ridesVal,
       parcels: document.getElementById('svc-toggle-parcels').value === 'true',
       trucks: document.getElementById('svc-toggle-trucks').value === 'true',
       goodz: document.getElementById('svc-toggle-goodz') ? document.getElementById('svc-toggle-goodz').value === 'true' : true,
-      escort: document.getElementById('svc-toggle-escort') ? document.getElementById('svc-toggle-escort').value === 'true' : false
+      escort: escortVal
     };
 
     localStorage.setItem('rydealot_services_config', JSON.stringify(cfg));
