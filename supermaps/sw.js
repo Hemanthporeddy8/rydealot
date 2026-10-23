@@ -2,9 +2,9 @@
 // RYDEALOT SUPERMAPS — SERVICE WORKER (Network-First Auto-Updating Engine)
 // =========================================================================
 
-const CACHE_NAME = 'supermaps-v3.8';
+const CACHE_NAME = 'supermaps-v3.9';
 const TILE_CACHE = 'supermaps-rolling-tiles';
-const MAX_CACHED_TILES = 120;
+const MAX_CACHED_TILES = 500;
 
 const STATIC_ASSETS = [
   './',
@@ -86,8 +86,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Cache-First for Third-Party Vendor Libraries (MapLibre, PMTiles, Basemaps, Google Fonts)
-  if (url.hostname.includes('unpkg.com') || url.hostname.includes('fonts.gstatic.com') || url.hostname.includes('fonts.googleapis.com')) {
+  // 2. Cache-First for Third-Party Vendor Libraries, Glyphs, and Basemaps
+  if (url.hostname.includes('unpkg.com') || 
+      url.hostname.includes('fonts.gstatic.com') || 
+      url.hostname.includes('fonts.googleapis.com') || 
+      url.hostname.includes('protomaps.github.io')) {
     event.respondWith(
       caches.match(event.request).then((cached) => {
         if (cached) return cached;
@@ -103,7 +106,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Network-First Strategy for App Assets (Prevents stale code bugs)
+  // 3. Stale-While-Revalidate for Route Calculations (/route/v1/ and /api/v1/directions)
+  if (url.pathname.includes('/route/v1/') || url.pathname.includes('/api/v1/directions')) {
+    event.respondWith(
+      caches.open(TILE_CACHE).then(async (cache) => {
+        const cachedResponse = await cache.match(event.request);
+        const fetchPromise = fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          })
+          .catch(() => cachedResponse);
+
+        return cachedResponse || fetchPromise;
+      })
+    );
+    return;
+  }
+
+  // 4. Network-First Strategy for App Assets (Prevents stale code bugs)
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {

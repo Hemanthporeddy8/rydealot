@@ -33,16 +33,16 @@ export default {
         }, 200, corsHeaders);
       }
 
-      // 2. DIRECTIONS & ROUTING API (Car vs Bike Mode)
+      // 2. DIRECTIONS & ROUTING API (Car vs Bike Mode with Corridor Geo-Cache)
       // Example: /api/v1/directions?from=17.3850,78.4867&to=17.980,79.560&vehicle=car
       if (path === '/api/v1/directions') {
-        return await handleDirections(url, corsHeaders);
+        return await handleDirections(request, url, ctx, corsHeaders);
       }
 
-      // 2b. UNIVERSAL OSRM ROUTE PROXY WITH MULTI-MIRROR FAILOVER & EDGE CACHE
+      // 2b. UNIVERSAL OSRM ROUTE PROXY WITH CORRIDOR GEO-HASHING & 7-DAY EDGE CACHE
       // Example: /route/v1/driving/78.4867,17.3850;79.560,17.980?overview=full&geometries=geojson
       if (path.startsWith('/route/v1/')) {
-        return await handleOsrmUniversalProxy(path, url, corsHeaders);
+        return await handleOsrmUniversalProxy(request, path, url, ctx, corsHeaders);
       }
 
       // 3. GEOCODING ADDRESS & PLACE SEARCH
@@ -118,9 +118,9 @@ export default {
 };
 
 // =========================================================================
-// MODULE 1: DIRECTIONS & ROUTING (Car vs Bike Mode with Surface Intelligence)
+// MODULE 1: DIRECTIONS & ROUTING (Car vs Bike Mode with Corridor Geo-Cache)
 // =========================================================================
-async function handleDirections(url, headers) {
+async function handleDirections(request, url, ctx, headers) {
   const fromParam = url.searchParams.get('from'); // "lat,lng"
   const toParam = url.searchParams.get('to');     // "lat,lng"
   const vehicle = url.searchParams.get('vehicle') || 'car'; // 'car' or 'bike'
@@ -136,9 +136,27 @@ async function handleDirections(url, headers) {
     return jsonResponse({ error: 'Invalid coordinate format. Use from=lat,lng&to=lat,lng' }, 400, headers);
   }
 
+  // --- CORRIDOR GEO-HASHING (Snapping coordinates to 3 decimals: ~110m corridor grid) ---
+  const snapFromLat = fromLat.toFixed(3);
+  const snapFromLng = fromLng.toFixed(3);
+  const snapToLat = toLat.toFixed(3);
+  const snapToLng = toLng.toFixed(3);
+  const alternatives = url.searchParams.get('alternatives') === 'true';
+
+  const corridorCacheUrl = `https://edge-cache.supermaps.internal/corridor-directions?from=${snapFromLat},${snapFromLng}&to=${snapToLat},${snapToLng}&v=${vehicle}&alt=${alternatives}`;
+  const cache = caches.default;
+  const cacheKey = new Request(corridorCacheUrl, { method: 'GET' });
+
+  let cached = await cache.match(cacheKey);
+  if (cached) {
+    const cachedResponse = new Response(cached.body, cached);
+    cachedResponse.headers.set('X-Supermaps-Corridor-Cache', 'HIT');
+    cachedResponse.headers.set('Access-Control-Allow-Origin', '*');
+    return cachedResponse;
+  }
+
   // Routing profile: driving for car, bicycle/fast profile for bike
   const profile = vehicle === 'bike' ? 'driving' : 'driving';
-  const alternatives = url.searchParams.get('alternatives') === 'true';
   const query = `${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson&steps=true${alternatives ? '&alternatives=true' : ''}`;
 
   // Multi-Provider Failover Backends
@@ -207,7 +225,7 @@ async function handleDirections(url, headers) {
     });
   }
 
-  return jsonResponse({
+  const responsePayload = JSON.stringify({
     status: 'success',
     vehicle: vehicle,
     distance_km: Number(primaryDistanceKm),
@@ -220,15 +238,54 @@ async function handleDirections(url, headers) {
       cement_percent: 8,
       mud_percent: vehicle === 'bike' ? 22 : 2
     }
-  }, 200, headers);
+  }, null, 2);
+
+  // 7-Day Edge Cache with Immutable Revalidation
+  const finalResponse = new Response(responsePayload, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'public, max-age=604800, s-maxage=604800, immutable',
+      'X-Supermaps-Corridor-Cache': 'MISS-STORED',
+      ...headers
+    }
+  });
+
+  if (ctx && ctx.waitUntil) {
+    ctx.waitUntil(cache.put(cacheKey, finalResponse.clone()));
+  }
+
+  return finalResponse;
 }
 
 // =========================================================================
-// MODULE 1B: UNIVERSAL OSRM PROXY (With Dual-Engine Failover & Edge Caching)
+// MODULE 1B: UNIVERSAL OSRM PROXY (With Corridor Geo-Hashing & Edge Cache)
 // =========================================================================
-async function handleOsrmUniversalProxy(path, url, headers) {
+async function handleOsrmUniversalProxy(request, path, url, ctx, headers) {
   const subPath = path.replace(/^\/route\/v1\//, '');
   const searchStr = url.search || '';
+
+  // Snapped Corridor Geo-Hashing for Universal OSRM
+  const cache = caches.default;
+  let cacheKey = null;
+  const coordMatch = subPath.match(/([-\d.]+),([-\d.]+);([-\d.]+),([-\d.]+)/);
+
+  if (coordMatch) {
+    const lng1 = Number(coordMatch[1]).toFixed(3);
+    const lat1 = Number(coordMatch[2]).toFixed(3);
+    const lng2 = Number(coordMatch[3]).toFixed(3);
+    const lat2 = Number(coordMatch[4]).toFixed(3);
+    const normUrl = `https://edge-cache.supermaps.internal/corridor-osrm/${lng1},${lat1};${lng2},${lat2}?${url.searchParams.toString()}`;
+    cacheKey = new Request(normUrl, { method: 'GET' });
+
+    let cached = await cache.match(cacheKey);
+    if (cached) {
+      const cachedResp = new Response(cached.body, cached);
+      cachedResp.headers.set('X-Supermaps-Corridor-Cache', 'HIT');
+      cachedResp.headers.set('Access-Control-Allow-Origin', '*');
+      return cachedResp;
+    }
+  }
 
   const backends = [
     `https://routing.openstreetmap.de/routed-car/route/v1/${subPath}${searchStr}`,
@@ -246,10 +303,15 @@ async function handleOsrmUniversalProxy(path, url, headers) {
           const respHeaders = {
             ...headers,
             'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=1800, s-maxage=3600',
+            'Cache-Control': 'public, max-age=604800, s-maxage=604800, immutable',
+            'X-Supermaps-Corridor-Cache': 'MISS-STORED',
             'X-Rydealot-Router-Source': i === 0 ? 'osm-de' : 'osrm-org'
           };
-          return new Response(JSON.stringify(data), { status: 200, headers: respHeaders });
+          const successResponse = new Response(JSON.stringify(data), { status: 200, headers: respHeaders });
+          if (cacheKey && ctx && ctx.waitUntil) {
+            ctx.waitUntil(cache.put(cacheKey, successResponse.clone()));
+          }
+          return successResponse;
         }
       }
     } catch (e) {}
