@@ -115,6 +115,16 @@ export default {
       }, 500, corsHeaders);
     }
   }
+
+  ,
+
+  // =========================================================================
+  // SCHEDULED CRON HANDLER: Pre-bake golden shop pins into KV every 15 min
+  // Eliminates ALL D1 reads for normal map users. Zero reads on map load.
+  // =========================================================================
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(bakeShopsToKV(env));
+  }
 };
 
 // =========================================================================
@@ -365,44 +375,116 @@ async function handleSearch(url, headers) {
 }
 
 // =========================================================================
-// MODULE 3: B2B API KEY MANAGEMENT (Sell Maps to External Companies)
+// MODULE 3: B2B API KEY MANAGEMENT — HMAC Cryptographic Keys (Zero DB Reads)
+// Keys are self-verifying: the worker uses math, not a database query.
 // =========================================================================
+
+// Generate a self-verifying HMAC-SHA256 signed API key
+async function generateHmacApiKey(env, company, tier) {
+  const clientId = 'smp_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+  const payload = {
+    sub: clientId,
+    company: company,
+    tier: tier || 'starter_free',
+    limit: tier === 'enterprise' ? 1000000 : (tier === 'growth' ? 100000 : 10000),
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + (365 * 24 * 3600) // 1 year
+  };
+  const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const secret = env.SUPERMAPS_HMAC_SECRET || 'rydealot_supermaps_hmac_v1_changeme';
+  const encoder = new TextEncoder();
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sigBuffer = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(payloadB64));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sigBuffer)))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  return `smp_live_${payloadB64}.${sigB64}`;
+}
+
+// Verify an HMAC-signed key — pure math, ZERO D1 reads, ZERO external calls
+async function verifyHmacApiKey(apiKey, env) {
+  if (!apiKey || !apiKey.startsWith('smp_live_')) return null;
+  const token = apiKey.slice('smp_live_'.length);
+  const dotIdx = token.lastIndexOf('.');
+  if (dotIdx < 0) return null;
+  const payloadB64 = token.slice(0, dotIdx);
+  const sigB64 = token.slice(dotIdx + 1);
+  try {
+    const secret = env.SUPERMAPS_HMAC_SECRET || 'rydealot_supermaps_hmac_v1_changeme';
+    const encoder = new TextEncoder();
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
+    );
+    // Restore standard base64 for atob
+    const sigBytes = Uint8Array.from(
+      atob(sigB64.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)
+    );
+    const valid = await crypto.subtle.verify('HMAC', cryptoKey, sigBytes, encoder.encode(payloadB64));
+    if (!valid) return null;
+    const payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
+    // Check expiry
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload; // { sub, company, tier, limit, iat, exp }
+  } catch (e) {
+    return null;
+  }
+}
+
 async function handleApiKeys(request, path, url, env, headers) {
+  // Generate: POST /api/v1/keys/generate
   if (request.method === 'POST' && path === '/api/v1/keys/generate') {
     const body = await request.json().catch(() => ({}));
-    const company = body.company_name || 'Partner Company';
+    const company = (body.company_name || 'Partner Company').slice(0, 100);
     const tier = body.tier || 'starter_free';
 
-    // Cryptographic 32-character API key
-    const randomBytes = new Uint8Array(16);
-    crypto.getRandomValues(randomBytes);
-    const keyString = Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-    const apiKey = `smp_live_${keyString}`;
+    const apiKey = await generateHmacApiKey(env, company, tier);
 
-    const newKeyRecord = {
-      api_key: apiKey,
-      company_name: company,
-      tier: tier,
-      monthly_limit: tier === 'starter_free' ? 10000 : 500000,
-      requests_used: 0,
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
+    // Decode the embedded payload so we can return its metadata
+    const token = apiKey.slice('smp_live_'.length);
+    const payloadB64 = token.slice(0, token.lastIndexOf('.'));
+    const payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
+
+    // Write audit record to D1 exactly once (for business ledger only, not for verification)
+    if (env && env.DB) {
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO supermaps_api_keys (api_key_prefix, company_name, tier, monthly_limit, created_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).bind(
+        apiKey.slice(0, 24), company, tier, payload.limit, new Date().toISOString()
+      ).run().catch(() => {}); // Non-blocking; verification never touches D1
+    }
 
     return jsonResponse({
       status: 'success',
-      message: 'API Key generated successfully',
-      data: newKeyRecord
+      message: 'HMAC-Signed API Key generated. Self-verifying — no database lookup needed.',
+      data: {
+        api_key: apiKey,
+        company_name: company,
+        tier: tier,
+        monthly_limit: payload.limit,
+        expires_at: new Date(payload.exp * 1000).toISOString(),
+        note: 'Keep this key private. Verification is instant and database-free.'
+      }
     }, 201, headers);
   }
 
-  // Verification endpoint
+  // Verify: GET /api/v1/keys/verify?key=smp_live_...
+  // ZERO D1 reads. Pure HMAC math.
   if (path === '/api/v1/keys/verify') {
     const key = url.searchParams.get('key');
-    if (!key || !key.startsWith('smp_live_')) {
-      return jsonResponse({ valid: false, error: 'Invalid API key format' }, 401, headers);
+    const payload = await verifyHmacApiKey(key, env);
+    if (!payload) {
+      return jsonResponse({ valid: false, error: 'Invalid, expired, or tampered API key' }, 401, headers);
     }
-    return jsonResponse({ valid: true, company: 'Authorized Partner', status: 'active' }, 200, headers);
+    return jsonResponse({
+      valid: true,
+      company: payload.company,
+      tier: payload.tier,
+      monthly_limit: payload.limit,
+      expires_at: new Date(payload.exp * 1000).toISOString(),
+      verified_via: 'HMAC-SHA256 (zero database reads)'
+    }, 200, headers);
   }
 
   return jsonResponse({ error: 'Key action not supported' }, 400, headers);
@@ -512,7 +594,22 @@ async function handleShops(request, path, env, headers) {
 
   // Standard route: /api/v1/shops
   if (request.method === 'GET') {
-    // If D1 is bound, query from D1; else serve fallback
+    // ── KV CACHE FIRST (Zero D1 reads for all map users) ──
+    if (env && env.SUPERMAPS_KV) {
+      const kvHit = await env.SUPERMAPS_KV.get('shops_geojson_v1', 'text');
+      if (kvHit) {
+        return new Response(kvHit, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Supermaps-Shops-Cache': 'KV-HIT',
+            'Cache-Control': 'public, max-age=900', // 15 min browser cache
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
+    }
+    // ── KV MISS: Fall back to D1, bake into KV for next request ──
     if (env && env.DB) {
       try {
         const { results } = await env.DB.prepare(`
@@ -520,10 +617,16 @@ async function handleShops(request, path, env, headers) {
           WHERE is_golden_pin = 1 
           ORDER BY (CASE WHEN plan_tier = 'sponsored_rank' THEN 0 ELSE 1 END), created_at DESC
         `).all();
-        return jsonResponse(results, 200, headers);
+        // Immediately bake into KV so the next user pays 0 D1 reads
+        if (env.SUPERMAPS_KV) {
+          env.SUPERMAPS_KV.put('shops_geojson_v1', JSON.stringify(results), { expirationTtl: 900 }).catch(() => {});
+        }
+        return jsonResponse(results, 200, { ...({
+          'X-Supermaps-Shops-Cache': 'D1-MISS-BAKED',
+          'Cache-Control': 'public, max-age=900'
+        }), 'Access-Control-Allow-Origin': '*' });
       } catch (e) {
-        const { results } = await env.DB.prepare('SELECT * FROM supermaps_shops WHERE is_golden_pin = 1').all();
-        return jsonResponse(results, 200, headers);
+        return jsonResponse(inMemoryShopsFallback, 200, headers);
       }
     }
     return jsonResponse(inMemoryShopsFallback, 200, headers);
@@ -554,6 +657,10 @@ async function handleShops(request, path, env, headers) {
         newShop.id, newShop.name, newShop.category, newShop.latitude, newShop.longitude,
         newShop.phone, newShop.whatsapp, newShop.tagline, newShop.plan_tier
       ).run();
+      // Invalidate KV cache so next map load gets fresh data within 15 min
+      if (env.SUPERMAPS_KV) {
+        env.SUPERMAPS_KV.delete('shops_geojson_v1').catch(() => {});
+      }
     } else {
       inMemoryShopsFallback.push(newShop);
     }
@@ -563,6 +670,33 @@ async function handleShops(request, path, env, headers) {
 
   return jsonResponse({ error: 'Shop method not allowed' }, 405, headers);
 }
+
+// =========================================================================
+// SHOP PRE-BAKE ENGINE: Cron-Triggered (Every 15 Minutes)
+// Reads ALL approved shops from D1 ONCE, writes to KV.
+// Result: Infinite map users = 0 D1 reads. Only KV CDN reads (free).
+// =========================================================================
+async function bakeShopsToKV(env) {
+  if (!env || !env.DB || !env.SUPERMAPS_KV) return;
+  try {
+    const { results } = await env.DB.prepare(`
+      SELECT id, name, category, latitude, longitude, phone, whatsapp, tagline, plan_tier, is_golden_pin, is_sponsored
+      FROM supermaps_shops
+      WHERE is_golden_pin = 1
+        AND (payment_status IN ('active', 'trial') OR plan_tier IN ('free_lifetime', 'sponsored_rank'))
+      ORDER BY (CASE WHEN plan_tier = 'sponsored_rank' THEN 0 ELSE 1 END), created_at DESC
+      LIMIT 5000
+    `).all();
+
+    const baked = JSON.stringify(results || []);
+    await env.SUPERMAPS_KV.put('shops_geojson_v1', baked, { expirationTtl: 1800 }); // 30 min TTL
+    console.log(`[Shop Bake] ✅ Baked ${(results || []).length} shops to KV at ${new Date().toISOString()}`);
+  } catch (e) {
+    console.error('[Shop Bake Error]:', e.message);
+  }
+}
+
+
 
 // =========================================================================
 // MODULE 5: ROADS & HIGHWAYS GIS (Add, Modify, Block Roads)

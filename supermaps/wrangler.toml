@@ -10,6 +10,26 @@ binding = "DB"
 database_name = "supermaps-db"
 database_id = "4780b744-88d2-4807-bac6-3321ca944d14"
 
+# ─────────────────────────────────────────────────────────────────────────────
+# KV NAMESPACE: Shop Pin Cache (Zero D1 reads for map users)
+# Free tier: 100,000 reads/day, 1,000 writes/day
+# CREATE THIS FIRST: npx wrangler kv:namespace create SUPERMAPS_KV
+# Then paste the returned id below.
+# ─────────────────────────────────────────────────────────────────────────────
+[[kv_namespaces]]
+binding = "SUPERMAPS_KV"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CRON TRIGGER: Re-bake shop pins into KV every 15 minutes
+# This ensures any new shopkeeper registration appears on the map within 15 min
+# ─────────────────────────────────────────────────────────────────────────────
+[triggers]
+crons = ["*/15 * * * *"]
+
 [vars]
 ENVIRONMENT = "production"
 SERVICE_NAME = "Rydealot Supermaps"
+# IMPORTANT: Set this in Cloudflare Dashboard → Workers → rydealot-supermaps-api → Settings → Variables
+# DO NOT put the real secret here in code. Use: npx wrangler secret put SUPERMAPS_HMAC_SECRET
+SUPERMAPS_HMAC_SECRET = "SET_VIA_WRANGLER_SECRET_NOT_HERE"
