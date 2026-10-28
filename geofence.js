@@ -7,8 +7,8 @@
 
   var STORAGE_KEY = 'rydealot_geofence_config';
   var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
-  var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
+  var SUPABASE_URL = CLOUDFLARE_D1_WORKER;
+  var SUPABASE_ANON_KEY = 'rydealot_d1_edge_key';
 
   var DEFAULT_CONFIG = {
     masterEnabled: false, // Default OFF for smooth simulation & testing

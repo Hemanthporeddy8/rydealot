@@ -1,7 +1,8 @@
 // ===================== CUSTOM AUTHENTICATION & PROFILES MODULE =====================
 (function(){
-  var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
-  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
+  var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
+  var SUPABASE_URL = CLOUDFLARE_D1_WORKER;
+  var SUPABASE_KEY = 'rydealot_d1_edge_key';
 
   async function hashPassword(str) {
     if (!window.crypto || !window.crypto.subtle) return str;
@@ -132,38 +133,7 @@
   }
 
   async function sbAuthFetch(path, opts) {
-    opts = opts || {};
-    var headers = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };
-    if(opts.prefer) headers['Prefer'] = opts.prefer;
-    var data = null;
-    try {
-      var res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
-        method: opts.method || 'GET',
-        headers: headers,
-        body: opts.body ? JSON.stringify(opts.body) : undefined
-      });
-      var text = await res.text();
-      try { data = text ? JSON.parse(text) : null; } catch(e) { data = text; }
-      if (!res.ok) throw new Error((data && data.message) || ('HTTP ' + res.status));
-
-      // Asynchronous background mirror to Cloudflare D1
-      var m = (opts.method || 'GET').toUpperCase();
-      if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
-        d1PostgrestCall(path, { method: m, body: opts.body, keepalive: true }).catch(function(){
-          queueFailedMutation('planB', path, m, opts.body);
-        });
-      }
-      return data;
-    } catch(err) {
-      console.warn('[Rydealot Plan B Failover - Auth]: Routing to Cloudflare D1:', path, err.message);
-      var fallback = await d1PostgrestCall(path, opts);
-      var m = (opts.method || 'GET').toUpperCase();
-      if (fallback && (m === 'POST' || m === 'PATCH' || m === 'DELETE')) {
-        queueFailedMutation('planA', path, m, opts.body);
-      }
-      if (fallback) return fallback;
-      throw err;
-    }
+    return await d1PostgrestCall(path, opts);
   }
 
   var authState = {
@@ -1424,8 +1394,9 @@
 
 // ===================== RIDER APP (own IIFE, kept separate from user app) =====================
 (function(){
-  var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
+  var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
+  var SUPABASE_URL = CLOUDFLARE_D1_WORKER;
+  var SUPABASE_ANON_KEY = 'rydealot_d1_edge_key';
 
   var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
 
@@ -1446,44 +1417,7 @@
   }
 
   async function sbFetch(path, options){
-    options = options || {};
-    var headers = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json'
-    };
-    if(options.prefer) headers['Prefer'] = options.prefer;
-    var data = null;
-    try {
-      var res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
-        method: options.method || 'GET',
-        headers: headers,
-        body: options.body ? JSON.stringify(options.body) : undefined
-      });
-      var text = await res.text();
-      try{ data = text ? JSON.parse(text) : null; } catch(e){ data = text; }
-      if(!res.ok){
-        throw new Error((data && data.message) || ('HTTP ' + res.status));
-      }
-
-      // Background asynchronous mirror to Cloudflare D1
-      var m = (options.method || 'GET').toUpperCase();
-      if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
-        d1PostgrestCall(path, { method: m, body: options.body, keepalive: true }).catch(function(){
-          queueFailedMutation('planB', path, m, options.body);
-        });
-      }
-      return data;
-    } catch(err) {
-      console.warn('[Rydealot Plan B Failover - Rider]: Routing to Cloudflare D1:', path, err.message);
-      var fallback = await d1PostgrestCall(path, options);
-      var m = (options.method || 'GET').toUpperCase();
-      if (fallback && (m === 'POST' || m === 'PATCH' || m === 'DELETE')) {
-        queueFailedMutation('planA', path, m, options.body);
-      }
-      if (fallback) return fallback;
-      throw err;
-    }
+    return await d1PostgrestCall(path, options);
   }
 
   var rawRiderId = localStorage.getItem('ridelot_rider_id');
@@ -4008,8 +3942,9 @@
 
 // ===================== USER APP (own IIFE, kept separate from rider app) =====================
 (function(){
-  var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
+  var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
+  var SUPABASE_URL = CLOUDFLARE_D1_WORKER;
+  var SUPABASE_ANON_KEY = 'rydealot_d1_edge_key';
 
   var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
 
@@ -4030,44 +3965,7 @@
   }
 
   async function sbFetch(path, options){
-    options = options || {};
-    var headers = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json'
-    };
-    if(options.prefer) headers['Prefer'] = options.prefer;
-    var data = null;
-    try {
-      var res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
-        method: options.method || 'GET',
-        headers: headers,
-        body: options.body ? JSON.stringify(options.body) : undefined
-      });
-      var text = await res.text();
-      try{ data = text ? JSON.parse(text) : null; } catch(e){ data = text; }
-      if(!res.ok){
-        throw new Error((data && data.message) || ('HTTP ' + res.status));
-      }
-
-      // Background asynchronous mirror to Cloudflare D1
-      var m = (options.method || 'GET').toUpperCase();
-      if (m === 'POST' || m === 'PATCH' || m === 'DELETE') {
-        d1PostgrestCall(path, { method: m, body: options.body, keepalive: true }).catch(function(){
-          queueFailedMutation('planB', path, m, options.body);
-        });
-      }
-      return data;
-    } catch(err) {
-      console.warn('[Rydealot Plan B Failover - Customer]: Routing to Cloudflare D1:', path, err.message);
-      var fallback = await d1PostgrestCall(path, options);
-      var m = (options.method || 'GET').toUpperCase();
-      if (fallback && (m === 'POST' || m === 'PATCH' || m === 'DELETE')) {
-        queueFailedMutation('planA', path, m, options.body);
-      }
-      if (fallback) return fallback;
-      throw err;
-    }
+    return await d1PostgrestCall(path, options);
   }
 
   // Early exit: if user/passenger UI elements don't exist on this page (e.g. driver.html), skip passenger IIFE
