@@ -6502,11 +6502,12 @@
   async function confirmBooking(id, rider, type, price){
     if(state.activeBookingId || state.isBookingInProgress) return;
 
-    // Operational Geofencing & Service Radius Check
+    // Operational Geofencing & Service Radius Check (with Founder/Wellness Whitelist bypass)
     if (window.RydealotGeofence) {
       var pCoords = (state.lat && state.lng) ? { lat: state.lat, lng: state.lng } : null;
       var dCoords = (state.destLat && state.destLng) ? { lat: state.destLat, lng: state.destLng } : null;
-      var vResult = window.RydealotGeofence.validateTrip('rides', pCoords, dCoords, state.tripDistanceKm);
+      var clientPhone = state.phone || state.userPhone;
+      var vResult = window.RydealotGeofence.validateTrip('rides', pCoords, dCoords, state.tripDistanceKm, clientPhone);
       if (!vResult.allowed) {
         window.RydealotGeofence.showGeofenceModal(vResult);
         return;

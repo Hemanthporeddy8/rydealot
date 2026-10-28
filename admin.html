@@ -661,6 +661,21 @@
           </div>
         </div>
       </div>
+
+      <!-- Founder & Testing Whitelist (Always Bypasses Geofence) -->
+      <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; margin-top:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+          <div style="font-size:0.88rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+            <span>👑 Founder &amp; Testing Whitelist</span>
+            <span style="font-size:0.7rem; background:#10b981; color:#fff; padding:2px 8px; border-radius:99px; font-weight:800;">ALWAYS BYPASS</span>
+          </div>
+          <span style="font-size:0.75rem; color:var(--mute);">Wellness testing account</span>
+        </div>
+        <div style="font-size:0.75rem; color:var(--mute); margin-bottom:8px;">
+          Enter mobile numbers separated by commas. These accounts can book rides and parcels anywhere in India even when geofencing is strictly ENFORCED for everyone else.
+        </div>
+        <input type="text" id="geofence-whitelist-phones" class="auth-input" placeholder="e.g. 9876543210, 9123456789" value="9876543210" style="font-size:0.85rem; padding:8px 12px; width:100%;">
+      </div>
     </div>
 
     <!-- Fares Table Grid -->
@@ -1929,9 +1944,30 @@
     }
   }
 
-  function loadGeofenceSettings() {
+  async function loadGeofenceSettings() {
     if (typeof RydealotGeofence === 'undefined') return;
     var cfg = RydealotGeofence.getConfig();
+
+    // Query latest cloud config from Cloudflare D1 / Supabase
+    try {
+      var rows = await sb('platform_services?id=eq.geofence');
+      if (rows && rows.length > 0) {
+        var row = rows[0];
+        var remoteCfg = null;
+        if (row.json_data) {
+          remoteCfg = typeof row.json_data === 'string' ? JSON.parse(row.json_data) : row.json_data;
+        } else if (typeof row.masterEnabled === 'boolean') {
+          remoteCfg = row;
+        }
+        if (remoteCfg) {
+          cfg = Object.assign({}, cfg, remoteCfg);
+          RydealotGeofence.saveConfig(cfg, true);
+        }
+      }
+    } catch(e) {
+      console.warn('[Admin Geofence] Cloud fetch note (using local cache):', e);
+    }
+
     if (document.getElementById('geofence-master-toggle')) {
       document.getElementById('geofence-master-toggle').value = cfg.masterEnabled ? 'true' : 'false';
     }
@@ -1957,6 +1993,10 @@
       document.getElementById('geofence-hub-lng').value = (cfg.hub && cfg.hub.lng) || 78.4867;
       document.getElementById('geofence-hub-radius').value = (cfg.hub && cfg.hub.radiusKm) || 40;
     }
+    if (document.getElementById('geofence-whitelist-phones')) {
+      var wList = cfg.whitelistPhones || ['9876543210'];
+      document.getElementById('geofence-whitelist-phones').value = Array.isArray(wList) ? wList.join(', ') : wList;
+    }
     updateGeofenceUI();
   }
 
@@ -1965,6 +2005,13 @@
       toast('❌ Geofence engine not loaded.');
       return;
     }
+
+    var wInput = document.getElementById('geofence-whitelist-phones');
+    var wPhones = (wInput ? wInput.value : '9876543210')
+      .split(',')
+      .map(function(s){ return s.trim(); })
+      .filter(function(s){ return s.length > 0; });
+
     var cfg = {
       masterEnabled: document.getElementById('geofence-master-toggle').value === 'true',
       hub: {
@@ -1985,12 +2032,29 @@
       cargo: {
         enabled: document.getElementById('geofence-toggle-cargo').value === 'true',
         maxDistanceKm: parseFloat(document.getElementById('geofence-cargo-slider').value) || 250
-      }
+      },
+      whitelistPhones: wPhones
     };
 
+    // Save locally
     RydealotGeofence.saveConfig(cfg);
     updateGeofenceUI();
-    toast('🗺️ Geofence & Service Radius saved & synced!');
+
+    // Sync to Cloudflare D1 + Supabase
+    try {
+      var payload = {
+        id: 'geofence',
+        json_data: JSON.stringify(cfg),
+        updated_at: new Date().toISOString()
+      };
+      await sb('platform_services?id=eq.geofence', {
+        method: 'PATCH',
+        body: payload
+      });
+      toast('🗺️ Geofence & Whitelist saved & synced to Cloudflare & Supabase!');
+    } catch(err) {
+      toast('🗺️ Geofence saved locally in browser!');
+    }
   }
 
   // ===== CUSTOMER COUPON & PROMO MANAGEMENT =====

@@ -1368,9 +1368,9 @@
       return;
     }
 
-    // Geofencing & Operational Service Radius Check
+    // Geofencing & Operational Service Radius Check (with Founder/Wellness Whitelist bypass)
     if (window.RydealotGeofence) {
-      var vResult = window.RydealotGeofence.validateTrip('sage', pickupCoords, dropCoords, routeDistanceKm);
+      var vResult = window.RydealotGeofence.validateTrip('sage', pickupCoords, dropCoords, routeDistanceKm, senderPhone);
       if (!vResult.allowed) {
         window.RydealotGeofence.showGeofenceModal(vResult);
         return;

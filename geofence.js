@@ -6,6 +6,9 @@
   'use strict';
 
   var STORAGE_KEY = 'rydealot_geofence_config';
+  var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
+  var SUPABASE_URL = 'https://wupndimumeugfjxzejlj.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1cG5kaW11bWV1Z2ZqeHplamxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMDgwMDQsImV4cCI6MjA5NzY4NDAwNH0.dM6nG_cswzOAXuumW3LdfGJxxoF-Fn3iiVImUZ9as2Y';
 
   var DEFAULT_CONFIG = {
     masterEnabled: false, // Default OFF for smooth simulation & testing
@@ -27,7 +30,8 @@
     cargo: {
       enabled: false,
       maxDistanceKm: 250
-    }
+    },
+    whitelistPhones: ['9876543210'] // Founder & Testing Whitelist (bypasses geofence always)
   };
 
   // Cross-tab real-time listener via storage events
@@ -79,7 +83,8 @@
           hub: Object.assign({}, DEFAULT_CONFIG.hub, parsed.hub || {}),
           sage: Object.assign({}, DEFAULT_CONFIG.sage, parsed.sage || {}),
           rides: Object.assign({}, DEFAULT_CONFIG.rides, parsed.rides || {}),
-          cargo: Object.assign({}, DEFAULT_CONFIG.cargo, parsed.cargo || {})
+          cargo: Object.assign({}, DEFAULT_CONFIG.cargo, parsed.cargo || {}),
+          whitelistPhones: Array.isArray(parsed.whitelistPhones) ? parsed.whitelistPhones : DEFAULT_CONFIG.whitelistPhones
         };
       }
     } catch (e) {
@@ -89,17 +94,19 @@
   }
 
   // Save config to localStorage and broadcast across tabs
-  function saveConfig(cfg) {
+  function saveConfig(cfg, skipBroadcast) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
       window.dispatchEvent(new CustomEvent('rydealot_geofence_updated', { detail: cfg }));
-      try {
-        if (typeof BroadcastChannel !== 'undefined') {
-          var bc = new BroadcastChannel('rydealot_geofence_channel');
-          bc.postMessage(cfg);
-          bc.close();
-        }
-      } catch(e) {}
+      if (!skipBroadcast) {
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            var bc = new BroadcastChannel('rydealot_geofence_channel');
+            bc.postMessage(cfg);
+            bc.close();
+          }
+        } catch(e) {}
+      }
       return true;
     } catch (e) {
       console.error('[Geofence] Error saving config:', e);
@@ -107,9 +114,117 @@
     }
   }
 
+  // Cloud Sync Engine: Fetches remote geofence settings from Cloudflare D1 / Supabase
+  async function syncCloudConfig() {
+    try {
+      var remoteData = null;
+
+      // 1. Plan B Cloudflare D1 Worker (High reliability edge gateway)
+      try {
+        var d1Res = await fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/platform_services?id=eq.geofence');
+        if (d1Res.ok) {
+          remoteData = await d1Res.json();
+        }
+      } catch(e) {}
+
+      // 2. If D1 didn't return, fallback to Supabase Plan A
+      if (!remoteData || !remoteData.length) {
+        try {
+          var sbRes = await fetch(SUPABASE_URL + '/rest/v1/platform_services?id=eq.geofence', {
+            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+          });
+          if (sbRes.ok) {
+            remoteData = await sbRes.json();
+          }
+        } catch(e) {}
+      }
+
+      if (remoteData && remoteData[0]) {
+        var row = remoteData[0];
+        var parsed = null;
+        if (row.json_data) {
+          try {
+            parsed = typeof row.json_data === 'string' ? JSON.parse(row.json_data) : row.json_data;
+          } catch(err){}
+        } else if (typeof row.masterEnabled === 'boolean') {
+          parsed = row;
+        }
+
+        if (parsed) {
+          saveConfig(parsed, false);
+          console.log('[Geofence] ☁️ Synced cloud geofence config (Master: ' + (parsed.masterEnabled ? 'ENFORCED' : 'OFF') + ')');
+        }
+      }
+    } catch(err) {
+      console.warn('[Geofence] Cloud sync note (using local cache):', err.message);
+    }
+  }
+
+  // Auto-sync cloud config in background (non-blocking)
+  if (typeof window !== 'undefined') {
+    setTimeout(syncCloudConfig, 150);
+  }
+
   // Validate a trip for a given service ('sage', 'rides', 'cargo')
-  function validateTrip(serviceType, pickupCoords, dropCoords, actualDistanceKm) {
+  // userPhoneOrSession: optional phone string or session object
+  function validateTrip(serviceType, pickupCoords, dropCoords, actualDistanceKm, userPhoneOrSession) {
     var cfg = getConfig();
+
+    // 0. FOUNDER & TESTING WHITELIST BYPASS
+    // Whitelisted phone numbers or founder/admin sessions are NEVER blocked, even when geofencing is ON!
+    var whitelist = (cfg.whitelistPhones || ['9876543210']).map(function(p) {
+      return String(p).trim().replace(/[^0-9]/g, '');
+    });
+
+    var phoneToCheck = null;
+    if (typeof userPhoneOrSession === 'string') {
+      phoneToCheck = userPhoneOrSession;
+    } else if (userPhoneOrSession && typeof userPhoneOrSession === 'object') {
+      if (userPhoneOrSession.is_founder || userPhoneOrSession.role === 'admin' || userPhoneOrSession.role === 'founder') {
+        console.log('[Geofence] 👑 Founder Session detected. Bypassing geofence limits.');
+        return { allowed: true, reason: null, isFounderBypass: true, distanceKm: actualDistanceKm || 0 };
+      }
+      phoneToCheck = userPhoneOrSession.phone;
+    }
+
+    if (!phoneToCheck) {
+      try {
+        var sessRaw = localStorage.getItem('rydealot_user_session');
+        if (sessRaw) {
+          var sess = JSON.parse(sessRaw);
+          if (sess.is_founder || sess.role === 'admin' || sess.role === 'founder') {
+            console.log('[Geofence] 👑 Founder Session (localStorage) detected. Bypassing geofence.');
+            return { allowed: true, reason: null, isFounderBypass: true, distanceKm: actualDistanceKm || 0 };
+          }
+          phoneToCheck = sess.phone;
+        }
+      } catch(e) {}
+    }
+
+    if (!phoneToCheck && typeof document !== 'undefined') {
+      var domPhone = document.getElementById('sage-sender-phone') ||
+                     document.getElementById('phone') ||
+                     document.getElementById('login-phone') ||
+                     document.getElementById('sender-phone');
+      if (domPhone && domPhone.value) phoneToCheck = domPhone.value;
+    }
+
+    if (phoneToCheck) {
+      var cleanPhone = String(phoneToCheck).trim().replace(/[^0-9]/g, '');
+      var isWhitelisted = whitelist.some(function(wp) {
+        return wp.length >= 10 && cleanPhone.endsWith(wp.slice(-10));
+      });
+      if (isWhitelisted) {
+        console.log('[Geofence] 👑 Founder / Testing Whitelist Match for ' + cleanPhone + '. Bypassing all limits.');
+        return {
+          allowed: true,
+          reason: null,
+          isFounderBypass: true,
+          distanceKm: actualDistanceKm || 0,
+          message: 'Founder Testing Pass Active'
+        };
+      }
+    }
 
     // 1. Master Bypass: If Master Geofence is OFF, allow all bookings without restriction (Testing Mode)
     if (!cfg.masterEnabled) {
@@ -229,6 +344,7 @@
     haversineKm: haversineKm,
     getConfig: getConfig,
     saveConfig: saveConfig,
+    syncCloudConfig: syncCloudConfig,
     validateTrip: validateTrip,
     showGeofenceModal: showGeofenceModal
   };
