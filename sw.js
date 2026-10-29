@@ -1,4 +1,4 @@
-var CACHE_NAME = 'rydealot-v49';
+var CACHE_NAME = 'rydealot-v50';
 var urlsToCache = [
   './',
   './index.html',
@@ -68,8 +68,8 @@ self.addEventListener('activate', function(event) {
 
 // Fetch: Network-first with immediate offline fallback to offline.html for navigation
 self.addEventListener('fetch', function(event) {
-  // Bypass API and non-GET calls
-  if (event.request.method !== 'GET' || event.request.url.indexOf('supabase.co') !== -1 || event.request.url.indexOf('/api/') !== -1) {
+  // Bypass API and non-GET calls (Cloudflare D1 & edge tracking gateway)
+  if (event.request.method !== 'GET' || event.request.url.indexOf('workers.dev') !== -1 || event.request.url.indexOf('/rest/v1/') !== -1 || event.request.url.indexOf('/api/') !== -1 || event.request.url.indexOf('supabase.co') !== -1) {
     return;
   }
 
