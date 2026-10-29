@@ -69,6 +69,9 @@ export default {
       if (path === '/api/track/driver-presence' && method === 'GET') {
         return handleDriverPresence(request, url, env, corsHeaders);
       }
+      if (path === '/api/track/available-drivers' && method === 'GET') {
+        return handleAvailableDrivers(request, url, env, corsHeaders);
+      }
 
       // 5. PLAN B: POSTGREST EMULATOR FOR CLOUDFLARE D1
       // /rest/v1/:table
@@ -660,13 +663,25 @@ async function handleTrackingUpdate(request, env, corsHeaders) {
     return jsonResponse({ error: 'Invalid JSON payload' }, 400, corsHeaders);
   }
 
-  // Handle in-memory driver heartbeat / presence ping (ZERO DISK WRITES!)
+  // Handle in-memory driver heartbeat / presence / online-offline toggle (ZERO DISK WRITES!)
   if (body && (body.heartbeat || (body.riderId && !body.bookingId))) {
     const rKey = String(body.riderId);
+    if (body.offline === true || body.status === 'offline') {
+      liveDrivers.delete(rKey);
+      return jsonResponse({ ok: true, presence: 'offline', timestamp: Date.now() }, 200, corsHeaders);
+    }
     liveDrivers.set(rKey, {
+      id: rKey,
       riderId: rKey,
+      name: body.name || 'Captain',
+      phone: body.phone || '',
+      vehicle_type: body.vehicle_type || 'bike',
+      vehicle_label: body.vehicle_label || 'Bike',
+      plate: body.plate || '',
+      status: 'available',
       lat: Number(body.lat || 0),
       lng: Number(body.lng || 0),
+      updated_at: new Date().toISOString(),
       timestamp: Date.now()
     });
     return jsonResponse({ ok: true, presence: 'active', timestamp: Date.now() }, 200, corsHeaders);
@@ -743,5 +758,22 @@ function handleDriverPresence(request, url, env, corsHeaders) {
     lastSeen: presence ? presence.timestamp : null,
     lat: presence ? presence.lat : null,
     lng: presence ? presence.lng : null
+  }, 200, corsHeaders);
+}
+
+function handleAvailableDrivers(request, url, env, corsHeaders) {
+  const now = Date.now();
+  const activeDrivers = [];
+  for (const [rId, d] of liveDrivers.entries()) {
+    if (now - d.timestamp < 180000 && d.status === 'available') {
+      activeDrivers.push(d);
+    } else if (now - d.timestamp >= 180000) {
+      liveDrivers.delete(rId);
+    }
+  }
+  return jsonResponse({
+    source: 'edge_ram',
+    count: activeDrivers.length,
+    drivers: activeDrivers
   }, 200, corsHeaders);
 }

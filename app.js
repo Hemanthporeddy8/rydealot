@@ -2497,13 +2497,25 @@
   function startHeartbeat(){
     clearInterval(state.heartbeatTimer);
     // ZERO DISK WRITES: Presence is maintained in memory via edge keepalive ping.
+    // ZERO DISK WRITES: Presence is maintained in memory via edge keepalive ping.
     // Eliminates 16,000 D1 writes/day across idle drivers!
     state.heartbeatTimer = setInterval(function(){
       if (state.riderId && state.online && !state.activeBooking) {
         fetch(CLOUDFLARE_D1_WORKER + '/api/track/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ riderId: state.riderId, lat: state.lat, lng: state.lng, heartbeat: true }),
+          body: JSON.stringify({
+            riderId: state.riderId,
+            name: localStorage.getItem('ridelot_rider_name') || 'Captain',
+            phone: localStorage.getItem('ridelot_rider_phone') || '',
+            vehicle_type: localStorage.getItem('ridelot_rider_vtype') || 'bike',
+            vehicle_label: localStorage.getItem('ridelot_rider_vlabel') || 'Bike',
+            plate: localStorage.getItem('ridelot_rider_plate') || '',
+            status: 'available',
+            lat: state.lat,
+            lng: state.lng,
+            heartbeat: true
+          }),
           keepalive: true
         }).catch(function(){});
       }
@@ -2537,7 +2549,32 @@
 
         var doGoOnline = async function() {
           try{
-            await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', lat: state.lat, lng: state.lng, updated_at: new Date().toISOString() } });
+            // 1. Instant Edge RAM Broadcast (0 D1 writes!)
+            fetch(CLOUDFLARE_D1_WORKER + '/api/track/update', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                riderId: state.riderId,
+                name: localStorage.getItem('ridelot_rider_name') || 'Captain',
+                phone: localStorage.getItem('ridelot_rider_phone') || '',
+                vehicle_type: localStorage.getItem('ridelot_rider_vtype') || 'bike',
+                vehicle_label: localStorage.getItem('ridelot_rider_vlabel') || 'Bike',
+                plate: localStorage.getItem('ridelot_rider_plate') || '',
+                status: 'available',
+                lat: state.lat,
+                lng: state.lng
+              }),
+              keepalive: true
+            }).catch(function(){});
+
+            // 2. Throttled D1 Persistence (Protects against 20x daily toggle rage-clicking)
+            var lastD1Sync = parseInt(localStorage.getItem('rydealot_last_d1_online_sync') || '0', 10);
+            if (Date.now() - lastD1Sync > 300000) { // Throttled to at most once every 5 minutes
+              sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', lat: state.lat, lng: state.lng, updated_at: new Date().toISOString() } })
+                .then(function(){ localStorage.setItem('rydealot_last_d1_online_sync', Date.now().toString()); })
+                .catch(function(){});
+            }
+
             state.online = true;
             localStorage.setItem('rydealot_driver_online_state', 'true');
             localStorage.setItem('rydealot_driver_last_online_time', Date.now().toString());
@@ -2574,9 +2611,20 @@
         stopSharingLocation();
         stopHeartbeat();
         destroyRiderMap();
+
+        // 1. Instant Edge RAM Removal (0 D1 writes!)
+        fetch(CLOUDFLARE_D1_WORKER + '/api/track/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ riderId: state.riderId, status: 'offline', offline: true }),
+          keepalive: true
+        }).catch(function(){});
+
+        // 2. Sync Offline to D1
         try{
           await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline', updated_at: new Date().toISOString() } });
         } catch(err){ console.error(err); }
+
         state.online = false;
         localStorage.removeItem('rydealot_driver_online_state');
         localStorage.removeItem('rydealot_driver_last_online_time');
@@ -5708,6 +5756,26 @@
 
   async function fetchRealRiders(){
     try{
+      var rows = [];
+
+      // 1. HYBRID PRESENCE CHECK: Query Edge RAM First (Sub-2ms, ZERO Database Reads/Writes)
+      try {
+        var ramRes = await withTimeout(fetch(CLOUDFLARE_D1_WORKER + '/api/track/available-drivers'), 2000);
+        if (ramRes && ramRes.ok) {
+          var ramJson = await ramRes.json();
+          if (ramJson && Array.isArray(ramJson.drivers) && ramJson.drivers.length > 0) {
+            rows = ramJson.drivers;
+          }
+        }
+      } catch(ramErr) {
+        // Seamless fallback to D1 Database if Edge RAM was restarted
+      }
+
+      // 2. HYBRID FALLBACK: Query Cloudflare D1 Database if Edge RAM was empty
+      if (!rows || rows.length === 0) {
+        rows = await withTimeout(sbFetch('riders?status=eq.available'), 8000);
+      }
+
       // Active Shift Window: Drivers remain visible throughout their shift (4 hours)
       // without requiring 90-second SQL heartbeat writes to D1!
       var activeShiftCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000);
