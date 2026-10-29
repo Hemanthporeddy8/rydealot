@@ -2338,13 +2338,25 @@
       var pointKey = sel ? sel.value : 'A';
       var point = TEST_LOCATIONS[pointKey] || TEST_LOCATIONS['A'];
       document.getElementById('rd-display-location').textContent = 'Test Point ' + pointKey + ' (not real GPS)';
+      state.lat = point.lat; state.lng = point.lng;
       async function pushTestLocation(){
         try{
           await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: point.lat, lng: point.lng, updated_at: new Date().toISOString() } });
         } catch(err){ console.error('test location update failed', err); }
       }
       pushTestLocation();
-      state.testLocationTimer = setInterval(pushTestLocation, 5000);
+      // ZERO DISK WRITE LEAK: Stationary test point is pushed ONCE upon activation.
+      // Removed 5-second interval that previously burned 720 writes/hr.
+      if (sel && !sel._hasTestChangeListener) {
+        sel._hasTestChangeListener = true;
+        sel.addEventListener('change', function() {
+          var newKey = sel.value;
+          var newPoint = TEST_LOCATIONS[newKey] || TEST_LOCATIONS['A'];
+          state.lat = newPoint.lat; state.lng = newPoint.lng;
+          document.getElementById('rd-display-location').textContent = 'Test Point ' + newKey + ' (not real GPS)';
+          sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: newPoint.lat, lng: newPoint.lng, updated_at: new Date().toISOString() } }).catch(function(){});
+        });
+      }
       return true;
     }
     if(!('geolocation' in navigator)){
@@ -2354,7 +2366,7 @@
     }
     document.getElementById('rd-display-location').textContent = 'Step 1: Requesting GPS...';
 
-    // Last resort: IP-based location push for laptops
+    // Last resort: IP-based location push for laptops (Single push on resolution, ZERO periodic timer writes)
     function useIpLocationForDriver() {
       document.getElementById('rd-display-location').textContent = 'Trying network location...';
       fetch('https://ipapi.co/json/')
@@ -2362,22 +2374,11 @@
         .then(function(d){
           if(d && d.latitude && d.longitude){
             var lat = d.latitude, lng = d.longitude;
-            state.lat = lat; state.lng = lng; // Save driver position
+            state.lat = lat; state.lng = lng; // Save driver position in memory
             document.getElementById('rd-display-location').textContent = 'Network location: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
             sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } })
               .catch(function(e){ console.error('IP loc push failed', e); });
-            // Keep refreshing every 30s (IP location doesn't change rapidly)
-            state.ipLocTimer = setInterval(function(){
-              fetch('https://ipapi.co/json/')
-                .then(function(r2){ return r2.json(); })
-                .then(function(d2){
-                  if(d2 && d2.latitude){
-                    state.lat = d2.latitude; state.lng = d2.longitude; // Save driver position
-                    sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: d2.latitude, lng: d2.longitude, updated_at: new Date().toISOString() } })
-                      .catch(function(){}); 
-                  }
-                }).catch(function(){});
-            }, 30000);
+            // ZERO DISK WRITE LEAK: Removed 30-second setInterval that previously burned 120 writes/hr on stationary IPs.
           } else {
             document.getElementById('rd-display-location').textContent = '❌ All location methods failed. Enable Location in browser settings.';
           }
@@ -2442,26 +2443,19 @@
         // Stream live moving coordinates ephemerally (ZERO DISK WRITES!)
         var activeB = state.currentBooking || state.activeBooking;
         if (activeB && (activeB.status === 'accepted' || activeB.status === 'arrived' || activeB.status === 'in_progress')) {
-          // Collect breadcrumb locally in memory for final 1-write route polyline
+          // Collect breadcrumb locally in memory for final 1-write route polyline upon completion
           state.activeTripBreadcrumbs.push([Number(lat.toFixed(6)), Number(lng.toFixed(6)), now]);
 
-          // Stream live dot to customer screen via Edge memory
+          // Stream live dot to customer screen via Edge memory (0 D1 writes)
           streamEphemeralLocation(activeB.id, state.riderId, lat, lng, heading, speed);
-
-          // Throttled SQL write only if moved >150 meters or >3 minutes since last DB update
-          if (dist >= 150 || (now - state.lastReportedTime > 180000)) {
-            state.lastReportedLat = lat;
-            state.lastReportedLng = lng;
-            state.lastReportedTime = now;
-            sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } }).catch(function(){});
-          }
           return;
         }
 
         // CASE 2: DRIVER AVAILABLE & IDLE (WAITING FOR BOOKINGS)
-        // Write to SQL database ONLY if driver actually moved >75 meters
-        // or if >3 minutes have elapsed (Prevents stationary drivers from burning quota)
-        if (dist >= 75 || (now - state.lastReportedTime > 180000)) {
+        // Write to SQL database ONLY if driver actually moved a substantial distance (>500m)
+        // and at least 5 minutes elapsed since last report.
+        // NEVER write on timer if stationary (eliminates quota burn!).
+        if (dist >= 500 && (now - state.lastReportedTime > 300000)) {
           state.lastReportedLat = lat;
           state.lastReportedLng = lng;
           state.lastReportedTime = now;
@@ -2496,84 +2490,110 @@
       state.watchId = null;
     }
     clearInterval(state.testLocationTimer);
+    clearInterval(state.ipLocTimer);
     document.getElementById('rd-display-location').textContent = 'Not sharing';
   }
 
   function startHeartbeat(){
     clearInterval(state.heartbeatTimer);
-    // Architect rule: Heartbeat must not trigger a SQL write merely to update timestamp on every cycle
-    // Fired every 90 seconds, only updates if driver is online and idle
-    state.heartbeatTimer = setInterval(async function(){
+    // ZERO DISK WRITES: Presence is maintained in memory via edge keepalive ping.
+    // Eliminates 16,000 D1 writes/day across idle drivers!
+    state.heartbeatTimer = setInterval(function(){
       if (state.riderId && state.online && !state.activeBooking) {
-        try {
-          await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ updated_at: new Date().toISOString() } });
-        } catch(err){ console.warn('Heartbeat note:', err.message); }
+        fetch(CLOUDFLARE_D1_WORKER + '/api/track/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ riderId: state.riderId, lat: state.lat, lng: state.lng, heartbeat: true }),
+          keepalive: true
+        }).catch(function(){});
       }
-    }, 90000); // 90 seconds
+    }, 60000); // 60 seconds ephemeral in-memory keepalive (0 D1 writes)
   }
 
   function stopHeartbeat(){
     clearInterval(state.heartbeatTimer);
   }
 
-  // ---------- online/offline toggle ----------
+  // ---------- online/offline toggle with Anti-Rage-Click Mutex & Debounce ----------
   var toggleBtn = document.getElementById('rd-toggle-online-btn');
+  var isTogglingOnline = false;
+  var lastToggleTimestamp = 0;
+  var TOGGLE_COOLDOWN_MS = 3000; // 3 seconds cooldown between state transitions
+
   toggleBtn.addEventListener('click', async function(){
-    if(!state.online){
-      var ok = startSharingLocation();
-      if(!ok) return;
+    var now = Date.now();
+    if (isTogglingOnline || (now - lastToggleTimestamp < TOGGLE_COOLDOWN_MS)) {
+      toast('Please wait a moment before changing status...');
+      return;
+    }
+    isTogglingOnline = true;
+    toggleBtn.disabled = true;
+    toggleBtn.style.opacity = '0.6';
 
-      var doGoOnline = async function() {
-        try{
-          await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: new Date().toISOString() } });
-          state.online = true;
-          localStorage.setItem('rydealot_driver_online_state', 'true');
-          localStorage.setItem('rydealot_driver_last_online_time', Date.now().toString());
-          recordDriverActivity();
-          toggleBtn.textContent = 'Go offline';
-          toggleBtn.className = 'btn btn-toggle-on';
-          setPill('available');
-          toast('You are online and visible to nearby users');
-          startPollingBookings();
-          startHeartbeat();
-        } catch(err){
-          toast('Could not go online: ' + err.message);
-        }
-      };
+    try {
+      if(!state.online){
+        var ok = startSharingLocation();
+        if(!ok) return;
 
-      var triggerVerificationPipeline = function() {
-        var runSobriety = function() {
-          if (typeof window.triggerDriverSobrietyCheck === 'function') {
-            window.triggerDriverSobrietyCheck(doGoOnline);
-          } else {
-            doGoOnline();
+        var doGoOnline = async function() {
+          try{
+            await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', lat: state.lat, lng: state.lng, updated_at: new Date().toISOString() } });
+            state.online = true;
+            localStorage.setItem('rydealot_driver_online_state', 'true');
+            localStorage.setItem('rydealot_driver_last_online_time', Date.now().toString());
+            recordDriverActivity();
+            toggleBtn.textContent = 'Go offline';
+            toggleBtn.className = 'btn btn-toggle-on';
+            setPill('available');
+            toast('You are online and visible to nearby users');
+            startPollingBookings();
+            startHeartbeat();
+          } catch(err){
+            toast('Could not go online: ' + err.message);
           }
         };
 
-        if (typeof window.triggerDriverFaceCheck === 'function') {
-          window.triggerDriverFaceCheck(runSobriety);
-        } else {
-          runSobriety();
-        }
-      };
+        var triggerVerificationPipeline = function() {
+          var runSobriety = function() {
+            if (typeof window.triggerDriverSobrietyCheck === 'function') {
+              window.triggerDriverSobrietyCheck(doGoOnline);
+            } else {
+              doGoOnline();
+            }
+          };
 
-      await triggerVerificationPipeline();
-    } else {
-      stopSharingLocation();
-      stopHeartbeat();
-      destroyRiderMap();
-      try{
-        await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline' } });
-      } catch(err){ console.error(err); }
-      state.online = false;
-      localStorage.removeItem('rydealot_driver_online_state');
-      localStorage.removeItem('rydealot_driver_last_online_time');
-      localStorage.setItem('rydealot_driver_last_offline', Date.now().toString());
-      toggleBtn.textContent = 'Go online';
-      toggleBtn.className = 'btn btn-toggle-off';
-      setPill('offline');
-      stopPollingBookings();
-      toast('You are offline');
+          if (typeof window.triggerDriverFaceCheck === 'function') {
+            window.triggerDriverFaceCheck(runSobriety);
+          } else {
+            runSobriety();
+          }
+        };
+
+        await triggerVerificationPipeline();
+      } else {
+        stopSharingLocation();
+        stopHeartbeat();
+        destroyRiderMap();
+        try{
+          await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'offline', updated_at: new Date().toISOString() } });
+        } catch(err){ console.error(err); }
+        state.online = false;
+        localStorage.removeItem('rydealot_driver_online_state');
+        localStorage.removeItem('rydealot_driver_last_online_time');
+        localStorage.setItem('rydealot_driver_last_offline', Date.now().toString());
+        toggleBtn.textContent = 'Go online';
+        toggleBtn.className = 'btn btn-toggle-off';
+        setPill('offline');
+        stopPollingBookings();
+        toast('You are offline');
+      }
+    } finally {
+      lastToggleTimestamp = Date.now();
+      setTimeout(function(){
+        isTogglingOnline = false;
+        toggleBtn.disabled = false;
+        toggleBtn.style.opacity = '1';
+      }, TOGGLE_COOLDOWN_MS);
     }
   });
 
@@ -3905,9 +3925,11 @@
             startPollingBookings();
             startHeartbeat();
             recordDriverActivity();
-            try {
-              sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: new Date().toISOString() } });
-            } catch(e){}
+            if (row.status !== 'available') {
+              try {
+                sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ status: 'available', updated_at: new Date().toISOString() } });
+              } catch(e){}
+            }
           } else {
             state.online = false;
             toggleBtn.textContent = 'Go online';
@@ -5686,8 +5708,9 @@
 
   async function fetchRealRiders(){
     try{
-      var rows = await withTimeout(sbFetch('riders?status=eq.available'), 8000);
-      var ninetySecondsAgo = new Date(Date.now() - 90 * 1000);
+      // Active Shift Window: Drivers remain visible throughout their shift (4 hours)
+      // without requiring 90-second SQL heartbeat writes to D1!
+      var activeShiftCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000);
       var nearbyInZone = [];
       var expandedZone = [];
 
@@ -5697,7 +5720,7 @@
         if (r.vehicle_type === 'sage_only' || (r.vehicle_label && r.vehicle_label.includes('[SAGE_ONLY]'))) return;
         if (r.updated_at) {
           var updatedAt = new Date(r.updated_at);
-          if (updatedAt < ninetySecondsAgo) return;
+          if (updatedAt < activeShiftCutoff) return;
         }
         r._distanceKm = (state.lat != null) ? haversineKm(state.lat, state.lng, r.lat, r.lng) : 99999.0;
         

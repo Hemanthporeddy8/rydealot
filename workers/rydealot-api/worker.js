@@ -66,6 +66,9 @@ export default {
       if (path === '/api/track/latest' && method === 'GET') {
         return handleTrackingLatest(request, url, env, corsHeaders);
       }
+      if (path === '/api/track/driver-presence' && method === 'GET') {
+        return handleDriverPresence(request, url, env, corsHeaders);
+      }
 
       // 5. PLAN B: POSTGREST EMULATOR FOR CLOUDFLARE D1
       // /rest/v1/:table
@@ -578,6 +581,7 @@ function jsonResponse(body, status = 200, corsHeaders = {}) {
 // ============================================================================
 const liveLocations = new Map(); // bookingId -> { bookingId, riderId, lat, lng, heading, speed, timestamp }
 const activeSockets = new Map(); // bookingId -> Set of WebSockets
+const liveDrivers = new Map();   // riderId -> { riderId, lat, lng, timestamp }
 
 function handleTrackingWebSocket(request, url, env, corsHeaders) {
   const upgradeHeader = request.headers.get('Upgrade');
@@ -656,6 +660,18 @@ async function handleTrackingUpdate(request, env, corsHeaders) {
     return jsonResponse({ error: 'Invalid JSON payload' }, 400, corsHeaders);
   }
 
+  // Handle in-memory driver heartbeat / presence ping (ZERO DISK WRITES!)
+  if (body && (body.heartbeat || (body.riderId && !body.bookingId))) {
+    const rKey = String(body.riderId);
+    liveDrivers.set(rKey, {
+      riderId: rKey,
+      lat: Number(body.lat || 0),
+      lng: Number(body.lng || 0),
+      timestamp: Date.now()
+    });
+    return jsonResponse({ ok: true, presence: 'active', timestamp: Date.now() }, 200, corsHeaders);
+  }
+
   if (!body || !body.bookingId) {
     return jsonResponse({ error: 'bookingId is required' }, 400, corsHeaders);
   }
@@ -712,4 +728,20 @@ function handleTrackingLatest(request, url, env, corsHeaders) {
   }
 
   return jsonResponse({ found: true, data: loc }, 200, corsHeaders);
+}
+
+function handleDriverPresence(request, url, env, corsHeaders) {
+  const riderId = url.searchParams.get('riderId');
+  if (!riderId) {
+    return jsonResponse({ error: 'riderId parameter required' }, 400, corsHeaders);
+  }
+  const presence = liveDrivers.get(String(riderId));
+  const isOnline = !!(presence && (Date.now() - presence.timestamp < 180000));
+  return jsonResponse({
+    riderId: String(riderId),
+    online: isOnline,
+    lastSeen: presence ? presence.timestamp : null,
+    lat: presence ? presence.lat : null,
+    lng: presence ? presence.lng : null
+  }, 200, corsHeaders);
 }
