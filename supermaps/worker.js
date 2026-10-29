@@ -11,8 +11,9 @@ export default {
     // CORS Headers for public access, web apps, and in-car systems
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Supermaps-Key',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS, HEAD',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Supermaps-Key, Range',
+      'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, ETag',
       'Access-Control-Max-Age': '86400'
     };
 
@@ -92,6 +93,12 @@ export default {
       // /api/v1/tiles/:z/:x/:y.png
       if (path.startsWith('/api/v1/tiles')) {
         return await handleTileProxy(request, path, ctx, corsHeaders);
+      }
+
+      // 9b. PROPRIETARY PMTILES VECTOR ARCHIVE PROXY (Hugging Face Byte-Range Streamer with Open CORS)
+      // /api/v1/pmtiles/india.pmtiles or /pmtiles/india.pmtiles or /india.pmtiles
+      if (path.startsWith('/api/v1/pmtiles') || path.startsWith('/pmtiles') || path === '/india.pmtiles') {
+        return await handlePmtilesProxy(request, path, ctx, corsHeaders);
       }
 
       // 10. COMMUNITY SHORTCUTS & RIDER BOUNTY ENGINE (Supermaps Admin Isolated)
@@ -1261,6 +1268,85 @@ async function handleTileProxy(request, path, ctx, headers) {
   }
 
   return response;
+}
+
+// =========================================================================
+// MODULE 9b: PMTILES VECTOR ARCHIVE BYTE-RANGE PROXY
+// Bypasses Hugging Face 302 redirect CORS restriction with open '*' headers
+// Streams india.pmtiles (2.42 GB) using HTTP 206 Partial Content
+// ZERO Cloudflare D1 writes — 100% Edge RAM / CDN streamed
+// =========================================================================
+async function handlePmtilesProxy(request, path, ctx, defaultCorsHeaders) {
+  const HF_DATASET_URL = 'https://huggingface.co/datasets/RydealotMaps/rydealot-maps/resolve/main/india.pmtiles';
+
+  // Forward range requests
+  const fetchHeaders = new Headers();
+  const incomingRange = request.headers.get('range');
+  if (incomingRange) {
+    fetchHeaders.set('Range', incomingRange);
+  }
+  fetchHeaders.set('User-Agent', 'RydealotSupermapsEdge/2.0 (PMTiles Streamer)');
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Supermaps-Key, Range',
+        'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, ETag',
+        'Access-Control-Max-Age': '86400'
+      }
+    });
+  }
+
+  try {
+    // Cloudflare edge subrequest: follows 302 redirect from Hugging Face to AWS CloudFront CDN
+    // cf: cacheEverything caches byte slices in Cloudflare edge cache automatically
+    const hfRes = await fetch(HF_DATASET_URL, {
+      method: request.method === 'HEAD' ? 'HEAD' : 'GET',
+      headers: fetchHeaders,
+      redirect: 'follow',
+      cf: {
+        cacheEverything: true,
+        cacheTtl: 2592000 // 30 Days edge cache
+      }
+    });
+
+    // Prepare response headers with completely open CORS and byte range exposition
+    const outHeaders = new Headers();
+    outHeaders.set('Access-Control-Allow-Origin', '*');
+    outHeaders.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    outHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Supermaps-Key, Range');
+    outHeaders.set('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, ETag');
+    outHeaders.set('Accept-Ranges', 'bytes');
+    outHeaders.set('Cache-Control', 'public, max-age=2592000, s-maxage=2592000, immutable');
+    outHeaders.set('Content-Type', hfRes.headers.get('content-type') || 'application/vnd.pmtiles');
+
+    if (hfRes.headers.has('content-range')) {
+      outHeaders.set('Content-Range', hfRes.headers.get('content-range'));
+    }
+    if (hfRes.headers.has('content-length')) {
+      outHeaders.set('Content-Length', hfRes.headers.get('content-length'));
+    }
+    if (hfRes.headers.has('etag')) {
+      outHeaders.set('ETag', hfRes.headers.get('etag'));
+    }
+
+    return new Response(request.method === 'HEAD' ? null : hfRes.body, {
+      status: hfRes.status,
+      statusText: hfRes.statusText,
+      headers: outHeaders
+    });
+  } catch (err) {
+    return new Response(`PMTiles Proxy Error: ${err.message}`, {
+      status: 502,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'text/plain'
+      }
+    });
+  }
 }
 
 // Helper: Standard JSON Response

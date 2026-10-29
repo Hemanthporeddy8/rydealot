@@ -4,8 +4,8 @@
 // =========================================================================
 
 const CONFIG = {
-  // Your Verified Cloud-Hosted 2.42 GB India Map Archive
-  PMTILES_SOURCE: 'https://huggingface.co/datasets/RydealotMaps/rydealot-maps/resolve/main/india.pmtiles',
+  // Proprietary Vector Archive Streamed via Supermaps Edge Proxy (Zero CORS / Zero D1 writes)
+  PMTILES_SOURCE: 'https://rydealot-supermaps-api.rydealotmaps.workers.dev/api/v1/pmtiles/india.pmtiles',
   D1_WORKER: 'https://rydealot-supermaps-api.rydealotmaps.workers.dev',
   OSRM_ROUTING: 'https://rydealot-supermaps-api.rydealotmaps.workers.dev/route/v1/driving/',
   DEFAULT_LNG_LAT: [78.4867, 17.3850], // Hyderabad [lng, lat]
@@ -286,12 +286,17 @@ function initMapEngine() {
     }
   } catch (e) {}
 
-  // Create Vector Map (Strictly Bounded to India) with High-Performance Mobile GPU
+  // Create Vector Map (Strictly Bounded to India, Flat 2D Top-Down, Zero 3D Tilt Overhead)
   map = new maplibregl.Map({
     container: 'map-viewport',
     center: initialCenter,
     zoom: 14,
     minZoom: 4.2,
+    pitch: 0,
+    maxPitch: 0,
+    dragRotate: false,
+    touchPitch: false,
+    pitchWithRotate: false,
     maxBounds: CONFIG.INDIA_BOUNDS,
     style: buildVectorStyle(),
     attributionControl: false,
@@ -1397,12 +1402,12 @@ function startNavigation(destLng, destLat, destName, routeGeom) {
   const initialDist = document.getElementById('route-dist')?.innerText?.split('·')[0]?.trim() || 'Active Route';
   document.getElementById('nav-hud-dist').innerText = initialDist;
 
-  // Tilt camera into navigation perspective (2D flat in Eco Mode for GPU thermal savings)
-  const navPitch = isPowerSaverActive ? 0 : 50;
+  // Camera strictly locked to flat 2D top-down navigation (Zero 3D tilt overhead)
+  const navPitch = 0;
   map.easeTo({
     center: userLngLat,
     zoom: 17,
-    pitch: navPitch,
+    pitch: 0,
     bearing: currentHeading || 0,
     duration: 1200
   });
@@ -1428,7 +1433,7 @@ function startNavigation(destLng, destLat, destName, routeGeom) {
           currentHeading = headingToUse;
           const icon = document.getElementById('nav-arrow-icon');
           if (icon) icon.style.transform = `rotate(${currentHeading}deg)`;
-          map.easeTo({ center: userLngLat, bearing: currentHeading, pitch: navPitch, duration: 600 });
+          map.easeTo({ center: userLngLat, bearing: currentHeading, pitch: 0, duration: 600 });
         } else {
           map.panTo(userLngLat);
         }

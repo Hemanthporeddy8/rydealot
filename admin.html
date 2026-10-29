@@ -6,8 +6,12 @@
   <title>Rydealot Admin Panel</title>
   <link rel="shortcut icon" href="logo.png" type="image/png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Rydealot Supermaps Vector Engine (MapLibre GL + PMTiles) • Zero Leaflet • Zero OpenStreetMap -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+  <script src="https://unpkg.com/@protomaps/basemaps@5.2.0/dist/basemaps.js" crossorigin="anonymous"></script>
+  <script src="supermaps-adapter.js"></script>
   <style>
     :root {
       --bg: #0b0c0f;

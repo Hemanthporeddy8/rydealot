@@ -14,8 +14,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Rydealot Supermaps Vector Engine (MapLibre GL + PMTiles) • Zero Leaflet • Zero OpenStreetMap -->
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+<script src="https://unpkg.com/@protomaps/basemaps@5.2.0/dist/basemaps.js" crossorigin="anonymous"></script>
+<script src="supermaps-adapter.js"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <!-- Instant Offline Guard: Prevents page flash when offline -->
 <script>
@@ -875,15 +879,6 @@
       zoomControl: true,
       attributionControl: false
     }).setView(defaultCenter, 13);
-
-    var supermapsTileUrl = 'https://rydealot-supermaps-api.rydealotmaps.workers.dev/api/v1/tiles/{z}/{x}/{y}.png';
-    var osmTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-    var sageTileLayer = L.tileLayer(supermapsTileUrl, { maxZoom: 19 }).addTo(sageMap);
-    sageTileLayer.on('tileerror', function() {
-      if (sageTileLayer._url !== osmTileUrl) {
-        sageTileLayer.setUrl(osmTileUrl);
-      }
-    });
 
     // Custom Icon Creators
     var greenIcon = L.divIcon({

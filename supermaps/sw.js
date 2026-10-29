@@ -2,7 +2,7 @@
 // RYDEALOT SUPERMAPS — SERVICE WORKER (Network-First Auto-Updating Engine)
 // =========================================================================
 
-const CACHE_NAME = 'supermaps-v3.9';
+const CACHE_NAME = 'supermaps-v4.0';
 const TILE_CACHE = 'supermaps-rolling-tiles';
 const MAX_CACHED_TILES = 500;
 
@@ -59,6 +59,11 @@ async function trimTileCache() {
 // Fetch: NETWORK-FIRST for HTML/CSS/JS (Always fresh when online, cache when offline)
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+
+  // 0. Bypass PMTiles vector streaming archive (handled by Cloudflare edge cache & byte range streamer)
+  if (url.pathname.includes('pmtiles')) {
+    return;
+  }
 
   // 1. Handle Map Tiles
   if (url.hostname.includes('tile') || url.pathname.includes('/tile/')) {

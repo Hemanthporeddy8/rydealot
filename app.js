@@ -3162,31 +3162,15 @@
   }
 
   // =========================================================================
-  // RYDEALOT MAP & NAVIGATION ENGINE — POWERED BY SUPERMAPS
-  // Primary: Rydealot Supermaps (Edge Proxy & Web Navigation)
-  // Backup:  OpenStreetMap (Tiles) & Google Maps (Navigation)
+  // RYDEALOT MAP & NAVIGATION ENGINE — 100% PROPRIETARY SUPERMAPS VECTOR ENGINE
+  // Powered by Self-Hosted india.pmtiles (2.42 GB) streamed via Supermaps Edge Proxy
+  // Zero OpenStreetMap • Zero 3D Tilt • Zero D1 Database Writes
   // =========================================================================
   var SUPERMAPS_NAV_BASE = 'https://maps.rydealot.com';
-  var SUPERMAPS_TILE_URL = 'https://rydealot-supermaps-api.rydealotmaps.workers.dev/api/v1/tiles/{z}/{x}/{y}.png';
-  var OSM_BACKUP_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  var SUPERMAPS_PMTILES_URL = 'https://rydealot-supermaps-api.rydealotmaps.workers.dev/api/v1/pmtiles/india.pmtiles';
 
   function createRydealotTileLayer(options) {
-    var opts = Object.assign({
-      maxZoom: 19,
-      attribution: '© Rydealot Supermaps'
-    }, options || {});
-
-    var layer = L.tileLayer(SUPERMAPS_TILE_URL, opts);
-
-    // Dynamic failover to backup if Supermaps edge server is unreachable
-    layer.on('tileerror', function() {
-      if (layer._url !== OSM_BACKUP_TILE_URL) {
-        console.warn('[Rydealot Maps] Supermaps edge tile offline, engaging backup tile server.');
-        layer.setUrl(OSM_BACKUP_TILE_URL);
-      }
-    });
-
-    return layer;
+    return L.tileLayer(SUPERMAPS_PMTILES_URL, options || {});
   }
 
   function supermapsNavUrlFor(lat, lng, label) {

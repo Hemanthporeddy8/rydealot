@@ -9,8 +9,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Rydealot Supermaps Vector Engine (MapLibre GL + PMTiles) • Zero Leaflet • Zero OpenStreetMap -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+  <script src="https://unpkg.com/@protomaps/basemaps@5.2.0/dist/basemaps.js" crossorigin="anonymous"></script>
+  <script src="supermaps-adapter.js"></script>
   <!-- Instant Offline Guard: Prevents page flash when offline -->
   <script>
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -393,15 +397,6 @@
       zoomControl: false,
       attributionControl: false
     }).setView([17.9961, 79.5509], 13);
-
-    var supermapsTileUrl = 'https://rydealot-supermaps-api.rydealotmaps.workers.dev/api/v1/tiles/{z}/{x}/{y}.png';
-    var osmTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-    var trackTileLayer = L.tileLayer(supermapsTileUrl, { maxZoom: 19 }).addTo(map);
-    trackTileLayer.on('tileerror', function() {
-      if (trackTileLayer._url !== osmTileUrl) {
-        trackTileLayer.setUrl(osmTileUrl);
-      }
-    });
 
     loadShipmentData();
   }
