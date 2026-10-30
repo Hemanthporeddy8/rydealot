@@ -4232,6 +4232,9 @@
   function setSetupMapTheme(theme) {
     if (!state.destMap) return;
     currentSetupMapTheme = theme;
+    if (typeof state.destMap.setTheme === 'function') {
+      state.destMap.setTheme(theme);
+    }
     var mapContainer = document.getElementById('setup-map');
     if (mapContainer) {
       if (theme === 'dark') {
@@ -4241,7 +4244,7 @@
       }
     }
     var btn = document.getElementById('btn-toggle-map-theme');
-    if (btn) btn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+    if (btn) btn.textContent = (theme === 'dark' || theme === 'gold') ? '☀️ Light' : '🌙 Dark';
   }
 
   function autoSaveCustomerLandmark(name, lat, lng) {
@@ -4407,8 +4410,13 @@
     var btnTheme = document.getElementById('btn-toggle-map-theme');
     if (btnTheme) {
       btnTheme.addEventListener('click', function(){
-        var next = currentSetupMapTheme === 'dark' ? 'light' : 'dark';
-        setSetupMapTheme(next);
+        if (state.destMap && typeof state.destMap.toggleTheme === 'function') {
+          state.destMap.toggleTheme();
+          currentSetupMapTheme = state.destMap.currentTheme;
+        } else {
+          var next = currentSetupMapTheme === 'dark' ? 'light' : 'dark';
+          setSetupMapTheme(next);
+        }
       });
     }
 

@@ -25,27 +25,54 @@
   }
   initProtocol();
 
+  function getStoredTheme() {
+    try {
+      return localStorage.getItem('rydealot_map_theme') || 'light';
+    } catch(e) {
+      return 'light';
+    }
+  }
+
   // 2. Build High-Performance 2D Vector Style
-  function getSupermapsVectorStyle(isDark) {
+  function getSupermapsVectorStyle(theme) {
     initProtocol();
+    var isDark = theme === 'dark' || theme === 'gold';
     var layers = [];
     if (typeof basemaps !== 'undefined' && typeof basemaps.layers === 'function') {
-      var flavor = isDark !== false ? basemaps.DARK : basemaps.LIGHT;
-      layers = basemaps.layers('protomaps', flavor, { lang: 'en' });
+      if (isDark) {
+        // Rydealot High-Contrast Dark & Gold Brand Palette
+        var darkFlavor = Object.assign({}, basemaps.DARK, {
+          background: '#0a0b0e',
+          earth: '#0e1017',
+          water: '#101622',
+          park_a: '#0f1712',
+          buildings: '#151821',
+          highway: '#f59e0b',
+          major: '#d97706',
+          minor: '#452a0a',
+          link: '#b45309',
+          roads_label_major: '#fef3c7',
+          roads_label_minor: '#fde68a'
+        });
+        layers = basemaps.layers('protomaps', darkFlavor, { lang: 'en' });
+      } else {
+        // Clean White / Light Map Style
+        layers = basemaps.layers('protomaps', basemaps.LIGHT, { lang: 'en' });
+      }
     } else {
       // Fallback clean 2D vector layers
       layers = [
-        { id: 'background', type: 'background', paint: { 'background-color': isDark !== false ? '#0a0b0e' : '#f8fafc' } },
-        { id: 'earth', type: 'fill', source: 'protomaps', 'source-layer': 'earth', paint: { 'fill-color': isDark !== false ? '#0e1017' : '#e2e8f0' } },
-        { id: 'water', type: 'fill', source: 'protomaps', 'source-layer': 'water', paint: { 'fill-color': isDark !== false ? '#101622' : '#93c5fd' } },
-        { id: 'roads', type: 'line', source: 'protomaps', 'source-layer': 'roads', paint: { 'line-color': isDark !== false ? '#f59e0b' : '#d97706', 'line-width': 1.5 } }
+        { id: 'background', type: 'background', paint: { 'background-color': isDark ? '#0a0b0e' : '#f8fafc' } },
+        { id: 'earth', type: 'fill', source: 'protomaps', 'source-layer': 'earth', paint: { 'fill-color': isDark ? '#0e1017' : '#e2e8f0' } },
+        { id: 'water', type: 'fill', source: 'protomaps', 'source-layer': 'water', paint: { 'fill-color': isDark ? '#101622' : '#93c5fd' } },
+        { id: 'roads', type: 'line', source: 'protomaps', 'source-layer': 'roads', paint: { 'line-color': isDark ? '#f59e0b' : '#3b82f6', 'line-width': 1.5 } }
       ];
     }
 
     return {
       version: 8,
       glyphs: 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf',
-      sprite: 'https://protomaps.github.io/basemaps-assets/sprites/v4/' + (isDark !== false ? 'dark' : 'light'),
+      sprite: 'https://protomaps.github.io/basemaps-assets/sprites/v4/' + (isDark ? 'dark' : 'light'),
       sources: {
         protomaps: {
           type: 'vector',
@@ -74,7 +101,11 @@
       if (!isNaN(cLat) && !isNaN(cLng)) initCenter = [cLng, cLat];
     }
 
-    var isDark = options.theme !== 'light';
+    // Default theme is ALWAYS 'light' unless explicitly saved or requested
+    this.currentTheme = options.theme || getStoredTheme();
+    if (this.currentTheme !== 'dark' && this.currentTheme !== 'gold') {
+      this.currentTheme = 'light';
+    }
 
     this._map = new maplibregl.Map({
       container: this.container,
@@ -90,11 +121,16 @@
       powerPreference: 'high-performance',
       antialias: false,
       pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-      style: getSupermapsVectorStyle(isDark)
+      style: getSupermapsVectorStyle(this.currentTheme)
     });
 
     if (options.zoomControl) {
       this._map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    }
+
+    // Initialize floating theme control button on map if not disabled
+    if (options.themeControl !== false && this.container) {
+      this._initThemeToggleBtn();
     }
 
     var self = this;
@@ -106,6 +142,87 @@
       }
     });
   }
+
+  SupermapsMapAdapter.prototype._initThemeToggleBtn = function() {
+    if (!this.container) return;
+
+    // Check if container already has a dedicated theme toggle button (e.g. index.html #btn-toggle-map-theme)
+    var existingBtn = this.container.querySelector('#btn-toggle-map-theme');
+    if (existingBtn) {
+      this._themeBtn = existingBtn;
+      this._updateThemeButtonUI();
+      var self = this;
+      existingBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        self.toggleTheme();
+      });
+      return;
+    }
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'supermaps-theme-toggle-btn';
+    btn.setAttribute('title', 'Toggle Light / Dark Map Mode');
+    btn.style.cssText = 'position:absolute; bottom:10px; right:10px; z-index:90; padding:5px 11px; border-radius:20px; font-size:11px; font-weight:800; font-family:system-ui,-apple-system,sans-serif; cursor:pointer; display:flex; align-items:center; gap:5px; box-shadow:0 2px 8px rgba(0,0,0,0.18); backdrop-filter:blur(6px); transition:all 0.15s ease; user-select:none;';
+
+    this.container.appendChild(btn);
+    this._themeBtn = btn;
+    this._updateThemeButtonUI();
+
+    var selfBtn = this;
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      selfBtn.toggleTheme();
+    });
+  };
+
+  SupermapsMapAdapter.prototype._updateThemeButtonUI = function() {
+    var isDark = this.currentTheme === 'dark' || this.currentTheme === 'gold';
+    if (this._themeBtn) {
+      this._themeBtn.innerHTML = isDark ? '☀️ Light' : '🌙 Dark';
+      if (this._themeBtn.classList.contains('supermaps-theme-toggle-btn')) {
+        this._themeBtn.style.background = isDark ? 'rgba(15,23,42,0.92)' : 'rgba(255,255,255,0.92)';
+        this._themeBtn.style.color = isDark ? '#ffffff' : '#0f172a';
+        this._themeBtn.style.border = isDark ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.15)';
+      }
+    }
+    var globalBtn = document.getElementById('btn-toggle-map-theme');
+    if (globalBtn && globalBtn !== this._themeBtn) {
+      globalBtn.innerHTML = isDark ? '☀️ Light' : '🌙 Dark';
+    }
+  };
+
+  SupermapsMapAdapter.prototype.setTheme = function(theme) {
+    if (theme !== 'dark' && theme !== 'gold') theme = 'light';
+    this.currentTheme = theme;
+    try {
+      localStorage.setItem('rydealot_map_theme', theme);
+    } catch(e) {}
+
+    var self = this;
+    var newStyle = getSupermapsVectorStyle(theme);
+    this._map.setStyle(newStyle);
+
+    // Re-add active polylines when new style completes loading
+    this._map.once('style.load', function() {
+      for (var i = 0; i < self._layers.length; i++) {
+        var layer = self._layers[i];
+        if (layer && typeof layer._readdToMap === 'function') {
+          layer._readdToMap(self);
+        }
+      }
+    });
+
+    this._updateThemeButtonUI();
+    return this;
+  };
+
+  SupermapsMapAdapter.prototype.toggleTheme = function() {
+    var next = (this.currentTheme === 'dark' || this.currentTheme === 'gold') ? 'light' : 'dark';
+    return this.setTheme(next);
+  };
 
   SupermapsMapAdapter.prototype.whenReady = function(fn) {
     if (this._isLoaded) {
@@ -400,6 +517,50 @@
 
   SupermapsPolylineAdapter.prototype._removeFromMap = function() {
     this.remove();
+  };
+
+  SupermapsPolylineAdapter.prototype._readdToMap = function(mapAdapter) {
+    var ml = mapAdapter._map || mapAdapter;
+    var geoCoords = this._convertCoords(this._coords);
+    if (!geoCoords || geoCoords.length === 0) return;
+    if (ml.getSource(this.id)) return;
+
+    try {
+      ml.addSource(this.id, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: geoCoords
+          }
+        }
+      });
+
+      var paint = {
+        'line-color': this.options.color || '#38BDF8',
+        'line-width': this.options.weight || 4,
+        'line-opacity': this.options.opacity !== undefined ? this.options.opacity : 0.85
+      };
+
+      if (this.options.dashArray) {
+        paint['line-dasharray'] = [2, 2];
+      }
+
+      ml.addLayer({
+        id: this.id,
+        type: 'line',
+        source: this.id,
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round'
+        },
+        paint: paint
+      });
+    } catch(e) {
+      console.warn('[Supermaps Adapter] Error restoring polyline on style change:', e);
+    }
   };
 
   // 6. No-Op Tile Layer (Replaces OSM raster fetches)
