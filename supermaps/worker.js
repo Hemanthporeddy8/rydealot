@@ -1271,27 +1271,49 @@ async function handleTileProxy(request, path, ctx, headers) {
 }
 
 // =========================================================================
-// MODULE 9b: PMTILES VECTOR ARCHIVE BYTE-RANGE PROXY
-// Bypasses Hugging Face 302 redirect CORS restriction with open '*' headers
-// Streams india.pmtiles (2.42 GB) using HTTP 206 Partial Content
+// MODULE 9b: PMTILES VECTOR ARCHIVE BYTE-RANGE STREAMING PROXY
+// Automatically resolves & rotates Hugging Face signed AWS CDN credentials
+// Streams india.pmtiles (2.42 GB) with HTTP 206 Partial Content & Open CORS
 // ZERO Cloudflare D1 writes — 100% Edge RAM / CDN streamed
 // =========================================================================
-async function handlePmtilesProxy(request, path, ctx, defaultCorsHeaders) {
-  const HF_DATASET_URL = 'https://huggingface.co/datasets/RydealotMaps/rydealot-maps/resolve/main/india.pmtiles';
+let _cachedSignedUrl = null;
+let _cachedSignedUrlExpiresAt = 0;
 
-  // Forward range and conditional headers
-  const fetchHeaders = new Headers();
-  const incomingRange = request.headers.get('range');
-  if (incomingRange) {
-    fetchHeaders.set('Range', incomingRange);
+async function getFreshHuggingFaceUrl(forceRefresh = false) {
+  const now = Math.floor(Date.now() / 1000);
+  // Reuse signed URL if it has more than 5 minutes before expiry
+  if (!forceRefresh && _cachedSignedUrl && _cachedSignedUrlExpiresAt > (now + 300)) {
+    return _cachedSignedUrl;
   }
-  const ifMatch = request.headers.get('if-match');
-  if (ifMatch) fetchHeaders.set('If-Match', ifMatch);
-  const ifRange = request.headers.get('if-range');
-  if (ifRange) fetchHeaders.set('If-Range', ifRange);
 
-  fetchHeaders.set('User-Agent', 'RydealotSupermapsEdge/2.0 (PMTiles Streamer)');
+  const HF_DATASET_URL = 'https://huggingface.co/datasets/RydealotMaps/rydealot-maps/resolve/main/india.pmtiles';
+  try {
+    const headRes = await fetch(HF_DATASET_URL, {
+      method: 'HEAD',
+      redirect: 'manual',
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+    });
 
+    if (headRes.status === 302 && headRes.headers.get('location')) {
+      const loc = headRes.headers.get('location');
+      _cachedSignedUrl = loc;
+      try {
+        const u = new URL(loc);
+        const exp = parseInt(u.searchParams.get('Expires'), 10);
+        _cachedSignedUrlExpiresAt = !isNaN(exp) ? exp : (now + 1800);
+      } catch (e) {
+        _cachedSignedUrlExpiresAt = now + 1800;
+      }
+      return loc;
+    }
+  } catch (e) {
+    console.warn('[PMTiles Proxy] Error resolving HuggingFace 302 location:', e);
+  }
+
+  return HF_DATASET_URL;
+}
+
+async function handlePmtilesProxy(request, path, ctx, defaultCorsHeaders) {
   if (request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -1305,19 +1327,35 @@ async function handlePmtilesProxy(request, path, ctx, defaultCorsHeaders) {
     });
   }
 
+  // Forward range and conditional headers
+  const fetchHeaders = new Headers();
+  const incomingRange = request.headers.get('range');
+  if (incomingRange) {
+    fetchHeaders.set('Range', incomingRange);
+  }
+  const ifMatch = request.headers.get('if-match');
+  if (ifMatch) fetchHeaders.set('If-Match', ifMatch);
+  const ifRange = request.headers.get('if-range');
+  if (ifRange) fetchHeaders.set('If-Range', ifRange);
+
+  fetchHeaders.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
   try {
-    // Partition edge cache by byte range so each tile chunk is cached uniquely
-    const cacheKey = HF_DATASET_URL + (incomingRange ? '#' + incomingRange : '');
-    const hfRes = await fetch(HF_DATASET_URL, {
+    let streamUrl = await getFreshHuggingFaceUrl(false);
+    let hfRes = await fetch(streamUrl, {
       method: request.method === 'HEAD' ? 'HEAD' : 'GET',
-      headers: fetchHeaders,
-      redirect: 'follow',
-      cf: {
-        cacheEverything: true,
-        cacheKey: cacheKey,
-        cacheTtl: 2592000 // 30 Days edge cache
-      }
+      headers: fetchHeaders
     });
+
+    // If AWS credentials expired unexpectedly (HTTP 401 or 403), force a fresh 302 lookup and retry once
+    if (hfRes.status === 401 || hfRes.status === 403) {
+      console.warn('[PMTiles Proxy] Credentials expired or rejected. Refreshing signed URL and retrying...');
+      streamUrl = await getFreshHuggingFaceUrl(true);
+      hfRes = await fetch(streamUrl, {
+        method: request.method === 'HEAD' ? 'HEAD' : 'GET',
+        headers: fetchHeaders
+      });
+    }
 
     // Prepare response headers with open CORS and byte range exposition
     const outHeaders = new Headers();
@@ -1326,8 +1364,7 @@ async function handlePmtilesProxy(request, path, ctx, defaultCorsHeaders) {
     outHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Supermaps-Key, Range, If-Match, If-Range, Cache-Control, Pragma');
     outHeaders.set('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, ETag');
     outHeaders.set('Accept-Ranges', 'bytes');
-    // Edge caches for 30 days, browser always fetches fresh slice to avoid Chrome cache-slicing bug
-    outHeaders.set('Cache-Control', 'public, max-age=0, s-maxage=2592000, must-revalidate');
+    outHeaders.set('Cache-Control', 'public, max-age=0, must-revalidate');
     outHeaders.set('Content-Type', hfRes.headers.get('content-type') || 'application/vnd.pmtiles');
 
     if (hfRes.headers.has('content-range')) {
