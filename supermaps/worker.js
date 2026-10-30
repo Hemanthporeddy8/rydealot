@@ -1279,12 +1279,17 @@ async function handleTileProxy(request, path, ctx, headers) {
 async function handlePmtilesProxy(request, path, ctx, defaultCorsHeaders) {
   const HF_DATASET_URL = 'https://huggingface.co/datasets/RydealotMaps/rydealot-maps/resolve/main/india.pmtiles';
 
-  // Forward range requests
+  // Forward range and conditional headers
   const fetchHeaders = new Headers();
   const incomingRange = request.headers.get('range');
   if (incomingRange) {
     fetchHeaders.set('Range', incomingRange);
   }
+  const ifMatch = request.headers.get('if-match');
+  if (ifMatch) fetchHeaders.set('If-Match', ifMatch);
+  const ifRange = request.headers.get('if-range');
+  if (ifRange) fetchHeaders.set('If-Range', ifRange);
+
   fetchHeaders.set('User-Agent', 'RydealotSupermapsEdge/2.0 (PMTiles Streamer)');
 
   if (request.method === 'OPTIONS') {
@@ -1293,7 +1298,7 @@ async function handlePmtilesProxy(request, path, ctx, defaultCorsHeaders) {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Supermaps-Key, Range',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Supermaps-Key, Range, If-Match, If-Range, Cache-Control, Pragma',
         'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, ETag',
         'Access-Control-Max-Age': '86400'
       }
@@ -1301,26 +1306,28 @@ async function handlePmtilesProxy(request, path, ctx, defaultCorsHeaders) {
   }
 
   try {
-    // Cloudflare edge subrequest: follows 302 redirect from Hugging Face to AWS CloudFront CDN
-    // cf: cacheEverything caches byte slices in Cloudflare edge cache automatically
+    // Partition edge cache by byte range so each tile chunk is cached uniquely
+    const cacheKey = HF_DATASET_URL + (incomingRange ? '#' + incomingRange : '');
     const hfRes = await fetch(HF_DATASET_URL, {
       method: request.method === 'HEAD' ? 'HEAD' : 'GET',
       headers: fetchHeaders,
       redirect: 'follow',
       cf: {
         cacheEverything: true,
+        cacheKey: cacheKey,
         cacheTtl: 2592000 // 30 Days edge cache
       }
     });
 
-    // Prepare response headers with completely open CORS and byte range exposition
+    // Prepare response headers with open CORS and byte range exposition
     const outHeaders = new Headers();
     outHeaders.set('Access-Control-Allow-Origin', '*');
     outHeaders.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-    outHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Supermaps-Key, Range');
+    outHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Supermaps-Key, Range, If-Match, If-Range, Cache-Control, Pragma');
     outHeaders.set('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, ETag');
     outHeaders.set('Accept-Ranges', 'bytes');
-    outHeaders.set('Cache-Control', 'public, max-age=2592000, s-maxage=2592000, immutable');
+    // Edge caches for 30 days, browser always fetches fresh slice to avoid Chrome cache-slicing bug
+    outHeaders.set('Cache-Control', 'public, max-age=0, s-maxage=2592000, must-revalidate');
     outHeaders.set('Content-Type', hfRes.headers.get('content-type') || 'application/vnd.pmtiles');
 
     if (hfRes.headers.has('content-range')) {
