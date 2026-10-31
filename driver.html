@@ -154,6 +154,23 @@
           <option value="auto_share">👥 Auto Share (Pool)</option>
           <option value="car">🚗 Cab / Commercial EV</option>
         </select>
+        <script>
+          (function(){
+            try {
+              var cfg = JSON.parse(localStorage.getItem('rydealot_services_config') || '{}');
+              if (cfg.rides === false) {
+                var sel = document.getElementById('rd-rider-vtype');
+                if (sel) {
+                  var b1 = sel.querySelector('option[value="bike"]');
+                  var b2 = sel.querySelector('option[value="bike_and_sage"]');
+                  if (b1) { b1.disabled = true; b1.textContent = '🛵 Bike Taxi (Paused by Admin)'; }
+                  if (b2) { b2.disabled = true; b2.textContent = '🛵📦 Bike + Sage (Paused by Admin)'; }
+                  if (sel.value === 'bike' || sel.value === 'bike_and_sage') sel.value = 'sage_only';
+                }
+              }
+            } catch(e){}
+          })();
+        </script>
       </div>
       <div class="field">
         <label>Vehicle Model</label>
@@ -878,7 +895,7 @@
 
 <script src="driver-compliance.js?v=3.4"></script>
 <script src="animations.js?v=3.4"></script>
-<script src="app.js?v=5.4"></script>
+<script src="app.js?v=5.5"></script>
 <script src="driver-kyc.js?v=1.2"></script>
 </body>
 </html>

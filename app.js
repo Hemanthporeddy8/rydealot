@@ -1630,6 +1630,103 @@
   // Early exit: if driver UI elements don't exist on this page, skip entire rider IIFE
   if (!document.getElementById('rd-setup-section')) return;
 
+  // ===== DRIVER PLATFORM SERVICES STATUS SYNC =====
+  var DRIVER_PLATFORM_SERVICES = {
+    rides: true,
+    parcels: true,
+    trucks: true
+  };
+
+  async function syncDriverPlatformServices() {
+    try {
+      var saved = localStorage.getItem('rydealot_services_config');
+      if (saved) {
+        var parsed = JSON.parse(saved);
+        if (typeof parsed.rides === 'boolean') DRIVER_PLATFORM_SERVICES.rides = parsed.rides;
+        if (typeof parsed.parcels === 'boolean') DRIVER_PLATFORM_SERVICES.parcels = parsed.parcels;
+        if (typeof parsed.trucks === 'boolean') DRIVER_PLATFORM_SERVICES.trucks = parsed.trucks;
+      }
+      var rows = await sbFetch('platform_services?id=eq.default');
+      if (rows && rows.length > 0) {
+        if (typeof rows[0].rides_enabled === 'boolean') DRIVER_PLATFORM_SERVICES.rides = rows[0].rides_enabled;
+        if (typeof rows[0].parcels_enabled === 'boolean') DRIVER_PLATFORM_SERVICES.parcels = rows[0].parcels_enabled;
+        if (typeof rows[0].trucks_enabled === 'boolean') DRIVER_PLATFORM_SERVICES.trucks = rows[0].trucks_enabled;
+        localStorage.setItem('rydealot_services_config', JSON.stringify(DRIVER_PLATFORM_SERVICES));
+      }
+    } catch(e) {}
+    applyDriverServiceRestrictionsUI();
+  }
+
+  function applyDriverServiceRestrictionsUI() {
+    var drvPassengerTab = document.getElementById('rd-tab-passenger');
+    var drvPassengerPanel = document.getElementById('rd-passenger-panel');
+    var drvSageTab = document.getElementById('rd-tab-sage');
+    var drvVtypeSelect = document.getElementById('rd-rider-vtype');
+    var drvNotice = document.getElementById('rd-rides-paused-profile-notice');
+
+    if (!DRIVER_PLATFORM_SERVICES.rides) {
+      if (drvPassengerTab) {
+        drvPassengerTab.style.opacity = '0.45';
+        drvPassengerTab.title = 'Passenger rides paused by admin';
+      }
+      if (drvPassengerPanel && drvSageTab && currentDispatchMode === 'passenger') {
+        if (typeof switchDispatchMode === 'function') {
+          switchDispatchMode('sage');
+        } else {
+          drvSageTab.click();
+        }
+      }
+
+      // Handle Edit Profile Vehicle Type dropdown
+      if (drvVtypeSelect) {
+        var bikeOption = drvVtypeSelect.querySelector('option[value="bike"]');
+        var bothOption = drvVtypeSelect.querySelector('option[value="bike_and_sage"]');
+        if (bikeOption) {
+          bikeOption.disabled = true;
+          bikeOption.textContent = '🛵 Bike Taxi (Paused by Admin)';
+        }
+        if (bothOption) {
+          bothOption.disabled = true;
+          bothOption.textContent = '🛵📦 Bike + Sage (Paused by Admin)';
+        }
+        if (drvVtypeSelect.value === 'bike' || drvVtypeSelect.value === 'bike_and_sage') {
+          drvVtypeSelect.value = 'sage_only';
+          localStorage.setItem('ridelot_rider_vtype', 'sage_only');
+        }
+        if (!drvNotice && drvVtypeSelect.parentNode) {
+          drvNotice = document.createElement('div');
+          drvNotice.id = 'rd-rides-paused-profile-notice';
+          drvNotice.style.cssText = 'background:#FFFBEB; border:1px solid #FCD34D; color:#92400E; padding:8px 12px; border-radius:10px; font-size:11px; font-weight:700; margin-top:6px; line-height:1.4;';
+          drvNotice.innerHTML = '⚠️ <b>Passenger Rides Paused:</b> Admin has temporarily paused passenger rides. Auto-switched to <b>Sage Parcels</b> so you can receive active delivery orders!';
+          drvVtypeSelect.parentNode.appendChild(drvNotice);
+        } else if (drvNotice) {
+          drvNotice.style.display = 'block';
+        }
+      }
+    } else {
+      if (drvPassengerTab) {
+        drvPassengerTab.style.opacity = '1';
+        drvPassengerTab.title = '';
+      }
+      if (drvVtypeSelect) {
+        var bikeOption = drvVtypeSelect.querySelector('option[value="bike"]');
+        var bothOption = drvVtypeSelect.querySelector('option[value="bike_and_sage"]');
+        if (bikeOption) {
+          bikeOption.disabled = false;
+          bikeOption.textContent = '🛵 Bike Taxi Only (Passengers Only)';
+        }
+        if (bothOption) {
+          bothOption.disabled = false;
+          bothOption.textContent = '🛵📦 Bike Taxi + Sage Parcels (Both - Max Earnings)';
+        }
+        if (drvNotice) drvNotice.style.display = 'none';
+      }
+    }
+  }
+
+  // Trigger sync immediately on load
+  syncDriverPlatformServices();
+
   async function updateDriverVerificationStatusUI(riderId) {
     riderId = riderId || state.riderId || localStorage.getItem('ridelot_rider_id');
     if (!riderId) return;
@@ -1785,6 +1882,10 @@
     var vlabel = localStorage.getItem('ridelot_rider_vlabel');
     var plate = localStorage.getItem('ridelot_rider_plate');
     var phone = localStorage.getItem('ridelot_rider_phone');
+    if (!DRIVER_PLATFORM_SERVICES.rides && (vtype === 'bike' || vtype === 'bike_and_sage')) {
+      vtype = 'sage_only';
+      localStorage.setItem('ridelot_rider_vtype', 'sage_only');
+    }
     if (name) document.getElementById('rd-rider-name').value = name;
     if (vtype) document.getElementById('rd-rider-vtype').value = vtype;
     if (vlabel) document.getElementById('rd-rider-vlabel').value = vlabel;
@@ -1792,6 +1893,7 @@
     if (phone) document.getElementById('rd-rider-phone').value = phone;
     updateDriverVerificationStatusUI();
     checkDriverBanStatus();
+    applyDriverServiceRestrictionsUI();
   }
 
   function loadProfileIntoForm(profile){
@@ -1802,6 +1904,11 @@
     else if (rawLabel.includes('[BIKE_ONLY]')) detectedVtype = 'bike';
     else if (localStorage.getItem('ridelot_rider_vtype')) detectedVtype = localStorage.getItem('ridelot_rider_vtype');
 
+    if (!DRIVER_PLATFORM_SERVICES.rides && (detectedVtype === 'bike' || detectedVtype === 'bike_and_sage')) {
+      detectedVtype = 'sage_only';
+      localStorage.setItem('ridelot_rider_vtype', 'sage_only');
+    }
+
     var cleanLabel = rawLabel.replace(/\s*\[(BIKE_AND_SAGE|SAGE_ONLY|BIKE_ONLY)\]/ig, '').trim();
 
     document.getElementById('rd-rider-name').value = profile.name || '';
@@ -1811,6 +1918,7 @@
     document.getElementById('rd-rider-phone').value = profile.phone || '';
     updateDriverVerificationStatusUI(profile.id);
     checkDriverBanStatus(profile);
+    applyDriverServiceRestrictionsUI();
   }
 
   async function checkDriverBroadcast() {
@@ -2128,6 +2236,11 @@
   document.getElementById('rd-save-profile-btn').addEventListener('click', async function(){
     var name = document.getElementById('rd-rider-name').value.trim();
     var vtype = document.getElementById('rd-rider-vtype').value;
+    if (!DRIVER_PLATFORM_SERVICES.rides && (vtype === 'bike' || vtype === 'bike_and_sage')) {
+      vtype = 'sage_only';
+      document.getElementById('rd-rider-vtype').value = 'sage_only';
+      localStorage.setItem('ridelot_rider_vtype', 'sage_only');
+    }
     var vlabel = document.getElementById('rd-rider-vlabel').value.trim();
     var plate = document.getElementById('rd-rider-plate').value.trim().toUpperCase();
     var rawPhone = document.getElementById('rd-rider-phone').value.trim();
@@ -2269,6 +2382,7 @@
         setupS.style.display = 'block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+      applyDriverServiceRestrictionsUI();
     });
   }
 
@@ -3424,7 +3538,15 @@
     }
   }
 
-  if (tabPassenger) tabPassenger.addEventListener('click', function() { switchDispatchMode('passenger'); });
+  if (tabPassenger) {
+    tabPassenger.addEventListener('click', function() {
+      if (!DRIVER_PLATFORM_SERVICES.rides) {
+        toast('⚠️ Passenger bike taxi rides are currently paused by Admin.');
+        return;
+      }
+      switchDispatchMode('passenger');
+    });
+  }
   if (tabSage) tabSage.addEventListener('click', function() { switchDispatchMode('sage'); });
 
   var sageRefreshBtn = document.getElementById('rd-sage-refresh-btn');
@@ -3927,6 +4049,7 @@
 
   // ---------- init ----------
   async function init(){
+    await syncDriverPlatformServices();
     loadProfileFromCache();
     if(state.riderId){
       try{
@@ -7116,10 +7239,10 @@
 
   // init: fill in the static ride-type icons right away; the lot itself
   // only loads real data once the user submits their name and location.
-  document.getElementById('rt-icon-bike').innerHTML = vehicleIconSvg('bike', '#16181c');
-  document.getElementById('rt-icon-auto').innerHTML = vehicleIconSvg('auto', '#16181c');
+  if(document.getElementById('rt-icon-bike')) document.getElementById('rt-icon-bike').innerHTML = vehicleIconSvg('bike', '#16181c');
+  if(document.getElementById('rt-icon-auto')) document.getElementById('rt-icon-auto').innerHTML = vehicleIconSvg('auto', '#16181c');
   if(document.getElementById('rt-icon-auto_share')) document.getElementById('rt-icon-auto_share').innerHTML = vehicleIconSvg('auto_share', '#16181c');
-  document.getElementById('rt-icon-car').innerHTML = vehicleIconSvg('car', '#16181c');
+  if(document.getElementById('rt-icon-car')) document.getElementById('rt-icon-car').innerHTML = vehicleIconSvg('car', '#16181c');
 
   loadFareConfig();
 
