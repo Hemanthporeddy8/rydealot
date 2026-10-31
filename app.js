@@ -6111,6 +6111,8 @@
     var drvPassengerTab = document.getElementById('rd-tab-passenger');
     var drvPassengerPanel = document.getElementById('rd-passenger-panel');
     var drvSageTab = document.getElementById('rd-tab-sage');
+    var drvVtypeSelect = document.getElementById('rd-rider-vtype');
+    var drvNotice = document.getElementById('rd-rides-paused-profile-notice');
 
     if (!PLATFORM_SERVICES.rides) {
       if (drvPassengerTab) {
@@ -6121,10 +6123,40 @@
         // Auto-switch to Sage Parcels
         drvSageTab.click();
       }
+
+      // Handle Edit Profile Vehicle Type dropdown
+      if (drvVtypeSelect) {
+        var bikeOption = drvVtypeSelect.querySelector('option[value="bike"]');
+        if (bikeOption) {
+          bikeOption.disabled = true;
+          bikeOption.textContent = '🛵 Bike Taxi (Paused by Admin)';
+        }
+        if (drvVtypeSelect.value === 'bike') {
+          drvVtypeSelect.value = 'sage_only';
+          localStorage.setItem('ridelot_rider_vtype', 'sage_only');
+        }
+        if (!drvNotice && drvVtypeSelect.parentNode) {
+          drvNotice = document.createElement('div');
+          drvNotice.id = 'rd-rides-paused-profile-notice';
+          drvNotice.style.cssText = 'background:#FFFBEB; border:1px solid #FCD34D; color:#92400E; padding:8px 12px; border-radius:10px; font-size:11px; font-weight:700; margin-top:6px; line-height:1.4;';
+          drvNotice.innerHTML = '⚠️ <b>Passenger Rides Paused:</b> Admin has temporarily paused passenger rides. Auto-switched to <b>Sage Parcels</b> so you can receive active delivery orders!';
+          drvVtypeSelect.parentNode.appendChild(drvNotice);
+        } else if (drvNotice) {
+          drvNotice.style.display = 'block';
+        }
+      }
     } else {
       if (drvPassengerTab) {
         drvPassengerTab.style.opacity = '1';
         drvPassengerTab.title = '';
+      }
+      if (drvVtypeSelect) {
+        var bikeOption = drvVtypeSelect.querySelector('option[value="bike"]');
+        if (bikeOption) {
+          bikeOption.disabled = false;
+          bikeOption.textContent = '🛵 Bike Taxi Only (Passengers Only)';
+        }
+        if (drvNotice) drvNotice.style.display = 'none';
       }
     }
   }

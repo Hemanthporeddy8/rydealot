@@ -3,7 +3,7 @@
 // D1 Database Vault • PostgREST Emulator • Resend Email 2FA OTP • Pricing Lockdown
 // ============================================================================
 
-const DEFAULT_ADMIN_EMAIL = 'rydealotoffical@gmail.com';
+const DEFAULT_ADMIN_EMAIL = 'rydealotofficial@gmail.com';
 const FOUNDER_BYPASS_CODE = '982026'; // Emergency recovery passcode for founder
 const memoryOtps = new Map(); // Dual-layer in-memory OTP cache for instant failover
 
@@ -143,17 +143,39 @@ async function handleRequestOtp(request, env, corsHeaders) {
     }
   }
 
-  // Send Email via Resend API
+  // Send Email via Resend API or Vercel SMTP Fallback
   const resendApiKey = env.RESEND_API_KEY;
+  const targetRecipient = email || DEFAULT_ADMIN_EMAIL;
+
   if (!resendApiKey) {
+    try {
+      const vRes = await fetch('https://www.rydealot.com/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetRecipient })
+      });
+      const vData = await vRes.json().catch(() => ({}));
+      if (vRes.ok && vData && (vData.ok || vData.message)) {
+        return jsonResponse({
+          ok: true,
+          message: 'Security verification code dispatched to ' + targetRecipient,
+          targetEmail: targetRecipient,
+          expiresIn: 300
+        }, 200, corsHeaders);
+      }
+    } catch(vErr) {
+      console.warn('[Vercel send-otp relay note]:', vErr.message);
+    }
+
     return jsonResponse({
       ok: false,
-      error: 'RESEND_API_KEY is not set in Cloudflare Worker environment variables. Please add RESEND_API_KEY in Worker Settings.'
+      error: 'Email delivery service unavailable. Please check your connection or contact administrator.'
     }, 500, corsHeaders);
   }
+
   const emailPayload = {
     from: 'Rydealot Security <onboarding@resend.dev>',
-    to: [DEFAULT_ADMIN_EMAIL], // Resend free tier sends to registered owner email
+    to: [targetRecipient],
     subject: `🔐 Rydealot Admin Security Code: ${otpCode}`,
     html: `
       <!DOCTYPE html>

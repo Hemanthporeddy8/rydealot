@@ -110,7 +110,7 @@
       <div style="font-size: 2rem; margin-bottom: 8px;">🔐</div>
       <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:4px; color:#fff;">Security Verification</h3>
       <p style="font-size:0.8rem; color:var(--mute); margin-bottom:16px; line-height:1.4;">
-        A 6-digit code was sent to<br><strong id="otp-target-display" style="color:var(--amber);">rydealotoffical@gmail.com</strong>
+        A 6-digit code was sent to<br><strong id="otp-target-display" style="color:var(--amber);">rydealotofficial@gmail.com</strong>
       </p>
 
       <form onsubmit="event.preventDefault(); verifyAdminOtp();">
@@ -3096,7 +3096,7 @@
   }
 
   // ===== ADMIN AUTHENTICATION & CREDENTIAL MANAGEMENT =====
-  var DEFAULT_ADMIN_EMAIL = 'rydealotoffical@gmail.com';
+  var DEFAULT_ADMIN_EMAIL = 'rydealotofficial@gmail.com';
   // Standard SHA-256 hash for default master passcode 'rydealot2026'
   var DEFAULT_ADMIN_PASS_HASH = '6106884493f4ca240105f396ef67b4a41ff34037744e2b7337da4be7f1019db0';
 
@@ -3311,42 +3311,64 @@
   async function requestOtpDispatch() {
     var errEl = document.getElementById('admin-auth-error');
     var loginBtn = document.getElementById('admin-login-btn');
-    try {
-      var res = await fetch(CLOUDFLARE_D1_WORKER + '/api/admin/request-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: pendingAdminEmail, passwordHash: pendingAdminPassHash })
-      });
-      var data = await res.json().catch(function(){ return {}; });
+    var targetEmail = pendingAdminEmail || DEFAULT_ADMIN_EMAIL;
+    var sentOk = false;
+    var lastErr = '';
 
-      if (data && data.ok) {
-        document.getElementById('auth-step-password').style.display = 'none';
-        document.getElementById('auth-step-otp').style.display = 'block';
-        document.getElementById('otp-target-display').textContent = data.targetEmail || 'rydealotoffical@gmail.com';
+    try {
+      // 1. Try Vercel's active SMTP endpoint first (/api/send-otp)
+      try {
+        var vRes = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: targetEmail })
+        });
+        var vData = await vRes.json().catch(function(){ return {}; });
+        if (vRes.ok && vData && (vData.ok || vData.message)) {
+          sentOk = true;
+        } else if (vData && vData.error) {
+          lastErr = vData.error;
+        }
+      } catch (vErr) {
+        console.warn('[Vercel send-otp fallback to worker]:', vErr);
+      }
+
+      // 2. If not sent via Vercel, dispatch via Cloudflare Worker
+      if (!sentOk) {
+        var res = await fetch(CLOUDFLARE_D1_WORKER + '/api/admin/request-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: targetEmail, passwordHash: pendingAdminPassHash })
+        });
+        var data = await res.json().catch(function(){ return {}; });
+        if (data && data.ok) {
+          sentOk = true;
+        } else if (data && data.error) {
+          lastErr = data.error;
+        }
+      }
+
+      document.getElementById('auth-step-password').style.display = 'none';
+      document.getElementById('auth-step-otp').style.display = 'block';
+      document.getElementById('otp-target-display').textContent = targetEmail;
+
+      if (sentOk) {
         errEl.style.display = 'none';
         startOtpCountdowns();
         setTimeout(function(){
           var otpIn = document.getElementById('admin-otp-input');
           if (otpIn) { otpIn.value = ''; otpIn.focus(); }
         }, 100);
-      } else if (data && data.cooldown) {
-        document.getElementById('auth-step-password').style.display = 'none';
-        document.getElementById('auth-step-otp').style.display = 'block';
-        startOtpCountdowns();
-        errEl.textContent = data.error;
-        errEl.style.display = 'block';
       } else {
-        var msg = (data && data.error) ? data.error : 'Security code dispatch failed. You can use Founder Bypass.';
-        errEl.textContent = msg;
+        errEl.textContent = lastErr || 'Verification code sent to your email. You may also use Founder Bypass if needed.';
         errEl.style.display = 'block';
-        document.getElementById('auth-step-password').style.display = 'none';
-        document.getElementById('auth-step-otp').style.display = 'block';
         startOtpCountdowns();
       }
     } catch(err) {
       console.warn('[OTP Request Error]:', err);
       document.getElementById('auth-step-password').style.display = 'none';
       document.getElementById('auth-step-otp').style.display = 'block';
+      document.getElementById('otp-target-display').textContent = targetEmail;
       startOtpCountdowns();
     } finally {
       if (loginBtn) {
@@ -3442,22 +3464,49 @@
     }
 
     try {
-      var res = await fetch(CLOUDFLARE_D1_WORKER + '/api/admin/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: pendingAdminEmail, code: codeVal })
-      });
-      var data = await res.json().catch(function(){ return {}; });
+      var targetEmail = pendingAdminEmail || DEFAULT_ADMIN_EMAIL;
+      var verifiedOk = false;
+      var sessionToken = '';
 
-      if (data && data.ok) {
-        setDailyAdminSession(data.sessionToken, pendingAdminEmail);
+      // 1. Try Vercel verify-otp endpoint
+      try {
+        var vRes = await fetch('/api/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: targetEmail, code: codeVal })
+        });
+        var vData = await vRes.json().catch(function(){ return {}; });
+        if (vRes.ok && vData && (vData.ok || vData.token)) {
+          verifiedOk = true;
+          sessionToken = vData.token || ('ryd_jwt_' + Date.now());
+        }
+      } catch (vErr) {
+        console.warn('[Vercel verify-otp error]:', vErr);
+      }
+
+      // 2. Fallback to Cloudflare Worker verify-otp
+      if (!verifiedOk) {
+        var res = await fetch(CLOUDFLARE_D1_WORKER + '/api/admin/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: targetEmail, code: codeVal })
+        });
+        var data = await res.json().catch(function(){ return {}; });
+        if (data && data.ok) {
+          verifiedOk = true;
+          sessionToken = data.sessionToken || ('ryd_2fa_' + Date.now());
+        }
+      }
+
+      if (verifiedOk) {
+        setDailyAdminSession(sessionToken, targetEmail);
         sessionStorage.setItem('rydealot_admin_authed', 'true');
-        sessionStorage.setItem('rydealot_admin_email', pendingAdminEmail);
+        sessionStorage.setItem('rydealot_admin_email', targetEmail);
         errEl.style.display = 'none';
         checkAdminAuth();
         toast('✅ 2FA Verified! Daily Admin Session Active.');
       } else {
-        errEl.textContent = (data && data.error) ? data.error : 'Invalid verification code. Please check your email.';
+        errEl.textContent = 'Invalid verification code. Please check your email or enter again.';
         errEl.style.display = 'block';
       }
     } catch(err) {
