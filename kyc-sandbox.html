@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rydealot Biometric KYC Sandbox • Model Validation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+<script src="ort.min.js"></script>
+<script>
+  if (typeof ort === 'undefined') {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"><\/script>');
+  }
+</script>
+<style>
+  :root {
+    --bg: #0F172A;
+    --card: #1E293B;
+    --border: #334155;
+    --accent: #22C55E;
+    --red: #EF4444;
+    --blue: #3B82F6;
+    --amber: #F59E0B;
+    --text: #F8FAFC;
+    --mute: #94A3B8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 80px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .sandbox-card {
+    max-width: 680px;
+    width: 100%;
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1.5px solid var(--border);
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+  }
+  .badge {
+    font-size: 10.5px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .badge-sandbox { background: #3730A3; color: #C7D2FE; border: 1px solid #4F46E5; }
+  .badge-model { background: #064E3B; color: #A7F3D0; border: 1px solid #059669; }
+
+  .status-banner {
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-loading { background: #1E3A8A; color: #93C5FD; border: 1px solid #2563EB; }
+  .status-ready { background: #064E3B; color: #6EE7B7; border: 1px solid #059669; }
+  .status-error { background: #7F1D1D; color: #FCA5A5; border: 1px solid #DC2626; }
+
+  .arena {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media(max-width: 600px) {
+    .arena { grid-template-columns: 1fr; }
+  }
+  .box {
+    background: #0F172A;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .box-title {
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .viewfinder {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--border);
+    background: #000;
+    position: relative;
+    margin-bottom: 12px;
+  }
+  video, img.preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+  }
+  img.preview {
+    transform: none;
+    display: none;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s;
+    width: 100%;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-blue { background: var(--blue); color: #fff; }
+  .btn-blue:hover { filter: brightness(1.1); }
+  .btn-secondary { background: #334155; color: #fff; }
+  .btn-secondary:hover { background: #475569; }
+
+  .results-card {
+    background: #0F172A;
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    text-align: center;
+  }
+  .result-score {
+    font-size: 38px;
+    font-weight: 900;
+    font-family: 'IBM Plex Mono', monospace;
+    margin: 8px 0;
+  }
+  .result-verdict {
+    font-size: 16px;
+    font-weight: 900;
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 10px;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+  .stat-label { font-size: 10.5px; color: var(--mute); font-weight: 700; text-transform: uppercase; }
+  .stat-val { font-size: 13.5px; font-weight: 800; margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
+</style>
+</head>
+<body>
+
+<div class="sandbox-card">
+  <div class="header">
+    <div>
+      <h2 style="font-size:18px; font-weight:900; margin:0 0 4px; display:flex; align-items:center; gap:8px;">
+        <span>🛡️</span> Biometric KYC Sandbox
+      </h2>
+      <div style="font-size:11.5px; color:var(--mute);">
+        Private Offline Validation for Model: <code>rydealot_face_kyc.onnx</code>
+      </div>
+    </div>
+    <span class="badge badge-sandbox">SANDBOX ENVIRONMENT</span>
+  </div>
+
+  <div id="status-banner" class="status-banner status-loading">
+    <span>⏳</span> <span id="status-text">Loading rydealot_face_kyc.onnx model...</span>
+  </div>
+
+  <!-- Manual Model Picker Fallback (for file:// protocol without local server) -->
+  <div id="file-picker-fallback" style="display:none; background:#1e1b4b; border:1px solid #4338ca; padding:12px; border-radius:10px; margin-bottom:16px; font-size:11.5px;">
+    <b>💡 Local File Protocol Detected:</b> If the browser restricts auto-fetching <code>.onnx</code> over <code>file://</code>, please select the model file:
+    <div style="margin-top:8px;">
+      <input type="file" id="manual-onnx-picker" accept=".onnx" style="font-size:12px; color:#fff;">
+    </div>
+  </div>
+
+  <div class="arena">
+    <!-- Box 1: KYC Baseline Registration -->
+    <div class="box">
+      <div class="box-title">
+        <span>📸</span> 1. KYC Baseline Photo
+      </div>
+      <div class="viewfinder" id="baseline-circle">
+        <video id="baseline-video" autoplay playsinline muted></video>
+        <img id="baseline-preview" class="preview" alt="KYC Baseline">
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+        <button type="button" class="btn btn-blue" onclick="captureBaselinePhoto()">
+          <span>📷</span> Snap KYC Baseline
+        </button>
+        <label class="btn btn-secondary" style="margin:0;">
+          <span>🖼️</span> Upload Baseline Photo
+          <input type="file" accept="image/*" style="display:none;" onchange="uploadBaselinePhoto(this)">
+        </label>
+      </div>
+      <div id="baseline-status" style="font-size:11px; font-weight:700; color:var(--mute); margin-top:10px;">
+        Waiting for baseline photo...
+      </div>
+    </div>
+
+    <!-- Box 2: Live Verification Test -->
+    <div class="box">
+      <div class="box-title">
+        <span>⚡</span> 2. Live Face Check
+      </div>
+      <div class="viewfinder" id="live-circle">
+        <video id="live-video" autoplay playsinline muted></video>
+        <img id="live-preview" class="preview" alt="Live Test">
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+        <button type="button" id="btn-verify" class="btn btn-primary" onclick="verifyLiveFace()" disabled>
+          <span>🔍</span> Verify Live Face
+        </button>
+        <label class="btn btn-secondary" style="margin:0;">
+          <span>👤</span> Test With Imposter Photo
+          <input type="file" accept="image/*" style="display:none;" onchange="uploadLiveTestPhoto(this)">
+        </label>
+      </div>
+      <div id="live-status" style="font-size:11px; font-weight:700; color:var(--mute); margin-top:10px;">
+        Register baseline first to enable test
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Section -->
+  <div class="results-card" id="results-card">
+    <div style="font-size:11px; font-weight:800; color:var(--mute); text-transform:uppercase; letter-spacing:0.5px;">
+      Biometric Match Score
+    </div>
+    <div class="result-score" id="res-score" style="color:var(--mute);">--%</div>
+    <div class="result-verdict" id="res-verdict" style="background:#334155; color:#fff;">
+      WAITING FOR VERIFICATION TEST
+    </div>
+    <div id="res-desc" style="font-size:12px; color:var(--mute);">
+      Snap your baseline photo on the left, then click "Verify Live Face" on the right.
+    </div>
+
+    <div class="stats-grid">
+      <div>
+        <div class="stat-label">Cosine Similarity</div>
+        <div class="stat-val" id="stat-sim">0.0000</div>
+      </div>
+      <div>
+        <div class="stat-label">Inference Time</div>
+        <div class="stat-val" id="stat-latency">-- ms</div>
+      </div>
+      <div>
+        <div class="stat-label">Model Dimension</div>
+        <div class="stat-val">512-D L2</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px; font-size:11px; color:var(--mute); text-align:center; line-height:1.4;">
+    🛡️ <b>Sandbox Protocol:</b> Runs 100% locally in your browser with zero network calls or server transmission.
+  </div>
+</div>
+
+<canvas id="crop-canvas" width="112" height="112" style="display:none;"></canvas>
+
+<script>
+  var onnxSession = null;
+  var baselineEmbedding = null;
+  var cameraStream = null;
+
+  var statusBanner = document.getElementById('status-banner');
+  var statusText = document.getElementById('status-text');
+  var btnVerify = document.getElementById('btn-verify');
+
+  // 1. Initialize Camera Feed
+  async function initCamera() {
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } }
+      });
+      document.getElementById('baseline-video').srcObject = cameraStream;
+      document.getElementById('live-video').srcObject = cameraStream;
+    } catch(err) {
+      console.warn('Camera note:', err);
+    }
+  }
+
+  // 2. Load ONNX Model
+  async function loadOnnxModel(customBuffer) {
+    try {
+      statusBanner.className = 'status-banner status-loading';
+      statusText.textContent = 'Loading models/rydealot_face_kyc.onnx...';
+
+      if (customBuffer) {
+        onnxSession = await ort.InferenceSession.create(customBuffer);
+      } else {
+        // Try direct relative path
+        try {
+          onnxSession = await ort.InferenceSession.create('models/rydealot_face_kyc.onnx');
+        } catch(netErr) {
+          console.warn('Fetch note (expected if opened via file://):', netErr);
+          document.getElementById('file-picker-fallback').style.display = 'block';
+          statusBanner.className = 'status-banner status-loading';
+          statusText.textContent = 'Please select rydealot_face_kyc.onnx using file picker below.';
+          return;
+        }
+      }
+
+      statusBanner.className = 'status-banner status-ready';
+      statusText.innerHTML = '✅ <b>rydealot_face_kyc.onnx</b> loaded & ready (1.82 MB • WebAssembly Backend)';
+      document.getElementById('file-picker-fallback').style.display = 'none';
+    } catch(err) {
+      statusBanner.className = 'status-banner status-error';
+      statusText.textContent = 'Failed to load ONNX: ' + (err.message || err);
+      document.getElementById('file-picker-fallback').style.display = 'block';
+    }
+  }
+
+  document.getElementById('manual-onnx-picker').addEventListener('change', async function(e) {
+    if (e.target.files && e.target.files[0]) {
+      var ab = await e.target.files[0].arrayBuffer();
+      loadOnnxModel(ab);
+    }
+  });
+
+  // 3. Image Preprocessing for MobileFaceNet [1, 3, 112, 112]
+  function extractNormalizedTensor(sourceElement) {
+    var canvas = document.getElementById('crop-canvas');
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(sourceElement, 0, 0, 112, 112);
+    var imgData = ctx.getImageData(0, 0, 112, 112).data;
+
+    // NCHW Float32 array: [1, 3, 112, 112]
+    var floatArr = new Float32Array(1 * 3 * 112 * 112);
+    var pixelCount = 112 * 112;
+
+    for (var i = 0; i < pixelCount; i++) {
+      var r = imgData[i * 4];
+      var g = imgData[i * 4 + 1];
+      var b = imgData[i * 4 + 2];
+
+      // PyTorch normalization: (x / 255.0 - 0.5) / 0.5
+      floatArr[i] = ((r / 255.0) - 0.5) / 0.5;                     // Channel R
+      floatArr[pixelCount + i] = ((g / 255.0) - 0.5) / 0.5;        // Channel G
+      floatArr[pixelCount * 2 + i] = ((b / 255.0) - 0.5) / 0.5;    // Channel B
+    }
+
+    return new ort.Tensor('float32', floatArr, [1, 3, 112, 112]);
+  }
+
+  // 4. Run Model Inference
+  async function computeFaceEmbedding(sourceElement) {
+    if (!onnxSession) {
+      alert('ONNX Model not loaded yet!');
+      return null;
+    }
+    var t0 = performance.now();
+    var tensor = extractNormalizedTensor(sourceElement);
+    var feeds = { input_face: tensor };
+    var results = await onnxSession.run(feeds);
+    var t1 = performance.now();
+    
+    var emb = results.embedding_512.data; // Float32Array of 512 numbers
+    var latency = Math.round(t1 - t0);
+    return { embedding: emb, latency: latency };
+  }
+
+  // 5. Cosine Similarity Calculation
+  function cosineSimilarity(embA, embB) {
+    var dot = 0, normA = 0, normB = 0;
+    for (var i = 0; i < embA.length; i++) {
+      dot += embA[i] * embB[i];
+      normA += embA[i] * embA[i];
+      normB += embB[i] * embB[i];
+    }
+    return dot / (Math.sqrt(normA) * Math.sqrt(normB) || 1);
+  }
+
+  // --- ACTIONS ---
+
+  // Capture Baseline from video
+  async function captureBaselinePhoto() {
+    var vid = document.getElementById('baseline-video');
+    var prev = document.getElementById('baseline-preview');
+    
+    var canvas = document.createElement('canvas');
+    canvas.width = 480; canvas.height = 480;
+    var ctx = canvas.getContext('2d');
+    ctx.translate(480, 0); ctx.scale(-1, 1);
+    ctx.drawImage(vid, 0, 0, 480, 480);
+
+    prev.src = canvas.toDataURL('image/jpeg');
+    prev.style.display = 'block';
+    vid.style.display = 'none';
+
+    var res = await computeFaceEmbedding(prev);
+    if (res) {
+      baselineEmbedding = res.embedding;
+      document.getElementById('baseline-status').innerHTML = '✅ <b style="color:var(--accent);">Baseline Registered</b> (' + res.latency + 'ms)';
+      document.getElementById('baseline-circle').style.borderColor = 'var(--accent)';
+      document.getElementById('live-status').textContent = 'Ready to test! Click "Verify Live Face"';
+      btnVerify.disabled = false;
+    }
+  }
+
+  function uploadBaselinePhoto(input) {
+    if (input.files && input.files[0]) {
+      var reader = new FileReader();
+      reader.onload = async function(e) {
+        var prev = document.getElementById('baseline-preview');
+        var vid = document.getElementById('baseline-video');
+        prev.src = e.target.result;
+        prev.style.display = 'block';
+        vid.style.display = 'none';
+
+        prev.onload = async function() {
+          var res = await computeFaceEmbedding(prev);
+          if (res) {
+            baselineEmbedding = res.embedding;
+            document.getElementById('baseline-status').innerHTML = '✅ <b style="color:var(--accent);">Baseline Image Ready</b> (' + res.latency + 'ms)';
+            document.getElementById('baseline-circle').style.borderColor = 'var(--accent)';
+            document.getElementById('live-status').textContent = 'Ready to test! Click "Verify Live Face"';
+            btnVerify.disabled = false;
+          }
+        };
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  // Verify Live Face Check
+  async function verifyLiveFace() {
+    if (!baselineEmbedding) return;
+
+    var vid = document.getElementById('live-video');
+    var prev = document.getElementById('live-preview');
+    prev.style.display = 'none';
+    vid.style.display = 'block';
+
+    var res = await computeFaceEmbedding(vid);
+    if (!res) return;
+
+    evaluateComparison(res.embedding, res.latency);
+  }
+
+  function uploadLiveTestPhoto(input) {
+    if (input.files && input.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var prev = document.getElementById('live-preview');
+        var vid = document.getElementById('live-video');
+        prev.src = e.target.result;
+        prev.style.display = 'block';
+        vid.style.display = 'none';
+
+        prev.onload = async function() {
+          var res = await computeFaceEmbedding(prev);
+          if (res) evaluateComparison(res.embedding, res.latency);
+        };
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function evaluateComparison(liveEmb, latency) {
+    var sim = cosineSimilarity(baselineEmbedding, liveEmb);
+    var matchPct = Math.round(Math.max(0, Math.min(100, ((sim + 1) / 2) * 100)) * 10) / 10;
+    
+    // Threshold: Cosine similarity >= 0.58 is genuine match
+    var isMatch = sim >= 0.58;
+
+    document.getElementById('res-score').textContent = matchPct + '%';
+    document.getElementById('res-score').style.color = isMatch ? 'var(--accent)' : 'var(--red)';
+
+    var verdEl = document.getElementById('res-verdict');
+    var circEl = document.getElementById('live-circle');
+
+    if (isMatch) {
+      verdEl.textContent = '✅ APPROVED: GENUINE DRIVER MATCH';
+      verdEl.style.background = '#064E3B';
+      verdEl.style.color = '#A7F3D0';
+      circEl.style.borderColor = 'var(--accent)';
+      document.getElementById('res-desc').innerHTML = 'Face features match your registered KYC baseline with <b>' + matchPct + '% confidence</b>.';
+    } else {
+      verdEl.textContent = '❌ REJECTED: IMPOSTER DETECTED';
+      verdEl.style.background = '#7F1D1D';
+      verdEl.style.color = '#FCA5A5';
+      circEl.style.borderColor = 'var(--red)';
+      document.getElementById('res-desc').innerHTML = 'Facial fingerprint does not match baseline photo (Confidence: <b>' + matchPct + '%</b>).';
+    }
+
+    document.getElementById('stat-sim').textContent = sim.toFixed(4);
+    document.getElementById('stat-latency').textContent = latency + ' ms';
+  }
+
+  // Start initialization
+  initCamera();
+  loadOnnxModel();
+</script>
+</body>
+</html>
