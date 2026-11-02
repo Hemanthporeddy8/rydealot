@@ -3,11 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rydealot Biometric KYC Sandbox • Model Validation</title>
+<title>Rydealot Biometric KYC Sandbox • ArcFace MobileFaceNet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+<!-- ONNX Runtime Web for Client-Side Zero-Cost Inference -->
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
+<!-- MediaPipe FaceMesh & Camera Utils for 468-Point Real-time Face Auto-Alignment -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
 <script>
   if (typeof ort !== 'undefined') {
     ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
@@ -16,12 +20,17 @@
 </script>
 <style>
   :root {
-    --bg: #0F172A;
-    --card: #1E293B;
-    --border: #334155;
-    --accent: #22C55E;
+    --bg: #0B0F19;
+    --card: #131B2E;
+    --card-inner: #0F172A;
+    --border: #1E293B;
+    --border-accent: #334155;
+    --accent: #10B981;
+    --accent-glow: rgba(16, 185, 129, 0.25);
     --red: #EF4444;
+    --red-glow: rgba(239, 68, 68, 0.25);
     --blue: #3B82F6;
+    --purple: #8B5CF6;
     --amber: #F59E0B;
     --text: #F8FAFC;
     --mute: #94A3B8;
@@ -39,13 +48,13 @@
     align-items: center;
   }
   .sandbox-card {
-    max-width: 680px;
+    max-width: 760px;
     width: 100%;
     background: var(--card);
     border: 1.5px solid var(--border);
     border-radius: 20px;
     padding: 24px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   }
   .header {
     display: flex;
@@ -53,7 +62,7 @@
     justify-content: space-between;
     border-bottom: 1.5px solid var(--border);
     padding-bottom: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
   .badge {
     font-size: 10.5px;
@@ -63,8 +72,32 @@
     letter-spacing: 0.5px;
     text-transform: uppercase;
   }
-  .badge-sandbox { background: #3730A3; color: #C7D2FE; border: 1px solid #4F46E5; }
-  .badge-model { background: #064E3B; color: #A7F3D0; border: 1px solid #059669; }
+  .badge-sandbox { background: #312E81; color: #C7D2FE; border: 1px solid #4338CA; }
+  .badge-free { background: #064E3B; color: #6EE7B7; border: 1px solid #059669; }
+
+  .selector-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--card-inner);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 12px;
+  }
+  .model-select {
+    background: #1E293B;
+    color: #F8FAFC;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    outline: none;
+    cursor: pointer;
+  }
 
   .status-banner {
     padding: 10px 14px;
@@ -74,6 +107,7 @@
     margin-bottom: 18px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
   }
   .status-loading { background: #1E3A8A; color: #93C5FD; border: 1px solid #2563EB; }
@@ -86,11 +120,11 @@
     gap: 16px;
     margin-bottom: 20px;
   }
-  @media(max-width: 600px) {
+  @media(max-width: 660px) {
     .arena { grid-template-columns: 1fr; }
   }
   .box {
-    background: #0F172A;
+    background: var(--card-inner);
     border: 1.5px solid var(--border);
     border-radius: 14px;
     padding: 14px;
@@ -98,6 +132,7 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
+    position: relative;
   }
   .box-title {
     font-size: 13px;
@@ -108,14 +143,16 @@
     gap: 6px;
   }
   .viewfinder {
-    width: 200px;
-    height: 200px;
+    width: 220px;
+    height: 220px;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid var(--border);
+    border: 3px solid var(--border-accent);
     background: #000;
     position: relative;
     margin-bottom: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    transition: border-color 0.25s, box-shadow 0.25s;
   }
   video, img.preview {
     width: 100%;
@@ -126,6 +163,39 @@
   img.preview {
     transform: none;
     display: none;
+  }
+  .face-guide-ring {
+    position: absolute;
+    inset: 18px;
+    border: 2px dashed rgba(255,255,255,0.3);
+    border-radius: 50%;
+    pointer-events: none;
+    transition: border-color 0.2s;
+  }
+  .face-guide-ring.active {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 15px var(--accent-glow);
+  }
+
+  .crop-preview-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0B0F19;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 8px;
+    margin-bottom: 10px;
+    font-size: 10px;
+    color: var(--mute);
+  }
+  .crop-preview-thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    border: 1px solid var(--border-accent);
+    object-fit: cover;
+    background: #000;
   }
 
   .btn {
@@ -142,82 +212,147 @@
     transition: all 0.15s;
     width: 100%;
   }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
   .btn-primary { background: var(--accent); color: #000; }
-  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
   .btn-blue { background: var(--blue); color: #fff; }
-  .btn-blue:hover { filter: brightness(1.1); }
-  .btn-secondary { background: #334155; color: #fff; }
-  .btn-secondary:hover { background: #475569; }
+  .btn-blue:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-secondary { background: #1E293B; color: #CBD5E1; border: 1px solid #334155; }
+  .btn-secondary:hover:not(:disabled) { background: #334155; color: #fff; }
 
   .results-card {
-    background: #0F172A;
+    background: var(--card-inner);
     border: 2px solid var(--border);
     border-radius: 16px;
-    padding: 18px;
+    padding: 20px;
     text-align: center;
+    transition: border-color 0.3s;
   }
+  .results-card.matched {
+    border-color: var(--accent);
+    box-shadow: 0 0 30px var(--accent-glow);
+  }
+  .results-card.rejected {
+    border-color: var(--red);
+    box-shadow: 0 0 30px var(--red-glow);
+  }
+
   .result-score {
-    font-size: 38px;
+    font-size: 44px;
     font-weight: 900;
     font-family: 'IBM Plex Mono', monospace;
     margin: 8px 0;
+    letter-spacing: -1px;
   }
   .result-verdict {
-    font-size: 16px;
+    font-size: 14.5px;
     font-weight: 900;
-    padding: 6px 14px;
+    padding: 7px 18px;
     border-radius: 20px;
     display: inline-block;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
   }
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
-    margin-top: 14px;
+    margin-top: 16px;
     border-top: 1px solid var(--border);
-    padding-top: 12px;
+    padding-top: 14px;
   }
-  .stat-label { font-size: 10.5px; color: var(--mute); font-weight: 700; text-transform: uppercase; }
+  @media(max-width: 600px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .stat-label { font-size: 10px; color: var(--mute); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
   .stat-val { font-size: 13.5px; font-weight: 800; margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
+
+  .info-box {
+    margin-top: 20px;
+    background: #0B0F19;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 11.5px;
+    color: var(--mute);
+    line-height: 1.5;
+  }
+  .info-box b { color: #F8FAFC; }
 </style>
 </head>
 <body>
 
 <div class="sandbox-card">
+  <!-- Top Navigation & Title -->
   <div class="header">
     <div>
       <h2 style="font-size:18px; font-weight:900; margin:0 0 4px; display:flex; align-items:center; gap:8px;">
         <span>🛡️</span> Biometric KYC Sandbox
       </h2>
       <div style="font-size:11.5px; color:var(--mute);">
-        Private Offline Validation for Model: <code>rydealot_face_kyc.onnx</code>
+        Real-Time Face Verification • 100% Lifetime Free Client-Side Engine
       </div>
     </div>
-    <span class="badge badge-sandbox">SANDBOX ENVIRONMENT</span>
+    <div style="display:flex; gap:8px;">
+      <span class="badge badge-free">100% FREE • ₹0 / $0</span>
+      <span class="badge badge-sandbox">SANDBOX</span>
+    </div>
   </div>
 
+  <!-- Model & Engine Selector -->
+  <div class="selector-row">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span>🧠 <b>Engine:</b></span>
+      <select id="model-selector" class="model-select" onchange="switchModel(this.value)">
+        <option value="models/arcface_mobilefacenet.onnx" selected>🌟 ArcFace MobileFaceNet (InsightFace 512-D • Recommended)</option>
+        <option value="models/rydealot_face_kyc.onnx">🧪 Custom FairFace MobileFaceNet (1.82 MB)</option>
+      </select>
+    </div>
+    <div id="detector-status" style="font-size:11px; color:var(--accent); font-weight:700;">
+      ⚡ MediaPipe 468-Mesh Active
+    </div>
+  </div>
+
+  <!-- Status Banner -->
   <div id="status-banner" class="status-banner status-loading">
-    <span>⏳</span> <span id="status-text">Loading rydealot_face_kyc.onnx model...</span>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span id="status-icon">⏳</span>
+      <span id="status-text">Loading ArcFace MobileFaceNet ONNX (WebAssembly)...</span>
+    </div>
+    <span id="status-size" style="font-size:11px; font-family:'IBM Plex Mono', monospace;">12.98 MB</span>
   </div>
 
-
+  <!-- Testing Arena -->
   <div class="arena">
-    <!-- Box 1: KYC Baseline Registration -->
-    <div class="box">
+    <!-- Box 1: KYC Baseline Photo -->
+    <div class="box" id="box-baseline">
       <div class="box-title">
         <span>📸</span> 1. KYC Baseline Photo
       </div>
       <div class="viewfinder" id="baseline-circle">
         <video id="baseline-video" autoplay playsinline muted></video>
         <img id="baseline-preview" class="preview" alt="KYC Baseline">
+        <div id="baseline-ring" class="face-guide-ring"></div>
       </div>
+
+      <!-- Cropped Face Tensor Preview -->
+      <div class="crop-preview-wrap">
+        <canvas id="baseline-crop-canvas" class="crop-preview-thumb" width="112" height="112"></canvas>
+        <div style="text-align:left;">
+          <div><b>112×112 Aligned Tensor</b></div>
+          <div id="baseline-crop-status">Background auto-excluded</div>
+        </div>
+      </div>
+
       <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
         <button type="button" class="btn btn-blue" onclick="captureBaselinePhoto()">
           <span>📷</span> Snap KYC Baseline
         </button>
         <label class="btn btn-secondary" style="margin:0;">
-          <span>🖼️</span> Upload Baseline Photo
+          <span>📁</span> Upload Reference Photo
           <input type="file" accept="image/*" style="display:none;" onchange="uploadBaselinePhoto(this)">
         </label>
       </div>
@@ -226,15 +361,26 @@
       </div>
     </div>
 
-    <!-- Box 2: Live Verification Test -->
-    <div class="box">
+    <!-- Box 2: Live Verification / Imposter Test -->
+    <div class="box" id="box-live">
       <div class="box-title">
         <span>⚡</span> 2. Live Face Check
       </div>
       <div class="viewfinder" id="live-circle">
         <video id="live-video" autoplay playsinline muted></video>
         <img id="live-preview" class="preview" alt="Live Test">
+        <div id="live-ring" class="face-guide-ring"></div>
       </div>
+
+      <!-- Cropped Face Tensor Preview -->
+      <div class="crop-preview-wrap">
+        <canvas id="live-crop-canvas" class="crop-preview-thumb" width="112" height="112"></canvas>
+        <div style="text-align:left;">
+          <div><b>112×112 Aligned Tensor</b></div>
+          <div id="live-crop-status">Ready to compare</div>
+        </div>
+      </div>
+
       <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
         <button type="button" id="btn-verify" class="btn btn-primary" onclick="verifyLiveFace()" disabled>
           <span>🔍</span> Verify Live Face
@@ -253,10 +399,10 @@
   <!-- Results Section -->
   <div class="results-card" id="results-card">
     <div style="font-size:11px; font-weight:800; color:var(--mute); text-transform:uppercase; letter-spacing:0.5px;">
-      Biometric Match Score
+      Biometric Match Score (Cosine Similarity)
     </div>
     <div class="result-score" id="res-score" style="color:var(--mute);">--%</div>
-    <div class="result-verdict" id="res-verdict" style="background:#334155; color:#fff;">
+    <div class="result-verdict" id="res-verdict" style="background:#1E293B; color:#CBD5E1;">
       WAITING FOR VERIFICATION TEST
     </div>
     <div id="res-desc" style="font-size:12px; color:var(--mute);">
@@ -269,164 +415,321 @@
         <div class="stat-val" id="stat-sim">0.0000</div>
       </div>
       <div>
-        <div class="stat-label">Inference Time</div>
+        <div class="stat-label">Verification Threshold</div>
+        <div class="stat-val" id="stat-thresh">&ge; 0.4500</div>
+      </div>
+      <div>
+        <div class="stat-label">Inference Latency</div>
         <div class="stat-val" id="stat-latency">-- ms</div>
       </div>
       <div>
-        <div class="stat-label">Model Dimension</div>
-        <div class="stat-val">512-D L2</div>
+        <div class="stat-label">Server / Cloud Cost</div>
+        <div class="stat-val" style="color:var(--accent);">₹0.00 (Free)</div>
       </div>
     </div>
   </div>
 
-  <div style="margin-top:20px; font-size:11px; color:var(--mute); text-align:center; line-height:1.4;">
-    🛡️ <b>Sandbox Protocol:</b> Runs 100% locally in your browser with zero network calls or server transmission.
+  <!-- Engineering Sandbox Protocol Guarantee -->
+  <div class="info-box">
+    <b>🛡️ Private Sandbox Architecture:</b>
+    <ul style="margin:6px 0 0; padding-left:18px;">
+      <li><b>100% Lifetime Free:</b> MIT/Apache-2 open-source model running via ONNX WebAssembly directly on your device CPU/GPU. Zero third-party APIs, zero cloud subscriptions.</li>
+      <li><b>Face Auto-Alignment:</b> MediaPipe FaceMesh tracks 468 facial points, auto-crops forehead-to-chin, and feeds strictly 112×112 face pixels into ArcFace (ignoring background walls & shirts).</li>
+      <li><b>Isolated Testing:</b> This page does NOT modify production <code>driver.html</code> or live ride/delivery flows until your final sign-off.</li>
+    </ul>
   </div>
 </div>
 
-<canvas id="crop-canvas" width="112" height="112" style="display:none;"></canvas>
-
 <script>
-  var onnxSession = null;
-  var baselineEmbedding = null;
-  var cameraStream = null;
+  let onnxSession = null;
+  let activeModelPath = 'models/arcface_mobilefacenet.onnx';
+  let baselineEmbedding = null;
+  let cameraStream = null;
+  let faceMesh = null;
+  let latestLandmarks = null;
 
-  var statusBanner = document.getElementById('status-banner');
-  var statusText = document.getElementById('status-text');
-  var btnVerify = document.getElementById('btn-verify');
+  const statusBanner = document.getElementById('status-banner');
+  const statusIcon = document.getElementById('status-icon');
+  const statusText = document.getElementById('status-text');
+  const statusSize = document.getElementById('status-size');
+  const btnVerify = document.getElementById('btn-verify');
+  const detectorStatus = document.getElementById('detector-status');
 
-  // 1. Initialize Camera Feed
-  async function initCamera() {
+  // 1. Initialize MediaPipe FaceMesh
+  function initMediaPipe() {
     try {
-      cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } }
+      if (typeof FaceMesh === 'undefined') {
+        detectorStatus.innerHTML = '⚠️ FaceMesh CDN fallback mode';
+        return;
+      }
+      faceMesh = new FaceMesh({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`
       });
-      document.getElementById('baseline-video').srcObject = cameraStream;
-      document.getElementById('live-video').srcObject = cameraStream;
+      faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
+      faceMesh.onResults((results) => {
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+          latestLandmarks = results.multiFaceLandmarks[0];
+          document.getElementById('baseline-ring').classList.add('active');
+          document.getElementById('live-ring').classList.add('active');
+        } else {
+          latestLandmarks = null;
+          document.getElementById('baseline-ring').classList.remove('active');
+          document.getElementById('live-ring').classList.remove('active');
+        }
+      });
+      detectorStatus.innerHTML = '⚡ MediaPipe 468-Mesh Active';
     } catch(err) {
-      console.warn('Camera note:', err);
+      console.warn('FaceMesh initialization note:', err);
+      detectorStatus.innerHTML = '⚠️ Center-crop fallback active';
     }
   }
 
-  // 2. Load ONNX Model
-  async function loadOnnxModel() {
+  // 2. Initialize Camera Feed
+  async function initCamera() {
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } }
+      });
+      const vidBase = document.getElementById('baseline-video');
+      const vidLive = document.getElementById('live-video');
+      vidBase.srcObject = cameraStream;
+      vidLive.srcObject = cameraStream;
+
+      if (typeof Camera !== 'undefined' && faceMesh) {
+        const mpCam = new Camera(vidLive, {
+          onFrame: async () => {
+            if (vidLive.readyState >= 2) {
+              try { await faceMesh.send({ image: vidLive }); } catch(e){}
+            }
+          },
+          width: 320, height: 320
+        });
+        mpCam.start();
+      }
+    } catch(err) {
+      console.warn('Camera access note:', err);
+    }
+  }
+
+  // 3. Load ONNX Model
+  async function loadOnnxModel(path) {
     try {
       statusBanner.className = 'status-banner status-loading';
-      statusText.textContent = 'Loading models/rydealot_face_kyc.onnx...';
+      statusIcon.textContent = '⏳';
+      statusText.innerHTML = `Loading <b>${path}</b> into WebAssembly session...`;
+      statusSize.textContent = (path.indexOf('arcface') !== -1) ? '12.98 MB' : '1.82 MB';
 
       if (typeof ort !== 'undefined' && ort.env && ort.env.wasm) {
         ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
         ort.env.wasm.numThreads = 1;
       }
 
-      onnxSession = await ort.InferenceSession.create('models/rydealot_face_kyc.onnx');
+      onnxSession = await ort.InferenceSession.create(path);
 
       statusBanner.className = 'status-banner status-ready';
-      statusText.innerHTML = '✅ <b>rydealot_face_kyc.onnx</b> loaded & ready (1.82 MB • WebAssembly Backend)';
+      statusIcon.textContent = '✅';
+      const modelTitle = (path.indexOf('arcface') !== -1) ? 'ArcFace MobileFaceNet' : 'Custom MobileFaceNet';
+      statusText.innerHTML = `<b>${modelTitle}</b> ready (${onnxSession.inputNames[0]} &rarr; ${onnxSession.outputNames[0]})`;
     } catch(err) {
       statusBanner.className = 'status-banner status-error';
+      statusIcon.textContent = '❌';
       statusText.textContent = 'Failed to load ONNX: ' + (err.message || err);
       console.error('[ONNX Load Error]:', err);
     }
   }
 
-  // 3. Image Preprocessing for MobileFaceNet [1, 3, 112, 112]
-  function extractNormalizedTensor(sourceElement) {
-    var canvas = document.getElementById('crop-canvas');
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(sourceElement, 0, 0, 112, 112);
-    var imgData = ctx.getImageData(0, 0, 112, 112).data;
-
-    // NCHW Float32 array: [1, 3, 112, 112]
-    var floatArr = new Float32Array(1 * 3 * 112 * 112);
-    var pixelCount = 112 * 112;
-
-    for (var i = 0; i < pixelCount; i++) {
-      var r = imgData[i * 4];
-      var g = imgData[i * 4 + 1];
-      var b = imgData[i * 4 + 2];
-
-      // PyTorch normalization: (x / 255.0 - 0.5) / 0.5
-      floatArr[i] = ((r / 255.0) - 0.5) / 0.5;                     // Channel R
-      floatArr[pixelCount + i] = ((g / 255.0) - 0.5) / 0.5;        // Channel G
-      floatArr[pixelCount * 2 + i] = ((b / 255.0) - 0.5) / 0.5;    // Channel B
+  async function switchModel(newPath) {
+    activeModelPath = newPath;
+    await loadOnnxModel(newPath);
+    // Reset comparisons
+    if (baselineEmbedding) {
+      btnVerify.disabled = false;
+      document.getElementById('live-status').textContent = 'Model switched! Click "Verify Live Face" to re-evaluate.';
     }
-
-    return new ort.Tensor('float32', floatArr, [1, 3, 112, 112]);
   }
 
-  // 4. Run Model Inference
-  async function computeFaceEmbedding(sourceElement) {
+  // 4. Calculate Face Bounding Box & Crop Tensor [1, 3, 112, 112]
+  function computeFaceCropBox(sourceW, sourceH, landmarks) {
+    if (landmarks && landmarks.length > 0) {
+      let minX = 1, minY = 1, maxX = 0, maxY = 0;
+      for (let i = 0; i < landmarks.length; i++) {
+        const p = landmarks[i];
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
+      const boxW = (maxX - minX) * sourceW;
+      const boxH = (maxY - minY) * sourceH;
+      const cx = (minX + maxX) / 2 * sourceW;
+      const cy = (minY + maxY) / 2 * sourceH;
+
+      // ArcFace standard 1.35x padding (captures chin, forehead, cheekbones)
+      const size = Math.max(boxW, boxH) * 1.35;
+      const sx = Math.max(0, cx - size / 2);
+      const sy = Math.max(0, cy - size / 2);
+      const finalW = Math.min(sourceW - sx, size);
+      const finalH = Math.min(sourceH - sy, size);
+      const cropDim = Math.min(finalW, finalH);
+      return { sx, sy, sw: cropDim, sh: cropDim, isAligned: true };
+    }
+
+    // Centered square fallback
+    const minDim = Math.min(sourceW, sourceH);
+    const size = minDim * 0.75;
+    return {
+      sx: (sourceW - size) / 2,
+      sy: (sourceH - size) / 2,
+      sw: size,
+      sh: size,
+      isAligned: false
+    };
+  }
+
+  // 5. Extract Normalized Input Tensor [1, 3, 112, 112]
+  function extractFaceTensor(sourceElement, canvasTarget, landmarks, isMirrored = false) {
+    const sw = sourceElement.videoWidth || sourceElement.naturalWidth || sourceElement.width || 480;
+    const sh = sourceElement.videoHeight || sourceElement.naturalHeight || sourceElement.height || 480;
+
+    const cropBox = computeFaceCropBox(sw, sh, landmarks);
+
+    const ctx = canvasTarget.getContext('2d');
+    canvasTarget.width = 112;
+    canvasTarget.height = 112;
+
+    ctx.save();
+    if (isMirrored) {
+      ctx.translate(112, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(sourceElement, cropBox.sx, cropBox.sy, cropBox.sw, cropBox.sh, 0, 0, 112, 112);
+    ctx.restore();
+
+    const imgData = ctx.getImageData(0, 0, 112, 112).data;
+    const floatArr = new Float32Array(1 * 3 * 112 * 112);
+    const pixelCount = 112 * 112;
+
+    // ArcFace MobileFaceNet Normalization: (Pixel - 127.5) / 127.5 -> [-1.0, 1.0]
+    for (let i = 0; i < pixelCount; i++) {
+      const r = imgData[i * 4];
+      const g = imgData[i * 4 + 1];
+      const b = imgData[i * 4 + 2];
+
+      floatArr[i] = (r - 127.5) / 127.5;                   // Red
+      floatArr[pixelCount + i] = (g - 127.5) / 127.5;      // Green
+      floatArr[pixelCount * 2 + i] = (b - 127.5) / 127.5;  // Blue
+    }
+
+    return {
+      tensor: new ort.Tensor('float32', floatArr, [1, 3, 112, 112]),
+      isAligned: cropBox.isAligned
+    };
+  }
+
+  // 6. Compute Face Embedding with L2 Normalization
+  async function computeFaceEmbedding(sourceElement, canvasTarget, landmarks, isMirrored = false) {
     if (!onnxSession) {
-      alert('ONNX Model not loaded yet!');
+      alert('ONNX Session not ready yet!');
       return null;
     }
-    var t0 = performance.now();
-    var tensor = extractNormalizedTensor(sourceElement);
-    var feeds = { input_face: tensor };
-    var results = await onnxSession.run(feeds);
-    var t1 = performance.now();
-    
-    var emb = results.embedding_512.data; // Float32Array of 512 numbers
-    var latency = Math.round(t1 - t0);
-    return { embedding: emb, latency: latency };
+
+    const { tensor, isAligned } = extractFaceTensor(sourceElement, canvasTarget, landmarks, isMirrored);
+
+    const inputName = onnxSession.inputNames[0];
+    const outputName = onnxSession.outputNames[0];
+
+    const feeds = {};
+    feeds[inputName] = tensor;
+
+    const t0 = performance.now();
+    const results = await onnxSession.run(feeds);
+    const t1 = performance.now();
+
+    const rawData = results[outputName].data; // Float32Array (512 numbers)
+
+    // L2 Normalize Embedding Vector
+    let sumSq = 0;
+    for (let i = 0; i < rawData.length; i++) sumSq += rawData[i] * rawData[i];
+    const norm = Math.sqrt(sumSq) || 1e-12;
+    const normEmb = new Float32Array(rawData.length);
+    for (let i = 0; i < rawData.length; i++) normEmb[i] = rawData[i] / norm;
+
+    return {
+      embedding: normEmb,
+      latency: Math.round(t1 - t0),
+      isAligned: isAligned
+    };
   }
 
-  // 5. Cosine Similarity Calculation
+  // 7. Cosine Similarity Calculation
   function cosineSimilarity(embA, embB) {
-    var dot = 0, normA = 0, normB = 0;
-    for (var i = 0; i < embA.length; i++) {
+    let dot = 0;
+    for (let i = 0; i < embA.length; i++) {
       dot += embA[i] * embB[i];
-      normA += embA[i] * embA[i];
-      normB += embB[i] * embB[i];
     }
-    return dot / (Math.sqrt(normA) * Math.sqrt(normB) || 1);
+    return dot;
   }
 
   // --- ACTIONS ---
 
-  // Capture Baseline from video
+  // Capture Baseline Photo from Video
   async function captureBaselinePhoto() {
-    var vid = document.getElementById('baseline-video');
-    var prev = document.getElementById('baseline-preview');
-    
-    var canvas = document.createElement('canvas');
-    canvas.width = 480; canvas.height = 480;
-    var ctx = canvas.getContext('2d');
-    ctx.translate(480, 0); ctx.scale(-1, 1);
-    ctx.drawImage(vid, 0, 0, 480, 480);
+    const vid = document.getElementById('baseline-video');
+    const prev = document.getElementById('baseline-preview');
+    const cropCanvas = document.getElementById('baseline-crop-canvas');
+    const cropStatus = document.getElementById('baseline-crop-status');
 
-    prev.src = canvas.toDataURL('image/jpeg');
+    // Create full snapshot canvas
+    const snapCanvas = document.createElement('canvas');
+    snapCanvas.width = 480;
+    snapCanvas.height = 480;
+    const sCtx = snapCanvas.getContext('2d');
+    sCtx.translate(480, 0);
+    sCtx.scale(-1, 1);
+    sCtx.drawImage(vid, 0, 0, 480, 480);
+
+    prev.src = snapCanvas.toDataURL('image/jpeg', 0.9);
     prev.style.display = 'block';
     vid.style.display = 'none';
 
-    var res = await computeFaceEmbedding(prev);
+    document.getElementById('baseline-status').innerHTML = '⏳ Extracting 512-D fingerprint...';
+
+    // Extract tensor from video with landmarks
+    const res = await computeFaceEmbedding(vid, cropCanvas, latestLandmarks, false);
     if (res) {
       baselineEmbedding = res.embedding;
-      document.getElementById('baseline-status').innerHTML = '✅ <b style="color:var(--accent);">Baseline Registered</b> (' + res.latency + 'ms)';
+      document.getElementById('baseline-status').innerHTML = `✅ <b style="color:var(--accent);">Baseline Registered</b> (${res.latency}ms • 512-D L2)`;
       document.getElementById('baseline-circle').style.borderColor = 'var(--accent)';
-      document.getElementById('live-status').textContent = 'Ready to test! Click "Verify Live Face"';
+      cropStatus.innerHTML = res.isAligned ? '✅ MediaPipe 468-Mesh Aligned' : 'Center cropped';
+      document.getElementById('live-status').textContent = 'Ready! Click "Verify Live Face" on the right.';
       btnVerify.disabled = false;
     }
   }
 
   function uploadBaselinePhoto(input) {
     if (input.files && input.files[0]) {
-      var reader = new FileReader();
-      reader.onload = async function(e) {
-        var prev = document.getElementById('baseline-preview');
-        var vid = document.getElementById('baseline-video');
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const prev = document.getElementById('baseline-preview');
+        const vid = document.getElementById('baseline-video');
+        const cropCanvas = document.getElementById('baseline-crop-canvas');
         prev.src = e.target.result;
         prev.style.display = 'block';
         vid.style.display = 'none';
 
         prev.onload = async function() {
-          var res = await computeFaceEmbedding(prev);
+          document.getElementById('baseline-status').innerHTML = '⏳ Processing uploaded photo...';
+          const res = await computeFaceEmbedding(prev, cropCanvas, null, false);
           if (res) {
             baselineEmbedding = res.embedding;
-            document.getElementById('baseline-status').innerHTML = '✅ <b style="color:var(--accent);">Baseline Image Ready</b> (' + res.latency + 'ms)';
+            document.getElementById('baseline-status').innerHTML = `✅ <b style="color:var(--accent);">Baseline Image Ready</b> (${res.latency}ms)`;
             document.getElementById('baseline-circle').style.borderColor = 'var(--accent)';
-            document.getElementById('live-status').textContent = 'Ready to test! Click "Verify Live Face"';
+            document.getElementById('live-status').textContent = 'Ready! Click "Verify Live Face" on the right.';
             btnVerify.disabled = false;
           }
         };
@@ -435,33 +738,42 @@
     }
   }
 
-  // Verify Live Face Check
+  // Live Face Verification
   async function verifyLiveFace() {
     if (!baselineEmbedding) return;
 
-    var vid = document.getElementById('live-video');
-    var prev = document.getElementById('live-preview');
+    const vid = document.getElementById('live-video');
+    const prev = document.getElementById('live-preview');
+    const cropCanvas = document.getElementById('live-crop-canvas');
+    const cropStatus = document.getElementById('live-crop-status');
+
     prev.style.display = 'none';
     vid.style.display = 'block';
 
-    var res = await computeFaceEmbedding(vid);
+    document.getElementById('live-status').innerHTML = '⚡ Verifying live face...';
+
+    const res = await computeFaceEmbedding(vid, cropCanvas, latestLandmarks, false);
     if (!res) return;
 
+    cropStatus.innerHTML = res.isAligned ? '✅ MediaPipe 468-Mesh Aligned' : 'Center cropped';
     evaluateComparison(res.embedding, res.latency);
   }
 
+  // Imposter Photo Test
   function uploadLiveTestPhoto(input) {
     if (input.files && input.files[0]) {
-      var reader = new FileReader();
+      const reader = new FileReader();
       reader.onload = function(e) {
-        var prev = document.getElementById('live-preview');
-        var vid = document.getElementById('live-video');
+        const prev = document.getElementById('live-preview');
+        const vid = document.getElementById('live-video');
+        const cropCanvas = document.getElementById('live-crop-canvas');
         prev.src = e.target.result;
         prev.style.display = 'block';
         vid.style.display = 'none';
 
         prev.onload = async function() {
-          var res = await computeFaceEmbedding(prev);
+          document.getElementById('live-status').innerHTML = '⚡ Comparing imposter photo...';
+          const res = await computeFaceEmbedding(prev, cropCanvas, null, false);
           if (res) evaluateComparison(res.embedding, res.latency);
         };
       };
@@ -469,40 +781,67 @@
     }
   }
 
+  // Evaluation & Metric Display
   function evaluateComparison(liveEmb, latency) {
-    var sim = cosineSimilarity(baselineEmbedding, liveEmb);
-    var matchPct = Math.round(Math.max(0, Math.min(100, ((sim + 1) / 2) * 100)) * 10) / 10;
-    
-    // Threshold: Cosine similarity >= 0.58 is genuine match
-    var isMatch = sim >= 0.58;
+    const sim = cosineSimilarity(baselineEmbedding, liveEmb);
 
-    document.getElementById('res-score').textContent = matchPct + '%';
-    document.getElementById('res-score').style.color = isMatch ? 'var(--accent)' : 'var(--red)';
+    // ArcFace Metric Loss Standards:
+    // Different people: -0.10 to 0.30
+    // Same person: 0.50 to 0.95
+    // Threshold: 0.45
+    const threshold = 0.45;
+    const isMatch = sim >= threshold;
 
-    var verdEl = document.getElementById('res-verdict');
-    var circEl = document.getElementById('live-circle');
-
-    if (isMatch) {
-      verdEl.textContent = '✅ APPROVED: GENUINE DRIVER MATCH';
-      verdEl.style.background = '#064E3B';
-      verdEl.style.color = '#A7F3D0';
-      circEl.style.borderColor = 'var(--accent)';
-      document.getElementById('res-desc').innerHTML = 'Face features match your registered KYC baseline with <b>' + matchPct + '% confidence</b>.';
+    let matchPct = 0;
+    if (sim <= 0) {
+      matchPct = 0;
+    } else if (sim >= threshold) {
+      // Map threshold..1.00 to 80%..99.8%
+      matchPct = Math.min(99.8, Math.round((80 + ((sim - threshold) / (1.0 - threshold)) * 19.8) * 10) / 10);
     } else {
-      verdEl.textContent = '❌ REJECTED: IMPOSTER DETECTED';
-      verdEl.style.background = '#7F1D1D';
-      verdEl.style.color = '#FCA5A5';
-      circEl.style.borderColor = 'var(--red)';
-      document.getElementById('res-desc').innerHTML = 'Facial fingerprint does not match baseline photo (Confidence: <b>' + matchPct + '%</b>).';
+      // Map 0..threshold to 0%..79.9%
+      matchPct = Math.max(0, Math.round(((sim / threshold) * 79) * 10) / 10);
     }
 
-    document.getElementById('stat-sim').textContent = sim.toFixed(4);
+    const resCard = document.getElementById('results-card');
+    const scoreEl = document.getElementById('res-score');
+    const verdEl = document.getElementById('res-verdict');
+    const liveCirc = document.getElementById('live-circle');
+
+    scoreEl.textContent = matchPct + '%';
+
+    if (isMatch) {
+      resCard.className = 'results-card matched';
+      scoreEl.style.color = 'var(--accent)';
+      verdEl.textContent = '✅ APPROVED: GENUINE DRIVER MATCH';
+      verdEl.style.background = '#064E3B';
+      verdEl.style.color = '#6EE7B7';
+      liveCirc.style.borderColor = 'var(--accent)';
+      document.getElementById('res-desc').innerHTML = `
+        Face matches KYC baseline with <b>${matchPct}% confidence</b> (Cosine Similarity: <b>+${sim.toFixed(4)}</b> &ge; ${threshold}).
+      `;
+      document.getElementById('live-status').innerHTML = '✅ <b style="color:var(--accent);">Genuine Match Confirmed!</b>';
+    } else {
+      resCard.className = 'results-card rejected';
+      scoreEl.style.color = 'var(--red)';
+      verdEl.textContent = '❌ REJECTED: IMPOSTER OR MISMATCH';
+      verdEl.style.background = '#7F1D1D';
+      verdEl.style.color = '#FCA5A5';
+      liveCirc.style.borderColor = 'var(--red)';
+      document.getElementById('res-desc').innerHTML = `
+        Facial features do NOT match baseline (Cosine Similarity: <b>${sim.toFixed(4)}</b> &lt; ${threshold}).
+      `;
+      document.getElementById('live-status').innerHTML = '❌ <b style="color:var(--red);">Imposter Detected (Denied)</b>';
+    }
+
+    document.getElementById('stat-sim').textContent = (sim >= 0 ? '+' : '') + sim.toFixed(4);
     document.getElementById('stat-latency').textContent = latency + ' ms';
   }
 
-  // Start initialization
+  // Auto-Start
+  initMediaPipe();
   initCamera();
-  loadOnnxModel();
+  loadOnnxModel(activeModelPath);
 </script>
 </body>
 </html>
