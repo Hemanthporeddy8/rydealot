@@ -7,10 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
-<script src="ort.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
 <script>
-  if (typeof ort === 'undefined') {
-    document.write('<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"><\/script>');
+  if (typeof ort !== 'undefined') {
+    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
+    ort.env.wasm.numThreads = 1;
   }
 </script>
 <style>
@@ -200,13 +201,6 @@
     <span>⏳</span> <span id="status-text">Loading rydealot_face_kyc.onnx model...</span>
   </div>
 
-  <!-- Manual Model Picker Fallback (for file:// protocol without local server) -->
-  <div id="file-picker-fallback" style="display:none; background:#1e1b4b; border:1px solid #4338ca; padding:12px; border-radius:10px; margin-bottom:16px; font-size:11.5px;">
-    <b>💡 Local File Protocol Detected:</b> If the browser restricts auto-fetching <code>.onnx</code> over <code>file://</code>, please select the model file:
-    <div style="margin-top:8px;">
-      <input type="file" id="manual-onnx-picker" accept=".onnx" style="font-size:12px; color:#fff;">
-    </div>
-  </div>
 
   <div class="arena">
     <!-- Box 1: KYC Baseline Registration -->
@@ -315,42 +309,26 @@
   }
 
   // 2. Load ONNX Model
-  async function loadOnnxModel(customBuffer) {
+  async function loadOnnxModel() {
     try {
       statusBanner.className = 'status-banner status-loading';
       statusText.textContent = 'Loading models/rydealot_face_kyc.onnx...';
 
-      if (customBuffer) {
-        onnxSession = await ort.InferenceSession.create(customBuffer);
-      } else {
-        // Try direct relative path
-        try {
-          onnxSession = await ort.InferenceSession.create('models/rydealot_face_kyc.onnx');
-        } catch(netErr) {
-          console.warn('Fetch note (expected if opened via file://):', netErr);
-          document.getElementById('file-picker-fallback').style.display = 'block';
-          statusBanner.className = 'status-banner status-loading';
-          statusText.textContent = 'Please select rydealot_face_kyc.onnx using file picker below.';
-          return;
-        }
+      if (typeof ort !== 'undefined' && ort.env && ort.env.wasm) {
+        ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
+        ort.env.wasm.numThreads = 1;
       }
+
+      onnxSession = await ort.InferenceSession.create('models/rydealot_face_kyc.onnx');
 
       statusBanner.className = 'status-banner status-ready';
       statusText.innerHTML = '✅ <b>rydealot_face_kyc.onnx</b> loaded & ready (1.82 MB • WebAssembly Backend)';
-      document.getElementById('file-picker-fallback').style.display = 'none';
     } catch(err) {
       statusBanner.className = 'status-banner status-error';
       statusText.textContent = 'Failed to load ONNX: ' + (err.message || err);
-      document.getElementById('file-picker-fallback').style.display = 'block';
+      console.error('[ONNX Load Error]:', err);
     }
   }
-
-  document.getElementById('manual-onnx-picker').addEventListener('change', async function(e) {
-    if (e.target.files && e.target.files[0]) {
-      var ab = await e.target.files[0].arrayBuffer();
-      loadOnnxModel(ab);
-    }
-  });
 
   // 3. Image Preprocessing for MobileFaceNet [1, 3, 112, 112]
   function extractNormalizedTensor(sourceElement) {
