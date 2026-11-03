@@ -27,6 +27,7 @@
     --accent: #10B981;
     --accent-glow: rgba(16, 185, 129, 0.3);
     --yellow: #F59E0B;
+    --yellow-glow: rgba(245, 158, 11, 0.25);
     --red: #EF4444;
     --red-glow: rgba(239, 68, 68, 0.3);
     --blue: #3B82F6;
@@ -47,10 +48,10 @@
   }
 
   .sandbox-container {
-    max-width: 960px;
+    max-width: 980px;
     width: 100%;
     display: grid;
-    grid-template-columns: 420px 1fr;
+    grid-template-columns: 430px 1fr;
     gap: 24px;
     align-items: start;
   }
@@ -69,7 +70,7 @@
     overflow: hidden;
     box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.08);
     position: relative;
-    min-height: 720px;
+    min-height: 740px;
     display: flex;
     flex-direction: column;
   }
@@ -238,6 +239,12 @@
     justify-content: space-between;
     padding: 8px 0;
     border-bottom: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 6px;
+  }
+  .check-item:hover {
+    background: rgba(255,255,255,0.03);
   }
   .check-item:last-child { border-bottom: none; }
   .badge-tag {
@@ -250,11 +257,11 @@
   .badge-approved { background: rgba(16, 185, 129, 0.15); color: #6EE7B7; border: 1px solid #059669; }
   .badge-pending { background: rgba(245, 158, 11, 0.15); color: #FCD34D; border: 1px solid #D97706; }
 
-  /* --- IN-APP BIOMETRIC MODAL (SLIDE UP) --- */
+  /* --- MODAL OVERLAYS (SLIDE UP) --- */
   .modal-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.88);
     backdrop-filter: blur(8px);
     z-index: 100;
     display: none;
@@ -274,6 +281,8 @@
     align-items: center;
     text-align: center;
     box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
+    max-height: 94%;
+    overflow-y: auto;
   }
   .modal-handle {
     width: 36px;
@@ -281,9 +290,10 @@
     background: #4B5563;
     border-radius: 2px;
     margin-bottom: 14px;
+    flex-shrink: 0;
   }
 
-  /* Butter-smooth Biometric Scanner Oval (Zero-Lag Viewfinder) */
+  /* Butter-Smooth 60 FPS Viewfinder */
   .scanner-viewfinder {
     width: 210px;
     height: 250px;
@@ -295,12 +305,13 @@
     background: #000;
     margin-bottom: 14px;
     transition: border-color 0.25s, box-shadow 0.25s;
+    flex-shrink: 0;
   }
   .scanner-viewfinder video {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: scaleX(-1); /* Mirror for natural user feel */
+    transform: scaleX(-1);
   }
   .scan-laser {
     position: absolute;
@@ -316,6 +327,94 @@
     0% { top: 10%; opacity: 0.3; }
     50% { top: 85%; opacity: 1; }
     100% { top: 10%; opacity: 0.3; }
+  }
+
+  /* --- GUIDANCE UI COMPONENTS --- */
+  .warning-callout {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1.5px solid #D97706;
+    border-radius: 14px;
+    padding: 12px 14px;
+    text-align: left;
+    margin-bottom: 14px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: #FEF3C7;
+  }
+  .warning-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #FBBF24;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .guidance-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 16px;
+  }
+  .guide-card {
+    background: #1F2937;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    text-align: left;
+  }
+  .guide-card-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+  .guide-card-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #F3F4F6;
+    margin-bottom: 2px;
+  }
+  .guide-card-desc {
+    font-size: 10px;
+    color: var(--text-mute);
+    line-height: 1.35;
+  }
+
+  .review-photo-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--accent);
+    box-shadow: 0 0 25px var(--accent-glow);
+    margin: 8px auto 14px;
+    background: #000;
+  }
+  .review-photo-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .quality-checklist {
+    width: 100%;
+    background: #1F2937;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    text-align: left;
+    font-size: 11px;
+  }
+  .quality-check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    color: #E5E7EB;
   }
 
   /* --- RIGHT: SANDBOX CONTROL CENTER & LAB --- */
@@ -400,9 +499,9 @@
   }
 
   .btn {
-    padding: 10px 16px;
-    border-radius: 10px;
-    font-size: 12px;
+    padding: 11px 16px;
+    border-radius: 12px;
+    font-size: 12.5px;
     font-weight: 800;
     cursor: pointer;
     border: none;
@@ -472,7 +571,7 @@
         </div>
       </div>
 
-      <!-- 4. Real App KYC Architecture Breakdown -->
+      <!-- 4. Driver Profile KYC Checklist -->
       <div class="kyc-checklist">
         <div style="font-size:11px; font-weight:800; color:var(--text-mute); text-transform:uppercase; margin-bottom:6px;">
           Driver Verification Profile
@@ -484,10 +583,10 @@
           </div>
           <span class="badge-tag badge-approved">VERIFIED</span>
         </div>
-        <div class="check-item">
+        <div class="check-item" onclick="openEnrollmentModal()">
           <div>
-            <div style="font-weight:700;">📸 Live KYC Selfie</div>
-            <div style="font-size:10px; color:var(--text-mute);">Master Biometric Template (512-D L2)</div>
+            <div style="font-weight:700;">📸 Live KYC Master Selfie</div>
+            <div style="font-size:10px; color:var(--text-mute);">Tap to view / update permanent template</div>
           </div>
           <span id="app-baseline-status-badge" class="badge-tag badge-approved">ENROLLED</span>
         </div>
@@ -500,25 +599,24 @@
         </div>
       </div>
 
-      <!-- ==================== REAL-WORLD PRE-SHIFT FACE MODAL ==================== -->
+      <!-- ==================== 1. PRE-SHIFT BIOMETRIC MODAL ("GO ONLINE") ==================== -->
       <div id="app-biometric-modal" class="modal-overlay">
         <div class="modal-sheet">
           <div class="modal-handle"></div>
 
           <div style="font-size:16px; font-weight:900; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-            <span>🛡️</span> Captain Face Check
+            <span>🛡️</span> Daily Captain Face Check
           </div>
           <div style="font-size:11.5px; color:var(--text-mute); margin-bottom:14px; max-width:280px;">
             Position your face inside the oval and hold still to verify your identity.
           </div>
 
-          <!-- Butter-Smooth 60 FPS Camera Viewfinder (Zero Lag) -->
+          <!-- Butter-Smooth 60 FPS Camera Viewfinder -->
           <div class="scanner-viewfinder" id="modal-scanner-viewfinder">
             <video id="modal-camera-video" autoplay playsinline muted></video>
             <div class="scan-laser" id="modal-scan-laser"></div>
           </div>
 
-          <!-- Live Status feedback -->
           <div id="modal-scan-status" style="font-size:12.5px; font-weight:800; min-height:24px; margin-bottom:12px; color:var(--text-main);">
             Align face inside oval...
           </div>
@@ -534,6 +632,132 @@
         </div>
       </div>
 
+      <!-- ==================== 2. GUIDED KYC MASTER ENROLLMENT MODAL (FIRST PHOTO) ==================== -->
+      <div id="app-enrollment-modal" class="modal-overlay">
+        <div class="modal-sheet">
+          <div class="modal-handle"></div>
+
+          <!-- STEP A: PRE-CAPTURE GUIDANCE -->
+          <div id="enroll-step-guide" style="width:100%;">
+            <div style="font-size:16px; font-weight:900; margin-bottom:4px; display:flex; align-items:center; justify-content:center; gap:6px;">
+              <span>🛡️</span> Official KYC Biometric Photo
+            </div>
+            <div style="font-size:11.5px; color:var(--text-mute); margin-bottom:14px;">
+              Capture your permanent biometric driver profile
+            </div>
+
+            <!-- Permanent Identity Warning -->
+            <div class="warning-callout">
+              <div class="warning-title">
+                <span>⚠️</span> Permanent Identity Notice
+              </div>
+              This photo will become your <b>permanent Captain identity</b>. Every daily shift check and payout verification will compare against this picture. Please ensure it is sharp and taken properly.
+            </div>
+
+            <!-- 4 Visual Guidance Cards -->
+            <div class="guidance-grid">
+              <div class="guide-card">
+                <div class="guide-card-icon">💡</div>
+                <div class="guide-card-title">Front Lighting</div>
+                <div class="guide-card-desc">Face a light source. Avoid bright windows behind you.</div>
+              </div>
+              <div class="guide-card">
+                <div class="guide-card-icon">👓</div>
+                <div class="guide-card-title">No Accessories</div>
+                <div class="guide-card-desc">Remove helmet, cap, sunglasses, and face mask.</div>
+              </div>
+              <div class="guide-card">
+                <div class="guide-card-icon">👁️</div>
+                <div class="guide-card-title">Eye Level</div>
+                <div class="guide-card-desc">Hold phone directly in front of face with eyes open.</div>
+              </div>
+              <div class="guide-card">
+                <div class="guide-card-icon">😐</div>
+                <div class="guide-card-title">Neutral Face</div>
+                <div class="guide-card-desc">Look straight into camera with neutral expression.</div>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+              <button type="button" class="btn btn-primary" onclick="startEnrollmentCamera()">
+                <span>📷</span> Open Camera & Snap Photo
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="closeEnrollmentModal()">
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP B: GUIDED CAMERA VIEWFINDER -->
+          <div id="enroll-step-camera" style="width:100%; display:none;">
+            <div style="display:inline-block; font-size:10px; font-weight:800; background:rgba(245,158,11,0.2); color:#FCD34D; border:1px solid #D97706; padding:3px 10px; border-radius:6px; margin-bottom:8px; text-transform:uppercase;">
+              🔒 Capturing Master Identity Photo
+            </div>
+            <div style="font-size:15px; font-weight:900; margin-bottom:12px;">
+              Align Face Inside the Oval
+            </div>
+
+            <div class="scanner-viewfinder" id="enroll-scanner-viewfinder" style="margin:0 auto 12px; border-color:var(--yellow); box-shadow:0 0 25px var(--yellow-glow);">
+              <video id="enroll-camera-video" autoplay playsinline muted></video>
+              <div class="scan-laser" style="background:var(--yellow); box-shadow:0 0 10px var(--yellow);"></div>
+            </div>
+
+            <div id="enroll-scan-status" style="font-size:12px; font-weight:800; color:#FCD34D; margin-bottom:14px;">
+              Hold phone at eye level without helmet or glasses...
+            </div>
+
+            <div style="display:flex; gap:8px; width:100%;">
+              <button type="button" class="btn btn-secondary" style="flex:1;" onclick="backToEnrollmentGuide()">
+                Back
+              </button>
+              <button type="button" id="enroll-btn-snap" class="btn btn-primary" style="flex:2;" onclick="snapEnrollmentPhoto()">
+                <span>📸</span> Snap Master Photo
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP C: CONFIRMATION & REVIEW SHEET -->
+          <div id="enroll-step-review" style="width:100%; display:none;">
+            <div style="font-size:16px; font-weight:900; margin-bottom:4px;">
+              Review Your Master Photo
+            </div>
+            <div style="font-size:11.5px; color:var(--text-mute); margin-bottom:10px;">
+              Verify clarity before permanently locking into database
+            </div>
+
+            <div class="review-photo-circle">
+              <img id="enroll-review-img" src="" alt="Master Photo Preview">
+            </div>
+
+            <div class="quality-checklist">
+              <div class="quality-check-item">
+                <span style="color:var(--accent); font-weight:900;">✓</span> Face clearly visible & well-lit
+              </div>
+              <div class="quality-check-item">
+                <span style="color:var(--accent); font-weight:900;">✓</span> Eyes open, looking straight at camera
+              </div>
+              <div class="quality-check-item">
+                <span style="color:var(--accent); font-weight:900;">✓</span> No sunglasses, helmet, or mask
+              </div>
+            </div>
+
+            <div style="font-size:11px; color:#FEF3C7; background:rgba(245,158,11,0.15); border:1px solid #D97706; padding:8px 12px; border-radius:10px; margin-bottom:14px;">
+              ⚠️ <b>Confirm:</b> This will be locked as your permanent facial profile for daily ride access.
+            </div>
+
+            <div style="display:flex; gap:8px; width:100%;">
+              <button type="button" class="btn btn-secondary" style="flex:1;" onclick="retakeEnrollmentPhoto()">
+                <span>🔄</span> Retake
+              </button>
+              <button type="button" id="enroll-btn-confirm" class="btn btn-primary" style="flex:2;" onclick="confirmEnrollmentPhoto()">
+                <span>✅</span> Confirm & Lock KYC
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -546,7 +770,7 @@
           <span>⚡</span> KYC Architecture Sandbox
         </h2>
         <div style="font-size:12px; color:var(--text-mute);">
-          Simulating Rapido / Uber Style Production Biometric Security
+          Production Biometrics with Guided First Photo Onboarding
         </div>
       </div>
       <div style="font-size:10.5px; background:rgba(16,185,129,0.15); color:#6EE7B7; border:1px solid #059669; padding:4px 10px; border-radius:6px; font-weight:800;">
@@ -570,7 +794,7 @@
     <!-- TAB 1: KYC Master Enrollment -->
     <div id="tab-pane-1" class="tab-pane active">
       <p style="font-size:12.5px; color:#CBD5E1; line-height:1.5; margin-top:0;">
-        This establishes the <b>Master Facial Baseline</b> for the driver. In real production, this happens once during onboarding via live camera selfie.
+        This establishes the <b>Master Facial Baseline</b> for the driver. In real production, this happens once during onboarding via the guided live camera flow.
       </p>
 
       <div style="background:var(--bg-dark); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; display:flex; align-items:center; gap:14px;">
@@ -587,8 +811,8 @@
       </div>
 
       <div style="display:flex; flex-direction:column; gap:8px;">
-        <button type="button" class="btn btn-primary" onclick="openEnrollmentCam()">
-          <span>📷</span> Snap New KYC Baseline (Your Face)
+        <button type="button" class="btn btn-primary" onclick="openEnrollmentModal()">
+          <span>🛡️</span> Launch Guided First Photo Setup
         </button>
         <label class="btn btn-secondary" style="margin:0;">
           <span>📁</span> Upload Reference Photo From Disk
@@ -624,10 +848,10 @@
       <div style="font-size:12px; color:#CBD5E1; line-height:1.6;">
         <b>How Uber, Rapido, and Rydealot handle driver verification:</b>
         <ul style="margin:6px 0 0; padding-left:18px;">
-          <li><b>Documents (DL/RC):</b> Only used for government legal compliance and police verification. Never used for daily facial AI.</li>
-          <li><b>Zero-Lag Camera:</b> Camera runs at full 60 FPS HTML5 hardware acceleration without continuous CPU-hogging frame loops.</li>
+          <li><b>First Photo Guidance:</b> Clear warning that this photo is permanent, paired with 4 visual rules (lighting, no accessories, eye level, neutral expression).</li>
+          <li><b>Review Before Lock:</b> Driver explicitly inspects and approves the photo quality before it is permanently hashed into the database.</li>
+          <li><b>Zero-Lag Camera:</b> Camera runs at full 60 FPS HTML5 hardware acceleration with zero CPU-hogging frame loops.</li>
           <li><b>One-Shot ArcFace Inference:</b> AI executes strictly on button tap (~110 ms one-time check), ensuring instant feedback with zero phone heat or lag.</li>
-          <li><b>100% Lifetime Free:</b> MIT open-source ArcFace MobileFaceNet running on WebAssembly. ₹0.00 cloud API costs forever.</li>
         </ul>
       </div>
 
@@ -678,10 +902,13 @@
 <script>
   let onnxSession = null;
   let masterBiometricVector = null;
-  let activeCameraStream = null;
+  let activeShiftCameraStream = null;
+  let activeEnrollCameraStream = null;
   let isDriverOnline = false;
   let faceMesh = null;
   let pendingLandmarkResolver = null;
+  let temporaryEnrollmentSnapCanvas = null;
+  let temporaryEnrollmentLandmarks = null;
 
   const ONNX_MODEL_URL = 'models/arcface_mobilefacenet.onnx';
 
@@ -728,7 +955,7 @@
     }
   }
 
-  // 3. One-Shot Face Detection via MediaPipe with 1.2s timeout fallback
+  // 3. One-Shot Face Detection via MediaPipe
   function detectLandmarksOneShot(canvas) {
     return new Promise((resolve) => {
       if (!faceMesh) { resolve(null); return; }
@@ -765,13 +992,12 @@
       const bh = (maxY - minY) * sh;
       const cx = (minX + maxX) / 2 * sw;
       const cy = (minY + maxY) / 2 * sh;
-      const size = Math.max(bw, bh) * 1.35; // 35% margin
+      const size = Math.max(bw, bh) * 1.35; // 35% margin for ArcFace framing
       const sx = Math.max(0, cx - size / 2);
       const sy = Math.max(0, cy - size / 2);
       const dim = Math.min(sw - sx, sh - sy, size);
       cropBox = { sx, sy, sw: dim, sh: dim };
     } else {
-      // Centered square fallback
       const dim = Math.min(sw, sh) * 0.75;
       cropBox = { sx: (sw - dim) / 2, sy: (sh - dim) / 2, sw: dim, sh: dim };
     }
@@ -835,14 +1061,126 @@
     return dot;
   }
 
-  // ==================== APP LOGIC: GO ONLINE / OFFLINE ====================
+  // ==================== GUIDED KYC MASTER ENROLLMENT LOGIC ====================
+
+  function openEnrollmentModal() {
+    const modal = document.getElementById('app-enrollment-modal');
+    modal.style.display = 'flex';
+    document.getElementById('enroll-step-guide').style.display = 'block';
+    document.getElementById('enroll-step-camera').style.display = 'none';
+    document.getElementById('enroll-step-review').style.display = 'none';
+  }
+
+  function closeEnrollmentModal() {
+    const modal = document.getElementById('app-enrollment-modal');
+    modal.style.display = 'none';
+    stopEnrollmentCamera();
+  }
+
+  function backToEnrollmentGuide() {
+    stopEnrollmentCamera();
+    document.getElementById('enroll-step-guide').style.display = 'block';
+    document.getElementById('enroll-step-camera').style.display = 'none';
+    document.getElementById('enroll-step-review').style.display = 'none';
+  }
+
+  async function startEnrollmentCamera() {
+    document.getElementById('enroll-step-guide').style.display = 'none';
+    document.getElementById('enroll-step-camera').style.display = 'block';
+    document.getElementById('enroll-step-review').style.display = 'none';
+
+    const video = document.getElementById('enroll-camera-video');
+    const statusText = document.getElementById('enroll-scan-status');
+
+    try {
+      activeEnrollCameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } }
+      });
+      video.srcObject = activeEnrollCameraStream;
+      statusText.innerHTML = 'Hold phone at eye level without helmet or glasses...';
+      statusText.style.color = '#FCD34D';
+    } catch(err) {
+      statusText.innerHTML = '<span style="color:var(--red);">⚠️ Camera access required</span>';
+    }
+  }
+
+  function stopEnrollmentCamera() {
+    if (activeEnrollCameraStream) {
+      activeEnrollCameraStream.getTracks().forEach(t => t.stop());
+      activeEnrollCameraStream = null;
+    }
+  }
+
+  async function snapEnrollmentPhoto() {
+    const video = document.getElementById('enroll-camera-video');
+    const btnSnap = document.getElementById('enroll-btn-snap');
+    const statusText = document.getElementById('enroll-scan-status');
+
+    if (!activeEnrollCameraStream || video.readyState < 2) return;
+
+    btnSnap.disabled = true;
+    statusText.innerHTML = '⚡ Checking facial clarity...';
+
+    // 1. One-Shot Snap to Canvas
+    const snapCanvas = document.createElement('canvas');
+    snapCanvas.width = 480;
+    snapCanvas.height = 480;
+    const ctx = snapCanvas.getContext('2d');
+    ctx.translate(480, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, 480, 480);
+
+    // 2. Detect Landmarks
+    const landmarks = await detectLandmarksOneShot(snapCanvas);
+
+    temporaryEnrollmentSnapCanvas = snapCanvas;
+    temporaryEnrollmentLandmarks = landmarks;
+
+    stopEnrollmentCamera();
+    btnSnap.disabled = false;
+
+    // 3. Move to Step C: Review Screen
+    document.getElementById('enroll-step-camera').style.display = 'none';
+    document.getElementById('enroll-step-review').style.display = 'block';
+    document.getElementById('enroll-review-img').src = snapCanvas.toDataURL('image/jpeg', 0.9);
+  }
+
+  function retakeEnrollmentPhoto() {
+    startEnrollmentCamera();
+  }
+
+  async function confirmEnrollmentPhoto() {
+    if (!temporaryEnrollmentSnapCanvas) return;
+    const btnConfirm = document.getElementById('enroll-btn-confirm');
+    btnConfirm.disabled = true;
+    btnConfirm.innerHTML = '⚡ Locking Master KYC...';
+
+    const res = await computeBiometricEmbedding(temporaryEnrollmentSnapCanvas, temporaryEnrollmentLandmarks);
+    btnConfirm.disabled = false;
+    btnConfirm.innerHTML = '<span>✅</span> Confirm & Lock KYC';
+
+    if (res) {
+      masterBiometricVector = res.vector;
+      const photoUrl = temporaryEnrollmentSnapCanvas.toDataURL('image/jpeg', 0.9);
+
+      // Update Captain Avatar & Tab 1 Preview
+      document.getElementById('app-captain-avatar').src = photoUrl;
+      document.getElementById('lab-master-preview').src = photoUrl;
+      document.getElementById('lab-master-status').innerHTML = `✅ Master Baseline Enrolled (${res.latency}ms • 512-D L2)`;
+      document.getElementById('app-baseline-status-badge').className = 'badge-tag badge-approved';
+      document.getElementById('app-baseline-status-badge').textContent = 'ENROLLED';
+
+      closeEnrollmentModal();
+      alert('🎉 Official KYC Master Baseline Enrolled!\nThis photo is now permanently locked for your daily shift logins.');
+    }
+  }
+
+  // ==================== APP LOGIC: GO ONLINE / PRE-SHIFT CHECK ====================
 
   function handleShiftToggleClick() {
     if (isDriverOnline) {
-      // Go Offline instantly
       setDriverOnlineState(false);
     } else {
-      // Trigger Pre-Shift Biometric Modal
       openBiometricModal();
     }
   }
@@ -860,10 +1198,10 @@
     statusText.style.color = '#F9FAFB';
 
     try {
-      activeCameraStream = await navigator.mediaDevices.getUserMedia({
+      activeShiftCameraStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } }
       });
-      video.srcObject = activeCameraStream;
+      video.srcObject = activeShiftCameraStream;
     } catch(err) {
       statusText.innerHTML = '<span style="color:var(--red);">⚠️ Camera access required</span>';
     }
@@ -872,21 +1210,18 @@
   function closeBiometricModal() {
     const modal = document.getElementById('app-biometric-modal');
     modal.style.display = 'none';
-    if (activeCameraStream) {
-      activeCameraStream.getTracks().forEach(t => t.stop());
-      activeCameraStream = null;
+    if (activeShiftCameraStream) {
+      activeShiftCameraStream.getTracks().forEach(t => t.stop());
+      activeShiftCameraStream = null;
     }
   }
-
-  // ==================== ONE-SHOT FACE CHECK (RAPIDO/UBER STYLE) ====================
 
   async function executeOneShotFaceCheck() {
     const video = document.getElementById('modal-camera-video');
     const statusText = document.getElementById('modal-scan-status');
-    const viewfinder = document.getElementById('modal-scanner-viewfinder');
     const btnVerify = document.getElementById('modal-btn-verify');
 
-    if (!activeCameraStream || video.readyState < 2) return;
+    if (!activeShiftCameraStream || video.readyState < 2) return;
 
     btnVerify.disabled = true;
     statusText.innerHTML = '⚡ Verifying facial fingerprint...';
@@ -925,7 +1260,6 @@
     const teleStatus = document.getElementById('telemetry-status');
 
     if (!masterBiometricVector) {
-      // Auto-enroll if first run
       masterBiometricVector = liveVector;
       document.getElementById('app-captain-avatar').src = livePhotoData;
       document.getElementById('lab-master-preview').src = livePhotoData;
@@ -1003,11 +1337,6 @@
   function switchSandboxTab(idx) {
     document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === (idx - 1)));
     document.querySelectorAll('.tab-pane').forEach((p, i) => p.classList.toggle('active', i === (idx - 1)));
-  }
-
-  async function openEnrollmentCam() {
-    alert('Look at your camera in the Captain Phone on the left! Click "GO ONLINE" or snap a new baseline.');
-    openBiometricModal();
   }
 
   function uploadEnrollmentPhoto(input) {
