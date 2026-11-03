@@ -18,6 +18,13 @@
 <script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
 <script src="https://unpkg.com/@protomaps/basemaps@5.2.0/dist/basemaps.js" crossorigin="anonymous"></script>
 <script src="supermaps-adapter.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
+<script>
+  if (typeof ort !== 'undefined') {
+    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
+    ort.env.wasm.numThreads = 1;
+  }
+</script>
 <script src="face-api.min.js"></script>
 <script>
   if (typeof faceapi === 'undefined') {
@@ -740,46 +747,123 @@
   </div>
 </div>
 
-<!-- LIVE KYC CAMERA CAPTURE MODAL (3D MULTI-POSE LIVENESS) -->
+<!-- LIVE KYC CAMERA CAPTURE MODAL (3-STEP GUIDED MASTER ONBOARDING) -->
 <div id="rd-kyc-cam-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); z-index:99999; flex-direction:column; align-items:center; justify-content:center; padding:16px; color:#fff; box-sizing:border-box;">
-  <div style="background:#1e2229; border-radius:20px; padding:20px; max-width:340px; width:100%; display:flex; flex-direction:column; align-items:center; gap:12px; border:1.5px solid #22c55e; text-align:center; box-sizing:border-box;">
-    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-      <h3 style="font-size:15px; font-weight:900; margin:0; color:#fff;">🛡️ Driver Biometric Face Verification</h3>
-      <button type="button" id="rd-kyc-flip-btn" style="background:#334155; border:1px solid #475569; color:#cbd5e1; font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px; cursor:pointer;">🔄 Flip</button>
-    </div>
-    <p style="font-size:11px; color:#94a3b8; margin:0;">Position your face in the oval and hold still for 1 second to auto-verify.</p>
-
-    <!-- Biometric Status Indicator -->
-    <div style="display:flex; gap:6px; width:100%; justify-content:center; margin:2px 0;">
-      <div id="rd-kyc-step-1" style="flex:1; height:4px; border-radius:2px; background:#22c55e; transition:all 0.3s;" title="Face Detection & Auto-Capture"></div>
-    </div>
+  <div style="background:#1e2229; border-radius:24px; padding:20px; max-width:360px; width:100%; display:flex; flex-direction:column; align-items:center; border:1.5px solid #334155; text-align:center; box-sizing:border-box; max-height:92vh; overflow-y:auto; box-shadow:0 12px 40px rgba(0,0,0,0.7);">
     
-    <div id="rd-kyc-circle" style="position:relative; width:210px; height:250px; border-radius:105px; overflow:hidden; border:3px solid #22c55e; background:#000; box-shadow:0 0 25px rgba(34,197,94,0.25); transition:border-color 0.3s;">
-      <video id="rd-kyc-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1);"></video>
-      <img id="rd-kyc-snapshot-preview" style="display:none; width:100%; height:100%; object-fit:cover;">
-      <div id="rd-kyc-guide-ring" style="position:absolute; inset:14px; border:2px dashed rgba(255,255,255,0.4); border-radius:95px; pointer-events:none;"></div>
-    </div>
+    <!-- STEP 1: PRE-CAPTURE GUIDANCE -->
+    <div id="rd-kyc-step-guide" style="width:100%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:10px;">
+        <h3 style="font-size:15px; font-weight:900; margin:0; color:#fff; display:flex; align-items:center; gap:6px;">
+          <span>🛡️</span> Official KYC Biometric Photo
+        </h3>
+        <button type="button" id="rd-kyc-guide-close-btn" style="background:#334155; border:none; color:#cbd5e1; font-size:11px; font-weight:700; padding:4px 8px; border-radius:8px; cursor:pointer;">✕</button>
+      </div>
 
-    <div id="rd-kyc-instruction" style="font-size:12.5px; font-weight:800; color:#86efac; min-height:36px; display:flex; align-items:center; justify-content:center;">Align face inside oval...</div>
+      <!-- Permanent Identity Warning Notice -->
+      <div style="background:rgba(245,158,11,0.12); border:1.5px solid #d97706; border-radius:12px; padding:10px 12px; text-align:left; margin-bottom:12px; font-size:11px; line-height:1.45; color:#fef3c7;">
+        <div style="font-size:11px; font-weight:800; color:#fbbf24; display:flex; align-items:center; gap:5px; margin-bottom:3px; text-transform:uppercase;">
+          <span>⚠️</span> Permanent Identity Notice
+        </div>
+        This photo will become your <b>permanent Captain identity</b>. Every daily shift login and payout check will verify against this picture. Please ensure it is sharp and taken properly.
+      </div>
 
-    <!-- Action buttons -->
-    <div id="rd-kyc-actions" style="display:flex; flex-direction:column; gap:8px; width:100%;">
-      <div style="display:flex; gap:8px; width:100%;">
-        <button type="button" id="rd-kyc-cam-cancel-btn" style="flex:1; padding:10px; background:transparent; border:1px solid #555; color:#fff; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">Cancel</button>
-        <button type="button" id="rd-kyc-cam-restart-btn" style="display:none; flex:1.5; padding:10px; background:#ef4444; color:#fff; border:none; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">🔄 Retry Scan</button>
+      <!-- 4 Visual Rule Cards -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; text-align:left;">
+        <div style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:8px;">
+          <div style="font-size:16px;">💡</div>
+          <div style="font-size:11px; font-weight:800; color:#fff; margin:2px 0 1px;">Front Light</div>
+          <div style="font-size:9.5px; color:#94a3b8; line-height:1.3;">Face light source directly. No windows behind.</div>
+        </div>
+        <div style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:8px;">
+          <div style="font-size:16px;">👓</div>
+          <div style="font-size:11px; font-weight:800; color:#fff; margin:2px 0 1px;">No Accessories</div>
+          <div style="font-size:9.5px; color:#94a3b8; line-height:1.3;">Remove helmet, cap, sunglasses & mask.</div>
+        </div>
+        <div style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:8px;">
+          <div style="font-size:16px;">👁️</div>
+          <div style="font-size:11px; font-weight:800; color:#fff; margin:2px 0 1px;">Eye Level</div>
+          <div style="font-size:9.5px; color:#94a3b8; line-height:1.3;">Hold phone directly at eye level.</div>
+        </div>
+        <div style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:8px;">
+          <div style="font-size:16px;">😐</div>
+          <div style="font-size:11px; font-weight:800; color:#fff; margin:2px 0 1px;">Neutral Face</div>
+          <div style="font-size:9.5px; color:#94a3b8; line-height:1.3;">Look straight into camera with eyes open.</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+        <button type="button" id="rd-kyc-guide-start-btn" style="width:100%; padding:11px; background:#10b981; color:#000; border:none; border-radius:10px; font-size:13px; font-weight:900; cursor:pointer;">
+          📷 Open Camera &amp; Snap Photo
+        </button>
+        <button type="button" id="rd-kyc-guide-cancel-btn" style="width:100%; padding:9px; background:transparent; border:1px solid #555; color:#cbd5e1; border-radius:10px; font-size:11.5px; font-weight:700; cursor:pointer;">
+          Cancel
+        </button>
       </div>
     </div>
+
+    <!-- STEP 2: GUIDED CAMERA VIEWFINDER -->
+    <div id="rd-kyc-step-camera" style="width:100%; display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-bottom:8px;">
+        <span style="font-size:10px; font-weight:800; background:rgba(245,158,11,0.2); color:#fcd34d; border:1px solid #d97706; padding:3px 8px; border-radius:6px; text-transform:uppercase;">
+          🔒 Master Photo Capture
+        </span>
+        <button type="button" id="rd-kyc-flip-btn" style="background:#334155; border:1px solid #475569; color:#cbd5e1; font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px; cursor:pointer;">🔄 Flip</button>
+      </div>
+
+      <div id="rd-kyc-circle" style="position:relative; width:210px; height:250px; border-radius:105px; overflow:hidden; border:3px solid #f59e0b; background:#000; box-shadow:0 0 25px rgba(245,158,11,0.25); margin:0 auto 10px;">
+        <video id="rd-kyc-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1);"></video>
+        <div id="rd-kyc-guide-ring" style="position:absolute; inset:14px; border:2px dashed rgba(255,255,255,0.4); border-radius:95px; pointer-events:none;"></div>
+      </div>
+
+      <div id="rd-kyc-instruction" style="font-size:12px; font-weight:800; color:#fcd34d; min-height:30px; display:flex; align-items:center; justify-content:center;">
+        Align face inside oval at eye level...
+      </div>
+
+      <div style="display:flex; gap:8px; width:100%; margin-top:6px;">
+        <button type="button" id="rd-kyc-cam-back-btn" style="flex:1; padding:10px; background:transparent; border:1px solid #555; color:#fff; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">Back</button>
+        <button type="button" id="rd-kyc-snap-btn" style="flex:2; padding:10px; background:#10b981; color:#000; border:none; border-radius:10px; font-size:12.5px; font-weight:900; cursor:pointer;">📸 Snap Master Photo</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: POST-CAPTURE REVIEW SCREEN -->
+    <div id="rd-kyc-step-review" style="width:100%; display:none;">
+      <h3 style="font-size:15px; font-weight:900; margin:0 0 4px; color:#fff;">Review Master Photo</h3>
+      <p style="font-size:11px; color:#94a3b8; margin:0 0 10px;">Ensure your face is sharp and clear before locking.</p>
+
+      <div style="width:150px; height:150px; border-radius:50%; overflow:hidden; border:3px solid #10b981; box-shadow:0 0 25px rgba(16,185,129,0.3); margin:0 auto 12px; background:#000;">
+        <img id="rd-kyc-review-img" src="" alt="Master Photo Preview" style="width:100%; height:100%; object-fit:cover;">
+      </div>
+
+      <div style="background:#0f172a; border:1px solid #334155; border-radius:10px; padding:8px 12px; margin-bottom:12px; text-align:left; font-size:10.5px; color:#cbd5e1;">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="color:#10b981; font-weight:900;">✓</span> Face clearly visible and well-lit</div>
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="color:#10b981; font-weight:900;">✓</span> Eyes open, looking straight at camera</div>
+        <div style="display:flex; align-items:center; gap:6px;"><span style="color:#10b981; font-weight:900;">✓</span> No sunglasses, helmet, or mask</div>
+      </div>
+
+      <div style="font-size:10.5px; color:#fef3c7; background:rgba(245,158,11,0.15); border:1px solid #d97706; padding:6px 10px; border-radius:8px; margin-bottom:12px;">
+        ⚠️ <b>Locked:</b> All daily shift logins will verify against this photo.
+      </div>
+
+      <div style="display:flex; gap:8px; width:100%;">
+        <button type="button" id="rd-kyc-retake-btn" style="flex:1; padding:10px; background:#334155; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">🔄 Retake</button>
+        <button type="button" id="rd-kyc-confirm-lock-btn" style="flex:2; padding:10px; background:#10b981; color:#000; border:none; border-radius:10px; font-size:12.5px; font-weight:900; cursor:pointer;">✅ Confirm &amp; Lock KYC</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<!-- BIOMETRIC FACE CHECK MODAL OVERLAY -->
+<!-- BIOMETRIC PRE-SHIFT FACE CHECK MODAL OVERLAY (ZERO-LAG ONE-SHOT ARCFACE) -->
 <div id="rd-face-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:20px; color:#fff; text-align:center; box-sizing:border-box;">
-  <div style="background:#1e2229; border-radius:20px; padding:20px; max-width:340px; width:100%; display:flex; flex-direction:column; align-items:center; gap:12px; border:1px solid #333; box-sizing:border-box;">
+  <div style="background:#1e2229; border-radius:24px; padding:20px; max-width:340px; width:100%; display:flex; flex-direction:column; align-items:center; gap:12px; border:1.5px solid #334155; box-sizing:border-box; box-shadow:0 12px 40px rgba(0,0,0,0.7);">
     <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-      <h3 style="font-size:15px; font-weight:800; margin:0; color:#fff;">📸 Driver Biometric Face Check</h3>
-      <button type="button" id="rd-face-flip-btn" style="background:#334155; border:1px solid #475569; color:#cbd5e1; font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px; cursor:pointer;" title="Switch between front and rear camera">🔄 Flip</button>
+      <h3 style="font-size:15px; font-weight:800; margin:0; color:#fff; display:flex; align-items:center; gap:6px;">
+        <span>🛡️</span> Captain Face Check
+      </h3>
+      <button type="button" id="rd-face-flip-btn" style="background:#334155; border:1px solid #475569; color:#cbd5e1; font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px; cursor:pointer;" title="Switch camera">🔄 Flip</button>
     </div>
-    <p style="font-size:11px; color:#94a3b8; margin:0;">Real-time biometric match against your registered KYC profile photo.</p>
+    <p style="font-size:11px; color:#94a3b8; margin:0;">Position your face in the oval and verify to start your shift.</p>
     
     <!-- Comparison strip -->
     <div style="display:flex; align-items:center; justify-content:center; gap:14px; width:100%; margin:2px 0;">
@@ -788,29 +872,36 @@
           <img id="rd-face-ref-img" src="" alt="KYC Baseline" style="width:100%; height:100%; object-fit:cover; display:none;">
           <span id="rd-face-ref-placeholder" style="font-size:22px;">👤</span>
         </div>
-        <span style="font-size:9px; font-weight:800; color:#93c5fd; text-transform:uppercase;">KYC Photo</span>
+        <span style="font-size:9px; font-weight:800; color:#93c5fd; text-transform:uppercase;">Master KYC</span>
       </div>
       <div style="font-size:16px; color:#64748b;">⚡</div>
       <div style="text-align:center;">
-        <div style="width:48px; height:48px; border-radius:50%; border:2px solid #22c55e; overflow:hidden; margin:0 auto 3px; background:#0f172a; display:flex; align-items:center; justify-content:center;">
+        <div style="width:48px; height:48px; border-radius:50%; border:2px solid #10b981; overflow:hidden; margin:0 auto 3px; background:#0f172a; display:flex; align-items:center; justify-content:center;">
           <canvas id="rd-face-live-thumb" width="48" height="48" style="width:100%; height:100%; object-fit:cover;"></canvas>
         </div>
-        <span style="font-size:9px; font-weight:800; color:#86efac; text-transform:uppercase;">Live Feed</span>
+        <span style="font-size:9px; font-weight:800; color:#6ee7b7; text-transform:uppercase;">Live Feed</span>
       </div>
     </div>
 
-    <div id="rd-face-circle" style="position:relative; width:180px; height:180px; border-radius:50%; overflow:hidden; border:3.5px solid var(--signal); transition:border-color 0.3s ease; box-shadow:0 0 20px rgba(245,158,11,0.2);">
+    <!-- Butter-Smooth 60 FPS Viewfinder -->
+    <div id="rd-face-circle" style="position:relative; width:190px; height:230px; border-radius:95px; overflow:hidden; border:3.5px solid #10b981; transition:border-color 0.25s, box-shadow 0.25s; box-shadow:0 0 25px rgba(16,185,129,0.25); background:#000;">
       <video id="rd-face-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1);"></video>
-      <canvas id="rd-face-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; display:none;"></canvas>
-      <div id="rd-face-guide-oval" style="position:absolute; inset:16px; border:2px dashed rgba(255,255,255,0.45); border-radius:50%; pointer-events:none; box-sizing:border-box;"></div>
+      <div id="rd-face-guide-oval" style="position:absolute; inset:14px; border:2px dashed rgba(255,255,255,0.45); border-radius:85px; pointer-events:none;"></div>
     </div>
 
-    <div id="rd-face-status" style="font-size:12.5px; font-weight:800; color:var(--signal); min-height:36px; display:flex; align-items:center; justify-content:center;">Detecting camera...</div>
+    <div id="rd-face-status" style="font-size:12px; font-weight:800; color:#6ee7b7; min-height:28px; display:flex; align-items:center; justify-content:center;">
+      Align face inside oval...
+    </div>
 
-    <div id="rd-face-actions" style="display:flex; gap:8px; width:100%; margin-top:2px;">
-      <button type="button" id="rd-face-cancel-btn" style="flex:1; padding:9px; background:#334155; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">Cancel</button>
-      <button type="button" id="rd-face-retry-btn" style="display:none; flex:1.5; padding:9px; background:#ef4444; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">🔄 Retry Scan</button>
-      <button type="button" id="rd-face-portal-btn" style="display:none; flex:2; padding:9px; background:#4f46e5; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">📄 Open Document Portal</button>
+    <div id="rd-face-actions" style="display:flex; flex-direction:column; gap:6px; width:100%;">
+      <button type="button" id="rd-face-verify-btn" style="width:100%; padding:11px; background:#10b981; color:#000; border:none; border-radius:10px; font-size:13px; font-weight:900; cursor:pointer;">
+        ⚡ Verify &amp; Go Online
+      </button>
+      <div style="display:flex; gap:8px; width:100%;">
+        <button type="button" id="rd-face-cancel-btn" style="flex:1; padding:9px; background:#334155; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer;">Cancel</button>
+        <button type="button" id="rd-face-retry-btn" style="display:none; flex:1.5; padding:9px; background:#ef4444; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">🔄 Retry Scan</button>
+        <button type="button" id="rd-face-portal-btn" style="display:none; flex:2; padding:9px; background:#4f46e5; border:none; color:#fff; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">📄 Open Documents</button>
+      </div>
     </div>
   </div>
 </div>
@@ -896,6 +987,6 @@
 <script src="driver-compliance.js?v=3.4"></script>
 <script src="animations.js?v=3.4"></script>
 <script src="app.js?v=5.5"></script>
-<script src="driver-kyc.js?v=1.2"></script>
+<script src="driver-kyc.js?v=6.0"></script>
 </body>
 </html>
