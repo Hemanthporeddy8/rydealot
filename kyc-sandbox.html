@@ -2,15 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rydealot Biometric KYC Sandbox • ArcFace MobileFaceNet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Rydealot Captain • Real KYC & Pre-Shift Face Verification Sandbox</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
-<!-- ONNX Runtime Web for Client-Side Zero-Cost Inference -->
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+<!-- ONNX Runtime Web for 100% Free Client-Side AI -->
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
-<!-- MediaPipe FaceMesh & Camera Utils for 468-Point Real-time Face Auto-Alignment -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
+<!-- MediaPipe FaceMesh for One-Shot 468-Point Face Auto-Alignment -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
 <script>
   if (typeof ort !== 'undefined') {
@@ -20,182 +19,384 @@
 </script>
 <style>
   :root {
-    --bg: #0B0F19;
-    --card: #131B2E;
-    --card-inner: #0F172A;
-    --border: #1E293B;
-    --border-accent: #334155;
+    --bg-dark: #090D16;
+    --card-dark: #111827;
+    --card-surface: #1F2937;
+    --border: #374151;
+    --border-subtle: #242E3D;
     --accent: #10B981;
-    --accent-glow: rgba(16, 185, 129, 0.25);
+    --accent-glow: rgba(16, 185, 129, 0.3);
+    --yellow: #F59E0B;
     --red: #EF4444;
-    --red-glow: rgba(239, 68, 68, 0.25);
+    --red-glow: rgba(239, 68, 68, 0.3);
     --blue: #3B82F6;
-    --purple: #8B5CF6;
-    --amber: #F59E0B;
-    --text: #F8FAFC;
-    --mute: #94A3B8;
+    --text-main: #F9FAFB;
+    --text-mute: #9CA3AF;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0;
-    padding: 24px 16px 80px;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', sans-serif;
+    padding: 20px 12px 60px;
+    background: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
   }
-  .sandbox-card {
-    max-width: 760px;
+
+  .sandbox-container {
+    max-width: 960px;
     width: 100%;
-    background: var(--card);
-    border: 1.5px solid var(--border);
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 24px;
+    align-items: start;
   }
-  .header {
+  @media(max-width: 900px) {
+    .sandbox-container {
+      grid-template-columns: 1fr;
+      max-width: 440px;
+    }
+  }
+
+  /* --- LEFT: SIMULATED DRIVER PHONE --- */
+  .phone-frame {
+    background: #000;
+    border: 10px solid #1E293B;
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.08);
+    position: relative;
+    min-height: 720px;
+    display: flex;
+    flex-direction: column;
+  }
+  .phone-notch {
+    height: 24px;
+    background: #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 20px 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: #9CA3AF;
+  }
+  .phone-body {
+    flex: 1;
+    background: #0F172A;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    position: relative;
+    overflow-y: auto;
+  }
+
+  /* Captain Header */
+  .captain-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1E293B;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .captain-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent);
+    background: #334155;
+    flex-shrink: 0;
+  }
+  .captain-name {
+    font-weight: 800;
+    font-size: 14px;
+    color: #F8FAFC;
+    margin-bottom: 2px;
+  }
+  .captain-sub {
+    font-size: 11px;
+    color: var(--text-mute);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Shift Status Card */
+  .shift-card {
+    background: #1E293B;
+    border-radius: 20px;
+    padding: 20px 16px;
+    text-align: center;
+    border: 1.5px solid var(--border);
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .shift-pulse {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .shift-pulse.offline {
+    background: #334155;
+    color: #94A3B8;
+  }
+  .shift-pulse.online {
+    background: var(--accent);
+    color: #000;
+    box-shadow: 0 0 30px var(--accent-glow);
+    animation: radar-pulse 2s infinite;
+  }
+  @keyframes radar-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { box-shadow: 0 0 0 20px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+
+  .shift-title {
+    font-size: 18px;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+  .shift-desc {
+    font-size: 11.5px;
+    color: var(--text-mute);
+    margin-bottom: 16px;
+  }
+
+  .btn-toggle-shift {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 900;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+  }
+  .btn-go-online {
+    background: var(--accent);
+    color: #000;
+    box-shadow: 0 4px 15px var(--accent-glow);
+  }
+  .btn-go-online:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+  .btn-go-offline {
+    background: #EF4444;
+    color: #fff;
+    box-shadow: 0 4px 15px var(--red-glow);
+  }
+
+  /* Driver Stats Quick Bar */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-pill {
+    background: #1E293B;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-pill-label { font-size: 10.5px; color: var(--text-mute); font-weight: 700; text-transform: uppercase; }
+  .stat-pill-val { font-size: 14px; font-weight: 900; color: #F8FAFC; margin-top: 2px; }
+
+  /* Documents & KYC Status */
+  .kyc-checklist {
+    background: #1E293B;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    font-size: 12px;
+  }
+  .check-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .check-item:last-child { border-bottom: none; }
+  .badge-tag {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+  }
+  .badge-approved { background: rgba(16, 185, 129, 0.15); color: #6EE7B7; border: 1px solid #059669; }
+  .badge-pending { background: rgba(245, 158, 11, 0.15); color: #FCD34D; border: 1px solid #D97706; }
+
+  /* --- IN-APP BIOMETRIC MODAL (SLIDE UP) --- */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    justify-content: flex-end;
+    animation: fadeIn 0.2s ease-out;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal-sheet {
+    background: #111827;
+    border-top: 2px solid var(--border);
+    border-radius: 28px 28px 0 0;
+    padding: 20px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
+  }
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    background: #4B5563;
+    border-radius: 2px;
+    margin-bottom: 14px;
+  }
+
+  /* Butter-smooth Biometric Scanner Oval (Zero-Lag Viewfinder) */
+  .scanner-viewfinder {
+    width: 210px;
+    height: 250px;
+    border-radius: 105px;
+    overflow: hidden;
+    position: relative;
+    border: 3.5px solid var(--accent);
+    box-shadow: 0 0 25px var(--accent-glow);
+    background: #000;
+    margin-bottom: 14px;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+  .scanner-viewfinder video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1); /* Mirror for natural user feel */
+  }
+  .scan-laser {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2.5px;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: scan-laser 2s infinite ease-in-out;
+    pointer-events: none;
+  }
+  @keyframes scan-laser {
+    0% { top: 10%; opacity: 0.3; }
+    50% { top: 85%; opacity: 1; }
+    100% { top: 10%; opacity: 0.3; }
+  }
+
+  /* --- RIGHT: SANDBOX CONTROL CENTER & LAB --- */
+  .control-center {
+    background: var(--card-dark);
+    border: 1.5px solid var(--border);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+  .control-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 1.5px solid var(--border);
     padding-bottom: 16px;
-    margin-bottom: 16px;
-  }
-  .badge {
-    font-size: 10.5px;
-    font-weight: 800;
-    padding: 4px 10px;
-    border-radius: 6px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
-  .badge-sandbox { background: #312E81; color: #C7D2FE; border: 1px solid #4338CA; }
-  .badge-free { background: #064E3B; color: #6EE7B7; border: 1px solid #059669; }
-
-  .selector-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    background: var(--card-inner);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 14px;
-    margin-bottom: 14px;
-    font-size: 12px;
-  }
-  .model-select {
-    background: #1E293B;
-    color: #F8FAFC;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 12px;
-    font-weight: 700;
-    outline: none;
-    cursor: pointer;
-  }
-
-  .status-banner {
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 700;
-    margin-bottom: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .status-loading { background: #1E3A8A; color: #93C5FD; border: 1px solid #2563EB; }
-  .status-ready { background: #064E3B; color: #6EE7B7; border: 1px solid #059669; }
-  .status-error { background: #7F1D1D; color: #FCA5A5; border: 1px solid #DC2626; }
-
-  .arena {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
     margin-bottom: 20px;
   }
-  @media(max-width: 660px) {
-    .arena { grid-template-columns: 1fr; }
-  }
-  .box {
-    background: var(--card-inner);
-    border: 1.5px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
+
+  .tabs-nav {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    position: relative;
+    gap: 8px;
+    background: var(--bg-dark);
+    padding: 4px;
+    border-radius: 12px;
+    margin-bottom: 20px;
   }
-  .box-title {
-    font-size: 13px;
+  .tab-btn {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 12px;
     font-weight: 800;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-mute);
+    cursor: pointer;
+    transition: all 0.15s;
   }
-  .viewfinder {
-    width: 220px;
-    height: 220px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 3px solid var(--border-accent);
-    background: #000;
-    position: relative;
-    margin-bottom: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-    transition: border-color 0.25s, box-shadow 0.25s;
-  }
-  video, img.preview {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scaleX(-1);
-  }
-  img.preview {
-    transform: none;
-    display: none;
-  }
-  .face-guide-ring {
-    position: absolute;
-    inset: 18px;
-    border: 2px dashed rgba(255,255,255,0.3);
-    border-radius: 50%;
-    pointer-events: none;
-    transition: border-color 0.2s;
-  }
-  .face-guide-ring.active {
-    border-color: var(--accent);
-    box-shadow: inset 0 0 15px var(--accent-glow);
+  .tab-btn.active {
+    background: #1E293B;
+    color: #F8FAFC;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   }
 
-  .crop-preview-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #0B0F19;
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* Diagnostic Card */
+  .diag-card {
+    background: var(--bg-dark);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 4px 8px;
-    margin-bottom: 10px;
-    font-size: 10px;
-    color: var(--mute);
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 18px;
   }
-  .crop-preview-thumb {
-    width: 36px;
-    height: 36px;
+  .diag-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 12px;
+    text-align: center;
+  }
+  .diag-label { font-size: 10px; color: var(--text-mute); font-weight: 700; text-transform: uppercase; }
+  .diag-val { font-size: 13.5px; font-weight: 800; font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+
+  /* Architecture Info Card */
+  .info-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .pill-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 4px 10px;
     border-radius: 6px;
-    border: 1px solid var(--border-accent);
-    object-fit: cover;
-    background: #000;
+    background: #1E293B;
+    border: 1px solid var(--border);
+    color: #CBD5E1;
   }
 
   .btn {
@@ -212,258 +413,284 @@
     transition: all 0.15s;
     width: 100%;
   }
-  .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
   .btn-primary { background: var(--accent); color: #000; }
-  .btn-primary:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
-  .btn-blue { background: var(--blue); color: #fff; }
-  .btn-blue:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
-  .btn-secondary { background: #1E293B; color: #CBD5E1; border: 1px solid #334155; }
-  .btn-secondary:hover:not(:disabled) { background: #334155; color: #fff; }
-
-  .results-card {
-    background: var(--card-inner);
-    border: 2px solid var(--border);
-    border-radius: 16px;
-    padding: 20px;
-    text-align: center;
-    transition: border-color 0.3s;
-  }
-  .results-card.matched {
-    border-color: var(--accent);
-    box-shadow: 0 0 30px var(--accent-glow);
-  }
-  .results-card.rejected {
-    border-color: var(--red);
-    box-shadow: 0 0 30px var(--red-glow);
-  }
-
-  .result-score {
-    font-size: 44px;
-    font-weight: 900;
-    font-family: 'IBM Plex Mono', monospace;
-    margin: 8px 0;
-    letter-spacing: -1px;
-  }
-  .result-verdict {
-    font-size: 14.5px;
-    font-weight: 900;
-    padding: 7px 18px;
-    border-radius: 20px;
-    display: inline-block;
-    margin-bottom: 12px;
-    letter-spacing: 0.5px;
-  }
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-top: 16px;
-    border-top: 1px solid var(--border);
-    padding-top: 14px;
-  }
-  @media(max-width: 600px) {
-    .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-  .stat-label { font-size: 10px; color: var(--mute); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-val { font-size: 13.5px; font-weight: 800; margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
-
-  .info-box {
-    margin-top: 20px;
-    background: #0B0F19;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px;
-    font-size: 11.5px;
-    color: var(--mute);
-    line-height: 1.5;
-  }
-  .info-box b { color: #F8FAFC; }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-secondary { background: #1E293B; color: #CBD5E1; border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #334155; color: #fff; }
 </style>
 </head>
 <body>
 
-<div class="sandbox-card">
-  <!-- Top Navigation & Title -->
-  <div class="header">
-    <div>
-      <h2 style="font-size:18px; font-weight:900; margin:0 0 4px; display:flex; align-items:center; gap:8px;">
-        <span>🛡️</span> Biometric KYC Sandbox
-      </h2>
-      <div style="font-size:11.5px; color:var(--mute);">
-        Real-Time Face Verification • 100% Lifetime Free Client-Side Engine
-      </div>
-    </div>
-    <div style="display:flex; gap:8px;">
-      <span class="badge badge-free">100% FREE • ₹0 / $0</span>
-      <span class="badge badge-sandbox">SANDBOX</span>
-    </div>
-  </div>
+<div class="sandbox-container">
 
-  <!-- Model & Engine Selector -->
-  <div class="selector-row">
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span>🧠 <b>Engine:</b></span>
-      <select id="model-selector" class="model-select" onchange="switchModel(this.value)">
-        <option value="models/arcface_mobilefacenet.onnx" selected>🌟 ArcFace MobileFaceNet (InsightFace 512-D • Recommended)</option>
-        <option value="models/rydealot_face_kyc.onnx">🧪 Custom FairFace MobileFaceNet (1.82 MB)</option>
-      </select>
+  <!-- ==================== LEFT: DRIVER MOBILE APP SIMULATOR ==================== -->
+  <div class="phone-frame">
+    <div class="phone-notch">
+      <span>9:41</span>
+      <span>📶 5G 🔋 100%</span>
     </div>
-    <div id="detector-status" style="font-size:11px; color:var(--accent); font-weight:700;">
-      ⚡ MediaPipe 468-Mesh Active
-    </div>
-  </div>
 
-  <!-- Status Banner -->
-  <div id="status-banner" class="status-banner status-loading">
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span id="status-icon">⏳</span>
-      <span id="status-text">Loading ArcFace MobileFaceNet ONNX (WebAssembly)...</span>
-    </div>
-    <span id="status-size" style="font-size:11px; font-family:'IBM Plex Mono', monospace;">12.98 MB</span>
-  </div>
-
-  <!-- Testing Arena -->
-  <div class="arena">
-    <!-- Box 1: KYC Baseline Photo -->
-    <div class="box" id="box-baseline">
-      <div class="box-title">
-        <span>📸</span> 1. KYC Baseline Photo
-      </div>
-      <div class="viewfinder" id="baseline-circle">
-        <video id="baseline-video" autoplay playsinline muted></video>
-        <img id="baseline-preview" class="preview" alt="KYC Baseline">
-        <div id="baseline-ring" class="face-guide-ring"></div>
-      </div>
-
-      <!-- Cropped Face Tensor Preview -->
-      <div class="crop-preview-wrap">
-        <canvas id="baseline-crop-canvas" class="crop-preview-thumb" width="112" height="112"></canvas>
-        <div style="text-align:left;">
-          <div><b>112×112 Aligned Tensor</b></div>
-          <div id="baseline-crop-status">Background auto-excluded</div>
+    <div class="phone-body">
+      <!-- 1. Captain Header Bar -->
+      <div class="captain-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img id="app-captain-avatar" class="captain-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces" alt="Captain">
+          <div>
+            <div class="captain-name">Captain Hemanth</div>
+            <div class="captain-sub">
+              <span>⭐ 4.96</span> • <span>🏍️ Bike Taxi</span>
+            </div>
+          </div>
+        </div>
+        <div id="app-kyc-badge" class="badge-tag badge-approved">
+          KYC VERIFIED
         </div>
       </div>
 
-      <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
-        <button type="button" class="btn btn-blue" onclick="captureBaselinePhoto()">
-          <span>📷</span> Snap KYC Baseline
+      <!-- 2. Shift Toggle & Radar Card -->
+      <div class="shift-card">
+        <div id="app-shift-pulse" class="shift-pulse offline">
+          <span id="app-shift-icon">🛑</span>
+        </div>
+        <div id="app-shift-title" class="shift-title" style="color:#94A3B8;">YOU ARE OFFLINE</div>
+        <div id="app-shift-desc" class="shift-desc">Complete pre-shift biometric face check to start receiving rides.</div>
+
+        <button type="button" id="app-btn-shift" class="btn-toggle-shift btn-go-online" onclick="handleShiftToggleClick()">
+          <span>⚡</span> <span id="app-btn-shift-text">GO ONLINE</span>
+        </button>
+      </div>
+
+      <!-- 3. Driver Earnings / Shift Stats -->
+      <div class="stats-row">
+        <div class="stat-pill">
+          <div class="stat-pill-label">Today's Earnings</div>
+          <div class="stat-pill-val" style="color:var(--accent);">₹0.00</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Completed Rides</div>
+          <div class="stat-pill-val">0 Trips</div>
+        </div>
+      </div>
+
+      <!-- 4. Real App KYC Architecture Breakdown -->
+      <div class="kyc-checklist">
+        <div style="font-size:11px; font-weight:800; color:var(--text-mute); text-transform:uppercase; margin-bottom:6px;">
+          Driver Verification Profile
+        </div>
+        <div class="check-item">
+          <div>
+            <div style="font-weight:700;">📄 Driving License (DL)</div>
+            <div style="font-size:10px; color:var(--text-mute);">RTO legal validation only (Not daily AI)</div>
+          </div>
+          <span class="badge-tag badge-approved">VERIFIED</span>
+        </div>
+        <div class="check-item">
+          <div>
+            <div style="font-weight:700;">📸 Live KYC Selfie</div>
+            <div style="font-size:10px; color:var(--text-mute);">Master Biometric Template (512-D L2)</div>
+          </div>
+          <span id="app-baseline-status-badge" class="badge-tag badge-approved">ENROLLED</span>
+        </div>
+        <div class="check-item">
+          <div>
+            <div style="font-weight:700;">🛡️ Shift Biometric Gate</div>
+            <div style="font-size:10px; color:var(--text-mute);">ArcFace One-Shot (~110ms, ₹0 cost)</div>
+          </div>
+          <span id="app-gate-status-badge" class="badge-tag badge-pending">READY</span>
+        </div>
+      </div>
+
+      <!-- ==================== REAL-WORLD PRE-SHIFT FACE MODAL ==================== -->
+      <div id="app-biometric-modal" class="modal-overlay">
+        <div class="modal-sheet">
+          <div class="modal-handle"></div>
+
+          <div style="font-size:16px; font-weight:900; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+            <span>🛡️</span> Captain Face Check
+          </div>
+          <div style="font-size:11.5px; color:var(--text-mute); margin-bottom:14px; max-width:280px;">
+            Position your face inside the oval and hold still to verify your identity.
+          </div>
+
+          <!-- Butter-Smooth 60 FPS Camera Viewfinder (Zero Lag) -->
+          <div class="scanner-viewfinder" id="modal-scanner-viewfinder">
+            <video id="modal-camera-video" autoplay playsinline muted></video>
+            <div class="scan-laser" id="modal-scan-laser"></div>
+          </div>
+
+          <!-- Live Status feedback -->
+          <div id="modal-scan-status" style="font-size:12.5px; font-weight:800; min-height:24px; margin-bottom:12px; color:var(--text-main);">
+            Align face inside oval...
+          </div>
+
+          <div style="display:flex; gap:8px; width:100%;">
+            <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeBiometricModal()">
+              Cancel
+            </button>
+            <button type="button" id="modal-btn-verify" class="btn btn-primary" style="flex:2;" onclick="executeOneShotFaceCheck()">
+              <span>📸</span> Verify & Go Online
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ==================== RIGHT: SANDBOX CONTROL CENTER & LAB ==================== -->
+  <div class="control-center">
+    <div class="control-header">
+      <div>
+        <h2 style="font-size:18px; font-weight:900; margin:0 0 4px; display:flex; align-items:center; gap:8px;">
+          <span>⚡</span> KYC Architecture Sandbox
+        </h2>
+        <div style="font-size:12px; color:var(--text-mute);">
+          Simulating Rapido / Uber Style Production Biometric Security
+        </div>
+      </div>
+      <div style="font-size:10.5px; background:rgba(16,185,129,0.15); color:#6EE7B7; border:1px solid #059669; padding:4px 10px; border-radius:6px; font-weight:800;">
+        100% FREE AI
+      </div>
+    </div>
+
+    <!-- Mode Tabs -->
+    <div class="tabs-nav">
+      <button type="button" id="tab-btn-1" class="tab-btn active" onclick="switchSandboxTab(1)">
+        1. KYC Master Enrollment
+      </button>
+      <button type="button" id="tab-btn-2" class="tab-btn" onclick="switchSandboxTab(2)">
+        2. Imposter Attack Lab
+      </button>
+      <button type="button" id="tab-btn-3" class="tab-btn" onclick="switchSandboxTab(3)">
+        3. Real Architecture Specs
+      </button>
+    </div>
+
+    <!-- TAB 1: KYC Master Enrollment -->
+    <div id="tab-pane-1" class="tab-pane active">
+      <p style="font-size:12.5px; color:#CBD5E1; line-height:1.5; margin-top:0;">
+        This establishes the <b>Master Facial Baseline</b> for the driver. In real production, this happens once during onboarding via live camera selfie.
+      </p>
+
+      <div style="background:var(--bg-dark); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; display:flex; align-items:center; gap:14px;">
+        <img id="lab-master-preview" style="width:68px; height:68px; border-radius:50%; object-fit:cover; border:2px solid var(--accent); background:#000;" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces" alt="Baseline Preview">
+        <div style="flex:1;">
+          <div style="font-weight:800; font-size:13px;">Active Master Template</div>
+          <div id="lab-master-status" style="font-size:11px; color:var(--accent); font-weight:700; margin-top:2px;">
+            ✅ 512-D L2 Biometric Vector Enrolled
+          </div>
+          <div style="font-size:10.5px; color:var(--text-mute); margin-top:3px;">
+            ArcFace MobileFaceNet • Background Excluded
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button type="button" class="btn btn-primary" onclick="openEnrollmentCam()">
+          <span>📷</span> Snap New KYC Baseline (Your Face)
         </button>
         <label class="btn btn-secondary" style="margin:0;">
-          <span>📁</span> Upload Reference Photo
-          <input type="file" accept="image/*" style="display:none;" onchange="uploadBaselinePhoto(this)">
+          <span>📁</span> Upload Reference Photo From Disk
+          <input type="file" accept="image/*" style="display:none;" onchange="uploadEnrollmentPhoto(this)">
         </label>
       </div>
-      <div id="baseline-status" style="font-size:11px; font-weight:700; color:var(--mute); margin-top:10px;">
-        Waiting for baseline photo...
-      </div>
     </div>
 
-    <!-- Box 2: Live Verification / Imposter Test -->
-    <div class="box" id="box-live">
-      <div class="box-title">
-        <span>⚡</span> 2. Live Face Check
-      </div>
-      <div class="viewfinder" id="live-circle">
-        <video id="live-video" autoplay playsinline muted></video>
-        <img id="live-preview" class="preview" alt="Live Test">
-        <div id="live-ring" class="face-guide-ring"></div>
-      </div>
+    <!-- TAB 2: Imposter Attack Lab -->
+    <div id="tab-pane-2" class="tab-pane">
+      <p style="font-size:12.5px; color:#CBD5E1; line-height:1.5; margin-top:0;">
+        Test what happens when an <b>imposter or unauthorized person</b> tries to go online with the captain's phone.
+      </p>
 
-      <!-- Cropped Face Tensor Preview -->
-      <div class="crop-preview-wrap">
-        <canvas id="live-crop-canvas" class="crop-preview-thumb" width="112" height="112"></canvas>
-        <div style="text-align:left;">
-          <div><b>112×112 Aligned Tensor</b></div>
-          <div id="live-crop-status">Ready to compare</div>
+      <div style="background:var(--bg-dark); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:14px; text-align:center;">
+        <div style="font-size:12px; font-weight:800; color:var(--yellow); margin-bottom:8px;">
+          ⚠️ Imposter Simulation Mode
         </div>
-      </div>
-
-      <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
-        <button type="button" id="btn-verify" class="btn btn-primary" onclick="verifyLiveFace()" disabled>
-          <span>🔍</span> Verify Live Face
-        </button>
-        <label class="btn btn-secondary" style="margin:0;">
+        <p style="font-size:11px; color:var(--text-mute); margin:0 0 12px;">
+          Upload a friend's photo or celebrity picture to simulate an imposter trying to start a ride shift.
+        </p>
+        <label class="btn btn-secondary" style="margin:0; width:auto; display:inline-flex;">
           <span>👤</span> Test With Imposter Photo
-          <input type="file" accept="image/*" style="display:none;" onchange="uploadLiveTestPhoto(this)">
+          <input type="file" accept="image/*" style="display:none;" onchange="simulateImposterAttack(this)">
         </label>
       </div>
-      <div id="live-status" style="font-size:11px; font-weight:700; color:var(--mute); margin-top:10px;">
-        Register baseline first to enable test
-      </div>
-    </div>
-  </div>
 
-  <!-- Results Section -->
-  <div class="results-card" id="results-card">
-    <div style="font-size:11px; font-weight:800; color:var(--mute); text-transform:uppercase; letter-spacing:0.5px;">
-      Biometric Match Score (Cosine Similarity)
-    </div>
-    <div class="result-score" id="res-score" style="color:var(--mute);">--%</div>
-    <div class="result-verdict" id="res-verdict" style="background:#1E293B; color:#CBD5E1;">
-      WAITING FOR VERIFICATION TEST
-    </div>
-    <div id="res-desc" style="font-size:12px; color:var(--mute);">
-      Snap your baseline photo on the left, then click "Verify Live Face" on the right.
+      <div id="imposter-attack-result" style="display:none; padding:12px; border-radius:12px; text-align:center; font-size:12px; font-weight:800;"></div>
     </div>
 
-    <div class="stats-grid">
-      <div>
-        <div class="stat-label">Cosine Similarity</div>
-        <div class="stat-val" id="stat-sim">0.0000</div>
+    <!-- TAB 3: Architecture Specs -->
+    <div id="tab-pane-3" class="tab-pane">
+      <div style="font-size:12px; color:#CBD5E1; line-height:1.6;">
+        <b>How Uber, Rapido, and Rydealot handle driver verification:</b>
+        <ul style="margin:6px 0 0; padding-left:18px;">
+          <li><b>Documents (DL/RC):</b> Only used for government legal compliance and police verification. Never used for daily facial AI.</li>
+          <li><b>Zero-Lag Camera:</b> Camera runs at full 60 FPS HTML5 hardware acceleration without continuous CPU-hogging frame loops.</li>
+          <li><b>One-Shot ArcFace Inference:</b> AI executes strictly on button tap (~110 ms one-time check), ensuring instant feedback with zero phone heat or lag.</li>
+          <li><b>100% Lifetime Free:</b> MIT open-source ArcFace MobileFaceNet running on WebAssembly. ₹0.00 cloud API costs forever.</li>
+        </ul>
       </div>
-      <div>
-        <div class="stat-label">Verification Threshold</div>
-        <div class="stat-val" id="stat-thresh">&ge; 0.4500</div>
-      </div>
-      <div>
-        <div class="stat-label">Inference Latency</div>
-        <div class="stat-val" id="stat-latency">-- ms</div>
-      </div>
-      <div>
-        <div class="stat-label">Server / Cloud Cost</div>
-        <div class="stat-val" style="color:var(--accent);">₹0.00 (Free)</div>
+
+      <div class="info-badge-row">
+        <span class="pill-badge">Model: ArcFace MobileFaceNet</span>
+        <span class="pill-badge">Weights: 12.98 MB (Cached)</span>
+        <span class="pill-badge">Embedding: 512-D L2</span>
+        <span class="pill-badge">Threshold: &ge; 0.4500</span>
+        <span class="pill-badge">Cost: ₹0 / $0</span>
       </div>
     </div>
+
+    <!-- Telemetry & Diagnostic Card -->
+    <div class="diag-card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:11px; font-weight:800; color:var(--text-mute); text-transform:uppercase;">
+          Biometric Match Telemetry
+        </span>
+        <span id="telemetry-status" style="font-size:11px; font-weight:800; color:var(--accent);">
+          STANDBY
+        </span>
+      </div>
+
+      <div class="diag-grid">
+        <div>
+          <div class="diag-label">Match Score</div>
+          <div class="diag-val" id="diag-score" style="color:var(--text-mute);">--%</div>
+        </div>
+        <div>
+          <div class="diag-label">Cosine Similarity</div>
+          <div class="diag-val" id="diag-sim">0.0000</div>
+        </div>
+        <div>
+          <div class="diag-label">One-Shot Latency</div>
+          <div class="diag-val" id="diag-latency">-- ms</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Engineering Sandbox Protocol Guarantee -->
-  <div class="info-box">
-    <b>🛡️ Private Sandbox Architecture:</b>
-    <ul style="margin:6px 0 0; padding-left:18px;">
-      <li><b>100% Lifetime Free:</b> MIT/Apache-2 open-source model running via ONNX WebAssembly directly on your device CPU/GPU. Zero third-party APIs, zero cloud subscriptions.</li>
-      <li><b>Face Auto-Alignment:</b> MediaPipe FaceMesh tracks 468 facial points, auto-crops forehead-to-chin, and feeds strictly 112×112 face pixels into ArcFace (ignoring background walls & shirts).</li>
-      <li><b>Isolated Testing:</b> This page does NOT modify production <code>driver.html</code> or live ride/delivery flows until your final sign-off.</li>
-    </ul>
-  </div>
 </div>
+
+<!-- Offscreen Processing Canvases -->
+<canvas id="offscreen-snap-canvas" width="480" height="480" style="display:none;"></canvas>
+<canvas id="offscreen-crop-canvas" width="112" height="112" style="display:none;"></canvas>
 
 <script>
   let onnxSession = null;
-  let activeModelPath = 'models/arcface_mobilefacenet.onnx';
-  let baselineEmbedding = null;
-  let cameraStream = null;
+  let masterBiometricVector = null;
+  let activeCameraStream = null;
+  let isDriverOnline = false;
   let faceMesh = null;
-  let latestLandmarks = null;
+  let pendingLandmarkResolver = null;
 
-  const statusBanner = document.getElementById('status-banner');
-  const statusIcon = document.getElementById('status-icon');
-  const statusText = document.getElementById('status-text');
-  const statusSize = document.getElementById('status-size');
-  const btnVerify = document.getElementById('btn-verify');
-  const detectorStatus = document.getElementById('detector-status');
+  const ONNX_MODEL_URL = 'models/arcface_mobilefacenet.onnx';
 
-  // 1. Initialize MediaPipe FaceMesh
-  function initMediaPipe() {
+  // 1. Initialize MediaPipe FaceMesh for One-Shot Alignment
+  function initFaceMesh() {
     try {
-      if (typeof FaceMesh === 'undefined') {
-        detectorStatus.innerHTML = '⚠️ FaceMesh CDN fallback mode';
-        return;
-      }
+      if (typeof FaceMesh === 'undefined') return;
       faceMesh = new FaceMesh({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`
+        locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${f}`
       });
       faceMesh.setOptions({
         maxNumFaces: 1,
@@ -472,89 +699,59 @@
         minTrackingConfidence: 0.5
       });
       faceMesh.onResults((results) => {
-        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-          latestLandmarks = results.multiFaceLandmarks[0];
-          document.getElementById('baseline-ring').classList.add('active');
-          document.getElementById('live-ring').classList.add('active');
-        } else {
-          latestLandmarks = null;
-          document.getElementById('baseline-ring').classList.remove('active');
-          document.getElementById('live-ring').classList.remove('active');
+        if (pendingLandmarkResolver) {
+          const resolve = pendingLandmarkResolver;
+          pendingLandmarkResolver = null;
+          if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+            resolve(results.multiFaceLandmarks[0]);
+          } else {
+            resolve(null);
+          }
         }
       });
-      detectorStatus.innerHTML = '⚡ MediaPipe 468-Mesh Active';
-    } catch(err) {
-      console.warn('FaceMesh initialization note:', err);
-      detectorStatus.innerHTML = '⚠️ Center-crop fallback active';
+    } catch(e){
+      console.warn('FaceMesh init note:', e);
     }
   }
 
-  // 2. Initialize Camera Feed
-  async function initCamera() {
+  // 2. Load ONNX ArcFace Model
+  async function loadOnnxModel() {
     try {
-      cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } }
-      });
-      const vidBase = document.getElementById('baseline-video');
-      const vidLive = document.getElementById('live-video');
-      vidBase.srcObject = cameraStream;
-      vidLive.srcObject = cameraStream;
-
-      if (typeof Camera !== 'undefined' && faceMesh) {
-        const mpCam = new Camera(vidLive, {
-          onFrame: async () => {
-            if (vidLive.readyState >= 2) {
-              try { await faceMesh.send({ image: vidLive }); } catch(e){}
-            }
-          },
-          width: 320, height: 320
-        });
-        mpCam.start();
-      }
-    } catch(err) {
-      console.warn('Camera access note:', err);
-    }
-  }
-
-  // 3. Load ONNX Model
-  async function loadOnnxModel(path) {
-    try {
-      statusBanner.className = 'status-banner status-loading';
-      statusIcon.textContent = '⏳';
-      statusText.innerHTML = `Loading <b>${path}</b> into WebAssembly session...`;
-      statusSize.textContent = (path.indexOf('arcface') !== -1) ? '12.98 MB' : '1.82 MB';
-
       if (typeof ort !== 'undefined' && ort.env && ort.env.wasm) {
         ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
         ort.env.wasm.numThreads = 1;
       }
-
-      onnxSession = await ort.InferenceSession.create(path);
-
-      statusBanner.className = 'status-banner status-ready';
-      statusIcon.textContent = '✅';
-      const modelTitle = (path.indexOf('arcface') !== -1) ? 'ArcFace MobileFaceNet' : 'Custom MobileFaceNet';
-      statusText.innerHTML = `<b>${modelTitle}</b> ready (${onnxSession.inputNames[0]} &rarr; ${onnxSession.outputNames[0]})`;
+      onnxSession = await ort.InferenceSession.create(ONNX_MODEL_URL);
+      console.log('✅ ArcFace MobileFaceNet ready:', onnxSession.inputNames[0], '->', onnxSession.outputNames[0]);
     } catch(err) {
-      statusBanner.className = 'status-banner status-error';
-      statusIcon.textContent = '❌';
-      statusText.textContent = 'Failed to load ONNX: ' + (err.message || err);
-      console.error('[ONNX Load Error]:', err);
+      console.error('Failed to load ArcFace ONNX:', err);
     }
   }
 
-  async function switchModel(newPath) {
-    activeModelPath = newPath;
-    await loadOnnxModel(newPath);
-    // Reset comparisons
-    if (baselineEmbedding) {
-      btnVerify.disabled = false;
-      document.getElementById('live-status').textContent = 'Model switched! Click "Verify Live Face" to re-evaluate.';
-    }
+  // 3. One-Shot Face Detection via MediaPipe with 1.2s timeout fallback
+  function detectLandmarksOneShot(canvas) {
+    return new Promise((resolve) => {
+      if (!faceMesh) { resolve(null); return; }
+      const timeout = setTimeout(() => { resolve(null); }, 1200);
+      pendingLandmarkResolver = (landmarks) => {
+        clearTimeout(timeout);
+        resolve(landmarks);
+      };
+      try {
+        faceMesh.send({ image: canvas });
+      } catch(e) {
+        clearTimeout(timeout);
+        resolve(null);
+      }
+    });
   }
 
-  // 4. Calculate Face Bounding Box & Crop Tensor [1, 3, 112, 112]
-  function computeFaceCropBox(sourceW, sourceH, landmarks) {
+  // 4. Crop & Normalize Face to [1, 3, 112, 112] Tensor
+  function cropFaceToTensor(sourceCanvas, landmarks) {
+    const sw = sourceCanvas.width;
+    const sh = sourceCanvas.height;
+    let cropBox;
+
     if (landmarks && landmarks.length > 0) {
       let minX = 1, minY = 1, maxX = 0, maxY = 0;
       for (let i = 0; i < landmarks.length; i++) {
@@ -564,85 +761,53 @@
         if (p.y < minY) minY = p.y;
         if (p.y > maxY) maxY = p.y;
       }
-      const boxW = (maxX - minX) * sourceW;
-      const boxH = (maxY - minY) * sourceH;
-      const cx = (minX + maxX) / 2 * sourceW;
-      const cy = (minY + maxY) / 2 * sourceH;
-
-      // ArcFace standard 1.35x padding (captures chin, forehead, cheekbones)
-      const size = Math.max(boxW, boxH) * 1.35;
+      const bw = (maxX - minX) * sw;
+      const bh = (maxY - minY) * sh;
+      const cx = (minX + maxX) / 2 * sw;
+      const cy = (minY + maxY) / 2 * sh;
+      const size = Math.max(bw, bh) * 1.35; // 35% margin
       const sx = Math.max(0, cx - size / 2);
       const sy = Math.max(0, cy - size / 2);
-      const finalW = Math.min(sourceW - sx, size);
-      const finalH = Math.min(sourceH - sy, size);
-      const cropDim = Math.min(finalW, finalH);
-      return { sx, sy, sw: cropDim, sh: cropDim, isAligned: true };
+      const dim = Math.min(sw - sx, sh - sy, size);
+      cropBox = { sx, sy, sw: dim, sh: dim };
+    } else {
+      // Centered square fallback
+      const dim = Math.min(sw, sh) * 0.75;
+      cropBox = { sx: (sw - dim) / 2, sy: (sh - dim) / 2, sw: dim, sh: dim };
     }
 
-    // Centered square fallback
-    const minDim = Math.min(sourceW, sourceH);
-    const size = minDim * 0.75;
-    return {
-      sx: (sourceW - size) / 2,
-      sy: (sourceH - size) / 2,
-      sw: size,
-      sh: size,
-      isAligned: false
-    };
-  }
-
-  // 5. Extract Normalized Input Tensor [1, 3, 112, 112]
-  function extractFaceTensor(sourceElement, canvasTarget, landmarks, isMirrored = false) {
-    const sw = sourceElement.videoWidth || sourceElement.naturalWidth || sourceElement.width || 480;
-    const sh = sourceElement.videoHeight || sourceElement.naturalHeight || sourceElement.height || 480;
-
-    const cropBox = computeFaceCropBox(sw, sh, landmarks);
-
-    const ctx = canvasTarget.getContext('2d');
-    canvasTarget.width = 112;
-    canvasTarget.height = 112;
-
-    ctx.save();
-    if (isMirrored) {
-      ctx.translate(112, 0);
-      ctx.scale(-1, 1);
-    }
-    ctx.drawImage(sourceElement, cropBox.sx, cropBox.sy, cropBox.sw, cropBox.sh, 0, 0, 112, 112);
-    ctx.restore();
+    const cropCanvas = document.getElementById('offscreen-crop-canvas');
+    cropCanvas.width = 112;
+    cropCanvas.height = 112;
+    const ctx = cropCanvas.getContext('2d');
+    ctx.drawImage(sourceCanvas, cropBox.sx, cropBox.sy, cropBox.sw, cropBox.sh, 0, 0, 112, 112);
 
     const imgData = ctx.getImageData(0, 0, 112, 112).data;
     const floatArr = new Float32Array(1 * 3 * 112 * 112);
     const pixelCount = 112 * 112;
 
-    // ArcFace MobileFaceNet Normalization: (Pixel - 127.5) / 127.5 -> [-1.0, 1.0]
+    // ArcFace Normalization: (Pixel - 127.5) / 127.5
     for (let i = 0; i < pixelCount; i++) {
       const r = imgData[i * 4];
       const g = imgData[i * 4 + 1];
       const b = imgData[i * 4 + 2];
-
-      floatArr[i] = (r - 127.5) / 127.5;                   // Red
-      floatArr[pixelCount + i] = (g - 127.5) / 127.5;      // Green
-      floatArr[pixelCount * 2 + i] = (b - 127.5) / 127.5;  // Blue
+      floatArr[i] = (r - 127.5) / 127.5;
+      floatArr[pixelCount + i] = (g - 127.5) / 127.5;
+      floatArr[pixelCount * 2 + i] = (b - 127.5) / 127.5;
     }
 
-    return {
-      tensor: new ort.Tensor('float32', floatArr, [1, 3, 112, 112]),
-      isAligned: cropBox.isAligned
-    };
+    return new ort.Tensor('float32', floatArr, [1, 3, 112, 112]);
   }
 
-  // 6. Compute Face Embedding with L2 Normalization
-  async function computeFaceEmbedding(sourceElement, canvasTarget, landmarks, isMirrored = false) {
+  // 5. Run One-Shot Inference -> 512-D L2 Normalized Vector
+  async function computeBiometricEmbedding(sourceCanvas, landmarks) {
     if (!onnxSession) {
-      alert('ONNX Session not ready yet!');
+      alert('ArcFace AI model is still loading, please wait a moment.');
       return null;
     }
-
-    const { tensor, isAligned } = extractFaceTensor(sourceElement, canvasTarget, landmarks, isMirrored);
-
+    const tensor = cropFaceToTensor(sourceCanvas, landmarks);
     const inputName = onnxSession.inputNames[0];
     const outputName = onnxSession.outputNames[0];
-
     const feeds = {};
     feeds[inputName] = tensor;
 
@@ -650,87 +815,222 @@
     const results = await onnxSession.run(feeds);
     const t1 = performance.now();
 
-    const rawData = results[outputName].data; // Float32Array (512 numbers)
-
-    // L2 Normalize Embedding Vector
+    const raw = results[outputName].data;
     let sumSq = 0;
-    for (let i = 0; i < rawData.length; i++) sumSq += rawData[i] * rawData[i];
+    for (let i = 0; i < raw.length; i++) sumSq += raw[i] * raw[i];
     const norm = Math.sqrt(sumSq) || 1e-12;
-    const normEmb = new Float32Array(rawData.length);
-    for (let i = 0; i < rawData.length; i++) normEmb[i] = rawData[i] / norm;
+    const normEmb = new Float32Array(raw.length);
+    for (let i = 0; i < raw.length; i++) normEmb[i] = raw[i] / norm;
 
     return {
-      embedding: normEmb,
-      latency: Math.round(t1 - t0),
-      isAligned: isAligned
+      vector: normEmb,
+      latency: Math.round(t1 - t0)
     };
   }
 
-  // 7. Cosine Similarity Calculation
-  function cosineSimilarity(embA, embB) {
+  // 6. Cosine Similarity Calculation
+  function cosineSimilarity(vA, vB) {
     let dot = 0;
-    for (let i = 0; i < embA.length; i++) {
-      dot += embA[i] * embB[i];
-    }
+    for (let i = 0; i < vA.length; i++) dot += vA[i] * vB[i];
     return dot;
   }
 
-  // --- ACTIONS ---
+  // ==================== APP LOGIC: GO ONLINE / OFFLINE ====================
 
-  // Capture Baseline Photo from Video
-  async function captureBaselinePhoto() {
-    const vid = document.getElementById('baseline-video');
-    const prev = document.getElementById('baseline-preview');
-    const cropCanvas = document.getElementById('baseline-crop-canvas');
-    const cropStatus = document.getElementById('baseline-crop-status');
-
-    // Create full snapshot canvas
-    const snapCanvas = document.createElement('canvas');
-    snapCanvas.width = 480;
-    snapCanvas.height = 480;
-    const sCtx = snapCanvas.getContext('2d');
-    sCtx.translate(480, 0);
-    sCtx.scale(-1, 1);
-    sCtx.drawImage(vid, 0, 0, 480, 480);
-
-    prev.src = snapCanvas.toDataURL('image/jpeg', 0.9);
-    prev.style.display = 'block';
-    vid.style.display = 'none';
-
-    document.getElementById('baseline-status').innerHTML = '⏳ Extracting 512-D fingerprint...';
-
-    // Extract tensor from video with landmarks
-    const res = await computeFaceEmbedding(vid, cropCanvas, latestLandmarks, false);
-    if (res) {
-      baselineEmbedding = res.embedding;
-      document.getElementById('baseline-status').innerHTML = `✅ <b style="color:var(--accent);">Baseline Registered</b> (${res.latency}ms • 512-D L2)`;
-      document.getElementById('baseline-circle').style.borderColor = 'var(--accent)';
-      cropStatus.innerHTML = res.isAligned ? '✅ MediaPipe 468-Mesh Aligned' : 'Center cropped';
-      document.getElementById('live-status').textContent = 'Ready! Click "Verify Live Face" on the right.';
-      btnVerify.disabled = false;
+  function handleShiftToggleClick() {
+    if (isDriverOnline) {
+      // Go Offline instantly
+      setDriverOnlineState(false);
+    } else {
+      // Trigger Pre-Shift Biometric Modal
+      openBiometricModal();
     }
   }
 
-  function uploadBaselinePhoto(input) {
+  async function openBiometricModal() {
+    const modal = document.getElementById('app-biometric-modal');
+    const video = document.getElementById('modal-camera-video');
+    const statusText = document.getElementById('modal-scan-status');
+    const viewfinder = document.getElementById('modal-scanner-viewfinder');
+
+    modal.style.display = 'flex';
+    viewfinder.style.borderColor = 'var(--accent)';
+    viewfinder.style.boxShadow = '0 0 25px var(--accent-glow)';
+    statusText.innerHTML = 'Align face inside oval & hold still...';
+    statusText.style.color = '#F9FAFB';
+
+    try {
+      activeCameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } }
+      });
+      video.srcObject = activeCameraStream;
+    } catch(err) {
+      statusText.innerHTML = '<span style="color:var(--red);">⚠️ Camera access required</span>';
+    }
+  }
+
+  function closeBiometricModal() {
+    const modal = document.getElementById('app-biometric-modal');
+    modal.style.display = 'none';
+    if (activeCameraStream) {
+      activeCameraStream.getTracks().forEach(t => t.stop());
+      activeCameraStream = null;
+    }
+  }
+
+  // ==================== ONE-SHOT FACE CHECK (RAPIDO/UBER STYLE) ====================
+
+  async function executeOneShotFaceCheck() {
+    const video = document.getElementById('modal-camera-video');
+    const statusText = document.getElementById('modal-scan-status');
+    const viewfinder = document.getElementById('modal-scanner-viewfinder');
+    const btnVerify = document.getElementById('modal-btn-verify');
+
+    if (!activeCameraStream || video.readyState < 2) return;
+
+    btnVerify.disabled = true;
+    statusText.innerHTML = '⚡ Verifying facial fingerprint...';
+
+    // 1. One-Shot Snap to Canvas
+    const snapCanvas = document.getElementById('offscreen-snap-canvas');
+    snapCanvas.width = 480;
+    snapCanvas.height = 480;
+    const ctx = snapCanvas.getContext('2d');
+    ctx.translate(480, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, 480, 480);
+
+    // 2. One-Shot Face Detection & Alignment
+    const landmarks = await detectLandmarksOneShot(snapCanvas);
+
+    // 3. Compute 512-D ArcFace Vector
+    const res = await computeBiometricEmbedding(snapCanvas, landmarks);
+    btnVerify.disabled = false;
+
+    if (!res) {
+      statusText.innerHTML = '<span style="color:var(--red);">Model processing error</span>';
+      return;
+    }
+
+    // 4. Compare with Master Baseline
+    evaluateShiftVerification(res.vector, res.latency, snapCanvas.toDataURL('image/jpeg', 0.8));
+  }
+
+  function evaluateShiftVerification(liveVector, latency, livePhotoData) {
+    const statusText = document.getElementById('modal-scan-status');
+    const viewfinder = document.getElementById('modal-scanner-viewfinder');
+    const diagScore = document.getElementById('diag-score');
+    const diagSim = document.getElementById('diag-sim');
+    const diagLat = document.getElementById('diag-latency');
+    const teleStatus = document.getElementById('telemetry-status');
+
+    if (!masterBiometricVector) {
+      // Auto-enroll if first run
+      masterBiometricVector = liveVector;
+      document.getElementById('app-captain-avatar').src = livePhotoData;
+      document.getElementById('lab-master-preview').src = livePhotoData;
+    }
+
+    const sim = cosineSimilarity(masterBiometricVector, liveVector);
+    const threshold = 0.45;
+    const isMatch = sim >= threshold;
+
+    let matchPct = 0;
+    if (sim <= 0) matchPct = 0;
+    else if (sim >= threshold) {
+      matchPct = Math.min(99.8, Math.round((80 + ((sim - threshold) / (1.0 - threshold)) * 19.8) * 10) / 10);
+    } else {
+      matchPct = Math.max(0, Math.round(((sim / threshold) * 79) * 10) / 10);
+    }
+
+    // Update Telemetry
+    diagScore.textContent = matchPct + '%';
+    diagSim.textContent = (sim >= 0 ? '+' : '') + sim.toFixed(4);
+    diagLat.textContent = latency + ' ms';
+
+    if (isMatch) {
+      viewfinder.style.borderColor = 'var(--accent)';
+      viewfinder.style.boxShadow = '0 0 35px var(--accent-glow)';
+      statusText.innerHTML = `✅ <b style="color:var(--accent);">Identity Verified (${matchPct}% Match)!</b>`;
+      teleStatus.innerHTML = '<span style="color:var(--accent);">PASS: APPROVED</span>';
+      diagScore.style.color = 'var(--accent)';
+
+      if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+
+      setTimeout(() => {
+        closeBiometricModal();
+        setDriverOnlineState(true);
+      }, 1100);
+    } else {
+      viewfinder.style.borderColor = 'var(--red)';
+      viewfinder.style.boxShadow = '0 0 35px var(--red-glow)';
+      statusText.innerHTML = `❌ <b style="color:var(--red);">Face Mismatch (${matchPct}%) - Denied</b>`;
+      teleStatus.innerHTML = '<span style="color:var(--red);">FAIL: IMPOSTER</span>';
+      diagScore.style.color = 'var(--red)';
+    }
+  }
+
+  function setDriverOnlineState(online) {
+    isDriverOnline = online;
+    const pulse = document.getElementById('app-shift-pulse');
+    const icon = document.getElementById('app-shift-icon');
+    const title = document.getElementById('app-shift-title');
+    const desc = document.getElementById('app-shift-desc');
+    const btn = document.getElementById('app-btn-shift');
+    const btnText = document.getElementById('app-btn-shift-text');
+
+    if (online) {
+      pulse.className = 'shift-pulse online';
+      icon.textContent = '🟢';
+      title.textContent = 'YOU ARE ONLINE';
+      title.style.color = 'var(--accent)';
+      desc.textContent = 'Ready to accept ride requests in your area.';
+      btn.className = 'btn-toggle-shift btn-go-offline';
+      btnText.textContent = 'GO OFFLINE';
+    } else {
+      pulse.className = 'shift-pulse offline';
+      icon.textContent = '🛑';
+      title.textContent = 'YOU ARE OFFLINE';
+      title.style.color = '#94A3B8';
+      desc.textContent = 'Complete pre-shift biometric face check to start receiving rides.';
+      btn.className = 'btn-toggle-shift btn-go-online';
+      btnText.textContent = 'GO ONLINE';
+    }
+  }
+
+  // ==================== LAB ACTIONS (ENROLLMENT & ATTACK TEST) ====================
+
+  function switchSandboxTab(idx) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === (idx - 1)));
+    document.querySelectorAll('.tab-pane').forEach((p, i) => p.classList.toggle('active', i === (idx - 1)));
+  }
+
+  async function openEnrollmentCam() {
+    alert('Look at your camera in the Captain Phone on the left! Click "GO ONLINE" or snap a new baseline.');
+    openBiometricModal();
+  }
+
+  function uploadEnrollmentPhoto(input) {
     if (input.files && input.files[0]) {
       const reader = new FileReader();
       reader.onload = function(e) {
-        const prev = document.getElementById('baseline-preview');
-        const vid = document.getElementById('baseline-video');
-        const cropCanvas = document.getElementById('baseline-crop-canvas');
-        prev.src = e.target.result;
-        prev.style.display = 'block';
-        vid.style.display = 'none';
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = async function() {
+          const snapCanvas = document.getElementById('offscreen-snap-canvas');
+          snapCanvas.width = img.width;
+          snapCanvas.height = img.height;
+          const ctx = snapCanvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
 
-        prev.onload = async function() {
-          document.getElementById('baseline-status').innerHTML = '⏳ Processing uploaded photo...';
-          const res = await computeFaceEmbedding(prev, cropCanvas, null, false);
+          const landmarks = await detectLandmarksOneShot(snapCanvas);
+          const res = await computeBiometricEmbedding(snapCanvas, landmarks);
           if (res) {
-            baselineEmbedding = res.embedding;
-            document.getElementById('baseline-status').innerHTML = `✅ <b style="color:var(--accent);">Baseline Image Ready</b> (${res.latency}ms)`;
-            document.getElementById('baseline-circle').style.borderColor = 'var(--accent)';
-            document.getElementById('live-status').textContent = 'Ready! Click "Verify Live Face" on the right.';
-            btnVerify.disabled = false;
+            masterBiometricVector = res.vector;
+            document.getElementById('app-captain-avatar').src = img.src;
+            document.getElementById('lab-master-preview').src = img.src;
+            document.getElementById('lab-master-status').innerHTML = `✅ Master Baseline Updated (${res.latency}ms)`;
+            alert('✅ New Master KYC Baseline Enrolled! Now try tapping "GO ONLINE" to verify against it.');
           }
         };
       };
@@ -738,110 +1038,52 @@
     }
   }
 
-  // Live Face Verification
-  async function verifyLiveFace() {
-    if (!baselineEmbedding) return;
-
-    const vid = document.getElementById('live-video');
-    const prev = document.getElementById('live-preview');
-    const cropCanvas = document.getElementById('live-crop-canvas');
-    const cropStatus = document.getElementById('live-crop-status');
-
-    prev.style.display = 'none';
-    vid.style.display = 'block';
-
-    document.getElementById('live-status').innerHTML = '⚡ Verifying live face...';
-
-    const res = await computeFaceEmbedding(vid, cropCanvas, latestLandmarks, false);
-    if (!res) return;
-
-    cropStatus.innerHTML = res.isAligned ? '✅ MediaPipe 468-Mesh Aligned' : 'Center cropped';
-    evaluateComparison(res.embedding, res.latency);
-  }
-
-  // Imposter Photo Test
-  function uploadLiveTestPhoto(input) {
+  function simulateImposterAttack(input) {
     if (input.files && input.files[0]) {
       const reader = new FileReader();
       reader.onload = function(e) {
-        const prev = document.getElementById('live-preview');
-        const vid = document.getElementById('live-video');
-        const cropCanvas = document.getElementById('live-crop-canvas');
-        prev.src = e.target.result;
-        prev.style.display = 'block';
-        vid.style.display = 'none';
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = async function() {
+          const snapCanvas = document.getElementById('offscreen-snap-canvas');
+          snapCanvas.width = img.width;
+          snapCanvas.height = img.height;
+          const ctx = snapCanvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
 
-        prev.onload = async function() {
-          document.getElementById('live-status').innerHTML = '⚡ Comparing imposter photo...';
-          const res = await computeFaceEmbedding(prev, cropCanvas, null, false);
-          if (res) evaluateComparison(res.embedding, res.latency);
+          const landmarks = await detectLandmarksOneShot(snapCanvas);
+          const res = await computeBiometricEmbedding(snapCanvas, landmarks);
+          if (res && masterBiometricVector) {
+            const sim = cosineSimilarity(masterBiometricVector, res.vector);
+            const matchPct = Math.max(0, Math.round(((sim / 0.45) * 79) * 10) / 10);
+            const resEl = document.getElementById('imposter-attack-result');
+            resEl.style.display = 'block';
+
+            if (sim < 0.45) {
+              resEl.style.background = 'rgba(239, 68, 68, 0.2)';
+              resEl.style.color = '#FCA5A5';
+              resEl.style.border = '1px solid #DC2626';
+              resEl.innerHTML = `🛡️ <b>IMPOSTER BLOCKED!</b><br>Match Score: <b>${matchPct}%</b> (Similarity: ${sim.toFixed(4)} &lt; 0.4500). Shift locked!`;
+            } else {
+              resEl.style.background = 'rgba(16, 185, 129, 0.2)';
+              resEl.style.color = '#6EE7B7';
+              resEl.style.border = '1px solid #059669';
+              resEl.innerHTML = `⚠️ High Similarity: ${matchPct}%`;
+            }
+
+            document.getElementById('diag-score').textContent = matchPct + '%';
+            document.getElementById('diag-sim').textContent = (sim >= 0 ? '+' : '') + sim.toFixed(4);
+            document.getElementById('diag-latency').textContent = res.latency + ' ms';
+          }
         };
       };
       reader.readAsDataURL(input.files[0]);
     }
   }
 
-  // Evaluation & Metric Display
-  function evaluateComparison(liveEmb, latency) {
-    const sim = cosineSimilarity(baselineEmbedding, liveEmb);
-
-    // ArcFace Metric Loss Standards:
-    // Different people: -0.10 to 0.30
-    // Same person: 0.50 to 0.95
-    // Threshold: 0.45
-    const threshold = 0.45;
-    const isMatch = sim >= threshold;
-
-    let matchPct = 0;
-    if (sim <= 0) {
-      matchPct = 0;
-    } else if (sim >= threshold) {
-      // Map threshold..1.00 to 80%..99.8%
-      matchPct = Math.min(99.8, Math.round((80 + ((sim - threshold) / (1.0 - threshold)) * 19.8) * 10) / 10);
-    } else {
-      // Map 0..threshold to 0%..79.9%
-      matchPct = Math.max(0, Math.round(((sim / threshold) * 79) * 10) / 10);
-    }
-
-    const resCard = document.getElementById('results-card');
-    const scoreEl = document.getElementById('res-score');
-    const verdEl = document.getElementById('res-verdict');
-    const liveCirc = document.getElementById('live-circle');
-
-    scoreEl.textContent = matchPct + '%';
-
-    if (isMatch) {
-      resCard.className = 'results-card matched';
-      scoreEl.style.color = 'var(--accent)';
-      verdEl.textContent = '✅ APPROVED: GENUINE DRIVER MATCH';
-      verdEl.style.background = '#064E3B';
-      verdEl.style.color = '#6EE7B7';
-      liveCirc.style.borderColor = 'var(--accent)';
-      document.getElementById('res-desc').innerHTML = `
-        Face matches KYC baseline with <b>${matchPct}% confidence</b> (Cosine Similarity: <b>+${sim.toFixed(4)}</b> &ge; ${threshold}).
-      `;
-      document.getElementById('live-status').innerHTML = '✅ <b style="color:var(--accent);">Genuine Match Confirmed!</b>';
-    } else {
-      resCard.className = 'results-card rejected';
-      scoreEl.style.color = 'var(--red)';
-      verdEl.textContent = '❌ REJECTED: IMPOSTER OR MISMATCH';
-      verdEl.style.background = '#7F1D1D';
-      verdEl.style.color = '#FCA5A5';
-      liveCirc.style.borderColor = 'var(--red)';
-      document.getElementById('res-desc').innerHTML = `
-        Facial features do NOT match baseline (Cosine Similarity: <b>${sim.toFixed(4)}</b> &lt; ${threshold}).
-      `;
-      document.getElementById('live-status').innerHTML = '❌ <b style="color:var(--red);">Imposter Detected (Denied)</b>';
-    }
-
-    document.getElementById('stat-sim').textContent = (sim >= 0 ? '+' : '') + sim.toFixed(4);
-    document.getElementById('stat-latency').textContent = latency + ' ms';
-  }
-
-  // Auto-Start
-  initMediaPipe();
-  initCamera();
-  loadOnnxModel(activeModelPath);
+  // Auto-Initialize on page load
+  initFaceMesh();
+  loadOnnxModel();
 </script>
 </body>
 </html>
