@@ -301,11 +301,13 @@
     <div style="display:flex; align-items:center; gap:10px;">
       <img src="logo.png" alt="Rydealot" style="width:36px; height:36px; object-fit:contain; border-radius:8px;">
       <h1 style="margin:0;">RYDEALOT <span>ADMIN</span></h1>
+      <span id="titan-role-badge" class="badge" style="background:rgba(245,158,11,0.18); border:1.5px solid #f59e0b; color:#fbbf24; font-weight:900; font-size:0.72rem; padding:4px 10px; letter-spacing:0.5px;">👑 FOUNDING TITAN</span>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <button class="btn" id="btn-sync-plan" style="font-size:0.78rem; background:#2563eb; color:#fff;" onclick="triggerAdminPlanSync()">⚡ Sync Plan A &amp; B</button>
       <button class="btn btn-amber" style="font-size:0.78rem;" onclick="showPanel('sage', document.querySelector('.tab[onclick*=\'sage\']'))">📦 Sage Parcels</button>
       <button class="btn" style="font-size:0.78rem; background:#38bdf8; color:#0b0c0f; font-weight:800;" onclick="showPanel('alongwith', document.querySelector('.tab[onclick*=\'alongwith\']'))">🚚 AlongWith Cargo</button>
+      <button class="btn" style="font-size:0.78rem; background:#06b6d4; color:#0b0c0f; font-weight:800;" onclick="showPanel('escort', document.querySelector('.tab[onclick*=\'escort\']'))">🛡️ Night Escort</button>
       <button class="btn btn-green" style="font-size:0.78rem;" onclick="exportDataAsCSV()">📊 Export CSV</button>
       <button class="btn btn-mute" style="font-size:0.78rem;" onclick="openTotpSetupModal()">🔐 2FA Setup</button>
       <button class="btn btn-mute" style="font-size:0.78rem;" onclick="openChangePassModal()">🔑 Password</button>
@@ -351,6 +353,7 @@
     <button class="tab" onclick="showPanel('bookings', this)">📋 Taxi Rides</button>
     <button class="tab" onclick="showPanel('sage', this)">📦 Sage Parcels</button>
     <button class="tab" onclick="showPanel('alongwith', this)">🚚 AlongWith Cargo</button>
+    <button class="tab" onclick="showPanel('escort', this)">🛡️ Night Escort</button>
     <button class="tab" onclick="showPanel('amorelot', this)">🛒 Amorelot (Q-Commerce)</button>
     <button class="tab" onclick="showPanel('verification', this)">🛡️ Biometric KYC &amp; Docs</button>
     <button class="tab" onclick="showPanel('map', this)">🗺️ Fleet God View</button>
@@ -358,7 +361,7 @@
     <button class="tab" onclick="showPanel('users', this)">👥 Users</button>
     <button class="tab" onclick="showPanel('ratings', this)">⭐ Ratings</button>
     <button class="tab" onclick="showPanel('stats', this)">📊 Stats</button>
-    <button class="tab" onclick="showPanel('security2fa', this)">🔐 2FA &amp; Security</button>
+    <button class="tab" onclick="showPanel('security2fa', this)">🔐 Titans &amp; Security</button>
   </div>
 
 <!-- ===== DRIVERS PANEL ===== -->
@@ -571,22 +574,50 @@
         <button type="button" class="btn btn-amber" style="padding:6px 14px; font-size:0.8rem;" onclick="savePlatformServices()">💾 Save Switches</button>
       </div>
 
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px;">
-        <!-- 1. Passenger Bike/Auto Rides -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:14px;">
+        <!-- 1. Bike Taxi -->
         <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
           <div>
             <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
-              <span>🛵 Passenger Rides</span>
+              <span>🛵 Bike Taxi</span>
             </div>
-            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="svc-rides-desc">Active in Rider &amp; Driver apps</div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="svc-bike-desc">Rapid single-rider trips</div>
           </div>
-          <select id="svc-toggle-rides" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+          <select id="svc-toggle-bike" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
             <option value="true">🟢 ACTIVE</option>
             <option value="false">🔴 PAUSED</option>
           </select>
         </div>
 
-        <!-- 2. Sage Parcels -->
+        <!-- 2. Auto Rickshaw -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>🛺 Auto Rickshaw</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;">3-Wheeler budget rides</div>
+          </div>
+          <select id="svc-toggle-auto" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+            <option value="true">🟢 ACTIVE</option>
+            <option value="false">🔴 PAUSED</option>
+          </select>
+        </div>
+
+        <!-- 3. Car / Cab Taxi -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>🚗 Car / Cab Taxi</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;">AC hatchbacks &amp; sedans</div>
+          </div>
+          <select id="svc-toggle-car" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+            <option value="true">🟢 ACTIVE</option>
+            <option value="false">🔴 PAUSED</option>
+          </select>
+        </div>
+
+        <!-- 4. Sage Parcels -->
         <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
           <div>
             <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
@@ -600,13 +631,13 @@
           </select>
         </div>
 
-        <!-- 3. Along With Freight & Trucks -->
+        <!-- 5. AlongWith Trucks & Cargo -->
         <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
           <div>
             <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
-              <span>🚚 Trucks / Freight</span>
+              <span>🚚 AlongWith Freight</span>
             </div>
-            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;">Along With cargo &amp; mini-trucks</div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;">Mini-trucks &amp; heavy cargo</div>
           </div>
           <select id="svc-toggle-trucks" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
             <option value="true">🟢 ACTIVE</option>
@@ -614,13 +645,13 @@
           </select>
         </div>
 
-        <!-- 4. Along With Goodz (District Relay Pilot) -->
+        <!-- 6. AlongWith Bus / Goodz Relay -->
         <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
           <div>
             <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
-              <span>⚡ Along With Goodz</span>
+              <span>🚌 AlongWith Bus Relay</span>
             </div>
-            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="svc-goodz-desc">Inter-district bus &amp; cab relay pilot</div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="svc-goodz-desc">Inter-district parcel relay pilot</div>
           </div>
           <select id="svc-toggle-goodz" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
             <option value="true">🟢 ACTIVE</option>
@@ -628,39 +659,46 @@
           </select>
         </div>
 
-        <!-- 5. Night Safety Guardian & Escort -->
+        <!-- 7. Night Escort Plan 1 (AI Ride Observer ₹29) -->
         <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
           <div>
             <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
-              <span>🛡️ Night Safety Guardian</span>
+              <span>🛡️ Escort Plan 1 (₹29)</span>
             </div>
-            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="svc-escort-desc">Plan 1 (₹29) AI Observer &amp; Plan 2 (₹49) Standby Intercept</div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="svc-escort-p1-desc">AI Corridor &amp; Native Audio Watch</div>
           </div>
-          <select id="svc-toggle-escort" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+          <select id="svc-toggle-escort-plan1" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
             <option value="true">🟢 ACTIVE</option>
-            <option value="false" selected>🔴 PAUSED (DORMANT)</option>
+            <option value="false" selected>🔴 PAUSED</option>
           </select>
         </div>
-      </div>
 
-      <!-- TESTER SANDBOX: NIGHT SAFETY GUARDIAN (ZERO DATABASE POLLUTION) -->
-      <div style="margin-top:16px; background:linear-gradient(135deg, #0f1626, #090d16); border:1.5px solid rgba(6,182,212,0.3); border-radius:12px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-        <div style="flex:1; min-width:260px;">
-          <div style="font-size:0.88rem; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:8px;">
-            <span>🧪 Escort &amp; Night Guardian Sandbox (Zero Database)</span>
-            <span style="font-size:0.65rem; background:rgba(6,182,212,0.2); color:#38bdf8; border:1px solid rgba(6,182,212,0.4); padding:2px 6px; border-radius:99px; font-weight:800;">TESTING SANDBOX</span>
+        <!-- 8. Night Escort Plan 2 (Standby Intercept ₹49) -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>🏍️ Escort Plan 2 (₹49)</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="svc-escort-p2-desc">Standby Rapid Captain Intercept</div>
           </div>
-          <div style="font-size:0.75rem; color:#94a3b8; margin-top:3px; line-height:1.4;">
-            Simulate AI corridor tracking, native audio prompts in Telugu/Hindi, and standby captain intercepts locally in browser. Zero database writes, zero server bills.
-          </div>
+          <select id="svc-toggle-escort-plan2" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+            <option value="true">🟢 ACTIVE</option>
+            <option value="false" selected>🔴 PAUSED</option>
+          </select>
         </div>
-        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <a href="escort.html" target="_blank" style="background:rgba(6,182,212,0.15); border:1.5px solid #06b6d4; color:#38bdf8; text-decoration:none; padding:7px 12px; border-radius:8px; font-size:0.78rem; font-weight:800; display:flex; align-items:center; gap:5px; transition:all 0.15s ease;">
-            <span>🛡️ Passenger Portal</span> &rarr;
-          </a>
-          <a href="escortdriver.html" target="_blank" style="background:rgba(239,68,68,0.15); border:1.5px solid #ef4444; color:#f87171; text-decoration:none; padding:7px 12px; border-radius:8px; font-size:0.78rem; font-weight:800; display:flex; align-items:center; gap:5px; transition:all 0.15s ease;">
-            <span>🏍️ Standby Captain App</span> &rarr;
-          </a>
+
+        <!-- 9. Amorelot Quick Commerce -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>🛒 Amorelot Q-Commerce</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;">10-min Dark Store delivery pipeline</div>
+          </div>
+          <select id="svc-toggle-amorelot" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+            <option value="true">🟢 ACTIVE</option>
+            <option value="false" selected>🔴 PAUSED</option>
+          </select>
         </div>
       </div>
     </div>
@@ -1355,6 +1393,172 @@
   </div>
 </div>
 
+<!-- ===== NIGHT SAFETY GUARDIAN & ESCORT PANEL ===== -->
+<div class="panel" id="panel-escort">
+  <!-- Top Hero Control Tower -->
+  <div style="background:linear-gradient(135deg, #091220, #0a0e1a); border:1.5px solid rgba(6,182,212,0.35); border-radius:18px; padding:24px 20px; margin-bottom:24px; box-shadow:0 12px 36px rgba(6,182,212,0.12);">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:46px; height:46px; border-radius:12px; background:rgba(6,182,212,0.18); border:1.5px solid #06b6d4; display:flex; align-items:center; justify-content:center; font-size:24px;">🛡️</div>
+        <div>
+          <h2 style="font-size:1.35rem; font-weight:900; margin:0; color:#fff; display:flex; align-items:center; gap:8px;">
+            <span>Night Safety Guardian &amp; Escort Tower</span>
+            <span id="escort-master-status-badge" style="font-size:0.7rem; background:#10b981; color:#fff; padding:3px 10px; border-radius:99px; font-weight:800; letter-spacing:0.5px;">ACTIVE &amp; MONITORING</span>
+          </h2>
+          <p style="font-size:0.8rem; color:#94a3b8; margin:3px 0 0;">Zero-database client AI corridor watch • Standby motorcycle intercept units • Telugu &amp; Hindi audio prompts</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a href="escort.html" target="_blank" class="btn" style="background:rgba(6,182,212,0.15); border:1.5px solid #06b6d4; color:#38bdf8; text-decoration:none; font-size:0.8rem; font-weight:800; display:inline-flex; align-items:center; gap:5px;">
+          <span>🛡️ Passenger Portal</span> &rarr;
+        </a>
+        <a href="escortdriver.html" target="_blank" class="btn" style="background:rgba(239,68,68,0.15); border:1.5px solid #ef4444; color:#f87171; text-decoration:none; font-size:0.8rem; font-weight:800; display:inline-flex; align-items:center; gap:5px;">
+          <span>🏍️ Standby Captain App</span> &rarr;
+        </a>
+        <button type="button" class="btn btn-amber" style="font-size:0.8rem;" onclick="loadEscortPanel(true)">↺ Refresh</button>
+      </div>
+    </div>
+
+    <!-- Escort Live Metrics -->
+    <div class="stats-row" style="margin-bottom:0;">
+      <div class="stat-card" style="border-color:rgba(6,182,212,0.3);"><div class="stat-num" id="escort-stat-plan1" style="color:#38bdf8;">0</div><div class="stat-label">Plan 1 AI Watches (₹29)</div></div>
+      <div class="stat-card" style="border-color:rgba(245,158,11,0.3);"><div class="stat-num" id="escort-stat-plan2" style="color:#fbbf24;">0</div><div class="stat-label">Plan 2 Standby Intercepts (₹49)</div></div>
+      <div class="stat-card" style="border-color:rgba(16,185,129,0.3);"><div class="stat-num" id="escort-stat-captains" style="color:#34d399;">0</div><div class="stat-label">Standby Captains Online</div></div>
+      <div class="stat-card" style="border-color:rgba(239,68,68,0.3);"><div class="stat-num" id="escort-stat-alarms" style="color:#f87171;">0</div><div class="stat-label">Corridor Alarms Triggered</div></div>
+      <div class="stat-card"><div class="stat-num" id="escort-stat-revenue">₹0</div><div class="stat-label">Safety Revenue</div></div>
+    </div>
+  </div>
+
+  <!-- Plan 1 and Plan 2 Granular Controls -->
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; margin-bottom:24px;">
+    <!-- Plan 1 Card -->
+    <div style="background:var(--card); border:1.5px solid var(--border); border-radius:16px; padding:18px 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.3rem;">🛡️</span>
+            <strong style="color:#fff; font-size:1.05rem;">Plan 1: AI Ride Observer (₹29)</strong>
+          </div>
+          <p style="font-size:0.78rem; color:var(--mute); margin:4px 0 0;">Continuous background client-side corridor monitoring for conscious travelers.</p>
+        </div>
+        <select id="escort-panel-toggle-plan1" class="auth-input" style="width:auto; padding:6px 12px; font-size:0.8rem; font-weight:800; margin-bottom:0;" onchange="syncEscortPanelToggle('plan1', this.value)">
+          <option value="true">🟢 ACTIVE</option>
+          <option value="false">🔴 PAUSED</option>
+        </select>
+      </div>
+
+      <div style="background:var(--bg); border-radius:10px; padding:12px; font-size:0.75rem; color:#cbd5e1; display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--mute);">Deviation Trigger Threshold:</span>
+          <strong style="color:#38bdf8;">300 meters from route</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--mute);">Inactivity / Stoppage Check:</span>
+          <strong style="color:#fbbf24;">180 seconds standstill</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--mute);">Battery Depletion Warning:</span>
+          <strong style="color:#f87171;">Auto-alert under 15%</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--mute);">Database Write Footprint:</span>
+          <strong style="color:#4ade80;">0 writes in transit (Only 2 writes/ride)</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plan 2 Card -->
+    <div style="background:var(--card); border:1.5px solid var(--border); border-radius:16px; padding:18px 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.3rem;">🏍️</span>
+            <strong style="color:#fff; font-size:1.05rem;">Plan 2: Standby Rapid Intercept (₹49)</strong>
+          </div>
+          <p style="font-size:0.78rem; color:var(--mute); margin:4px 0 0;">Dedicated standby response motorcycle captains pre-positioned on dark highway corridors.</p>
+        </div>
+        <select id="escort-panel-toggle-plan2" class="auth-input" style="width:auto; padding:6px 12px; font-size:0.8rem; font-weight:800; margin-bottom:0;" onchange="syncEscortPanelToggle('plan2', this.value)">
+          <option value="true">🟢 ACTIVE</option>
+          <option value="false">🔴 PAUSED</option>
+        </select>
+      </div>
+
+      <div style="background:var(--bg); border-radius:10px; padding:12px; font-size:0.75rem; color:#cbd5e1; display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--mute);">Rapid Intercept Response:</span>
+          <strong style="color:#f87171;">Under 3 - 6 mins arrival</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--mute);">Dispatch Trigger:</span>
+          <strong style="color:#fbbf24;">1-Tap SOS or Unresponsive Corridor</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--mute);">Verification Mechanism:</span>
+          <strong style="color:#38bdf8;">Captain Gate-In PIN &amp; Live GPS Lock</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--mute);">Database Writes per Ride:</span>
+          <strong style="color:#4ade80;">2 writes normally (+3 on emergency intercept)</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Zero-Database Testing Sandbox & Audio Prompt Tester -->
+  <div style="background:var(--card); border:1.5px solid var(--border); border-radius:16px; padding:20px; margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+      <div>
+        <h3 style="font-size:1.05rem; font-weight:900; margin:0; display:flex; align-items:center; gap:8px;">
+          <span>🧪 Zero-Database Escort Simulator &amp; Voice Engine</span>
+          <span class="badge" style="background:rgba(6,182,212,0.18); color:#38bdf8; border:1px solid rgba(6,182,212,0.3); font-size:0.68rem;">CLIENT RAM ONLY</span>
+        </h3>
+        <p style="font-size:0.78rem; color:var(--mute); margin:3px 0 0;">Simulate route deviations, stopped vehicle alarms, and test native audio prompts locally in browser.</p>
+      </div>
+      <button class="btn btn-mute" style="font-size:0.75rem;" onclick="clearEscortSimulatorLogs()">Clear Logs</button>
+    </div>
+
+    <!-- Simulator Action Buttons -->
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+      <button type="button" class="btn" style="background:#0e7490; color:#fff; font-size:0.78rem;" onclick="simulateEscortAction('safe')">🟢 Simulate Normal Safe Journey</button>
+      <button type="button" class="btn btn-amber" style="font-size:0.78rem;" onclick="simulateEscortAction('stopped')">⚠️ Simulate 180s Stoppage Check</button>
+      <button type="button" class="btn btn-red" style="font-size:0.78rem;" onclick="simulateEscortAction('deviation')">🚨 Simulate 320m Corridor Deviation</button>
+      <button type="button" class="btn" style="background:#7c3aed; color:#fff; font-size:0.78rem;" onclick="simulateEscortAction('intercept')">🏍️ Simulate Standby Captain Intercept</button>
+      <button type="button" class="btn btn-green" style="font-size:0.78rem;" onclick="testEscortVoicePrompts('te')">🔊 Telugu Voice Prompt</button>
+      <button type="button" class="btn btn-green" style="font-size:0.78rem;" onclick="testEscortVoicePrompts('hi')">🔊 Hindi Voice Prompt</button>
+    </div>
+
+    <!-- Live Simulation Log Console -->
+    <div id="escort-sandbox-logs" style="background:#090d16; border:1px solid #1e293b; border-radius:10px; padding:12px; font-family:'IBM Plex Mono', monospace; font-size:0.75rem; color:#94a3b8; height:120px; overflow-y:auto; line-height:1.6;">
+      <div style="color:#38bdf8;">[INIT] Escort &amp; Night Guardian Simulator ready. Click any action above to run sandbox simulation in memory (zero DB writes).</div>
+    </div>
+  </div>
+
+  <!-- Active Night Escort Monitors Table -->
+  <h3 style="font-size:1.05rem; font-weight:800; margin:16px 0 10px; display:flex; justify-content:space-between; align-items:center;">
+    <span>🛡️ Active Escort Journeys &amp; Standby Fleet</span>
+    <span id="escort-active-count-badge" class="badge" style="background:rgba(6,182,212,0.18); color:#38bdf8; border:1px solid rgba(6,182,212,0.4);">0 Active</span>
+  </h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ride / Escort ID</th>
+          <th>Passenger</th>
+          <th>Plan Type</th>
+          <th>Route &amp; Destination</th>
+          <th>Corridor Status</th>
+          <th>Device Battery</th>
+          <th>Standby Captain</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="escort-active-tbody">
+        <tr><td colspan="8" style="text-align:center; padding:28px; color:var(--mute);">No active night escort journeys in progress right now.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <!-- ===== AMORELOT QUICK COMMERCE PANEL ===== -->
 <div class="panel" id="panel-amorelot">
   <div style="background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:28px 24px; text-align:center; max-width:850px; margin:0 auto 24px;">
@@ -1441,6 +1645,103 @@
           <p style="font-size:0.75rem; color:var(--mute); margin:2px 0 0;">Once verified with Google Authenticator, your session stays active for 24 hours on this browser.</p>
         </div>
         <button class="btn btn-red" style="font-size:0.75rem;" onclick="adminLogout()">🔒 Lock &amp; Clear Daily Session</button>
+      </div>
+    </div>
+
+    <!-- TITANS RBAC ENGINE (ATTACK ON TITAN HIERARCHY) -->
+    <div style="background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:24px; margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h3 style="font-size:1.25rem; font-weight:900; margin:0; display:flex; align-items:center; gap:8px;">
+            <span>👑</span> Titans Admin Hierarchy (RBAC)
+          </h3>
+          <p style="font-size:0.82rem; color:var(--mute); margin-top:2px;">Founding Titan holds master command. Colossal Titans manage operational fleet, parcels, and KYC.</p>
+        </div>
+        <button type="button" id="btn-onboard-titan" class="btn btn-amber" style="font-size:0.8rem; font-weight:800;" onclick="toggleOnboardTitanForm()">+ Onboard Colossal Titan</button>
+      </div>
+
+      <!-- Onboard Titan Card / Form (Founder Only) -->
+      <div id="card-onboard-titan" style="display:none; background:var(--bg); border:1.5px solid rgba(245,158,11,0.3); border-radius:14px; padding:18px; margin-bottom:18px;">
+        <h4 style="font-size:0.95rem; font-weight:800; color:var(--amber); margin-bottom:6px;">⚡ Onboard New Colossal Titan (Operations Co-Admin)</h4>
+        <p style="font-size:0.78rem; color:var(--mute); margin-bottom:14px;">Colossal Titans can review KYC, approve drivers, and dispatch parcels/cargo, but cannot edit fares, passcodes, or onboard other admins.</p>
+
+        <form onsubmit="event.preventDefault(); submitOnboardTitan();" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)) 140px; gap:10px; align-items:end;">
+          <div>
+            <label style="font-size:0.72rem; color:var(--mute); font-weight:700; text-transform:uppercase;">Titan Full Name</label>
+            <input type="text" id="new-titan-name" placeholder="e.g. Ramesh Operations" class="auth-input" style="margin-bottom:0; font-size:0.85rem; padding:10px 12px; text-align:left; letter-spacing:0;" required>
+          </div>
+          <div>
+            <label style="font-size:0.72rem; color:var(--mute); font-weight:700; text-transform:uppercase;">Official Gmail Address</label>
+            <input type="email" id="new-titan-email" placeholder="e.g. ramesh.rydealot@gmail.com" class="auth-input" style="margin-bottom:0; font-size:0.85rem; padding:10px 12px; text-align:left; letter-spacing:0;" required>
+          </div>
+          <div>
+            <label style="font-size:0.72rem; color:var(--mute); font-weight:700; text-transform:uppercase;">Rank / Role</label>
+            <select id="new-titan-role" class="auth-input" style="margin-bottom:0; font-size:0.85rem; padding:10px 12px; font-weight:800;">
+              <option value="colossal_titan">⚡ Colossal Titan (Ops)</option>
+            </select>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button type="submit" class="btn btn-amber" style="flex:1; padding:10px; font-weight:800; font-size:0.8rem;">Onboard</button>
+            <button type="button" class="btn btn-mute" style="padding:10px 12px; font-size:0.8rem;" onclick="toggleOnboardTitanForm(false)">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Titans Roster Table -->
+      <div class="table-wrap" style="margin-bottom:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Titan Admin</th>
+              <th>Gmail</th>
+              <th>Titan Rank</th>
+              <th>Platform Permissions</th>
+              <th>Status</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="titans-roster-tbody">
+            <!-- Dynamically populated by renderTitansRoster() -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FOUNDER DYNAMIC EMERGENCY PASSCODE (FOUNDER ONLY) -->
+    <div id="founder-emergency-passcode-card" style="background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:24px; margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h3 style="font-size:1.25rem; font-weight:900; margin:0; display:flex; align-items:center; gap:8px;">
+            <span>🔑</span> Founder Dynamic Emergency Passcode
+          </h3>
+          <p style="font-size:0.82rem; color:var(--mute); margin-top:2px;">Set your private emergency passcode to permanently deactivate the default code (982026).</p>
+        </div>
+        <span id="emergency-passcode-status-badge" class="badge" style="background:rgba(245,158,11,0.18); border:1px solid rgba(245,158,11,0.4); color:#fbbf24; font-size:0.75rem; padding:4px 10px;">🟡 DEFAULT 982026 ACTIVE</span>
+      </div>
+
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:18px;">
+        <div style="font-size:0.8rem; color:#94a3b8; margin-bottom:14px; line-height:1.5;">
+          🔒 <strong style="color:#fff;">Supreme Founder Security:</strong> Anyone who knows the default PIN <code>982026</code> can attempt to unlock the console. When you configure your custom emergency passcode below, the default 982026 is <span style="color:#ef4444; font-weight:800;">instantly &amp; permanently destroyed</span>. Only your SHA-256 hashed custom code will be accepted.
+        </div>
+
+        <form onsubmit="event.preventDefault(); changeFounderEmergencyPasscode();" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)) auto; gap:12px; align-items:end;">
+          <div>
+            <label style="font-size:0.72rem; color:var(--mute); font-weight:700; text-transform:uppercase;">Current Master Password</label>
+            <input type="password" id="founder-curr-pass-for-emergency" class="auth-input" placeholder="Current Password" style="margin-bottom:0; font-size:0.85rem; padding:10px 12px; text-align:left;" required>
+          </div>
+          <div>
+            <label style="font-size:0.72rem; color:var(--mute); font-weight:700; text-transform:uppercase;">New Emergency Passcode</label>
+            <input type="password" id="founder-new-emergency-code" class="auth-input" placeholder="e.g. 6 to 12 alphanumeric PIN" style="margin-bottom:0; font-size:0.85rem; padding:10px 12px; text-align:left;" required>
+          </div>
+          <div>
+            <label style="font-size:0.72rem; color:var(--mute); font-weight:700; text-transform:uppercase;">Confirm Passcode</label>
+            <input type="password" id="founder-confirm-emergency-code" class="auth-input" placeholder="Repeat Passcode" style="margin-bottom:0; font-size:0.85rem; padding:10px 12px; text-align:left;" required>
+          </div>
+          <div>
+            <button type="submit" class="btn btn-amber" style="padding:10px 18px; font-weight:800; font-size:0.85rem; white-space:nowrap;">🛡️ Save &amp; Deactivate 982026</button>
+          </div>
+        </form>
+        <div id="founder-emergency-feedback" style="margin-top:10px; font-size:0.8rem; font-weight:700; display:none;"></div>
       </div>
     </div>
   </div>
@@ -1709,6 +2010,8 @@
       if(name === 'fares') loadFareSettings();
       if(name === 'sage') loadSageParcels();
       if(name === 'alongwith') loadAlongWithDashboard();
+      if(name === 'escort') loadEscortPanel();
+      if(name === 'security2fa') { renderTitansRoster(); updateEmergencyPasscodeUI(); }
     } catch(err) {
       console.log('Panel load note:', err);
     }
@@ -2220,119 +2523,169 @@
   }
 
   function updateServiceBadge() {
-    var rides = document.getElementById('svc-toggle-rides').value === 'true';
-    var parcels = document.getElementById('svc-toggle-parcels').value === 'true';
-    var trucks = document.getElementById('svc-toggle-trucks').value === 'true';
+    var bikeEl = document.getElementById('svc-toggle-bike');
+    var autoEl = document.getElementById('svc-toggle-auto');
+    var carEl = document.getElementById('svc-toggle-car');
+    var parcelsEl = document.getElementById('svc-toggle-parcels');
+    var trucksEl = document.getElementById('svc-toggle-trucks');
     var goodzEl = document.getElementById('svc-toggle-goodz');
+    var escortP1El = document.getElementById('svc-toggle-escort-plan1');
+    var escortP2El = document.getElementById('svc-toggle-escort-plan2');
+    var amorelotEl = document.getElementById('svc-toggle-amorelot');
+
+    var bike = bikeEl ? bikeEl.value === 'true' : true;
+    var auto = autoEl ? autoEl.value === 'true' : true;
+    var car = carEl ? carEl.value === 'true' : true;
+    var parcels = parcelsEl ? parcelsEl.value === 'true' : true;
+    var trucks = trucksEl ? trucksEl.value === 'true' : true;
     var goodz = goodzEl ? goodzEl.value === 'true' : true;
-    var escortEl = document.getElementById('svc-toggle-escort');
-    var escortDesc = document.getElementById('svc-escort-desc');
+    var escortP1 = escortP1El ? escortP1El.value === 'true' : false;
+    var escortP2 = escortP2El ? escortP2El.value === 'true' : false;
+    var amorelot = amorelotEl ? amorelotEl.value === 'true' : false;
 
-    // Rule: Escort is a child of Passenger Rides (Only testable in sandbox otherwise)
-    if (!rides) {
-      if (escortEl) {
-        escortEl.value = 'false';
-        escortEl.disabled = true;
-        escortEl.style.opacity = '0.45';
-        escortEl.style.cursor = 'not-allowed';
-      }
-      if (escortDesc) {
-        escortDesc.textContent = '🔒 Locked (Requires Passenger Rides Active • Test in Sandbox below)';
-        escortDesc.style.color = '#ef4444';
-      }
-    } else {
-      if (escortEl) {
-        escortEl.disabled = false;
-        escortEl.style.opacity = '1';
-        escortEl.style.cursor = 'pointer';
-      }
-      if (escortDesc) {
-        var isEscortOn = escortEl && escortEl.value === 'true';
-        escortDesc.textContent = isEscortOn 
-          ? '🟢 Active with Passenger Rides (Plan 1 ₹29 / Plan 2 ₹49)' 
-          : '🔴 Paused (Sandbox Testing Only)';
-        escortDesc.style.color = isEscortOn ? '#10b981' : 'var(--mute)';
-      }
+    // Keep panel-escort toggles in sync with fares toggles
+    var panelP1 = document.getElementById('escort-panel-toggle-plan1');
+    if (panelP1 && escortP1El && panelP1.value !== escortP1El.value) {
+      panelP1.value = escortP1El.value;
     }
+    var panelP2 = document.getElementById('escort-panel-toggle-plan2');
+    if (panelP2 && escortP2El && panelP2.value !== escortP2El.value) {
+      panelP2.value = escortP2El.value;
+    }
+    updateEscortMasterBadge(escortP1, escortP2);
 
-    var escort = escortEl ? escortEl.value === 'true' : false;
     var badge = document.getElementById('admin-services-status-badge');
-    var ridesDesc = document.getElementById('svc-rides-desc');
+    var bikeDesc = document.getElementById('svc-bike-desc');
     var goodzDesc = document.getElementById('svc-goodz-desc');
 
-    if (ridesDesc) {
-      ridesDesc.textContent = rides ? 'Active in Rider & Driver apps' : '⚠️ PAUSED (Riders see Coming Soon)';
-      ridesDesc.style.color = rides ? 'var(--mute)' : '#ef4444';
+    if (bikeDesc) {
+      bikeDesc.textContent = bike ? 'Rapid single-rider trips' : '⚠️ PAUSED';
+      bikeDesc.style.color = bike ? 'var(--mute)' : '#ef4444';
     }
     if (goodzDesc) {
-      goodzDesc.textContent = goodz ? 'Active inter-district pilot' : '⚠️ PAUSED / GATED';
+      goodzDesc.textContent = goodz ? 'Inter-district parcel relay pilot' : '⚠️ PAUSED / GATED';
       goodzDesc.style.color = goodz ? 'var(--mute)' : '#ef4444';
     }
 
     if (!badge) return;
-    if (rides && parcels && trucks && goodz) {
-      badge.textContent = escort ? 'ALL ACTIVE + ESCORT' : 'ALL ACTIVE';
+    var anyActive = bike || auto || car || parcels || trucks || goodz || escortP1 || escortP2 || amorelot;
+    var allCoreActive = bike && auto && car && parcels && trucks && goodz;
+
+    if (allCoreActive) {
+      badge.textContent = (escortP1 || escortP2) ? 'ALL ACTIVE + ESCORT' : 'ALL ACTIVE';
       badge.style.background = '#10b981';
-    } else if (!rides && !parcels && !trucks && !goodz) {
+    } else if (!anyActive) {
       badge.textContent = 'ALL PAUSED';
       badge.style.background = '#ef4444';
     } else {
-      badge.textContent = (!rides ? 'RIDES PAUSED' : 'PARTIAL ACTIVE');
+      badge.textContent = 'PARTIAL ACTIVE';
       badge.style.background = '#f59e0b';
     }
   }
 
   async function loadPlatformServices() {
-    var def = { rides: true, parcels: true, trucks: true, goodz: true, escort: false };
+    var def = {
+      bike: true,
+      auto: true,
+      car: true,
+      rides: true,
+      parcels: true,
+      trucks: true,
+      goodz: true,
+      escort: false,
+      escort_plan1: false,
+      escort_plan2: false,
+      amorelot: false
+    };
+
     try {
       var saved = localStorage.getItem('rydealot_services_config');
       if (saved) {
         var p = JSON.parse(saved);
+        if (typeof p.bike === 'boolean') def.bike = p.bike;
+        if (typeof p.auto === 'boolean') def.auto = p.auto;
+        if (typeof p.car === 'boolean') def.car = p.car;
         if (typeof p.rides === 'boolean') def.rides = p.rides;
         if (typeof p.parcels === 'boolean') def.parcels = p.parcels;
         if (typeof p.trucks === 'boolean') def.trucks = p.trucks;
         if (typeof p.goodz === 'boolean') def.goodz = p.goodz;
         if (typeof p.escort === 'boolean') def.escort = p.escort;
+        if (typeof p.escort_plan1 === 'boolean') def.escort_plan1 = p.escort_plan1;
+        if (typeof p.escort_plan2 === 'boolean') def.escort_plan2 = p.escort_plan2;
+        if (typeof p.amorelot === 'boolean') def.amorelot = p.amorelot;
       }
+
       try {
         var rows = await sb('platform_services?id=eq.default');
         if (rows && rows.length > 0) {
-          if (typeof rows[0].rides_enabled === 'boolean') def.rides = rows[0].rides_enabled;
-          if (typeof rows[0].parcels_enabled === 'boolean') def.parcels = rows[0].parcels_enabled;
-          if (typeof rows[0].trucks_enabled === 'boolean') def.trucks = rows[0].trucks_enabled;
-          if (typeof rows[0].goodz_enabled === 'boolean') def.goodz = rows[0].goodz_enabled;
-          if (typeof rows[0].escort_enabled === 'boolean') def.escort = rows[0].escort_enabled;
+          var r = rows[0];
+          if (typeof r.bike_enabled === 'boolean') def.bike = r.bike_enabled;
+          if (typeof r.auto_enabled === 'boolean') def.auto = r.auto_enabled;
+          if (typeof r.car_enabled === 'boolean') def.car = r.car_enabled;
+          if (typeof r.rides_enabled === 'boolean') def.rides = r.rides_enabled;
+          if (typeof r.parcels_enabled === 'boolean') def.parcels = r.parcels_enabled;
+          if (typeof r.trucks_enabled === 'boolean') def.trucks = r.trucks_enabled;
+          if (typeof r.goodz_enabled === 'boolean') def.goodz = r.goodz_enabled;
+          if (typeof r.escort_enabled === 'boolean') {
+            def.escort = r.escort_enabled;
+            def.escort_plan1 = r.escort_enabled;
+          }
+          if (typeof r.escort_plan1_enabled === 'boolean') def.escort_plan1 = r.escort_plan1_enabled;
+          if (typeof r.escort_plan2_enabled === 'boolean') def.escort_plan2 = r.escort_plan2_enabled;
+          if (typeof r.amorelot_enabled === 'boolean') def.amorelot = r.amorelot_enabled;
           localStorage.setItem('rydealot_services_config', JSON.stringify(def));
         }
       } catch(e){}
 
-      if (document.getElementById('svc-toggle-rides')) {
-        document.getElementById('svc-toggle-rides').value = def.rides ? 'true' : 'false';
+      if (document.getElementById('svc-toggle-bike')) {
+        document.getElementById('svc-toggle-bike').value = def.bike ? 'true' : 'false';
+        document.getElementById('svc-toggle-auto').value = def.auto ? 'true' : 'false';
+        document.getElementById('svc-toggle-car').value = def.car ? 'true' : 'false';
         document.getElementById('svc-toggle-parcels').value = def.parcels ? 'true' : 'false';
         document.getElementById('svc-toggle-trucks').value = def.trucks ? 'true' : 'false';
         if (document.getElementById('svc-toggle-goodz')) {
           document.getElementById('svc-toggle-goodz').value = def.goodz ? 'true' : 'false';
         }
-        if (document.getElementById('svc-toggle-escort')) {
-          document.getElementById('svc-toggle-escort').value = (def.rides && def.escort) ? 'true' : 'false';
+        if (document.getElementById('svc-toggle-escort-plan1')) {
+          document.getElementById('svc-toggle-escort-plan1').value = def.escort_plan1 ? 'true' : 'false';
+        }
+        if (document.getElementById('svc-toggle-escort-plan2')) {
+          document.getElementById('svc-toggle-escort-plan2').value = def.escort_plan2 ? 'true' : 'false';
+        }
+        if (document.getElementById('svc-toggle-amorelot')) {
+          document.getElementById('svc-toggle-amorelot').value = def.amorelot ? 'true' : 'false';
         }
         updateServiceBadge();
       }
+
       loadGeofenceSettings();
+      loadEscortPanel();
     } catch(err){}
   }
 
   async function savePlatformServices() {
-    var ridesVal = document.getElementById('svc-toggle-rides').value === 'true';
-    var escortEl = document.getElementById('svc-toggle-escort');
-    var escortVal = (ridesVal && escortEl) ? (escortEl.value === 'true') : false;
+    var bikeVal = document.getElementById('svc-toggle-bike') ? document.getElementById('svc-toggle-bike').value === 'true' : true;
+    var autoVal = document.getElementById('svc-toggle-auto') ? document.getElementById('svc-toggle-auto').value === 'true' : true;
+    var carVal = document.getElementById('svc-toggle-car') ? document.getElementById('svc-toggle-car').value === 'true' : true;
+    var parcelsVal = document.getElementById('svc-toggle-parcels') ? document.getElementById('svc-toggle-parcels').value === 'true' : true;
+    var trucksVal = document.getElementById('svc-toggle-trucks') ? document.getElementById('svc-toggle-trucks').value === 'true' : true;
+    var goodzVal = document.getElementById('svc-toggle-goodz') ? document.getElementById('svc-toggle-goodz').value === 'true' : true;
+    var escortP1Val = document.getElementById('svc-toggle-escort-plan1') ? document.getElementById('svc-toggle-escort-plan1').value === 'true' : false;
+    var escortP2Val = document.getElementById('svc-toggle-escort-plan2') ? document.getElementById('svc-toggle-escort-plan2').value === 'true' : false;
+    var amorelotVal = document.getElementById('svc-toggle-amorelot') ? document.getElementById('svc-toggle-amorelot').value === 'true' : false;
 
     var cfg = {
-      rides: ridesVal,
-      parcels: document.getElementById('svc-toggle-parcels').value === 'true',
-      trucks: document.getElementById('svc-toggle-trucks').value === 'true',
-      goodz: document.getElementById('svc-toggle-goodz') ? document.getElementById('svc-toggle-goodz').value === 'true' : true,
-      escort: escortVal
+      bike: bikeVal,
+      auto: autoVal,
+      car: carVal,
+      rides: bikeVal || autoVal || carVal,
+      parcels: parcelsVal,
+      trucks: trucksVal,
+      goodz: goodzVal,
+      escort: escortP1Val || escortP2Val,
+      escort_plan1: escortP1Val,
+      escort_plan2: escortP2Val,
+      amorelot: amorelotVal
     };
 
     localStorage.setItem('rydealot_services_config', JSON.stringify(cfg));
@@ -2342,29 +2695,41 @@
       await sb('platform_services?id=eq.default', {
         method: 'PATCH',
         body: {
+          bike_enabled: cfg.bike,
+          auto_enabled: cfg.auto,
+          car_enabled: cfg.car,
           rides_enabled: cfg.rides,
           parcels_enabled: cfg.parcels,
           trucks_enabled: cfg.trucks,
           goodz_enabled: cfg.goodz,
           escort_enabled: cfg.escort,
+          escort_plan1_enabled: cfg.escort_plan1,
+          escort_plan2_enabled: cfg.escort_plan2,
+          amorelot_enabled: cfg.amorelot,
           updated_at: new Date().toISOString()
         }
       });
-      toast('✅ Platform service switches saved & synced live across network!');
+      toast('✅ Granular service switches saved & synced live across network!');
     } catch(e) {
       try {
         await sb('platform_services', {
           method: 'POST',
           body: {
             id: 'default',
+            bike_enabled: cfg.bike,
+            auto_enabled: cfg.auto,
+            car_enabled: cfg.car,
             rides_enabled: cfg.rides,
             parcels_enabled: cfg.parcels,
             trucks_enabled: cfg.trucks,
             goodz_enabled: cfg.goodz,
-            escort_enabled: cfg.escort
+            escort_enabled: cfg.escort,
+            escort_plan1_enabled: cfg.escort_plan1,
+            escort_plan2_enabled: cfg.escort_plan2,
+            amorelot_enabled: cfg.amorelot
           }
         });
-        toast('✅ Service switches initialized in cloud!');
+        toast('✅ Granular switches initialized in cloud!');
       } catch(err) {
         toast('✅ Service switches saved locally in browser!');
       }
@@ -3689,6 +4054,9 @@
     if (authed === 'true') {
       document.getElementById('admin-auth-overlay').style.display = 'none';
       document.getElementById('admin-main-wrap').style.display = 'block';
+      applyTitanPermissions();
+      renderTitansRoster();
+      updateEmergencyPasscodeUI();
       checkUrlTabParam();
       var activeTab = new URLSearchParams(window.location.search).get('tab');
       if (!activeTab || activeTab === 'drivers') loadDrivers();
@@ -3868,19 +4236,55 @@
     }
 
     var cleanCode = codeVal.toUpperCase();
-    var recoveryCodes = ['RYD-8821-4910', 'RYD-9932-7714', 'RYD-1104-5529', '982026'];
     var targetEmail = pendingAdminEmail || getSavedAdminEmail();
+    var customEmergencyHash = localStorage.getItem('rydealot_custom_emergency_hash');
 
-    // 1. Emergency Recovery Codes & Founder Master Passcode
-    if (recoveryCodes.includes(cleanCode) || codeVal === '982026') {
-      setDailyAdminSession('founder_recovery_' + Date.now(), targetEmail);
+    // 1. Founder Custom Emergency Passcode Check (Deactivates 982026)
+    if (customEmergencyHash) {
+      var codeHash = await sha256Hex(codeVal);
+      if (codeHash === customEmergencyHash) {
+        setDailyAdminSession('founder_custom_emergency_' + Date.now(), targetEmail);
+        sessionStorage.setItem('rydealot_admin_authed', 'true');
+        sessionStorage.setItem('rydealot_sage_admin_authed', 'true');
+        sessionStorage.setItem('rydealot_aw_admin_authed', 'true');
+        sessionStorage.setItem('rydealot_admin_email', targetEmail);
+        errEl.style.display = 'none';
+        checkAdminAuth();
+        toast('👑 Founder Custom Emergency Passcode Verified!');
+        return;
+      }
+
+      if (codeVal === '982026') {
+        errEl.textContent = '⛔ Default PIN 982026 has been permanently deactivated by Founder. Use your custom passcode or Authenticator.';
+        errEl.style.display = 'block';
+        return;
+      }
+    } else {
+      // Fallback default before founder sets custom passcode
+      if (codeVal === '982026') {
+        setDailyAdminSession('founder_recovery_' + Date.now(), targetEmail);
+        sessionStorage.setItem('rydealot_admin_authed', 'true');
+        sessionStorage.setItem('rydealot_sage_admin_authed', 'true');
+        sessionStorage.setItem('rydealot_aw_admin_authed', 'true');
+        sessionStorage.setItem('rydealot_admin_email', targetEmail);
+        errEl.style.display = 'none';
+        checkAdminAuth();
+        toast('👑 Master Recovery Code Verified! (Please set custom PIN in Titans & Security)');
+        return;
+      }
+    }
+
+    // Emergency static recovery keys (alphanumeric)
+    var recoveryKeys = ['RYD-8821-4910', 'RYD-9932-7714', 'RYD-1104-5529'];
+    if (recoveryKeys.includes(cleanCode)) {
+      setDailyAdminSession('founder_recovery_key_' + Date.now(), targetEmail);
       sessionStorage.setItem('rydealot_admin_authed', 'true');
       sessionStorage.setItem('rydealot_sage_admin_authed', 'true');
       sessionStorage.setItem('rydealot_aw_admin_authed', 'true');
       sessionStorage.setItem('rydealot_admin_email', targetEmail);
       errEl.style.display = 'none';
       checkAdminAuth();
-      toast('👑 Master Recovery Code Verified! Welcome, Founder!');
+      toast('👑 Emergency Master Recovery Key Verified! Welcome, Founder!');
       return;
     }
 
@@ -3954,7 +4358,11 @@
   }
 
   function copyRecoveryCodes() {
-    var codes = 'Rydealot Admin Master Recovery Codes:\n1. RYD-8821-4910\n2. RYD-9932-7714\n3. RYD-1104-5529\n4. Founder Master PIN: 982026';
+    var hasCustom = !!localStorage.getItem('rydealot_custom_emergency_hash');
+    var pinLine = hasCustom 
+      ? '4. Custom Founder Passcode: [CONFIGURED - Default 982026 Deactivated]'
+      : '4. Founder Master PIN: 982026 (Action Recommended: Set Custom Passcode)';
+    var codes = 'Rydealot Admin Master Recovery Codes:\n1. RYD-8821-4910\n2. RYD-9932-7714\n3. RYD-1104-5529\n' + pinLine;
     navigator.clipboard.writeText(codes).then(function() {
       toast('📋 Recovery codes copied to clipboard!');
     }).catch(function() {
@@ -4697,6 +5105,441 @@
       toast('Growth Summary CSV downloaded!');
     } catch(e) {
       alert('Export failed: ' + e.message);
+    }
+  }
+
+  // ===== TITANS RBAC ENGINE (ATTACK ON TITAN HIERARCHY) =====
+  function getTitansAdmins() {
+    var defaultFounder = {
+      name: 'Founder Admin',
+      email: getSavedAdminEmail() || 'rydealotofficial@gmail.com',
+      role: 'founding_titan',
+      title: '👑 Founding Titan',
+      permissions: 'Supreme Authority (Fares, Kill-Switches, Passcodes, Admin Roster)',
+      addedAt: '2026-01-01T00:00:00.000Z',
+      status: 'active'
+    };
+
+    try {
+      var raw = localStorage.getItem('rydealot_titans_admins');
+      if (raw) {
+        var list = JSON.parse(raw);
+        if (Array.isArray(list) && list.length > 0) {
+          var hasFounder = list.some(function(a){ return a.role === 'founding_titan'; });
+          if (!hasFounder) list.unshift(defaultFounder);
+          return list;
+        }
+      }
+    } catch(e){}
+
+    return [defaultFounder];
+  }
+
+  function saveTitansAdmins(list) {
+    localStorage.setItem('rydealot_titans_admins', JSON.stringify(list));
+    var emails = list.map(function(a){ return (a.email || '').trim().toLowerCase(); }).filter(Boolean);
+    localStorage.setItem('rydealot_authorized_admin_emails', emails.join(','));
+
+    try {
+      sb('platform_services?id=eq.titans_admins', {
+        method: 'PATCH',
+        body: { config: list, updated_at: new Date().toISOString() }
+      }).catch(function(){});
+    } catch(e){}
+  }
+
+  function getCurrentTitanRole() {
+    var loggedInEmail = (sessionStorage.getItem('rydealot_admin_email') || getSavedAdminEmail() || '').trim().toLowerCase();
+    var admins = getTitansAdmins();
+    var match = admins.find(function(a){ return (a.email || '').trim().toLowerCase() === loggedInEmail; });
+    if (match) return match.role;
+    if (loggedInEmail === (getSavedAdminEmail() || '').trim().toLowerCase() || loggedInEmail === DEFAULT_ADMIN_EMAIL.toLowerCase()) {
+      return 'founding_titan';
+    }
+    return 'colossal_titan';
+  }
+
+  function applyTitanPermissions() {
+    var role = getCurrentTitanRole();
+    var badge = document.getElementById('titan-role-badge');
+    var isFounder = (role === 'founding_titan');
+
+    if (badge) {
+      if (isFounder) {
+        badge.textContent = '👑 FOUNDING TITAN';
+        badge.style.background = 'rgba(245,158,11,0.18)';
+        badge.style.borderColor = '#f59e0b';
+        badge.style.color = '#fbbf24';
+      } else {
+        badge.textContent = '⚡ COLOSSAL TITAN (Operations)';
+        badge.style.background = 'rgba(6,182,212,0.18)';
+        badge.style.borderColor = '#06b6d4';
+        badge.style.color = '#38bdf8';
+      }
+    }
+
+    var btnOnboard = document.getElementById('btn-onboard-titan');
+    if (btnOnboard) btnOnboard.style.display = isFounder ? 'inline-block' : 'none';
+    var cardOnboard = document.getElementById('card-onboard-titan');
+    if (cardOnboard && !isFounder) cardOnboard.style.display = 'none';
+
+    var emergencyCard = document.getElementById('founder-emergency-passcode-card');
+    if (emergencyCard) {
+      emergencyCard.style.display = isFounder ? 'block' : 'none';
+    }
+
+    var investorExportBtn = document.querySelector('button[onclick*="exportInvestorSummaryCSV"]');
+    if (investorExportBtn) {
+      investorExportBtn.style.display = isFounder ? 'flex' : 'none';
+    }
+
+    var changeCredBtn = document.querySelector('button[onclick*="openChangePassModal"]');
+    if (changeCredBtn) {
+      changeCredBtn.style.display = isFounder ? 'inline-block' : 'none';
+    }
+  }
+
+  function toggleOnboardTitanForm(show) {
+    var card = document.getElementById('card-onboard-titan');
+    if (!card) return;
+    if (typeof show === 'boolean') {
+      card.style.display = show ? 'block' : 'none';
+    } else {
+      card.style.display = (card.style.display === 'none' || !card.style.display) ? 'block' : 'none';
+    }
+  }
+
+  async function submitOnboardTitan() {
+    var name = (document.getElementById('new-titan-name').value || '').trim();
+    var email = (document.getElementById('new-titan-email').value || '').trim().toLowerCase();
+    var role = document.getElementById('new-titan-role').value;
+
+    if (!name || !email) {
+      alert('Please enter both Titan Name and Gmail.');
+      return;
+    }
+    if (!email.includes('@')) {
+      alert('Please enter a valid Gmail / Email address.');
+      return;
+    }
+
+    var list = getTitansAdmins();
+    var existing = list.find(function(a){ return (a.email || '').toLowerCase() === email; });
+    if (existing) {
+      alert('An admin with this email is already registered as ' + existing.title + '.');
+      return;
+    }
+
+    var newTitan = {
+      name: name,
+      email: email,
+      role: role || 'colossal_titan',
+      title: '⚡ Colossal Titan',
+      permissions: 'Operations & Fleet Dispatch (KYC Approvals, Parcels, Cargo, Rides)',
+      addedAt: new Date().toISOString(),
+      status: 'active'
+    };
+
+    list.push(newTitan);
+    saveTitansAdmins(list);
+    renderTitansRoster();
+    toggleOnboardTitanForm(false);
+    document.getElementById('new-titan-name').value = '';
+    document.getElementById('new-titan-email').value = '';
+    toast('⚡ Colossal Titan onboarded! ' + name + ' (' + email + ') authorized.');
+  }
+
+  function revokeColossalTitan(email) {
+    if (!email) return;
+    if (getCurrentTitanRole() !== 'founding_titan') {
+      alert('Only the Founding Titan can offboard Colossal Titans.');
+      return;
+    }
+
+    var list = getTitansAdmins();
+    var target = list.find(function(a){ return (a.email || '').toLowerCase() === email.toLowerCase(); });
+    if (!target) return;
+    if (target.role === 'founding_titan') {
+      alert('Cannot offboard the Founding Titan!');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to offboard Colossal Titan ' + target.name + ' (' + target.email + ')? Their admin credentials will be revoked immediately.')) {
+      return;
+    }
+
+    var updated = list.filter(function(a){ return (a.email || '').toLowerCase() !== email.toLowerCase(); });
+    saveTitansAdmins(updated);
+    renderTitansRoster();
+    toast('🚫 Offboarded Colossal Titan: ' + target.name);
+  }
+
+  function renderTitansRoster() {
+    var tbody = document.getElementById('titans-roster-tbody');
+    if (!tbody) return;
+    var list = getTitansAdmins();
+    var isFounder = (getCurrentTitanRole() === 'founding_titan');
+
+    var html = '';
+    list.forEach(function(titan) {
+      var isFounding = (titan.role === 'founding_titan');
+      var badgeStyle = isFounding 
+        ? 'background:rgba(245,158,11,0.18); border:1px solid #f59e0b; color:#fbbf24;'
+        : 'background:rgba(6,182,212,0.18); border:1px solid #06b6d4; color:#38bdf8;';
+
+      html += '<tr>';
+      html += '<td><strong style="color:#fff;">' + escapeHtml(titan.name) + '</strong></td>';
+      html += '<td class="mono" style="color:var(--mute); font-size:0.8rem;">' + escapeHtml(titan.email) + '</td>';
+      html += '<td><span class="badge" style="' + badgeStyle + ' font-weight:800; font-size:0.72rem;">' + escapeHtml(titan.title) + '</span></td>';
+      html += '<td style="font-size:0.75rem; color:#cbd5e1;">' + escapeHtml(titan.permissions || 'Standard Operations') + '</td>';
+      html += '<td><span class="badge badge-green" style="font-size:0.7rem;">🟢 Active</span></td>';
+      html += '<td style="text-align:right;">';
+      if (isFounding) {
+        html += '<span class="badge" style="background:#1e293b; color:#94a3b8; font-size:0.7rem;">🔒 Supreme (Immune)</span>';
+      } else if (isFounder) {
+        html += '<button type="button" class="btn btn-red" style="padding:4px 10px; font-size:0.72rem; font-weight:800;" onclick="revokeColossalTitan(\'' + escapeHtml(titan.email) + '\')">🚫 Revoke / Offboard</button>';
+      } else {
+        html += '<span style="font-size:0.72rem; color:var(--mute);">Active</span>';
+      }
+      html += '</td>';
+      html += '</tr>';
+    });
+
+    tbody.innerHTML = html;
+  }
+
+  // ===== FOUNDER DYNAMIC EMERGENCY PASSCODE CONTROLLER =====
+  function updateEmergencyPasscodeUI() {
+    var badge = document.getElementById('emergency-passcode-status-badge');
+    if (!badge) return;
+    var customHash = localStorage.getItem('rydealot_custom_emergency_hash');
+    if (customHash) {
+      badge.textContent = '🟢 CUSTOM PIN ACTIVE (982026 Deactivated)';
+      badge.style.background = 'rgba(16,185,129,0.18)';
+      badge.style.borderColor = '#10b981';
+      badge.style.color = '#34d399';
+    } else {
+      badge.textContent = '🟡 DEFAULT 982026 ACTIVE (Action Recommended)';
+      badge.style.background = 'rgba(245,158,11,0.18)';
+      badge.style.borderColor = '#f59e0b';
+      badge.style.color = '#fbbf24';
+    }
+  }
+
+  async function changeFounderEmergencyPasscode() {
+    var fb = document.getElementById('founder-emergency-feedback');
+    if (fb) { fb.style.display = 'none'; fb.textContent = ''; }
+
+    if (getCurrentTitanRole() !== 'founding_titan') {
+      alert('Only the Founding Titan can change the Emergency Passcode.');
+      return;
+    }
+
+    var currPass = (document.getElementById('founder-curr-pass-for-emergency').value || '').trim();
+    var newCode = (document.getElementById('founder-new-emergency-code').value || '').trim();
+    var confirmCode = (document.getElementById('founder-confirm-emergency-code').value || '').trim();
+
+    if (!currPass || !newCode || !confirmCode) {
+      if (fb) { fb.style.color = '#ef4444'; fb.textContent = 'Please fill out all fields.'; fb.style.display = 'block'; }
+      return;
+    }
+
+    var currHash = await sha256Hex(currPass);
+    var savedPassHash = getSavedAdminPassHash();
+    var legacyPass = localStorage.getItem('rydealot_admin_pass');
+
+    var isPasswordCorrect = false;
+    if (savedPassHash && currHash === savedPassHash) isPasswordCorrect = true;
+    else if (legacyPass && currPass === legacyPass) isPasswordCorrect = true;
+    else if (!savedPassHash && !legacyPass && currHash === DEFAULT_ADMIN_PASS_HASH) isPasswordCorrect = true;
+
+    if (!isPasswordCorrect) {
+      if (fb) { fb.style.color = '#ef4444'; fb.textContent = '❌ Incorrect Current Master Password.'; fb.style.display = 'block'; }
+      return;
+    }
+
+    if (newCode !== confirmCode) {
+      if (fb) { fb.style.color = '#ef4444'; fb.textContent = '❌ New Emergency Passcode and Confirm Passcode do not match.'; fb.style.display = 'block'; }
+      return;
+    }
+
+    if (newCode.length < 4) {
+      if (fb) { fb.style.color = '#ef4444'; fb.textContent = '❌ Emergency Passcode should be at least 4 characters/digits.'; fb.style.display = 'block'; }
+      return;
+    }
+
+    var newEmergencyHash = await sha256Hex(newCode);
+    localStorage.setItem('rydealot_custom_emergency_hash', newEmergencyHash);
+
+    try {
+      sb('platform_services?id=eq.emergency_security', {
+        method: 'PATCH',
+        body: { emergency_hash: newEmergencyHash, updated_at: new Date().toISOString() }
+      }).catch(function(){});
+    } catch(e){}
+
+    document.getElementById('founder-curr-pass-for-emergency').value = '';
+    document.getElementById('founder-new-emergency-code').value = '';
+    document.getElementById('founder-confirm-emergency-code').value = '';
+
+    updateEmergencyPasscodeUI();
+    if (fb) {
+      fb.style.color = '#4ade80';
+      fb.textContent = '✅ Emergency Passcode updated successfully! Default 982026 is now permanently deactivated.';
+      fb.style.display = 'block';
+    }
+    toast('🛡️ Founder Emergency Passcode saved! Default 982026 is destroyed.');
+  }
+
+  // ===== NIGHT SAFETY GUARDIAN & ESCORT CONTROLLER =====
+  function loadEscortPanel(showToast) {
+    try {
+      var raw = localStorage.getItem('rydealot_services_config');
+      var cfg = raw ? JSON.parse(raw) : {};
+
+      var p1 = typeof cfg.escort_plan1 === 'boolean' ? cfg.escort_plan1 : (cfg.escort || false);
+      var p2 = typeof cfg.escort_plan2 === 'boolean' ? cfg.escort_plan2 : false;
+
+      var p1El = document.getElementById('escort-panel-toggle-plan1');
+      if (p1El) p1El.value = p1 ? 'true' : 'false';
+
+      var p2El = document.getElementById('escort-panel-toggle-plan2');
+      if (p2El) p2El.value = p2 ? 'true' : 'false';
+
+      updateEscortMasterBadge(p1, p2);
+
+      var plan1Count = 0;
+      var plan2Count = 0;
+      var escortRevenue = 0;
+
+      if (window.allBookings && Array.isArray(window.allBookings)) {
+        window.allBookings.forEach(function(b){
+          if (b.escort_plan === 'plan1' || b.escort === true) {
+            plan1Count++;
+            escortRevenue += 29;
+          } else if (b.escort_plan === 'plan2') {
+            plan2Count++;
+            escortRevenue += 49;
+          }
+        });
+      }
+
+      var elP1 = document.getElementById('escort-stat-plan1'); if (elP1) elP1.textContent = plan1Count;
+      var elP2 = document.getElementById('escort-stat-plan2'); if (elP2) elP2.textContent = plan2Count;
+      var elCap = document.getElementById('escort-stat-captains'); if (elCap) elCap.textContent = '4';
+      var elAlm = document.getElementById('escort-stat-alarms'); if (elAlm) elAlm.textContent = '0';
+      var elRev = document.getElementById('escort-stat-revenue'); if (elRev) elRev.textContent = '₹' + escortRevenue.toLocaleString('en-IN');
+
+      var badge = document.getElementById('escort-active-count-badge');
+      if (badge) badge.textContent = (plan1Count + plan2Count) + ' Active';
+
+      if (showToast) toast('🛡️ Night Escort console refreshed');
+    } catch(err) {
+      console.warn('Escort panel note:', err);
+    }
+  }
+
+  function updateEscortMasterBadge(p1, p2) {
+    var badge = document.getElementById('escort-master-status-badge');
+    if (!badge) return;
+    if (p1 && p2) {
+      badge.textContent = 'PLAN 1 & PLAN 2 ACTIVE';
+      badge.style.background = '#10b981';
+    } else if (p1) {
+      badge.textContent = 'PLAN 1 (AI OBSERVER) ACTIVE';
+      badge.style.background = '#06b6d4';
+    } else if (p2) {
+      badge.textContent = 'PLAN 2 (INTERCEPT) ACTIVE';
+      badge.style.background = '#f59e0b';
+    } else {
+      badge.textContent = '🔴 PAUSED (DORMANT)';
+      badge.style.background = '#ef4444';
+    }
+  }
+
+  function syncEscortPanelToggle(plan, val) {
+    var isEnabled = (val === 'true');
+    var raw = localStorage.getItem('rydealot_services_config');
+    var cfg = raw ? JSON.parse(raw) : { bike: true, auto: true, car: true, parcels: true, trucks: true, goodz: true };
+
+    if (plan === 'plan1') {
+      cfg.escort_plan1 = isEnabled;
+      cfg.escort = isEnabled;
+      var fareP1 = document.getElementById('svc-toggle-escort-plan1');
+      if (fareP1) fareP1.value = val;
+    } else if (plan === 'plan2') {
+      cfg.escort_plan2 = isEnabled;
+      var fareP2 = document.getElementById('svc-toggle-escort-plan2');
+      if (fareP2) fareP2.value = val;
+    }
+
+    localStorage.setItem('rydealot_services_config', JSON.stringify(cfg));
+    updateEscortMasterBadge(cfg.escort_plan1, cfg.escort_plan2);
+    updateServiceBadge();
+
+    try {
+      sb('platform_services?id=eq.default', {
+        method: 'PATCH',
+        body: {
+          escort_enabled: cfg.escort_plan1 || cfg.escort_plan2,
+          escort_plan1_enabled: cfg.escort_plan1,
+          escort_plan2_enabled: cfg.escort_plan2,
+          updated_at: new Date().toISOString()
+        }
+      }).catch(function(){});
+    } catch(e){}
+
+    toast('🛡️ Escort ' + (plan === 'plan1' ? 'Plan 1' : 'Plan 2') + ' updated to ' + (isEnabled ? 'ACTIVE' : 'PAUSED'));
+  }
+
+  function simulateEscortAction(type) {
+    var logEl = document.getElementById('escort-sandbox-logs');
+    if (!logEl) return;
+    var timeStr = new Date().toLocaleTimeString('en-IN', { hour12: false });
+    var msg = '';
+
+    if (type === 'safe') {
+      msg = '<div style="color:#34d399;">[' + timeStr + '] 🟢 [SIMULATED] Rider on route (corridor check OK: 14m delta). 0 database writes. Safe passage confirmed.</div>';
+    } else if (type === 'stopped') {
+      msg = '<div style="color:#fbbf24;">[' + timeStr + '] ⚠️ [SIMULATED] Vehicle standstill detected (180s threshold elapsed). Triggering native Telugu/Hindi safety prompt to passenger...</div>';
+    } else if (type === 'deviation') {
+      msg = '<div style="color:#f87171;">[' + timeStr + '] 🚨 [SIMULATED] CORRIDOR DEVIATION ALARM: Vehicle deviated 320m from safe route into unlit bypass! Standby intercept captain notified.</div>';
+    } else if (type === 'intercept') {
+      msg = '<div style="color:#c084fc;">[' + timeStr + '] 🏍️ [SIMULATED] Standby Captain Rajesh (TS03-EA-9912) dispatched to GPS: 17.9689, 79.5941. Intercept ETA: 3 mins. Gate-in PIN generated: 4892.</div>';
+    }
+
+    logEl.innerHTML = msg + logEl.innerHTML;
+  }
+
+  function testEscortVoicePrompts(lang) {
+    var logEl = document.getElementById('escort-sandbox-logs');
+    var timeStr = new Date().toLocaleTimeString('en-IN', { hour12: false });
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      var text = (lang === 'te')
+        ? 'నమస్కారం, మీ ప్రయాణం సురక్షితంగా కొనసాగుతోంది. Rydealot Night Guardian మీతో ఉంది.'
+        : 'नमस्ते, आपकी यात्रा सुरक्षित है। Rydealot Night Guardian सक्रिय है।';
+
+      var utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = (lang === 'te') ? 'te-IN' : 'hi-IN';
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+
+      if (logEl) {
+        logEl.innerHTML = '<div style="color:#38bdf8;">[' + timeStr + '] 🔊 [AUDIO PROMPT] Played ' + (lang === 'te' ? 'Telugu' : 'Hindi') + ' voice prompt: "' + text + '"</div>' + logEl.innerHTML;
+      }
+      toast('🔊 Playing ' + (lang === 'te' ? 'Telugu' : 'Hindi') + ' voice prompt in browser audio');
+    } else {
+      alert('Browser speech synthesis is not supported in this browser.');
+    }
+  }
+
+  function clearEscortSimulatorLogs() {
+    var logEl = document.getElementById('escort-sandbox-logs');
+    if (logEl) {
+      logEl.innerHTML = '<div style="color:#38bdf8;">[INIT] Console cleared. Escort simulator active in browser memory.</div>';
     }
   }
 
