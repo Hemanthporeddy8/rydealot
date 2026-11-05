@@ -57,6 +57,29 @@
     .badge-amber { background: rgba(255,176,32,0.15); color: var(--amber); }
     .badge-red { background: rgba(229,62,62,0.15); color: var(--red); }
     .badge-mute { background: rgba(107,114,128,0.15); color: var(--mute); }
+    .badge-blue { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+    .badge-purple { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+    .badge-open { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+    .badge-pending { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .badge-assigned { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .badge-picked_up { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+    .badge-in_transit { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+    .badge-delivered { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .badge-cancelled { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+    .badge-accepted { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .goodz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .goodz-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px; }
+    .goodz-card-title { font-weight: 800; font-size: 0.95rem; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .goodz-field-group { margin-bottom: 12px; }
+    .goodz-label { font-size: 0.72rem; color: var(--mute); font-weight: 700; text-transform: uppercase; margin-bottom: 4px; display: block; }
+    .goodz-input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: #fff; font-size: 0.85rem; font-weight: 700; outline: none; }
+    .goodz-input:focus { border-color: var(--amber); }
+    .toggle-switch { position: relative; display: inline-block; width: 38px; height: 22px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .2s; border-radius: 99px; }
+    .toggle-slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%; }
+    input:checked + .toggle-slider { background-color: #10b981; }
+    input:checked + .toggle-slider:before { transform: translateX(16px); }
     .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
     .action-btns button { padding: 4px 10px; border-radius: 6px; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
     .loading { text-align: center; padding: 40px; color: var(--mute); }
@@ -105,29 +128,28 @@
       </form>
     </div>
 
-    <!-- STEP 2: 2FA EMAIL OTP -->
+    <!-- STEP 2: GOOGLE AUTHENTICATOR (RFC 6238 TOTP) -->
     <div id="auth-step-otp" style="display:none;">
-      <div style="font-size: 2rem; margin-bottom: 8px;">🔐</div>
-      <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:4px; color:#fff;">Security Verification</h3>
-      <p style="font-size:0.8rem; color:var(--mute); margin-bottom:16px; line-height:1.4;">
-        A 6-digit code was sent to<br><strong id="otp-target-display" style="color:var(--amber);">rydealotofficial@gmail.com</strong>
+      <div style="font-size: 2.2rem; margin-bottom: 6px;">📲</div>
+      <h3 style="font-size:1.15rem; font-weight:900; margin-bottom:4px; color:#fff;">Google Authenticator 2FA</h3>
+      <p style="font-size:0.8rem; color:var(--mute); margin-bottom:14px; line-height:1.4;">
+        Enter the 6-digit dynamic code from Google Authenticator or Authy on your phone.<br>
+        <span style="font-size:0.72rem; color:#4ade80;">⚡ Zero network quota • 100% Offline 2-second check</span>
       </p>
 
       <form onsubmit="event.preventDefault(); verifyAdminOtp();">
-        <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">6-DIGIT VERIFICATION CODE</label>
-        <input type="text" id="admin-otp-input" class="auth-input" style="font-family:monospace; font-size:1.4rem; letter-spacing:6px; text-align:center; padding:10px; margin-bottom:10px;" placeholder="••••••" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code">
-        
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-size:0.75rem; color:var(--mute);">
-          <span id="otp-expiry-timer">⏳ Expires: <b id="otp-countdown" style="color:var(--amber);">05:00</b></span>
-          <button type="button" id="otp-resend-btn" onclick="resendAdminOtp()" style="background:none; border:none; color:var(--amber); font-weight:700; cursor:pointer; font-size:0.75rem; text-decoration:underline;" disabled>Resend Code (<span id="otp-resend-cooldown">60</span>s)</button>
-        </div>
+        <label style="font-size:0.75rem; color:var(--mute); font-weight:700; display:block; text-align:left; margin-bottom:4px;">6-DIGIT AUTHENTICATOR CODE</label>
+        <input type="text" id="admin-otp-input" class="auth-input" style="font-family:monospace; font-size:1.6rem; letter-spacing:8px; text-align:center; padding:10px; margin-bottom:12px; font-weight:900;" placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code">
 
-        <button type="submit" class="auth-btn" id="admin-verify-btn">Verify & Unlock Dashboard</button>
+        <button type="submit" class="auth-btn" id="admin-verify-btn">Verify &amp; Unlock Dashboard</button>
       </form>
 
-      <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
-        <button type="button" onclick="backToPasswordStep()" style="background:none; border:none; color:var(--mute); font-size:0.75rem; cursor:pointer;">← Back to Password</button>
-        <button type="button" onclick="promptMasterRecovery()" style="background:none; border:none; color:#64748b; font-size:0.7rem; cursor:pointer;" title="Emergency master bypass">Founder Bypass</button>
+      <div style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+        <button type="button" onclick="openTotpSetupModal()" style="background:rgba(255,176,32,0.1); border:1px solid rgba(255,176,32,0.3); color:var(--amber); border-radius:8px; padding:6px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">📲 First Time? Scan Authenticator QR Code</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+          <button type="button" onclick="backToPasswordStep()" style="background:none; border:none; color:var(--mute); font-size:0.75rem; cursor:pointer;">← Back to Password</button>
+          <button type="button" onclick="promptEmergencyRecovery()" style="background:none; border:none; color:#94a3b8; font-size:0.72rem; cursor:pointer; text-decoration:underline;" title="Emergency master backup key">🔑 Recovery Key</button>
+        </div>
       </div>
     </div>
     
@@ -200,6 +222,80 @@
   </div>
 </div>
 
+<!-- GOOGLE AUTHENTICATOR 2FA SETUP MODAL -->
+<div id="totp-setup-overlay" style="display:none; position:fixed; inset:0; background:rgba(11,12,15,0.95); backdrop-filter:blur(8px); z-index:10002; align-items:center; justify-content:center; padding:20px;">
+  <div class="auth-card" style="text-align:left; max-width:440px; width:100%; max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="font-size:1.15rem; font-weight:900; margin:0; display:flex; align-items:center; gap:8px;">
+        <span>📲</span> Setup Google Authenticator
+      </h3>
+      <button onclick="closeTotpSetupModal()" style="background:none; border:none; color:var(--mute); font-size:1.2rem; cursor:pointer;">✕</button>
+    </div>
+    <p style="font-size:0.78rem; color:var(--mute); margin-bottom:16px;">
+      Scan this QR code with <strong>Google Authenticator</strong>, <strong>Authy</strong>, or <strong>1Password</strong> on your phone for instant, offline 2-second logins.
+    </p>
+
+    <!-- QR Code Center -->
+    <div style="text-align:center; background:#fff; border-radius:12px; padding:12px; margin-bottom:14px; width:100%; box-sizing:border-box;">
+      <img id="totp-qr-image" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=otpauth%3A%2F%2Ftotp%2FRydealot%2520Admin%3Arydealotofficial%40gmail.com%3Fsecret%3DJBSWY3DPEHPK3PXP%26issuer%3DRydealot" alt="Google Authenticator QR Code" style="width:180px; height:180px; display:block; margin:0 auto;">
+    </div>
+
+    <!-- Base32 Secret Key -->
+    <label style="font-size:0.72rem; color:var(--mute); font-weight:700; text-transform:uppercase;">Base32 Secret Key (Manual Entry)</label>
+    <div style="display:flex; gap:6px; margin:4px 0 14px;">
+      <input type="text" id="totp-secret-input" readonly value="JBSWY3DPEHPK3PXP" class="auth-input" style="font-family:monospace; margin-bottom:0; font-size:0.9rem; letter-spacing:1px; background:#0b0c0f;">
+      <button type="button" class="btn btn-amber" style="padding:0 12px; font-size:0.75rem;" onclick="copyTotpSecret()">Copy</button>
+    </div>
+
+    <!-- Emergency Recovery Keys -->
+    <div style="background:#0b0c0f; border:1px solid #334155; border-radius:10px; padding:10px 12px; margin-bottom:14px;">
+      <div style="font-size:0.72rem; font-weight:800; color:#fbbf24; margin-bottom:4px; text-transform:uppercase;">🔑 Permanent Emergency Recovery Keys</div>
+      <div style="font-family:monospace; font-size:0.75rem; color:#e2e8f0; line-height:1.6;">
+        <div>1. <strong>RYD-8821-4910</strong></div>
+        <div>2. <strong>RYD-9932-7714</strong></div>
+        <div>3. <strong>RYD-1104-5529</strong></div>
+        <div>4. Founder Master PIN: <strong>982026</strong></div>
+      </div>
+      <div style="font-size:0.68rem; color:#94a3b8; margin-top:6px;">Any of these codes will instantly unlock the console if you ever lose your phone.</div>
+    </div>
+
+    <!-- Quick Test Field -->
+    <div style="margin-bottom:14px;">
+      <label style="font-size:0.72rem; color:var(--mute); font-weight:700; text-transform:uppercase;">Test Your Authenticator App Now</label>
+      <div style="display:flex; gap:6px; margin-top:4px;">
+        <input type="text" id="totp-test-input" placeholder="Enter 6-digit code" maxlength="6" class="auth-input" style="margin-bottom:0; text-align:center; font-family:monospace; font-size:1rem; letter-spacing:3px;">
+        <button type="button" class="btn btn-green" style="padding:0 14px; font-size:0.75rem;" onclick="testTotpCode()">Verify</button>
+      </div>
+      <div id="totp-test-result" style="font-size:0.75rem; margin-top:4px; font-weight:700;"></div>
+    </div>
+
+    <button type="button" class="btn btn-mute" style="width:100%;" onclick="closeTotpSetupModal()">Done / Close</button>
+  </div>
+</div>
+
+<!-- ASSIGN SAGE PARCEL RIDER MODAL -->
+<div id="modal-sage-assign" style="display:none; position:fixed; inset:0; background:rgba(9,11,16,0.85); backdrop-filter:blur(6px); z-index:100000; align-items:center; justify-content:center; padding:20px;">
+  <div class="auth-card" style="text-align:left; max-width:380px;">
+    <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:4px;">🛵 Assign Parcel Captain</h3>
+    <p id="modal-sage-assign-subtitle" style="font-size:0.75rem; color:var(--mute); margin-bottom:14px;">Select or enter driver details below.</p>
+    <input type="hidden" id="sage-assign-target-id">
+
+    <label style="font-size:0.72rem; color:var(--mute); font-weight:700; text-transform:uppercase;">Captain Name</label>
+    <input type="text" id="sage-modal-capt-name" class="auth-input" placeholder="e.g. Ramesh Kumar">
+
+    <label style="font-size:0.72rem; color:var(--mute); font-weight:700; text-transform:uppercase;">Phone Number</label>
+    <input type="tel" id="sage-modal-capt-phone" class="auth-input" placeholder="e.g. 9876543210">
+
+    <label style="font-size:0.72rem; color:var(--mute); font-weight:700; text-transform:uppercase;">Vehicle &amp; Number Plate</label>
+    <input type="text" id="sage-modal-capt-plate" class="auth-input" placeholder="e.g. TS03 EA 9988 (Pulsar 150)">
+
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button type="button" class="btn btn-mute" style="flex:1;" onclick="closeAssignSageModal()">Cancel</button>
+      <button type="button" class="btn btn-amber" style="flex:1;" onclick="saveAssignedSageCaptain()">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <div id="admin-main-wrap">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px; flex-wrap:wrap; gap:10px;">
     <div style="display:flex; align-items:center; gap:10px;">
@@ -208,10 +304,11 @@
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
       <button class="btn" id="btn-sync-plan" style="font-size:0.78rem; background:#2563eb; color:#fff;" onclick="triggerAdminPlanSync()">⚡ Sync Plan A &amp; B</button>
-      <a href="admin-sage.html" class="btn btn-amber" style="font-size:0.78rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">📦 Open Sage Parcel Admin</a>
-      <button class="btn btn-green" style="font-size:0.78rem;" onclick="exportDataAsCSV()">📊 Export CSV (Excel)</button>
-      <button class="btn btn-mute" style="font-size:0.78rem;" onclick="openDownloadModal()">📥 Download Raw JSON</button>
-      <button class="btn btn-mute" style="font-size:0.78rem;" onclick="openChangePassModal()">🔑 Change Password</button>
+      <button class="btn btn-amber" style="font-size:0.78rem;" onclick="showPanel('sage', document.querySelector('.tab[onclick*=\'sage\']'))">📦 Sage Parcels</button>
+      <button class="btn" style="font-size:0.78rem; background:#38bdf8; color:#0b0c0f; font-weight:800;" onclick="showPanel('alongwith', document.querySelector('.tab[onclick*=\'alongwith\']'))">🚚 AlongWith Cargo</button>
+      <button class="btn btn-green" style="font-size:0.78rem;" onclick="exportDataAsCSV()">📊 Export CSV</button>
+      <button class="btn btn-mute" style="font-size:0.78rem;" onclick="openTotpSetupModal()">🔐 2FA Setup</button>
+      <button class="btn btn-mute" style="font-size:0.78rem;" onclick="openChangePassModal()">🔑 Password</button>
       <button class="btn btn-mute" style="font-size:0.78rem;" onclick="adminLogout()">🔒 Lock Admin</button>
     </div>
   </div>
@@ -251,14 +348,17 @@
 
   <div class="tabs">
     <button class="tab active" onclick="showPanel('drivers', this)">🏍️ Drivers</button>
-    <button class="tab" onclick="showPanel('users', this)">👥 Registered Users</button>
+    <button class="tab" onclick="showPanel('bookings', this)">📋 Taxi Rides</button>
+    <button class="tab" onclick="showPanel('sage', this)">📦 Sage Parcels</button>
+    <button class="tab" onclick="showPanel('alongwith', this)">🚚 AlongWith Cargo</button>
+    <button class="tab" onclick="showPanel('amorelot', this)">🛒 Amorelot (Q-Commerce)</button>
+    <button class="tab" onclick="showPanel('verification', this)">🛡️ Biometric KYC &amp; Docs</button>
     <button class="tab" onclick="showPanel('map', this)">🗺️ Fleet God View</button>
-    <button class="tab" onclick="showPanel('ratings', this)">⭐ Ratings & Quality</button>
-    <button class="tab" onclick="showPanel('verification', this)">📄 Verification</button>
-    <button class="tab" onclick="showPanel('bookings', this)">📋 Bookings</button>
+    <button class="tab" onclick="showPanel('fares', this)">💰 Wallets &amp; Fares</button>
+    <button class="tab" onclick="showPanel('users', this)">👥 Users</button>
+    <button class="tab" onclick="showPanel('ratings', this)">⭐ Ratings</button>
     <button class="tab" onclick="showPanel('stats', this)">📊 Stats</button>
-    <button class="tab" onclick="showPanel('fares', this)">💰 Fares, Coupons & Subscriptions</button>
-    <a href="alongwith-admin.html" class="tab" style="text-decoration:none; display:inline-flex; align-items:center; color:#38bdf8;">🚚 Along With Admin &rarr;</a>
+    <button class="tab" onclick="showPanel('security2fa', this)">🔐 2FA &amp; Security</button>
   </div>
 
 <!-- ===== DRIVERS PANEL ===== -->
@@ -988,6 +1088,364 @@
   </div>
 </div>
 
+<!-- ===== SAGE PARCELS DISPATCH TOWER PANEL ===== -->
+<div class="panel" id="panel-sage">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="sage-stat-total">0</div><div class="stat-label">Total Parcels</div></div>
+    <div class="stat-card"><div class="stat-num" id="sage-stat-pending" style="color:var(--amber);">0</div><div class="stat-label">Pending Dispatch</div></div>
+    <div class="stat-card"><div class="stat-num" id="sage-stat-transit" style="color:#a78bfa;">0</div><div class="stat-label">In Transit</div></div>
+    <div class="stat-card"><div class="stat-num" id="sage-stat-delivered" style="color:var(--green);">0</div><div class="stat-label">Delivered</div></div>
+    <div class="stat-card"><div class="stat-num" id="sage-stat-revenue" style="color:#38bdf8;">₹0</div><div class="stat-label">Sage Revenue</div></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-amber" onclick="loadSageParcels(true)">↺ Refresh</button>
+    <button class="btn btn-green" onclick="exportSageCSV()">📊 Export Parcels CSV</button>
+    <select id="sage-status-filter" onchange="filterSageParcels()" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:#fff; font-size:0.85rem;">
+      <option value="all">All Statuses</option>
+      <option value="pending">Pending</option>
+      <option value="assigned">Assigned</option>
+      <option value="picked_up">Picked Up</option>
+      <option value="in_transit">In Transit</option>
+      <option value="delivered">Delivered</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+    <select id="sage-category-filter" onchange="filterSageParcels()" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:#fff; font-size:0.85rem;">
+      <option value="all">All Categories</option>
+      <option value="documents">📄 Documents</option>
+      <option value="food">🍱 Food</option>
+      <option value="keys">🔑 Keys</option>
+      <option value="medicine">💊 Medicine</option>
+      <option value="clothes">👕 Clothes</option>
+      <option value="box">📦 Box</option>
+    </select>
+    <input class="search-input" type="text" id="sage-search" placeholder="Search sender, receiver, address..." oninput="filterSageParcels()">
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Item / Notes</th>
+          <th>Sender</th>
+          <th>Receiver</th>
+          <th>Fare &amp; PINs</th>
+          <th>Assigned Rider</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="sage-parcels-tbody">
+        <tr><td colspan="8" class="loading">Loading Sage parcel dispatches...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== ALONGWITH CARGO & FREIGHT PANEL ===== -->
+<div class="panel" id="panel-alongwith">
+  <div style="background:var(--card); border:1.5px solid var(--border); border-radius:16px; padding:18px 20px; margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+      <div>
+        <h3 style="font-size:1.1rem; font-weight:900; margin:0;">🚚 AlongWith / Goodz Highway Freight Settings</h3>
+        <p style="font-size:0.8rem; color:var(--mute); margin:2px 0 0;">Manage intercity trunk cargo, bus relays, platform commissions &amp; pilot daily quota.</p>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-green" onclick="saveGoodzPricing()">💾 Save Freight Pricing</button>
+        <button class="btn btn-mute" onclick="exportFreightCSV()">📊 Export Freight CSV</button>
+      </div>
+    </div>
+
+    <div class="goodz-grid">
+      <!-- Card 1: Cab Boot Cargo -->
+      <div class="goodz-card">
+        <div class="goodz-card-title">
+          <span>🚗 Cab Boot Express</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="goodz-cab-enabled" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p style="font-size:0.75rem; color:var(--mute); margin-bottom:10px;">Direct trunk delivery (2.5–3 hrs) via NH 163.</p>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Doorstep Customer Fare (₹)</label>
+          <input type="number" id="goodz-cab-doorstep" class="goodz-input" value="289" min="50">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Highway Meet / Toll Fare (₹)</label>
+          <input type="number" id="goodz-cab-highway" class="goodz-input" value="199" min="50">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Driver Payout (Doorstep) (₹)</label>
+          <input type="number" id="goodz-cab-driver-doorstep" class="goodz-input" value="230" min="50">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Driver Payout (Highway Meet) (₹)</label>
+          <input type="number" id="goodz-cab-driver-highway" class="goodz-input" value="160" min="50">
+        </div>
+      </div>
+
+      <!-- Card 2: Highway Bus Relay -->
+      <div class="goodz-card">
+        <div class="goodz-card-title">
+          <span>🚌 Highway Bus Relay</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="goodz-bus-enabled" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p style="font-size:0.75rem; color:var(--mute); margin-bottom:10px;">Scheduled bus cargo hold relay (3.5–4.5 hrs) via TSRTC.</p>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Doorstep Customer Fare (₹)</label>
+          <input type="number" id="goodz-bus-doorstep" class="goodz-input" value="249" min="50">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Bus Office Counter Pickup Fare (₹)</label>
+          <input type="number" id="goodz-bus-office" class="goodz-input" value="199" min="50">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Conductor Payout (Doorstep) (₹)</label>
+          <input type="number" id="goodz-bus-payout-doorstep" class="goodz-input" value="130" min="30">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Conductor Payout (Counter) (₹)</label>
+          <input type="number" id="goodz-bus-payout-office" class="goodz-input" value="110" min="30">
+        </div>
+      </div>
+
+      <!-- Card 3: Platform Share & Add-ons -->
+      <div class="goodz-card">
+        <div class="goodz-card-title">
+          <span>🛡️ Platform Share &amp; Weight</span>
+          <span style="font-size:0.68rem; font-weight:800; color:#4ade80; background:rgba(74,222,128,0.1); padding:2px 6px; border-radius:4px;">CGST Compliant</span>
+        </div>
+        <p style="font-size:0.75rem; color:var(--mute); margin-bottom:10px;">Platform fee, physical barcode seal, and weight add-ons.</p>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Platform Commission (%)</label>
+          <input type="number" id="goodz-platform-pct" class="goodz-input" value="8" min="0" max="30">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Security Barcode Seal Fee (₹)</label>
+          <input type="number" id="goodz-seal-fee" class="goodz-input" value="10" min="0">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div class="goodz-field-group">
+            <label class="goodz-label">3–7 KG Add-on (₹)</label>
+            <input type="number" id="goodz-weight-med" class="goodz-input" value="40" min="0">
+          </div>
+          <div class="goodz-field-group">
+            <label class="goodz-label">7–15 KG Add-on (₹)</label>
+            <input type="number" id="goodz-weight-high" class="goodz-input" value="80" min="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4: Daily Quota Guard -->
+      <div class="goodz-card" style="border-color:#6366f1;">
+        <div class="goodz-card-title">
+          <span>🔒 Pilot Daily Quota Guard</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="goodz-pilot-required" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <p style="font-size:0.75rem; color:#a5b4fc; margin-bottom:10px;">Restricts Goodz to trusted merchants &amp; limits daily dispatch.</p>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Merchant Access Code</label>
+          <input type="text" id="goodz-pilot-code" class="goodz-input" value="GOODZ2026" style="text-transform:uppercase;">
+        </div>
+        <div class="goodz-field-group">
+          <label class="goodz-label">Daily Booking Quota (Max / Day)</label>
+          <input type="number" id="goodz-pilot-quota" class="goodz-input" value="5" min="1" max="100">
+        </div>
+        <div style="background:#1e1b4b; border:1px solid #4338ca; border-radius:8px; padding:8px 12px; margin-top:8px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.7rem; font-weight:800; color:#c7d2fe; text-transform:uppercase;">Today's Dispatch Quota</div>
+            <div style="font-size:0.9rem; font-weight:900; color:#a5f3fc;" id="goodz-quota-status-text">0 / 5 Booked Today</div>
+          </div>
+          <button type="button" onclick="resetTodayGoodzCount()" class="btn btn-mute" style="font-size:0.72rem; padding:4px 8px;">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AlongWith KPI Stats -->
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="aw-stat-trips">0</div><div class="stat-label">Highway Return Trips</div></div>
+    <div class="stat-card"><div class="stat-num" id="aw-stat-bookings">0</div><div class="stat-label">Cargo Shipments</div></div>
+    <div class="stat-card"><div class="stat-num" id="aw-stat-revenue" style="color:#4ade80;">₹0</div><div class="stat-label">Freight Gross</div></div>
+    <div class="stat-card"><div class="stat-num" id="aw-stat-commission" style="color:#facc15;">₹0</div><div class="stat-label">Platform Cut</div></div>
+  </div>
+
+  <!-- AlongWith Filter Toolbar -->
+  <div class="toolbar">
+    <button class="btn btn-amber" onclick="loadAlongWithDashboard()">↺ Refresh</button>
+    <select id="aw-filter-route" onchange="applyAlongWithFilters()" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:#fff; font-size:0.85rem;">
+      <option value="">🛣️ All Highway Routes</option>
+      <option value="Hyderabad">Hyderabad Routes</option>
+      <option value="Warangal">Warangal Routes</option>
+      <option value="Karimnagar">Karimnagar Routes</option>
+      <option value="Khammam">Khammam Routes</option>
+    </select>
+    <select id="aw-filter-status" onchange="applyAlongWithFilters()" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:#fff; font-size:0.85rem;">
+      <option value="">All Statuses</option>
+      <option value="open">Open</option>
+      <option value="pending">Pending</option>
+      <option value="accepted">Accepted</option>
+      <option value="in_transit">In Transit</option>
+      <option value="delivered">Delivered</option>
+      <option value="completed">Completed</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+    <input class="search-input" type="text" id="aw-filter-search" placeholder="Search driver, sender, route..." oninput="applyAlongWithFilters()">
+  </div>
+
+  <!-- Highway Trips Table -->
+  <h3 style="font-size:1.05rem; font-weight:800; margin:16px 0 10px; display:flex; justify-content:space-between; align-items:center;">
+    <span>🛣️ Highway Return Driver Trips</span>
+    <span id="aw-trips-count-badge" class="badge badge-blue">0 Trips</span>
+  </h3>
+  <div class="table-wrap" style="margin-bottom:24px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Driver</th>
+          <th>Phone</th>
+          <th>Highway Route</th>
+          <th>Vehicle</th>
+          <th>Available / Total</th>
+          <th>Price / KG</th>
+          <th>Status</th>
+          <th>Departure</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="aw-trips-tbody">
+        <tr><td colspan="9" class="loading">Loading highway trips...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Cargo Bookings Table -->
+  <h3 style="font-size:1.05rem; font-weight:800; margin:16px 0 10px; display:flex; justify-content:space-between; align-items:center;">
+    <span>📦 Intercity Cargo Bookings &amp; Shipments</span>
+    <span id="aw-bookings-count-badge" class="badge badge-green">0 Bookings</span>
+  </h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Sender</th>
+          <th>Phone</th>
+          <th>Weight</th>
+          <th>Description</th>
+          <th>Route</th>
+          <th>Freight Fare</th>
+          <th>Platform Cut</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="aw-bookings-tbody">
+        <tr><td colspan="10" class="loading">Loading cargo bookings...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== AMORELOT QUICK COMMERCE PANEL ===== -->
+<div class="panel" id="panel-amorelot">
+  <div style="background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:28px 24px; text-align:center; max-width:850px; margin:0 auto 24px;">
+    <div style="font-size:3rem; margin-bottom:12px;">🛒⚡</div>
+    <h2 style="font-size:1.6rem; font-weight:900; margin-bottom:8px;">Amorelot Quick Commerce Dispatch Tower</h2>
+    <p style="color:var(--mute); font-size:0.95rem; line-height:1.6; max-width:620px; margin:0 auto 20px;">
+      Direct integration module connecting <strong style="color:var(--amber);">driver.html</strong> to the Amorelot 10-minute dark store delivery pipeline.
+    </p>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; text-align:left; margin-bottom:24px;">
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:16px;">
+        <div style="font-size:1.3rem; margin-bottom:6px;">📍⚡</div>
+        <strong style="color:#fff; font-size:0.9rem;">Dead Reckoning Routing</strong>
+        <p style="font-size:0.78rem; color:var(--mute); margin-top:4px;">Zero GPS battery drain. Simulates smooth road progression for short-distance hyper-local drops.</p>
+      </div>
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:16px;">
+        <div style="font-size:1.3rem; margin-bottom:6px;">🏪📦</div>
+        <strong style="color:#fff; font-size:0.9rem;">Dark Store Dispatch Queue</strong>
+        <p style="font-size:0.78rem; color:var(--mute); margin-top:4px;">Instant ping to nearest online drivers with 2-digit PIN dark store pickup handshake.</p>
+      </div>
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:16px;">
+        <div style="font-size:1.3rem; margin-bottom:6px;">🔄🛡️</div>
+        <strong style="color:#fff; font-size:0.9rem;">Zero Code Conflicts</strong>
+        <p style="font-size:0.78rem; color:var(--mute); margin-top:4px;">Keeps driver.html unified across Bike Taxi, Sage Parcels, AlongWith, and Amorelot.</p>
+      </div>
+    </div>
+
+    <div style="background:rgba(255,176,32,0.06); border:1px dashed var(--amber); border-radius:12px; padding:16px; display:inline-block; text-align:left;">
+      <div style="font-size:0.85rem; font-weight:800; color:var(--amber); margin-bottom:4px;">Status: Standalone App In Development</div>
+      <div style="font-size:0.8rem; color:var(--text); line-height:1.5;">
+        As planned, once you complete the Amorelot app, its order queue endpoints will pipe live requests into this console with automatic driver matching.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 2FA & SECURITY SETTINGS PANEL ===== -->
+<div class="panel" id="panel-security2fa">
+  <div style="max-width:850px; margin:0 auto;">
+    <div style="background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:24px; margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+        <div>
+          <h3 style="font-size:1.25rem; font-weight:900; margin:0; display:flex; align-items:center; gap:8px;">
+            <span>🔐</span> Admin Security &amp; Google Authenticator 2FA
+          </h3>
+          <p style="font-size:0.82rem; color:var(--mute); margin-top:2px;">RFC 6238 Time-Based One-Time Password (TOTP) • Offline • Free Forever</p>
+        </div>
+        <span class="badge badge-green" style="font-size:0.8rem; padding:6px 12px;">ACTIVE &amp; ENFORCED</span>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; margin-bottom:20px;">
+        <!-- Card 1: Setup Details -->
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:18px;">
+          <h4 style="font-size:0.95rem; font-weight:800; margin-bottom:8px; color:var(--amber);">📲 Authenticator App Link</h4>
+          <p style="font-size:0.78rem; color:var(--mute); margin-bottom:12px;">Add this secret to Google Authenticator on your phone or scan the QR code.</p>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:0.7rem; color:var(--mute); font-weight:700; text-transform:uppercase;">Secret Key (Base32)</label>
+            <div style="display:flex; gap:6px; margin-top:3px;">
+              <input type="text" id="panel-totp-secret" readonly value="JBSWY3DPEHPK3PXP" class="auth-input" style="font-family:monospace; margin-bottom:0; font-size:0.88rem; background:var(--card);">
+              <button class="btn btn-amber" style="padding:0 12px; font-size:0.75rem;" onclick="copyTotpSecret()">Copy</button>
+            </div>
+          </div>
+          <button class="btn btn-amber" style="width:100%; font-size:0.8rem;" onclick="openTotpSetupModal()">📷 Show QR Code Dialog</button>
+        </div>
+
+        <!-- Card 2: Emergency Recovery Keys -->
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:14px; padding:18px;">
+          <h4 style="font-size:0.95rem; font-weight:800; margin-bottom:8px; color:#4ade80;">🔑 Emergency Recovery Codes</h4>
+          <p style="font-size:0.78rem; color:var(--mute); margin-bottom:10px;">Use any of these if you ever lose your phone or authenticator app.</p>
+          <div style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px; font-family:monospace; font-size:0.8rem; line-height:1.7;">
+            <div>• <strong style="color:#fff;">RYD-8821-4910</strong></div>
+            <div>• <strong style="color:#fff;">RYD-9932-7714</strong></div>
+            <div>• <strong style="color:#fff;">RYD-1104-5529</strong></div>
+            <div>• Founder Master PIN: <strong style="color:var(--amber);">982026</strong></div>
+          </div>
+          <button class="btn btn-mute" style="width:100%; margin-top:10px; font-size:0.78rem;" onclick="copyRecoveryCodes()">📋 Copy Recovery Codes</button>
+        </div>
+      </div>
+
+      <!-- Session Duration Info -->
+      <div style="background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.3); border-radius:12px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <strong style="color:#38bdf8; font-size:0.85rem;">🛡️ 24-Hour Daily Session Remember Me</strong>
+          <p style="font-size:0.75rem; color:var(--mute); margin:2px 0 0;">Once verified with Google Authenticator, your session stays active for 24 hours on this browser.</p>
+        </div>
+        <button class="btn btn-red" style="font-size:0.75rem;" onclick="adminLogout()">🔒 Lock &amp; Clear Daily Session</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Document Image Viewer Modal -->
 <div id="doc-viewer-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:999999; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
   <div style="background:#1e2229; border:1.5px solid var(--border); border-radius:16px; padding:20px; max-width:520px; width:100%; display:flex; flex-direction:column; align-items:center; gap:14px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.8);">
@@ -1226,9 +1684,19 @@
     
     if (el) {
       el.classList.add('active');
-    } else if (typeof window.event !== 'undefined' && window.event && window.event.target) {
-      window.event.target.classList.add('active');
+    } else {
+      var matchBtn = document.querySelector(".tab[onclick*=\"'" + name + "'\"]");
+      if (matchBtn) matchBtn.classList.add('active');
+      else if (typeof window.event !== 'undefined' && window.event && window.event.target) {
+        window.event.target.classList.add('active');
+      }
     }
+
+    try {
+      var newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('tab', name);
+      window.history.replaceState({}, '', newUrl.toString());
+    } catch(e) {}
 
     try {
       if(name === 'drivers') loadDrivers();
@@ -1239,6 +1707,8 @@
       if(name === 'bookings') loadBookings();
       if(name === 'stats') loadStats();
       if(name === 'fares') loadFareSettings();
+      if(name === 'sage') loadSageParcels();
+      if(name === 'alongwith') loadAlongWithDashboard();
     } catch(err) {
       console.log('Panel load note:', err);
     }
@@ -2498,7 +2968,9 @@
     tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading verification data...</td></tr>';
     var riders = await sb('riders?order=updated_at.desc');
     var docs = [];
+    var faceProfiles = [];
     try { docs = await sb('driver_documents') || []; } catch(e){}
+    try { faceProfiles = await sb('face_profiles') || []; } catch(e){}
     var localDocs = JSON.parse(localStorage.getItem('rydealot_driver_docs') || '{}');
     riders = riders || [];
 
@@ -2508,6 +2980,8 @@
     tbody.innerHTML = riders.map(function(r) {
       var rDocs = Array.isArray(docs) ? docs.filter(function(d){ return d.rider_id === r.id; }) : [];
       var rLocal = localDocs[r.id] || {};
+      var hasFaceVector = Array.isArray(faceProfiles) && faceProfiles.some(function(fp){ return fp.driver_id === r.id; });
+      var faceVectorBadge = hasFaceVector ? '<div style="font-size:0.68rem; color:#4ade80; font-weight:800; margin-top:3px;">🧬 512-D ArcFace</div>' : '';
 
       var getDocInfo = function(type) {
         var d = rDocs.find(function(item){ return item.doc_type === type; });
@@ -2547,7 +3021,7 @@
         '<td>' + fmtDoc(getDocInfo('driving_license'), 'Driving License', r.id + '_dl') + '</td>' +
         '<td>' + fmtDoc(getDocInfo('vehicle_rc'), 'Vehicle RC', r.id + '_rc') + '</td>' +
         '<td>' + fmtDoc(getDocInfo('aadhaar'), 'Aadhaar Card', r.id + '_aadhaar') + '</td>' +
-        '<td>' + fmtDoc(getDocInfo('selfie'), 'Selfie Photo', r.id + '_selfie') + '</td>' +
+        '<td>' + fmtDoc(getDocInfo('selfie'), 'Selfie Photo', r.id + '_selfie') + faceVectorBadge + '</td>' +
         '<td>' + (isVerified ? '<span class="badge badge-green">VERIFIED</span>' : '<span class="badge badge-amber">UNVERIFIED</span>') + '</td>' +
         '<td><div class="action-btns">' +
           '<button style="background:var(--green);color:#fff" onclick="approveDriverDocs(\'' + r.id + '\')">Approve All</button>' +
@@ -3215,7 +3689,9 @@
     if (authed === 'true') {
       document.getElementById('admin-auth-overlay').style.display = 'none';
       document.getElementById('admin-main-wrap').style.display = 'block';
-      loadDrivers();
+      checkUrlTabParam();
+      var activeTab = new URLSearchParams(window.location.search).get('tab');
+      if (!activeTab || activeTab === 'drivers') loadDrivers();
     } else {
       document.getElementById('admin-auth-overlay').style.display = 'flex';
       document.getElementById('auth-step-password').style.display = 'block';
@@ -3295,238 +3771,732 @@
       return;
     }
 
-    // Step 2: Request 2FA OTP
+    // Step 2: Proceed to Google Authenticator 2FA
     pendingAdminEmail = emailVal || getSavedAdminEmail();
     pendingAdminPassHash = passHash;
 
-    var loginBtn = document.getElementById('admin-login-btn');
-    if (loginBtn) {
-      loginBtn.disabled = true;
-      loginBtn.textContent = '⏳ Dispatching Security Code...';
-    }
-
-    await requestOtpDispatch();
+    document.getElementById('auth-step-password').style.display = 'none';
+    document.getElementById('auth-step-otp').style.display = 'block';
+    setTimeout(function(){
+      var otpIn = document.getElementById('admin-otp-input');
+      if (otpIn) { otpIn.value = ''; otpIn.focus(); }
+    }, 100);
   }
 
-  async function requestOtpDispatch() {
-    var errEl = document.getElementById('admin-auth-error');
-    var loginBtn = document.getElementById('admin-login-btn');
-    var targetEmail = pendingAdminEmail || DEFAULT_ADMIN_EMAIL;
-    var sentOk = false;
-    var lastErr = '';
+  // ===== GOOGLE AUTHENTICATOR (RFC 6238 TOTP) ENGINE =====
+  var DEFAULT_TOTP_SECRET = 'JBSWY3DPEHPK3PXP';
 
-    try {
-      // 1. Try Vercel's active SMTP endpoint first (/api/send-otp)
-      try {
-        var vRes = await fetch('/api/send-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: targetEmail })
-        });
-        var vData = await vRes.json().catch(function(){ return {}; });
-        if (vRes.ok && vData && (vData.ok || vData.message)) {
-          sentOk = true;
-        } else if (vData && vData.error) {
-          lastErr = vData.error;
-        }
-      } catch (vErr) {
-        console.warn('[Vercel send-otp fallback to worker]:', vErr);
-      }
-
-      // 2. If not sent via Vercel, dispatch via Cloudflare Worker
-      if (!sentOk) {
-        var res = await fetch(CLOUDFLARE_D1_WORKER + '/api/admin/request-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: targetEmail, passwordHash: pendingAdminPassHash })
-        });
-        var data = await res.json().catch(function(){ return {}; });
-        if (data && data.ok) {
-          sentOk = true;
-        } else if (data && data.error) {
-          lastErr = data.error;
-        }
-      }
-
-      document.getElementById('auth-step-password').style.display = 'none';
-      document.getElementById('auth-step-otp').style.display = 'block';
-      document.getElementById('otp-target-display').textContent = targetEmail;
-
-      if (sentOk) {
-        errEl.style.display = 'none';
-        startOtpCountdowns();
-        setTimeout(function(){
-          var otpIn = document.getElementById('admin-otp-input');
-          if (otpIn) { otpIn.value = ''; otpIn.focus(); }
-        }, 100);
-      } else {
-        errEl.textContent = lastErr || 'Verification code sent to your email. You may also use Founder Bypass if needed.';
-        errEl.style.display = 'block';
-        startOtpCountdowns();
-      }
-    } catch(err) {
-      console.warn('[OTP Request Error]:', err);
-      document.getElementById('auth-step-password').style.display = 'none';
-      document.getElementById('auth-step-otp').style.display = 'block';
-      document.getElementById('otp-target-display').textContent = targetEmail;
-      startOtpCountdowns();
-    } finally {
-      if (loginBtn) {
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'Continue to 2FA Code →';
-      }
-    }
+  function getTotpSecret() {
+    return localStorage.getItem('rydealot_totp_secret') || DEFAULT_TOTP_SECRET;
   }
 
-  function startOtpCountdowns() {
-    clearInterval(otpCountdownInterval);
-    clearInterval(resendCountdownInterval);
-
-    var expireRemaining = OTP_COUNTDOWN_SECS;
-    var cooldownRemaining = RESEND_COOLDOWN_SECS;
-
-    var countdownEl = document.getElementById('otp-countdown');
-    var resendBtn = document.getElementById('otp-resend-btn');
-    var resendSpan = document.getElementById('otp-resend-cooldown');
-
-    if (resendBtn) resendBtn.disabled = true;
-
-    otpCountdownInterval = setInterval(function() {
-      expireRemaining--;
-      if (expireRemaining <= 0) {
-        clearInterval(otpCountdownInterval);
-        if (countdownEl) countdownEl.textContent = 'EXPIRED';
-        var errEl = document.getElementById('admin-auth-error');
-        errEl.textContent = 'Verification code expired. Please click Resend Code.';
-        errEl.style.display = 'block';
-      } else {
-        var m = Math.floor(expireRemaining / 60);
-        var s = expireRemaining % 60;
-        if (countdownEl) countdownEl.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-      }
-    }, 1000);
-
-    resendCountdownInterval = setInterval(function() {
-      cooldownRemaining--;
-      if (cooldownRemaining <= 0) {
-        clearInterval(resendCountdownInterval);
-        if (resendBtn) {
-          resendBtn.disabled = false;
-          resendBtn.textContent = 'Resend Code Now';
-        }
-      } else {
-        if (resendSpan) resendSpan.textContent = cooldownRemaining;
-      }
-    }, 1000);
+  function setTotpSecret(secret) {
+    if (secret) localStorage.setItem('rydealot_totp_secret', secret.trim().toUpperCase());
   }
 
-  async function resendAdminOtp() {
-    var resendBtn = document.getElementById('otp-resend-btn');
-    if (resendBtn) {
-      resendBtn.disabled = true;
-      resendBtn.textContent = 'Resending...';
+  function base32ToBytes(base32) {
+    var base32chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    var clean = (base32 || '').toUpperCase().replace(/=+$/, '');
+    var bits = '';
+    for (var i = 0; i < clean.length; i++) {
+      var val = base32chars.indexOf(clean.charAt(i));
+      if (val === -1) continue;
+      bits += ('00000' + val.toString(2)).slice(-5);
     }
-    await requestOtpDispatch();
+    var bytes = [];
+    for (var j = 0; j + 8 <= bits.length; j += 8) {
+      bytes.push(parseInt(bits.substr(j, 8), 2));
+    }
+    return new Uint8Array(bytes);
+  }
+
+  async function getTOTPToken(base32Secret, timeOffsetSteps) {
+    var epoch = Math.floor(Date.now() / 1000);
+    var step = 30;
+    var timeStep = Math.floor(epoch / step) + (timeOffsetSteps || 0);
+
+    var timeBuffer = new ArrayBuffer(8);
+    var timeView = new DataView(timeBuffer);
+    timeView.setUint32(0, Math.floor(timeStep / 0x100000000), false);
+    timeView.setUint32(4, timeStep & 0xffffffff, false);
+
+    var keyBytes = base32ToBytes(base32Secret);
+    var cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyBytes,
+      { name: 'HMAC', hash: { name: 'SHA-1' } },
+      false,
+      ['sign']
+    );
+
+    var signature = await crypto.subtle.sign('HMAC', cryptoKey, timeBuffer);
+    var hmacBytes = new Uint8Array(signature);
+    var offset = hmacBytes[hmacBytes.length - 1] & 0x0f;
+    var binary =
+      ((hmacBytes[offset] & 0x7f) << 24) |
+      ((hmacBytes[offset + 1] & 0xff) << 16) |
+      ((hmacBytes[offset + 2] & 0xff) << 8) |
+      (hmacBytes[offset + 3] & 0xff);
+
+    var otp = binary % 1000000;
+    return ('000000' + otp).slice(-6);
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function backToPasswordStep() {
     document.getElementById('auth-step-password').style.display = 'block';
     document.getElementById('auth-step-otp').style.display = 'none';
     document.getElementById('admin-auth-error').style.display = 'none';
-    clearInterval(otpCountdownInterval);
-    clearInterval(resendCountdownInterval);
   }
 
   async function verifyAdminOtp() {
     var errEl = document.getElementById('admin-auth-error');
     var codeVal = (document.getElementById('admin-otp-input').value || '').trim();
     if (!codeVal) {
-      errEl.textContent = 'Please enter the 6-digit verification code.';
+      errEl.textContent = 'Please enter the 6-digit Google Authenticator code.';
       errEl.style.display = 'block';
       return;
     }
 
-    // Emergency Founder Master Recovery Passcode Bypass (982026)
-    if (codeVal === '982026') {
-      setDailyAdminSession('founder_bypass_' + Date.now(), pendingAdminEmail);
+    var cleanCode = codeVal.toUpperCase();
+    var recoveryCodes = ['RYD-8821-4910', 'RYD-9932-7714', 'RYD-1104-5529', '982026'];
+    var targetEmail = pendingAdminEmail || getSavedAdminEmail();
+
+    // 1. Emergency Recovery Codes & Founder Master Passcode
+    if (recoveryCodes.includes(cleanCode) || codeVal === '982026') {
+      setDailyAdminSession('founder_recovery_' + Date.now(), targetEmail);
       sessionStorage.setItem('rydealot_admin_authed', 'true');
-      sessionStorage.setItem('rydealot_admin_email', pendingAdminEmail);
+      sessionStorage.setItem('rydealot_sage_admin_authed', 'true');
+      sessionStorage.setItem('rydealot_aw_admin_authed', 'true');
+      sessionStorage.setItem('rydealot_admin_email', targetEmail);
       errEl.style.display = 'none';
       checkAdminAuth();
-      toast('👑 Master Bypass Verified. Welcome, Founder!');
+      toast('👑 Master Recovery Code Verified! Welcome, Founder!');
       return;
     }
 
-    var verifyBtn = document.getElementById('admin-verify-btn');
-    if (verifyBtn) {
-      verifyBtn.disabled = true;
-      verifyBtn.textContent = 'Verifying Code...';
+    // 2. Dynamic RFC 6238 TOTP Check (drift tolerance +- 30s)
+    var secret = getTotpSecret();
+    var isTotpValid = false;
+    try {
+      var tMinus1 = await getTOTPToken(secret, -1);
+      var t0 = await getTOTPToken(secret, 0);
+      var tPlus1 = await getTOTPToken(secret, 1);
+      if (codeVal === t0 || codeVal === tMinus1 || codeVal === tPlus1) {
+        isTotpValid = true;
+      }
+    } catch(totpErr) {
+      console.warn('TOTP validation error:', totpErr);
     }
 
-    try {
-      var targetEmail = pendingAdminEmail || DEFAULT_ADMIN_EMAIL;
-      var verifiedOk = false;
-      var sessionToken = '';
-
-      // 1. Try Vercel verify-otp endpoint
-      try {
-        var vRes = await fetch('/api/verify-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: targetEmail, code: codeVal })
-        });
-        var vData = await vRes.json().catch(function(){ return {}; });
-        if (vRes.ok && vData && (vData.ok || vData.token)) {
-          verifiedOk = true;
-          sessionToken = vData.token || ('ryd_jwt_' + Date.now());
-        }
-      } catch (vErr) {
-        console.warn('[Vercel verify-otp error]:', vErr);
-      }
-
-      // 2. Fallback to Cloudflare Worker verify-otp
-      if (!verifiedOk) {
-        var res = await fetch(CLOUDFLARE_D1_WORKER + '/api/admin/verify-otp', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: targetEmail, code: codeVal })
-        });
-        var data = await res.json().catch(function(){ return {}; });
-        if (data && data.ok) {
-          verifiedOk = true;
-          sessionToken = data.sessionToken || ('ryd_2fa_' + Date.now());
-        }
-      }
-
-      if (verifiedOk) {
-        setDailyAdminSession(sessionToken, targetEmail);
-        sessionStorage.setItem('rydealot_admin_authed', 'true');
-        sessionStorage.setItem('rydealot_admin_email', targetEmail);
-        errEl.style.display = 'none';
-        checkAdminAuth();
-        toast('✅ 2FA Verified! Daily Admin Session Active.');
-      } else {
-        errEl.textContent = 'Invalid verification code. Please check your email or enter again.';
-        errEl.style.display = 'block';
-      }
-    } catch(err) {
-      console.warn('[Verify OTP Error]:', err);
-      errEl.textContent = 'Connection error. You may use Founder Bypass if needed.';
+    if (isTotpValid) {
+      setDailyAdminSession('totp_session_' + Date.now(), targetEmail);
+      sessionStorage.setItem('rydealot_admin_authed', 'true');
+      sessionStorage.setItem('rydealot_sage_admin_authed', 'true');
+      sessionStorage.setItem('rydealot_aw_admin_authed', 'true');
+      sessionStorage.setItem('rydealot_admin_email', targetEmail);
+      errEl.style.display = 'none';
+      checkAdminAuth();
+      toast('✅ Google Authenticator Verified! 24h Session Active.');
+    } else {
+      errEl.textContent = 'Invalid 6-digit Authenticator code. Check your phone clock or use Recovery Key.';
       errEl.style.display = 'block';
-    } finally {
-      if (verifyBtn) {
-        verifyBtn.disabled = false;
-        verifyBtn.textContent = 'Verify & Unlock Dashboard';
-      }
+      document.getElementById('admin-otp-input').select();
     }
   }
 
-  function promptMasterRecovery() {
-    var code = prompt('Enter Founder Master Emergency Passcode:');
+  function promptEmergencyRecovery() {
+    var code = prompt('Enter Emergency Recovery Key (e.g. RYD-8821-4910 or Founder PIN):');
     if (code) {
       document.getElementById('admin-otp-input').value = code.trim();
       verifyAdminOtp();
     }
+  }
+
+  function openTotpSetupModal() {
+    var secret = getTotpSecret();
+    var secInput = document.getElementById('totp-secret-input');
+    if (secInput) secInput.value = secret;
+    var panelSec = document.getElementById('panel-totp-secret');
+    if (panelSec) panelSec.value = secret;
+    var qrImg = document.getElementById('totp-qr-image');
+    if (qrImg) {
+      var uri = 'otpauth://totp/Rydealot%20Admin:' + encodeURIComponent(getSavedAdminEmail()) + '?secret=' + secret + '&issuer=Rydealot';
+      qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(uri);
+    }
+    var resEl = document.getElementById('totp-test-result');
+    if (resEl) { resEl.textContent = ''; resEl.className = ''; }
+    var testIn = document.getElementById('totp-test-input');
+    if (testIn) testIn.value = '';
+    document.getElementById('totp-setup-overlay').style.display = 'flex';
+  }
+
+  function closeTotpSetupModal() {
+    document.getElementById('totp-setup-overlay').style.display = 'none';
+  }
+
+  function copyTotpSecret() {
+    var secret = getTotpSecret();
+    navigator.clipboard.writeText(secret).then(function() {
+      toast('📋 Base32 Secret Key copied to clipboard!');
+    }).catch(function() {
+      prompt('Copy Secret Key:', secret);
+    });
+  }
+
+  function copyRecoveryCodes() {
+    var codes = 'Rydealot Admin Master Recovery Codes:\n1. RYD-8821-4910\n2. RYD-9932-7714\n3. RYD-1104-5529\n4. Founder Master PIN: 982026';
+    navigator.clipboard.writeText(codes).then(function() {
+      toast('📋 Recovery codes copied to clipboard!');
+    }).catch(function() {
+      prompt('Copy Recovery Codes:', codes);
+    });
+  }
+
+  async function testTotpCode() {
+    var testIn = document.getElementById('totp-test-input');
+    var resEl = document.getElementById('totp-test-result');
+    var code = (testIn ? testIn.value : '').trim();
+    if (!code) {
+      if (resEl) { resEl.textContent = 'Please enter code.'; resEl.style.color = 'var(--red)'; }
+      return;
+    }
+    var secret = getTotpSecret();
+    var tMinus1 = await getTOTPToken(secret, -1);
+    var t0 = await getTOTPToken(secret, 0);
+    var tPlus1 = await getTOTPToken(secret, 1);
+    if (code === t0 || code === tMinus1 || code === tPlus1) {
+      if (resEl) { resEl.textContent = '✅ Valid TOTP code! Authenticator synced perfectly.'; resEl.style.color = '#4ade80'; }
+    } else {
+      if (resEl) { resEl.textContent = '❌ Code did not match. (Expected ' + t0 + ') Check clock.'; resEl.style.color = 'var(--red)'; }
+    }
+  }
+
+  // ===== SAGE PARCELS DISPATCH TOWER CONTROLLER =====
+  var allSageParcels = [];
+
+  async function loadSageParcels(showNotification) {
+    try {
+      var rows = await sb('sage_parcels?order=created_at.desc');
+      allSageParcels = rows || [];
+      renderSageStats();
+      renderParcelsTable(allSageParcels);
+      if (showNotification) toast('✅ Sage parcels refreshed (' + allSageParcels.length + ' records)');
+    } catch(err) {
+      console.error('Failed to load sage parcels:', err);
+      toast('⚠️ Could not load parcels: ' + err.message);
+    }
+  }
+
+  function renderSageStats() {
+    var total = allSageParcels.length;
+    var pending = 0;
+    var transit = 0;
+    var delivered = 0;
+    var revenue = 0;
+
+    allSageParcels.forEach(function(p) {
+      if (p.status === 'pending') pending++;
+      else if (p.status === 'assigned' || p.status === 'picked_up' || p.status === 'in_transit') transit++;
+      else if (p.status === 'delivered') { delivered++; revenue += (Number(p.fare) || 0); }
+    });
+
+    var elTot = document.getElementById('sage-stat-total'); if (elTot) elTot.textContent = total;
+    var elPen = document.getElementById('sage-stat-pending'); if (elPen) elPen.textContent = pending;
+    var elTra = document.getElementById('sage-stat-transit'); if (elTra) elTra.textContent = transit;
+    var elDel = document.getElementById('sage-stat-delivered'); if (elDel) elDel.textContent = delivered;
+    var elRev = document.getElementById('sage-stat-revenue'); if (elRev) elRev.textContent = '₹' + revenue.toLocaleString('en-IN');
+  }
+
+  function renderParcelsTable(data) {
+    var tbody = document.getElementById('sage-parcels-tbody');
+    if (!tbody) return;
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--mute);">No Sage parcel deliveries found.</td></tr>';
+      return;
+    }
+
+    var html = '';
+    data.forEach(function(p) {
+      var dateStr = p.created_at ? new Date(p.created_at).toLocaleString('en-IN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '-';
+      var categoryIcon = {
+        documents: '📄 Documents',
+        food: '🍱 Food',
+        keys: '🔑 Keys',
+        medicine: '💊 Medicine',
+        clothes: '👕 Clothes',
+        box: '📦 Box'
+      }[p.package_category] || p.package_category || '📦 Item';
+
+      var statusClass = 'badge-' + (p.status || 'pending');
+
+      html += '<tr>';
+      html += '<td class="mono" style="font-size:0.75rem; color:var(--mute);">' + dateStr + '</td>';
+      html += '<td><strong>' + categoryIcon + '</strong>' + (p.notes ? '<div style="font-size:0.72rem; color:var(--mute); margin-top:2px;">📝 ' + escapeHtml(p.notes) + '</div>' : '') + '</td>';
+      
+      // Sender
+      html += '<td>';
+      html += '<div style="font-weight:700;">' + escapeHtml(p.sender_name || 'Sender') + '</div>';
+      html += '<div style="font-size:0.75rem; color:var(--blue);"><a href="tel:' + (p.sender_phone || '') + '" style="color:inherit; text-decoration:none;">📞 ' + (p.sender_phone || '-') + '</a></div>';
+      html += '<div style="font-size:0.72rem; color:var(--mute); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📍 ' + escapeHtml(p.pickup_address || '-') + '</div>';
+      html += '</td>';
+
+      // Receiver
+      html += '<td>';
+      html += '<div style="font-weight:700;">' + escapeHtml(p.receiver_name || 'Receiver') + '</div>';
+      html += '<div style="font-size:0.75rem; color:var(--green);"><a href="tel:' + (p.receiver_phone || '') + '" style="color:inherit; text-decoration:none;">📞 ' + (p.receiver_phone || '-') + '</a></div>';
+      html += '<div style="font-size:0.72rem; color:var(--mute); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🎯 ' + escapeHtml(p.drop_address || '-') + '</div>';
+      html += '</td>';
+
+      // Fare & PINs
+      var pinMatch = (p.notes || '').match(/Receiver Drop PIN:\s*(\d+)/i);
+      var recvPinText = pinMatch ? pinMatch[1] : '-';
+
+      html += '<td>';
+      html += '<div style="font-weight:900; color:var(--green); font-size:0.95rem;">₹' + (p.fare || 45) + '</div>';
+      html += '<div style="font-size:0.72rem; color:var(--mute);">Pickup: <span class="mono" style="color:#fff; font-weight:800;">' + (p.permanent_ride_pin || '-') + '</span></div>';
+      if (recvPinText !== '-') {
+        html += '<div style="font-size:0.72rem; color:#4ADE80;">Drop: <span class="mono" style="font-weight:800;">' + recvPinText + '</span></div>';
+      }
+      html += '<a href="track.html?id=' + p.id + '" target="_blank" style="font-size:0.7rem; color:#38bdf8; text-decoration:underline; display:inline-block; margin-top:2px;">🗺️ Open Radar</a>';
+      html += '</td>';
+
+      // Driver
+      html += '<td>';
+      if (p.driver_name) {
+        html += '<div style="font-weight:700;">' + escapeHtml(p.driver_name) + '</div>';
+        html += '<div style="font-size:0.72rem; color:var(--mute);">' + escapeHtml(p.driver_vehicle || '-') + '</div>';
+        html += '<div style="font-size:0.72rem; color:#38bdf8;"><a href="tel:' + p.driver_phone + '" style="color:inherit; text-decoration:none;">📞 ' + p.driver_phone + '</a></div>';
+      } else {
+        html += '<span style="color:var(--mute); font-size:0.78rem;">Unassigned</span>';
+      }
+      html += '</td>';
+
+      // Status
+      html += '<td><span class="badge ' + statusClass + '">' + (p.status || 'pending') + '</span></td>';
+
+      // Actions
+      html += '<td><div style="display:flex; gap:4px; flex-wrap:wrap;">';
+      if (p.status === 'pending' || !p.driver_name) {
+        html += '<button class="btn" style="padding:4px 8px; font-size:0.72rem; background:#2563eb; color:#fff;" onclick="openAssignSageModal(\'' + p.id + '\')">🛵 Assign</button>';
+      }
+      if (p.status !== 'delivered') {
+        html += '<button class="btn btn-green" style="padding:4px 8px; font-size:0.72rem;" onclick="updateSageStatus(\'' + p.id + '\', \'delivered\')">✅ Done</button>';
+      }
+      if (p.status !== 'cancelled') {
+        html += '<button class="btn btn-red" style="padding:4px 8px; font-size:0.72rem;" onclick="updateSageStatus(\'' + p.id + '\', \'cancelled\')">✕</button>';
+      }
+      html += '</div></td>';
+
+      html += '</tr>';
+    });
+
+    tbody.innerHTML = html;
+  }
+
+  function filterSageParcels() {
+    var q = (document.getElementById('sage-search').value || '').toLowerCase();
+    var sFilter = document.getElementById('sage-status-filter').value;
+    var cFilter = document.getElementById('sage-category-filter').value;
+
+    var filtered = allSageParcels.filter(function(p) {
+      var matchQ = !q ||
+        (p.sender_name && p.sender_name.toLowerCase().includes(q)) ||
+        (p.sender_phone && p.sender_phone.includes(q)) ||
+        (p.receiver_name && p.receiver_name.toLowerCase().includes(q)) ||
+        (p.receiver_phone && p.receiver_phone.includes(q)) ||
+        (p.pickup_address && p.pickup_address.toLowerCase().includes(q)) ||
+        (p.drop_address && p.drop_address.toLowerCase().includes(q));
+
+      var matchS = (sFilter === 'all') || (p.status === sFilter);
+      var matchC = (cFilter === 'all') || (p.package_category === cFilter);
+
+      return matchQ && matchS && matchC;
+    });
+
+    renderParcelsTable(filtered);
+  }
+
+  async function updateSageStatus(id, newStatus) {
+    if (!confirm('Change status of this parcel to ' + newStatus.toUpperCase() + '?')) return;
+    try {
+      await sb('sage_parcels?id=eq.' + id, {
+        method: 'PATCH',
+        body: { status: newStatus }
+      });
+      toast('✅ Parcel status updated to ' + newStatus);
+      loadSageParcels();
+    } catch(err) {
+      alert('Failed to update status: ' + err.message);
+    }
+  }
+
+  function openAssignSageModal(id) {
+    var p = allSageParcels.find(function(item){ return item.id === id; });
+    document.getElementById('sage-assign-target-id').value = id;
+    var subEl = document.getElementById('modal-sage-assign-subtitle');
+    if (subEl) subEl.textContent = 'Assign rider for ' + (p ? (p.sender_name + ' ➔ ' + p.receiver_name) : 'parcel');
+    document.getElementById('sage-modal-capt-name').value = '';
+    document.getElementById('sage-modal-capt-phone').value = '';
+    document.getElementById('sage-modal-capt-plate').value = '';
+    document.getElementById('modal-sage-assign').style.display = 'flex';
+  }
+
+  function closeAssignSageModal() {
+    document.getElementById('modal-sage-assign').style.display = 'none';
+  }
+
+  async function saveAssignedSageCaptain() {
+    var id = document.getElementById('sage-assign-target-id').value;
+    var name = document.getElementById('sage-modal-capt-name').value.trim();
+    var phone = document.getElementById('sage-modal-capt-phone').value.trim();
+    var plate = document.getElementById('sage-modal-capt-plate').value.trim();
+
+    if (!name || !phone) {
+      alert('Please enter Captain Name and Phone number.');
+      return;
+    }
+
+    try {
+      await sb('sage_parcels?id=eq.' + id, {
+        method: 'PATCH',
+        body: {
+          driver_name: name,
+          driver_phone: phone,
+          driver_vehicle: plate,
+          status: 'assigned'
+        }
+      });
+      toast('🎉 Captain assigned successfully!');
+      closeAssignSageModal();
+      loadSageParcels();
+    } catch(err) {
+      alert('Failed to assign captain: ' + err.message);
+    }
+  }
+
+  function exportSageCSV() {
+    if (!allSageParcels || allSageParcels.length === 0) { toast('No parcels to export'); return; }
+    var headers = ['Date', 'Status', 'Category', 'Sender Name', 'Sender Phone', 'Pickup Address', 'Receiver Name', 'Receiver Phone', 'Drop Address', 'Fare (INR)', 'Ride PIN', 'Captain Name', 'Captain Phone', 'Vehicle', 'Notes'];
+    var rows = allSageParcels.map(function(p) {
+      return [
+        p.created_at || '',
+        p.status || '',
+        p.package_category || '',
+        p.sender_name || '',
+        p.sender_phone || '',
+        p.pickup_address || '',
+        p.receiver_name || '',
+        p.receiver_phone || '',
+        p.drop_address || '',
+        p.fare || '',
+        p.permanent_ride_pin || '',
+        p.driver_name || '',
+        p.driver_phone || '',
+        p.driver_vehicle || '',
+        p.notes || ''
+      ];
+    });
+
+    downloadCSV('rydealot_sage_parcels_' + new Date().toISOString().slice(0,10) + '.csv', headers, rows);
+    toast('📊 Parcels CSV downloaded!');
+  }
+
+  // ===== ALONGWITH CARGO & FREIGHT CONTROLLER =====
+  var allCargoTrips = [];
+  var allCargoBookings = [];
+  var GOODZ_CONFIG_KEY = 'rydealot_goodz_pricing_config';
+
+  async function loadAlongWithDashboard() {
+    loadGoodzPricing();
+    try {
+      var tripsPromise = sb('cargo_trips?order=created_at.desc&limit=100');
+      var bookingsPromise = sb('cargo_bookings?order=created_at.desc&limit=100');
+      var results = await Promise.all([tripsPromise, bookingsPromise]);
+      allCargoTrips = results[0] || [];
+      allCargoBookings = results[1] || [];
+      applyAlongWithFilters();
+    } catch(e) {
+      console.error('AlongWith load error:', e);
+    }
+  }
+
+  function applyAlongWithFilters() {
+    var search = (document.getElementById('aw-filter-search').value || '').toLowerCase().trim();
+    var route = document.getElementById('aw-filter-route').value;
+    var status = document.getElementById('aw-filter-status').value;
+
+    var filteredTrips = allCargoTrips.filter(function(t) {
+      var matchSearch = !search ||
+        (t.driver_name || '').toLowerCase().includes(search) ||
+        (t.driver_phone || '').toLowerCase().includes(search) ||
+        (t.from_city || '').toLowerCase().includes(search) ||
+        (t.to_city || '').toLowerCase().includes(search) ||
+        (t.vehicle_number || '').toLowerCase().includes(search);
+      var matchRoute = !route || (t.from_city || '').includes(route) || (t.to_city || '').includes(route);
+      var matchStatus = !status || (t.status || '') === status;
+      return matchSearch && matchRoute && matchStatus;
+    });
+
+    var filteredBookings = allCargoBookings.filter(function(b) {
+      var matchSearch = !search ||
+        (b.sender_name || '').toLowerCase().includes(search) ||
+        (b.sender_phone || '').toLowerCase().includes(search) ||
+        (b.pickup_address || '').toLowerCase().includes(search) ||
+        (b.drop_address || '').toLowerCase().includes(search) ||
+        (b.cargo_description || '').toLowerCase().includes(search);
+      var matchRoute = !route || (b.pickup_address || '').includes(route) || (b.drop_address || '').includes(route);
+      var matchStatus = !status || (b.status || '') === status;
+      return matchSearch && matchRoute && matchStatus;
+    });
+
+    renderAlongWithTrips(filteredTrips);
+    renderAlongWithBookings(filteredBookings);
+
+    var statTr = document.getElementById('aw-stat-trips'); if (statTr) statTr.textContent = allCargoTrips.length;
+    var statBk = document.getElementById('aw-stat-bookings'); if (statBk) statBk.textContent = allCargoBookings.length;
+
+    var totalRev = 0, totalComm = 0;
+    allCargoBookings.forEach(function(b) {
+      totalRev += parseFloat(b.total_price || 0);
+      totalComm += parseFloat(b.commission || 0);
+    });
+    var statRev = document.getElementById('aw-stat-revenue'); if (statRev) statRev.textContent = '₹' + totalRev.toLocaleString('en-IN');
+    var statCom = document.getElementById('aw-stat-commission'); if (statCom) statCom.textContent = '₹' + totalComm.toLocaleString('en-IN');
+  }
+
+  function renderAlongWithTrips(trips) {
+    var badge = document.getElementById('aw-trips-count-badge');
+    if (badge) badge.textContent = trips.length + ' Trips';
+    var tbody = document.getElementById('aw-trips-tbody');
+    if (!tbody) return;
+    if (!trips.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--mute); padding: 30px;">No matching return trips found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = trips.map(function(t) {
+      var dep = new Date(t.departure_time || Date.now());
+      var depStr = dep.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + dep.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      var phoneLink = t.driver_phone ? '<a href="tel:' + t.driver_phone + '" style="color:#38bdf8; text-decoration:none; font-weight:700;">📞 ' + t.driver_phone + '</a>' : '—';
+
+      var actionBtns = '<div style="display:flex; gap:4px; justify-content:flex-end;">';
+      if (t.status === 'open') {
+        actionBtns += '<button onclick="updateAlongWithTripStatus(\'' + t.id + '\', \'in_transit\')" style="background:#16a34a; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;" title="Mark In Transit">🚛 Start</button>';
+        actionBtns += '<button onclick="updateAlongWithTripStatus(\'' + t.id + '\', \'cancelled\')" style="background:#ef4444; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;" title="Cancel Trip">✕</button>';
+      } else if (t.status === 'in_transit') {
+        actionBtns += '<button onclick="updateAlongWithTripStatus(\'' + t.id + '\', \'completed\')" style="background:#7c3aed; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✅ Complete</button>';
+      } else {
+        actionBtns += '<span style="color:#64748b; font-size:11px; font-weight:700;">—</span>';
+      }
+      actionBtns += '</div>';
+
+      return '<tr>' +
+        '<td><strong>' + escapeHtml(t.driver_name || 'Driver') + '</strong></td>' +
+        '<td>' + phoneLink + '</td>' +
+        '<td><strong style="color:#fff;">' + escapeHtml(t.from_city || '') + ' ➔ ' + escapeHtml(t.to_city || '') + '</strong></td>' +
+        '<td>' + escapeHtml(t.vehicle_type || '') + ' (' + escapeHtml(t.vehicle_number || '—') + ')</td>' +
+        '<td>' + (t.available_capacity_kg || t.total_capacity_kg || 0) + ' / ' + (t.total_capacity_kg || 0) + ' KG</td>' +
+        '<td><strong style="color:#4ade80;">₹' + (t.price_per_kg || 0) + '/KG</strong></td>' +
+        '<td><span class="badge badge-' + (t.status || 'open') + '">' + (t.status || 'open') + '</span></td>' +
+        '<td>' + depStr + '</td>' +
+        '<td style="text-align:right;">' + actionBtns + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function renderAlongWithBookings(bookings) {
+    var badge = document.getElementById('aw-bookings-count-badge');
+    if (badge) badge.textContent = bookings.length + ' Bookings';
+    var tbody = document.getElementById('aw-bookings-tbody');
+    if (!tbody) return;
+    if (!bookings.length) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--mute); padding: 30px;">No matching cargo bookings found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = bookings.map(function(b) {
+      var dt = b.created_at ? new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-';
+      var phoneLink = b.sender_phone ? '<a href="tel:' + b.sender_phone + '" style="color:#38bdf8; text-decoration:none; font-weight:700;">📞 ' + b.sender_phone + '</a>' : '—';
+
+      var actionBtns = '<div style="display:flex; gap:4px; justify-content:flex-end;">';
+      if (b.status === 'pending') {
+        actionBtns += '<button onclick="updateAlongWithBookingStatus(\'' + b.id + '\', \'accepted\')" style="background:#16a34a; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✅ Accept</button>';
+        actionBtns += '<button onclick="updateAlongWithBookingStatus(\'' + b.id + '\', \'cancelled\', ' + (b.cargo_weight_kg || 0) + ', \'' + (b.trip_id || '') + '\')" style="background:#ef4444; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">✕</button>';
+      } else if (b.status === 'accepted') {
+        actionBtns += '<button onclick="updateAlongWithBookingStatus(\'' + b.id + '\', \'in_transit\')" style="background:#2563eb; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">🚛 Transit</button>';
+        actionBtns += '<button onclick="updateAlongWithBookingStatus(\'' + b.id + '\', \'delivered\')" style="background:#7c3aed; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">📦 Deliver</button>';
+      } else if (b.status === 'in_transit') {
+        actionBtns += '<button onclick="updateAlongWithBookingStatus(\'' + b.id + '\', \'delivered\')" style="background:#7c3aed; border:none; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">📦 Deliver</button>';
+      } else {
+        actionBtns += '<span style="color:#64748b; font-size:11px; font-weight:700;">—</span>';
+      }
+      actionBtns += '</div>';
+
+      return '<tr>' +
+        '<td><strong>' + escapeHtml(b.sender_name || 'Sender') + '</strong></td>' +
+        '<td>' + phoneLink + '</td>' +
+        '<td><strong>' + (b.cargo_weight_kg || 0) + ' KG</strong></td>' +
+        '<td>' + escapeHtml(b.cargo_description || '—') + '</td>' +
+        '<td style="font-size:11px; color:var(--mute); max-width:180px;">' + escapeHtml(b.pickup_address || '') + ' ➔ ' + escapeHtml(b.drop_address || '') + '</td>' +
+        '<td><strong style="color:#4ade80;">₹' + (b.total_price || 0) + '</strong></td>' +
+        '<td><strong style="color:#facc15;">₹' + (b.commission || 0) + '</strong></td>' +
+        '<td><span class="badge badge-' + (b.status || 'pending') + '">' + (b.status || 'pending') + '</span></td>' +
+        '<td>' + dt + '</td>' +
+        '<td style="text-align:right;">' + actionBtns + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  async function updateAlongWithTripStatus(tripId, newStatus) {
+    if (!confirm('Update trip status to ' + newStatus.toUpperCase() + '?')) return;
+    try {
+      await sb('cargo_trips?id=eq.' + tripId, {
+        method: 'PATCH',
+        body: { status: newStatus }
+      });
+      loadAlongWithDashboard();
+    } catch(err) {
+      alert('Failed to update trip: ' + err.message);
+    }
+  }
+
+  async function updateAlongWithBookingStatus(bookingId, newStatus, weightKg, tripId) {
+    if (!confirm('Update shipment status to ' + newStatus.toUpperCase() + '?')) return;
+    try {
+      await sb('cargo_bookings?id=eq.' + bookingId, {
+        method: 'PATCH',
+        body: { status: newStatus }
+      });
+      if (newStatus === 'cancelled' && weightKg && tripId) {
+        var trips = await sb('cargo_trips?id=eq.' + tripId);
+        if (trips && trips[0]) {
+          var newCap = (trips[0].available_capacity_kg || 0) + weightKg;
+          await sb('cargo_trips?id=eq.' + tripId, {
+            method: 'PATCH',
+            body: { available_capacity_kg: newCap, status: 'open' }
+          });
+        }
+      }
+      loadAlongWithDashboard();
+    } catch(err) {
+      alert('Failed to update booking: ' + err.message);
+    }
+  }
+
+  function loadGoodzPricing() {
+    var raw = localStorage.getItem(GOODZ_CONFIG_KEY);
+    if (!raw) return;
+    try {
+      var c = JSON.parse(raw);
+      if (document.getElementById('goodz-cab-enabled')) document.getElementById('goodz-cab-enabled').checked = !!c.cabEnabled;
+      if (document.getElementById('goodz-cab-doorstep')) document.getElementById('goodz-cab-doorstep').value = c.cabDoorstep || 289;
+      if (document.getElementById('goodz-cab-highway')) document.getElementById('goodz-cab-highway').value = c.cabHighway || 199;
+      if (document.getElementById('goodz-cab-driver-doorstep')) document.getElementById('goodz-cab-driver-doorstep').value = c.cabDriverDoorstep || 230;
+      if (document.getElementById('goodz-cab-driver-highway')) document.getElementById('goodz-cab-driver-highway').value = c.cabDriverHighway || 160;
+
+      if (document.getElementById('goodz-bus-enabled')) document.getElementById('goodz-bus-enabled').checked = !!c.busEnabled;
+      if (document.getElementById('goodz-bus-doorstep')) document.getElementById('goodz-bus-doorstep').value = c.busDoorstep || 249;
+      if (document.getElementById('goodz-bus-office')) document.getElementById('goodz-bus-office').value = c.busOffice || 199;
+      if (document.getElementById('goodz-bus-payout-doorstep')) document.getElementById('goodz-bus-payout-doorstep').value = c.busPayoutDoorstep || 130;
+      if (document.getElementById('goodz-bus-payout-office')) document.getElementById('goodz-bus-payout-office').value = c.busPayoutOffice || 110;
+
+      if (document.getElementById('goodz-platform-pct')) document.getElementById('goodz-platform-pct').value = c.platformPct || 8;
+      if (document.getElementById('goodz-seal-fee')) document.getElementById('goodz-seal-fee').value = c.sealFee || 10;
+      if (document.getElementById('goodz-weight-med')) document.getElementById('goodz-weight-med').value = c.weightMed || 40;
+      if (document.getElementById('goodz-weight-high')) document.getElementById('goodz-weight-high').value = c.weightHigh || 80;
+
+      if (document.getElementById('goodz-pilot-required')) document.getElementById('goodz-pilot-required').checked = !!c.pilotRequired;
+      if (document.getElementById('goodz-pilot-code')) document.getElementById('goodz-pilot-code').value = c.pilotCode || 'GOODZ2026';
+      if (document.getElementById('goodz-pilot-quota')) document.getElementById('goodz-pilot-quota').value = c.pilotQuota || 5;
+
+      var qStatus = document.getElementById('goodz-quota-status-text');
+      if (qStatus) {
+        var count = parseInt(localStorage.getItem('rydealot_goodz_today_count') || '0', 10);
+        qStatus.textContent = count + ' / ' + (c.pilotQuota || 5) + ' Booked Today';
+      }
+    } catch(e) {}
+  }
+
+  function saveGoodzPricing() {
+    var config = {
+      cabEnabled: document.getElementById('goodz-cab-enabled') ? document.getElementById('goodz-cab-enabled').checked : true,
+      cabDoorstep: parseFloat(document.getElementById('goodz-cab-doorstep').value) || 289,
+      cabHighway: parseFloat(document.getElementById('goodz-cab-highway').value) || 199,
+      cabDriverDoorstep: parseFloat(document.getElementById('goodz-cab-driver-doorstep').value) || 230,
+      cabDriverHighway: parseFloat(document.getElementById('goodz-cab-driver-highway').value) || 160,
+
+      busEnabled: document.getElementById('goodz-bus-enabled') ? document.getElementById('goodz-bus-enabled').checked : true,
+      busDoorstep: parseFloat(document.getElementById('goodz-bus-doorstep').value) || 249,
+      busOffice: parseFloat(document.getElementById('goodz-bus-office').value) || 199,
+      busPayoutDoorstep: parseFloat(document.getElementById('goodz-bus-payout-doorstep').value) || 130,
+      busPayoutOffice: parseFloat(document.getElementById('goodz-bus-payout-office').value) || 110,
+
+      platformPct: parseFloat(document.getElementById('goodz-platform-pct').value) || 8,
+      sealFee: parseFloat(document.getElementById('goodz-seal-fee').value) || 10,
+      weightMed: parseFloat(document.getElementById('goodz-weight-med').value) || 40,
+      weightHigh: parseFloat(document.getElementById('goodz-weight-high').value) || 80,
+
+      pilotRequired: document.getElementById('goodz-pilot-required') ? document.getElementById('goodz-pilot-required').checked : true,
+      pilotCode: (document.getElementById('goodz-pilot-code').value || 'GOODZ2026').trim().toUpperCase(),
+      pilotQuota: parseInt(document.getElementById('goodz-pilot-quota').value) || 5,
+      updated_at: new Date().toISOString()
+    };
+
+    localStorage.setItem(GOODZ_CONFIG_KEY, JSON.stringify(config));
+    toast('💾 AlongWith / Goodz freight configuration saved live!');
+  }
+
+  function resetTodayGoodzCount() {
+    localStorage.setItem('rydealot_goodz_today_count', '0');
+    var quota = parseInt(document.getElementById('goodz-pilot-quota').value) || 5;
+    var qStatus = document.getElementById('goodz-quota-status-text');
+    if (qStatus) qStatus.textContent = '0 / ' + quota + ' Booked Today';
+    toast('↺ Today\'s pilot booking quota counter reset to 0.');
+  }
+
+  function exportFreightCSV() {
+    if (!allCargoBookings.length) {
+      alert('No cargo bookings data available to export.');
+      return;
+    }
+    var headers = ['Booking ID', 'Sender Name', 'Sender Phone', 'Weight (KG)', 'Cargo Description', 'Pickup Address', 'Drop Address', 'Total Fare (INR)', 'Rydealot Commission (INR)', 'Status', 'Date'];
+    var rows = allCargoBookings.map(function(b) {
+      return [
+        b.id || '',
+        b.sender_name || '',
+        b.sender_phone || '',
+        b.cargo_weight_kg || 0,
+        b.cargo_description || '',
+        b.pickup_address || '',
+        b.drop_address || '',
+        b.total_price || 0,
+        b.commission || 0,
+        b.status || '',
+        b.created_at ? new Date(b.created_at).toISOString().split('T')[0] : ''
+      ];
+    });
+
+    downloadCSV('rydealot_freight_report_' + new Date().toISOString().slice(0,10) + '.csv', headers, rows);
+    toast('Freight CSV downloaded!');
+  }
+
+  // Auto-switch tab based on URL parameter ?tab=
+  function checkUrlTabParam() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var tab = params.get('tab');
+      if (tab) {
+        showPanel(tab);
+      }
+    } catch(e) {}
   }
 
   function openChangePassModal() {
@@ -3596,6 +4566,13 @@
   document.getElementById('admin-passcode-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') verifyAdminPasscode();
   });
+
+  var otpInputEl = document.getElementById('admin-otp-input');
+  if (otpInputEl) {
+    otpInputEl.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') verifyAdminOtp();
+    });
+  }
 
   // ===== INVESTOR EXPORT / CSV DOWNLOAD FUNCTIONS =====
   function openDownloadModal() {
