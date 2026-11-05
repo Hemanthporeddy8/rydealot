@@ -304,7 +304,6 @@
       <span id="titan-role-badge" class="badge" style="background:rgba(245,158,11,0.18); border:1.5px solid #f59e0b; color:#fbbf24; font-weight:900; font-size:0.72rem; padding:4px 10px; letter-spacing:0.5px;">👑 FOUNDING TITAN</span>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
-      <button class="btn" id="btn-sync-plan" style="font-size:0.78rem; background:#2563eb; color:#fff;" onclick="triggerAdminPlanSync()">⚡ Sync Plan A &amp; B</button>
       <button class="btn btn-amber" style="font-size:0.78rem;" onclick="showPanel('sage', document.querySelector('.tab[onclick*=\'sage\']'))">📦 Sage Parcels</button>
       <button class="btn" style="font-size:0.78rem; background:#38bdf8; color:#0b0c0f; font-weight:800;" onclick="showPanel('alongwith', document.querySelector('.tab[onclick*=\'alongwith\']'))">🚚 AlongWith Cargo</button>
       <button class="btn" style="font-size:0.78rem; background:#06b6d4; color:#0b0c0f; font-weight:800;" onclick="showPanel('escort', document.querySelector('.tab[onclick*=\'escort\']'))">🛡️ Night Escort</button>
@@ -892,7 +891,6 @@
     <div style="display:flex; justify-content:flex-end;">
       <button class="btn btn-amber" style="padding:12px 28px; font-size:0.9rem;" onclick="saveFareSettings()">💾 Save & Apply Fare Rules</button>
     </div>
-  </div>
 
   <!-- ===== CUSTOMER PROMO COUPONS SECTION ===== -->
   <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; max-width:850px; margin-top:24px;">
@@ -1408,7 +1406,16 @@
           <p style="font-size:0.8rem; color:#94a3b8; margin:3px 0 0;">Zero-database client AI corridor watch • Standby motorcycle intercept units • Telugu &amp; Hindi audio prompts</p>
         </div>
       </div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <!-- Master Escort Kill Switch -->
+        <div style="display:flex; align-items:center; gap:8px; background:rgba(7,13,24,0.85); border:1.5px solid #06b6d4; border-radius:10px; padding:6px 12px; box-shadow:0 0 15px rgba(6,182,212,0.2);">
+          <span style="font-size:0.75rem; color:#94a3b8; font-weight:800; text-transform:uppercase;">Master Switch:</span>
+          <select id="escort-master-toggle" class="auth-input" style="width:auto; padding:4px 10px; font-size:0.8rem; font-weight:900; margin-bottom:0; background:#0e1726; border:1px solid #06b6d4; color:#38bdf8; border-radius:6px;" onchange="toggleMasterEscort(this.value)">
+            <option value="true">🟢 ESCORT ON</option>
+            <option value="false">🔴 ESCORT OFF</option>
+          </select>
+        </div>
+
         <a href="escort.html" target="_blank" class="btn" style="background:rgba(6,182,212,0.15); border:1.5px solid #06b6d4; color:#38bdf8; text-decoration:none; font-size:0.8rem; font-weight:800; display:inline-flex; align-items:center; gap:5px;">
           <span>🛡️ Passenger Portal</span> &rarr;
         </a>
@@ -1441,10 +1448,13 @@
           </div>
           <p style="font-size:0.78rem; color:var(--mute); margin:4px 0 0;">Continuous background client-side corridor monitoring for conscious travelers.</p>
         </div>
-        <select id="escort-panel-toggle-plan1" class="auth-input" style="width:auto; padding:6px 12px; font-size:0.8rem; font-weight:800; margin-bottom:0;" onchange="syncEscortPanelToggle('plan1', this.value)">
-          <option value="true">🟢 ACTIVE</option>
-          <option value="false">🔴 PAUSED</option>
-        </select>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:0.72rem; color:var(--mute); font-weight:800;">STATUS:</span>
+          <select id="escort-panel-toggle-plan1" class="auth-input" style="width:auto; padding:6px 12px; font-size:0.82rem; font-weight:900; margin-bottom:0; background:#070d18; border:1.5px solid rgba(6,182,212,0.4); color:#38bdf8; border-radius:8px;" onchange="syncEscortPanelToggle('plan1', this.value)">
+            <option value="true">🟢 PLAN 1 ACTIVE</option>
+            <option value="false">🔴 PLAN 1 PAUSED</option>
+          </select>
+        </div>
       </div>
 
       <div style="background:var(--bg); border-radius:10px; padding:12px; font-size:0.75rem; color:#cbd5e1; display:flex; flex-direction:column; gap:6px;">
@@ -1477,10 +1487,13 @@
           </div>
           <p style="font-size:0.78rem; color:var(--mute); margin:4px 0 0;">Dedicated standby response motorcycle captains pre-positioned on dark highway corridors.</p>
         </div>
-        <select id="escort-panel-toggle-plan2" class="auth-input" style="width:auto; padding:6px 12px; font-size:0.8rem; font-weight:800; margin-bottom:0;" onchange="syncEscortPanelToggle('plan2', this.value)">
-          <option value="true">🟢 ACTIVE</option>
-          <option value="false">🔴 PAUSED</option>
-        </select>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:0.72rem; color:var(--mute); font-weight:800;">STATUS:</span>
+          <select id="escort-panel-toggle-plan2" class="auth-input" style="width:auto; padding:6px 12px; font-size:0.82rem; font-weight:900; margin-bottom:0; background:#070d18; border:1.5px solid rgba(245,158,11,0.4); color:#fbbf24; border-radius:8px;" onchange="syncEscortPanelToggle('plan2', this.value)">
+            <option value="true">🟢 PLAN 2 ACTIVE</option>
+            <option value="false">🔴 PLAN 2 PAUSED</option>
+          </select>
+        </div>
       </div>
 
       <div style="background:var(--bg); border-radius:10px; padding:12px; font-size:0.75rem; color:#cbd5e1; display:flex; flex-direction:column; gap:6px;">
@@ -1875,8 +1888,6 @@
 <script>
   // RYDEALOT 100% CLOUDFLARE D1 EDGE BACKEND (Direct High-Speed Edge Connection)
   var CLOUDFLARE_D1_WORKER = 'https://rydealot-api.rydealotoffical.workers.dev';
-  var SUPABASE_URL = CLOUDFLARE_D1_WORKER;
-  var SUPABASE_KEY = 'rydealot_d1_edge_key';
   var allDrivers = [];
   var allBookings = [];
 
@@ -1902,70 +1913,6 @@
       console.error('[Admin Cloudflare D1 Error]:', err);
       return null;
     }
-  }
-
-  async function triggerAdminPlanSync() {
-    var btn = document.getElementById('btn-sync-plan');
-    if (btn) { btn.textContent = '⏳ Syncing...'; btn.disabled = true; }
-    toast('🔄 Starting live Plan A (Supabase) & Plan B (Cloudflare D1) reconciliation...');
-
-    var tables = ['riders', 'bookings', 'driver_documents', 'fare_settings', 'platform_services'];
-    var totalSynced = 0;
-
-    for (var i = 0; i < tables.length; i++) {
-      var t = tables[i];
-      try {
-        var sbRows = await fetch(SUPABASE_URL + '/rest/v1/' + t, {
-          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
-        }).then(function(r){ return r.json(); }).catch(function(){ return []; });
-
-        var d1Rows = await fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + t)
-          .then(function(r){ return r.json(); }).catch(function(){ return []; });
-
-        if (Array.isArray(sbRows) && Array.isArray(d1Rows)) {
-          var d1Ids = new Set(d1Rows.map(function(r){ return r.id; }).filter(Boolean));
-          var sbIds = new Set(sbRows.map(function(r){ return r.id; }).filter(Boolean));
-
-          // Sync Supabase -> D1
-          for (var j = 0; j < sbRows.length; j++) {
-            var row = sbRows[j];
-            if (row.id && !d1Ids.has(row.id)) {
-              await fetch(CLOUDFLARE_D1_WORKER + '/rest/v1/' + t, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(row)
-              }).catch(function(){});
-              d1Ids.add(row.id);
-              totalSynced++;
-            }
-          }
-
-          // Sync D1 -> Supabase
-          for (var k = 0; k < d1Rows.length; k++) {
-            var d1Row = d1Rows[k];
-            if (d1Row.id && !sbIds.has(d1Row.id)) {
-              await fetch(SUPABASE_URL + '/rest/v1/' + t, {
-                method: 'POST',
-                headers: {
-                  'apikey': SUPABASE_ANON_KEY,
-                  'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(d1Row)
-              }).catch(function(){});
-              sbIds.add(d1Row.id);
-              totalSynced++;
-            }
-          }
-        }
-      } catch(err) {
-        console.warn('Sync table ' + t + ' note:', err);
-      }
-    }
-
-    if (btn) { btn.textContent = '⚡ Sync Plan A & B'; btn.disabled = false; }
-    toast('✅ Synchronization complete! ' + (totalSynced > 0 ? totalSynced + ' records reconciled.' : 'All tables already 100% in sync.'));
-    loadDrivers();
   }
 
   function toast(msg) {
@@ -5400,6 +5347,9 @@
       var p1 = typeof cfg.escort_plan1 === 'boolean' ? cfg.escort_plan1 : (cfg.escort || false);
       var p2 = typeof cfg.escort_plan2 === 'boolean' ? cfg.escort_plan2 : false;
 
+      var masterEl = document.getElementById('escort-master-toggle');
+      if (masterEl) masterEl.value = (p1 || p2) ? 'true' : 'false';
+
       var p1El = document.getElementById('escort-panel-toggle-plan1');
       if (p1El) p1El.value = p1 ? 'true' : 'false';
 
@@ -5440,6 +5390,9 @@
   }
 
   function updateEscortMasterBadge(p1, p2) {
+    var masterEl = document.getElementById('escort-master-toggle');
+    if (masterEl) masterEl.value = (p1 || p2) ? 'true' : 'false';
+
     var badge = document.getElementById('escort-master-status-badge');
     if (!badge) return;
     if (p1 && p2) {
@@ -5457,6 +5410,44 @@
     }
   }
 
+  function toggleMasterEscort(val) {
+    var isEnabled = (val === 'true');
+    var raw = localStorage.getItem('rydealot_services_config');
+    var cfg = raw ? JSON.parse(raw) : { bike: true, auto: true, car: true, parcels: true, trucks: true, goodz: true };
+
+    cfg.escort = isEnabled;
+    cfg.escort_plan1 = isEnabled;
+    cfg.escort_plan2 = isEnabled;
+
+    var p1El = document.getElementById('escort-panel-toggle-plan1');
+    if (p1El) p1El.value = isEnabled ? 'true' : 'false';
+    var p2El = document.getElementById('escort-panel-toggle-plan2');
+    if (p2El) p2El.value = isEnabled ? 'true' : 'false';
+
+    var fareP1 = document.getElementById('svc-toggle-escort-plan1');
+    if (fareP1) fareP1.value = isEnabled ? 'true' : 'false';
+    var fareP2 = document.getElementById('svc-toggle-escort-plan2');
+    if (fareP2) fareP2.value = isEnabled ? 'true' : 'false';
+
+    localStorage.setItem('rydealot_services_config', JSON.stringify(cfg));
+    updateEscortMasterBadge(cfg.escort_plan1, cfg.escort_plan2);
+    updateServiceBadge();
+
+    try {
+      sb('platform_services?id=eq.default', {
+        method: 'PATCH',
+        body: {
+          escort_enabled: isEnabled,
+          escort_plan1_enabled: isEnabled,
+          escort_plan2_enabled: isEnabled,
+          updated_at: new Date().toISOString()
+        }
+      }).catch(function(){});
+    } catch(e){}
+
+    toast(isEnabled ? '🟢 Night Escort master switch turned ON!' : '🔴 Night Escort master switch turned OFF!');
+  }
+
   function syncEscortPanelToggle(plan, val) {
     var isEnabled = (val === 'true');
     var raw = localStorage.getItem('rydealot_services_config');
@@ -5464,11 +5455,12 @@
 
     if (plan === 'plan1') {
       cfg.escort_plan1 = isEnabled;
-      cfg.escort = isEnabled;
+      cfg.escort = cfg.escort_plan1 || cfg.escort_plan2;
       var fareP1 = document.getElementById('svc-toggle-escort-plan1');
       if (fareP1) fareP1.value = val;
     } else if (plan === 'plan2') {
       cfg.escort_plan2 = isEnabled;
+      cfg.escort = cfg.escort_plan1 || cfg.escort_plan2;
       var fareP2 = document.getElementById('svc-toggle-escort-plan2');
       if (fareP2) fareP2.value = val;
     }
