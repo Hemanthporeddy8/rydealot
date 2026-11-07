@@ -462,8 +462,8 @@
       </div>
     </div>
     <div class="book-btn-wrap">
-      <!-- 🛡️ Night Safety Guardian Add-on Card -->
-      <div id="escort-addon-card" style="margin-bottom: 12px; background: linear-gradient(135deg, #0b132b, #1c2541); border: 1.5px solid #38bdf8; border-radius: 14px; padding: 12px; color: #fff; box-shadow: 0 4px 14px rgba(11,19,43,0.3); text-align: left;">
+      <!-- 🛡️ Night Safety Guardian Add-on Card (Hidden by default unless enabled by Admin) -->
+      <div id="escort-addon-card" style="display:none; margin-bottom: 12px; background: linear-gradient(135deg, #0b132b, #1c2541); border: 1.5px solid #38bdf8; border-radius: 14px; padding: 12px; color: #fff; box-shadow: 0 4px 14px rgba(11,19,43,0.3); text-align: left;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:18px;">🛡️</span>
@@ -522,6 +522,37 @@
       </div>
       <div id="map" class="track-map"></div>
       
+      <!-- Rapido-style Search Radar & 120s Countdown Bar (Active when booking is requested) -->
+      <div id="track-search-radar-container" style="display:none; margin: 10px 16px 4px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:14px; padding:12px; text-align:center;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span id="track-search-wave-label" style="font-size:11.5px; font-weight:800; color:#2563EB;">📡 Pinging nearest captain within 1.5 km...</span>
+          <span id="track-search-timer-text" style="font-family:'IBM Plex Mono',monospace; font-weight:900; font-size:12px; color:#0F172A; background:#E2E8F0; padding:2px 8px; border-radius:6px;">02:00</span>
+        </div>
+        <div style="width:100%; height:6px; background:#E2E8F0; border-radius:99px; overflow:hidden;">
+          <div id="track-search-progress-fill" style="width:100%; height:100%; background:linear-gradient(90deg, #2563EB, #10B981); transition:width 1s linear;"></div>
+        </div>
+      </div>
+
+      <!-- Rapido-style Expired Fallback Card (Active when 120s search times out) -->
+      <div id="track-expired-fallback-card" style="display:none; margin: 10px 16px; background:#FFFBEB; border:1.5px solid #F59E0B; border-radius:16px; padding:16px; text-align:center;">
+        <div style="font-size:32px; margin-bottom:6px;">⏱️</div>
+        <h3 style="font-size:15px; font-weight:900; color:#92400E; margin:0 0 4px;">No Captains Accepted Nearby</h3>
+        <p style="font-size:11.5px; color:#B45309; line-height:1.4; margin:0 0 12px;">
+          All nearby captains are currently occupied. Add a priority tip or retry to dispatch.
+        </p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <button type="button" onclick="retryRideWithTip(20)" style="width:100%; padding:10px; background:#F59E0B; color:#FFF; border:none; border-radius:10px; font-size:12.5px; font-weight:900; cursor:pointer; box-shadow:0 3px 8px rgba(245,158,11,0.3);">
+            ⚡ Add Priority Tip (+₹20) &amp; Retry
+          </button>
+          <button type="button" onclick="retryRideStandard()" style="width:100%; padding:9px; background:#FFF; border:1.5px solid #CBD5E1; color:#334155; border-radius:10px; font-size:12px; font-weight:800; cursor:pointer;">
+            🔄 Retry Search (Standard Fare)
+          </button>
+          <button type="button" onclick="cancelRideAndDismiss()" style="background:transparent; border:none; color:#64748B; font-size:11.5px; font-weight:700; cursor:pointer; padding:4px;">
+            Cancel Request &amp; Back to Home
+          </button>
+        </div>
+      </div>
+
       <!-- Start-Ride PIN Display -->
       <div style="font-size: 13px; font-weight: 700; color: var(--green); text-align: center; margin: 10px 16px; background: var(--bg); padding: 10px; border-radius: 12px; border: 1.5px solid var(--border);" id="pwa-pin-display-container">
         Share this Ride PIN with Driver: <span style="font-size: 18px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 2px; color: var(--accent); margin-left: 6px; font-weight: 800;" id="track-pin-code">----</span>

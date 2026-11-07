@@ -6138,6 +6138,23 @@
       }
     } catch(e){}
 
+    // Check Escort service availability from Admin switches
+    var isEscortEnabled = false;
+    try {
+      var rawCfg = localStorage.getItem('rydealot_services_config');
+      if (rawCfg) {
+        var cfg = JSON.parse(rawCfg);
+        if (cfg.escort === true || cfg.escort_plan1 === true || cfg.escort_plan2 === true) {
+          isEscortEnabled = true;
+        }
+      }
+    } catch(e){}
+
+    var escortCard = document.getElementById('escort-addon-card');
+    if (escortCard) {
+      escortCard.style.display = isEscortEnabled ? 'block' : 'none';
+    }
+
     if (!PLATFORM_SERVICES.rides) {
       if (document.documentElement) document.documentElement.classList.add('rides-disabled');
 
@@ -6766,6 +6783,8 @@
       state.activeRider = rider;
       state.activeType = type;
       state.activePrice = totalFare;
+      state.lastKnownStatus = 'requested';
+      startRideSearchCountdown(120, row.id);
 
       // Save active booking to localStorage for instant reload/refresh persistence!
       try {
@@ -6907,25 +6926,51 @@
     }
 
     var bannerTitle = document.querySelector('#screen-tracking .confirm-banner h3');
+    var radarCont = document.getElementById('track-search-radar-container');
+    var fallbackCard = document.getElementById('track-expired-fallback-card');
+    var driverCard = document.querySelector('#screen-tracking .driver-card');
+    var pinDisplay = document.getElementById('pwa-pin-display-container');
+    var tripProgress = document.querySelector('#screen-tracking .trip-progress');
+
     if (currentStage === 'in_progress') {
       if (bannerTitle) bannerTitle.textContent = 'Trip In Progress 🚀';
       document.getElementById('tracking-sub').textContent = 'Trip in progress to ' + (state.drop || 'destination');
       document.getElementById('track-step-2').textContent = 'Trip in progress to ' + (state.drop || 'destination');
       document.getElementById('cancel-trip-btn').style.display = 'none';
+      if (radarCont) radarCont.style.display = 'none';
+      if (fallbackCard) fallbackCard.style.display = 'none';
+      if (driverCard) driverCard.style.display = 'flex';
+      if (pinDisplay) pinDisplay.style.display = 'block';
+      if (tripProgress) tripProgress.style.display = 'block';
     } else if (currentStage === 'arrived') {
       if (bannerTitle) bannerTitle.textContent = 'Driver Arrived! 📍';
       document.getElementById('tracking-sub').textContent = rider.name + ' has arrived at ' + (state.pickup || 'pickup');
       document.getElementById('track-step-2').textContent = 'Driver at pickup location';
+      if (radarCont) radarCont.style.display = 'none';
+      if (fallbackCard) fallbackCard.style.display = 'none';
+      if (driverCard) driverCard.style.display = 'flex';
+      if (pinDisplay) pinDisplay.style.display = 'block';
+      if (tripProgress) tripProgress.style.display = 'block';
     } else if (currentStage === 'accepted') {
       if (bannerTitle) bannerTitle.textContent = 'Driver Accepted! 🎉';
       document.getElementById('tracking-sub').textContent = rider.name + ' accepted \u2014 heading to ' + (state.pickup || 'pickup');
       document.getElementById('track-step-2').textContent = 'Rider heading to ' + (state.pickup || 'pickup');
+      if (radarCont) radarCont.style.display = 'none';
+      if (fallbackCard) fallbackCard.style.display = 'none';
+      if (driverCard) driverCard.style.display = 'flex';
+      if (pinDisplay) pinDisplay.style.display = 'block';
+      if (tripProgress) tripProgress.style.display = 'block';
     } else {
       if (bannerTitle) bannerTitle.textContent = 'Booking Requested';
       document.getElementById('tracking-sub').textContent = 'Waiting for ' + rider.name + ' to accept...';
       document.getElementById('track-step-2').textContent = 'Waiting for rider to accept';
       document.getElementById('cancel-trip-btn').style.display = 'block';
       document.getElementById('cancel-trip-btn').disabled = false;
+      if (radarCont) radarCont.style.display = 'block';
+      if (fallbackCard) fallbackCard.style.display = 'none';
+      if (driverCard) driverCard.style.display = 'none';
+      if (pinDisplay) pinDisplay.style.display = 'none';
+      if (tripProgress) tripProgress.style.display = 'none';
     }
 
     // Show PIN immediately — no need to wait for DB polling
@@ -6999,6 +7044,133 @@
     startBookingStatusPoll();
   }
 
+  state.rideSearchCountdownTimer = null;
+  state.rideSearchTimeRemaining = 120;
+
+  function startRideSearchCountdown(seconds, bookingId) {
+    if (state.rideSearchCountdownTimer) clearInterval(state.rideSearchCountdownTimer);
+    state.rideSearchTimeRemaining = seconds;
+
+    var radarCont = document.getElementById('track-search-radar-container');
+    var progressFill = document.getElementById('track-search-progress-fill');
+    var timerText = document.getElementById('track-search-timer-text');
+    var waveLabel = document.getElementById('track-search-wave-label');
+    var fallbackCard = document.getElementById('track-expired-fallback-card');
+    var driverCard = document.querySelector('#screen-tracking .driver-card');
+    var pinDisplay = document.getElementById('pwa-pin-display-container');
+
+    if (radarCont) radarCont.style.display = 'block';
+    if (fallbackCard) fallbackCard.style.display = 'none';
+    if (driverCard) driverCard.style.display = 'none';
+    if (pinDisplay) pinDisplay.style.display = 'none';
+
+    function updateDisplay(s) {
+      var mins = Math.floor(s / 60);
+      var secs = s % 60;
+      var timeStr = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+      if (timerText) timerText.textContent = timeStr;
+      if (progressFill) progressFill.style.width = Math.min(100, Math.max(0, (s / 120) * 100)) + '%';
+
+      if (waveLabel) {
+        if (s > 80) {
+          waveLabel.textContent = '📡 Pinging nearest captains within 1.5 km...';
+        } else if (s > 40) {
+          waveLabel.textContent = '⚡ Expanding to 3.5 km radius...';
+        } else {
+          waveLabel.textContent = '🚀 Reaching 5 km radius captains...';
+        }
+      }
+    }
+
+    updateDisplay(state.rideSearchTimeRemaining);
+
+    state.rideSearchCountdownTimer = setInterval(async function() {
+      state.rideSearchTimeRemaining--;
+      if (state.rideSearchTimeRemaining <= 0) {
+        clearInterval(state.rideSearchCountdownTimer);
+        state.rideSearchCountdownTimer = null;
+        updateDisplay(0);
+
+        if (state.bookingPollTimer) clearInterval(state.bookingPollTimer);
+        localStorage.removeItem('rydealot_active_booking');
+
+        if (bookingId) {
+          try {
+            await sbFetch('bookings?id=eq.' + bookingId, {
+              method: 'PATCH',
+              body: { status: 'expired' }
+            });
+          } catch(e){}
+        }
+
+        showRideExpiredFallbackState();
+      } else {
+        updateDisplay(state.rideSearchTimeRemaining);
+      }
+    }, 1000);
+  }
+
+  function showRideExpiredFallbackState() {
+    var radarCont = document.getElementById('track-search-radar-container');
+    var fallbackCard = document.getElementById('track-expired-fallback-card');
+    var driverCard = document.querySelector('#screen-tracking .driver-card');
+    var pinDisplay = document.getElementById('pwa-pin-display-container');
+    var tripProgress = document.querySelector('#screen-tracking .trip-progress');
+    var bannerTitle = document.querySelector('#screen-tracking .confirm-banner h3');
+    var sub = document.getElementById('tracking-sub');
+
+    if (bannerTitle) bannerTitle.textContent = '⏱️ Search Expired';
+    if (sub) sub.textContent = 'No Captains accepted within the 2-minute search window.';
+    if (radarCont) radarCont.style.display = 'none';
+    if (fallbackCard) fallbackCard.style.display = 'block';
+    if (driverCard) driverCard.style.display = 'none';
+    if (pinDisplay) pinDisplay.style.display = 'none';
+    if (tripProgress) tripProgress.style.display = 'none';
+  }
+
+  window.cancelRideAndDismiss = function() {
+    if (state.rideSearchCountdownTimer) clearInterval(state.rideSearchCountdownTimer);
+    if (state.bookingPollTimer) clearInterval(state.bookingPollTimer);
+    localStorage.removeItem('rydealot_active_booking');
+    state.activeBookingId = null;
+    state.isBookingInProgress = false;
+    destroyMap();
+    showScreen('screen-lot');
+    resetLot();
+  };
+
+  window.retryRideStandard = function() {
+    if (state.rideSearchCountdownTimer) clearInterval(state.rideSearchCountdownTimer);
+    if (state.bookingPollTimer) clearInterval(state.bookingPollTimer);
+    localStorage.removeItem('rydealot_active_booking');
+    state.activeBookingId = null;
+    state.isBookingInProgress = false;
+    destroyMap();
+    showScreen('screen-lot');
+    var type = state.selectedRideType || 'bike';
+    var id = nearestId(type);
+    var rider = (id && riderAssign && riderAssign[id]) || state.activeRider || state.currentRider || { name: 'Driver', dbId: null };
+    var price = currentPriceFor(type);
+    confirmBooking(id, rider, type, price);
+  };
+
+  window.retryRideWithTip = function(tipAmt) {
+    if (state.rideSearchCountdownTimer) clearInterval(state.rideSearchCountdownTimer);
+    if (state.bookingPollTimer) clearInterval(state.bookingPollTimer);
+    localStorage.removeItem('rydealot_active_booking');
+    state.activeBookingId = null;
+    state.isBookingInProgress = false;
+    destroyMap();
+    showScreen('screen-lot');
+    tipAmt = tipAmt || 20;
+    toast('⚡ Added ₹' + tipAmt + ' Priority Tip! Re-broadcasting...');
+    var type = state.selectedRideType || 'bike';
+    var id = nearestId(type);
+    var rider = (id && riderAssign && riderAssign[id]) || state.activeRider || state.currentRider || { name: 'Driver', dbId: null };
+    var price = currentPriceFor(type) + tipAmt;
+    confirmBooking(id, rider, type, price);
+  };
+
   function startBookingStatusPoll(){
     clearInterval(state.bookingPollTimer);
     pollBookingStatus();
@@ -7024,6 +7196,11 @@
       var sub = document.getElementById('tracking-sub');
       var step2 = document.getElementById('track-step-2');
       var bannerTitle = document.querySelector('#screen-tracking .confirm-banner h3');
+      var radarCont = document.getElementById('track-search-radar-container');
+      var fallbackCard = document.getElementById('track-expired-fallback-card');
+      var driverCard = document.querySelector('#screen-tracking .driver-card');
+      var pinDisplay = document.getElementById('pwa-pin-display-container');
+      var tripProgress = document.querySelector('#screen-tracking .trip-progress');
 
       // Update vehicle stage animation in confirm-banner
       if (typeof window.AppAnimations !== 'undefined' && window.AppAnimations.setTrackingStage) {
@@ -7034,7 +7211,22 @@
       if(b.status === 'requested'){
         if (bannerTitle) bannerTitle.textContent = 'Booking Requested';
         sub.textContent = 'Waiting for ' + (state.currentRider.name || 'driver') + ' to accept...';
+        if (radarCont) radarCont.style.display = 'block';
+        if (fallbackCard) fallbackCard.style.display = 'none';
+        if (driverCard) driverCard.style.display = 'none';
+        if (pinDisplay) pinDisplay.style.display = 'none';
+        if (tripProgress) tripProgress.style.display = 'none';
       } else if(b.status === 'accepted'){
+        if (state.rideSearchCountdownTimer) {
+          clearInterval(state.rideSearchCountdownTimer);
+          state.rideSearchCountdownTimer = null;
+        }
+        if (radarCont) radarCont.style.display = 'none';
+        if (fallbackCard) fallbackCard.style.display = 'none';
+        if (driverCard) driverCard.style.display = 'flex';
+        if (pinDisplay) pinDisplay.style.display = 'block';
+        if (tripProgress) tripProgress.style.display = 'block';
+
         if (bannerTitle) bannerTitle.textContent = 'Driver Accepted! 🎉';
         sub.textContent = (state.currentRider.name || 'Driver') + ' accepted \u2014 heading to ' + state.pickup;
         step2.textContent = 'Rider heading to ' + state.pickup;
@@ -7073,6 +7265,16 @@
         } catch (e) { console.error('Failed to update driver marker location', e); }
 
       } else if(b.status === 'arrived'){
+        if (state.rideSearchCountdownTimer) {
+          clearInterval(state.rideSearchCountdownTimer);
+          state.rideSearchCountdownTimer = null;
+        }
+        if (radarCont) radarCont.style.display = 'none';
+        if (fallbackCard) fallbackCard.style.display = 'none';
+        if (driverCard) driverCard.style.display = 'flex';
+        if (pinDisplay) pinDisplay.style.display = 'block';
+        if (tripProgress) tripProgress.style.display = 'block';
+
         if (bannerTitle) bannerTitle.textContent = 'Driver Arrived! 📍';
         sub.textContent = (state.currentRider.name || 'Driver') + ' has arrived at ' + state.pickup;
         step2.textContent = 'Driver at pickup location';
@@ -7091,6 +7293,16 @@
           state.driverMarker.setLatLng([state.lat, state.lng]);
         }
       } else if(b.status === 'in_progress'){
+        if (state.rideSearchCountdownTimer) {
+          clearInterval(state.rideSearchCountdownTimer);
+          state.rideSearchCountdownTimer = null;
+        }
+        if (radarCont) radarCont.style.display = 'none';
+        if (fallbackCard) fallbackCard.style.display = 'none';
+        if (driverCard) driverCard.style.display = 'flex';
+        if (pinDisplay) pinDisplay.style.display = 'block';
+        if (tripProgress) tripProgress.style.display = 'block';
+
         if (bannerTitle) bannerTitle.textContent = 'Trip In Progress 🚀';
         sub.textContent = 'Trip in progress to ' + state.drop;
         step2.textContent = 'Trip in progress to ' + state.drop;
@@ -7130,6 +7342,10 @@
         } catch (e) { console.error(e); }
 
       } else if(b.status === 'completed'){
+        if (state.rideSearchCountdownTimer) {
+          clearInterval(state.rideSearchCountdownTimer);
+          state.rideSearchCountdownTimer = null;
+        }
         if (window.RydealotChat) window.RydealotChat.stopChat();
         clearInterval(state.bookingPollTimer);
         destroyMap();
@@ -7141,7 +7357,24 @@
         document.getElementById('payment-done-btn').style.display = 'none';
         
         showScreen('screen-payment');
+      } else if(b.status === 'expired'){
+        if (state.rideSearchCountdownTimer) {
+          clearInterval(state.rideSearchCountdownTimer);
+          state.rideSearchCountdownTimer = null;
+        }
+        if (window.RydealotChat) window.RydealotChat.stopChat();
+        clearInterval(state.bookingPollTimer);
+        state.activeBookingId = null;
+        state.isBookingInProgress = false;
+        localStorage.removeItem('rydealot_active_booking');
+        showRideExpiredFallbackState();
+        return;
       } else if(b.status === 'cancelled'){
+        if (state.rideSearchCountdownTimer) {
+          clearInterval(state.rideSearchCountdownTimer);
+          state.rideSearchCountdownTimer = null;
+        }
+        if (radarCont) radarCont.style.display = 'none';
         if (window.RydealotChat) window.RydealotChat.stopChat();
         sub.textContent = 'This request was cancelled or declined.';
         clearInterval(state.bookingPollTimer);
@@ -7177,6 +7410,7 @@
       return;
     }
     if(!state.activeBookingId){
+      if (state.rideSearchCountdownTimer) clearInterval(state.rideSearchCountdownTimer);
       clearInterval(state.bookingPollTimer);
       destroyMap();
       localStorage.removeItem('rydealot_active_booking');
@@ -7186,6 +7420,7 @@
       return;
     }
     try{
+      if (state.rideSearchCountdownTimer) clearInterval(state.rideSearchCountdownTimer);
       var bRows = await sbFetch('bookings?id=eq.' + state.activeBookingId);
       var b = bRows && bRows[0];
       if (b && (b.status === 'in_progress' || b.status === 'completed')) {
@@ -7217,6 +7452,7 @@
       toast('⚠️ Trip is currently in progress. Cannot exit live tracking.');
       return;
     }
+    if (state.rideSearchCountdownTimer) clearInterval(state.rideSearchCountdownTimer);
     clearInterval(state.bookingPollTimer);
     destroyMap();
     localStorage.removeItem('rydealot_active_booking');
@@ -7383,7 +7619,37 @@
             toast('This trip was cancelled.');
             showScreen('screen-lot');
             return false;
+          } else if (b.status === 'expired') {
+            if (window.RydealotChat) window.RydealotChat.stopChat();
+            localStorage.removeItem('rydealot_active_booking');
+            clearInterval(state.bookingPollTimer);
+            state.activeBookingId = null;
+            state.isBookingInProgress = false;
+            showRideExpiredFallbackState();
+            return true;
           } else {
+            if (b.status === 'requested') {
+              var ageSec = b.created_at ? ((Date.now() - new Date(b.created_at).getTime()) / 1000) : 0;
+              if (ageSec > 120) {
+                try {
+                  await sbFetch('bookings?id=eq.' + b.id, {
+                    method: 'PATCH',
+                    body: { status: 'expired' }
+                  });
+                } catch(e){}
+                if (window.RydealotChat) window.RydealotChat.stopChat();
+                localStorage.removeItem('rydealot_active_booking');
+                clearInterval(state.bookingPollTimer);
+                state.activeBookingId = null;
+                state.isBookingInProgress = false;
+                showRideExpiredFallbackState();
+                return true;
+              } else {
+                var remaining = Math.max(1, Math.round(120 - ageSec));
+                startRideSearchCountdown(remaining, b.id);
+              }
+            }
+
             // Live active trip (requested, accepted, arrived, in_progress)
             if (window.RydealotChat && b.id) {
               window.RydealotChat.startChat(b.id, 'customer', state.userName || 'Passenger', (rider && rider.name) || 'Driver');

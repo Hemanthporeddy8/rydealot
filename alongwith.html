@@ -1682,6 +1682,9 @@
     if (trip.created_at) {
       var createdDate = new Date(trip.created_at);
       if (!isNaN(createdDate.getTime()) && (now.getTime() - createdDate.getTime()) > 24 * 3600000) {
+        try {
+          sbRequest('PATCH', 'cargo_trips?id=eq.' + trip.id, { status: 'expired' });
+        } catch(e){}
         return true;
       }
     }
@@ -1690,10 +1693,30 @@
     if (trip.departure_time) {
       var depDate = new Date(trip.departure_time);
       if (!isNaN(depDate.getTime()) && (now.getTime() - depDate.getTime()) > 12 * 3600000) {
+        try {
+          sbRequest('PATCH', 'cargo_trips?id=eq.' + trip.id, { status: 'expired' });
+        } catch(e){}
         return true;
       }
     }
 
+    return false;
+  }
+
+  function isBookingExpired(b) {
+    if (!b) return true;
+    if (b.status === 'completed' || b.status === 'cancelled' || b.status === 'expired') return true;
+    if (b.status === 'pending' || b.status === 'warehouse_open') {
+      if (b.created_at) {
+        var created = new Date(b.created_at);
+        if (!isNaN(created.getTime()) && (Date.now() - created.getTime()) > 24 * 3600000) {
+          try {
+            sbRequest('PATCH', 'cargo_bookings?id=eq.' + b.id, { status: 'expired' });
+          } catch(e){}
+          return true;
+        }
+      }
+    }
     return false;
   }
 
@@ -3384,6 +3407,11 @@
       .then(function(packages) {
         var pList = Array.isArray(packages) ? packages : [];
         
+        // Filter out any packages older than 24 hours
+        pList = pList.filter(function(p) {
+          return !isBookingExpired(p);
+        });
+
         // Client-side route filter
         if (from) {
           pList = pList.filter(function(p) {
