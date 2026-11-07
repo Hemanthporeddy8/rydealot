@@ -4201,6 +4201,7 @@
     lat: null,
     lng: null,
     selectedRideType: 'bike',
+    selectedEscortPlan: 'none',
     realRiderCount: 0,
     activeBookingId: null,
     activeRider: null,
@@ -6525,15 +6526,61 @@
     var price = currentPriceFor(type);
     var count = countByType(type);
     var typeLabel = vehicleLabelOf(type);
+
+    var escortFee = 0;
+    var escortTag = '';
+    if (state.selectedEscortPlan === 'plan1') {
+      escortFee = 29;
+      escortTag = ' + AI Escort';
+    } else if (state.selectedEscortPlan === 'plan2') {
+      escortFee = 49;
+      escortTag = ' + Standby Escort';
+    }
+    var totalPrice = price + escortFee;
+
     if(count > 0 || type === 'auto_share'){
-      btn.textContent = 'Book ' + typeLabel + ' \u2014 Rs ' + price;
+      btn.textContent = 'Book ' + typeLabel + escortTag + ' \u2014 Rs ' + totalPrice;
     } else {
-      btn.textContent = 'Find ' + typeLabel + ' nearby \u2014 Rs ' + price;
+      btn.textContent = 'Find ' + typeLabel + escortTag + ' nearby \u2014 Rs ' + totalPrice;
     }
     btn.classList.remove('btn-pop-anim');
     void btn.offsetWidth;
     btn.classList.add('btn-pop-anim');
   }
+
+  window.selectEscortPlan = function(plan) {
+    state.selectedEscortPlan = plan || 'none';
+
+    var pillNone = document.getElementById('escort-pill-none');
+    var pillPlan1 = document.getElementById('escort-pill-plan1');
+    var pillPlan2 = document.getElementById('escort-pill-plan2');
+    var descEl = document.getElementById('escort-plan-detail-text');
+
+    if (pillNone) {
+      pillNone.style.borderColor = plan === 'none' ? '#38bdf8' : '#334155';
+      pillNone.style.background = plan === 'none' ? 'rgba(56,189,248,0.15)' : '#0f172a';
+    }
+    if (pillPlan1) {
+      pillPlan1.style.borderColor = plan === 'plan1' ? '#38bdf8' : '#334155';
+      pillPlan1.style.background = plan === 'plan1' ? 'rgba(56,189,248,0.15)' : '#0f172a';
+    }
+    if (pillPlan2) {
+      pillPlan2.style.borderColor = plan === 'plan2' ? '#f59e0b' : '#334155';
+      pillPlan2.style.background = plan === 'plan2' ? 'rgba(245,158,11,0.15)' : '#0f172a';
+    }
+
+    if (descEl) {
+      if (plan === 'plan1') {
+        descEl.innerHTML = '🛡️ <b>Plan 1 Active (+₹29):</b> Continuous AI corridor tracking, silent 1-tap safety confirmation, Telugu/Hindi voice driver verification on dark stops.';
+      } else if (plan === 'plan2') {
+        descEl.innerHTML = '🏍️ <b>Plan 2 Active (+₹49):</b> Autonomous guardian + Standby bike captain dispatched for immediate physical intercept if driver detours.';
+      } else {
+        descEl.innerHTML = 'Standard ride without escort observation.';
+      }
+    }
+
+    updateBookButton();
+  };
 
   function updateStatus(){
     var n = countPresent();
@@ -6691,6 +6738,10 @@
         var query = state.drop || '';
         mapsLink = SUPERMAPS_NAV_BASE + '/?query=' + encodeURIComponent(query) + '&pin=' + pin;
       }
+      var escortPlan = state.selectedEscortPlan || 'none';
+      var escortFee = escortPlan === 'plan1' ? 29 : (escortPlan === 'plan2' ? 49 : 0);
+      var totalFare = price + escortFee;
+
       var rows = await sbFetch('bookings', {
         method: 'POST',
         prefer: 'return=representation',
@@ -6702,7 +6753,9 @@
           pickup_label: state.pickup,
           drop_label: state.drop,
           vehicle_type: type,
-          fare: price,
+          fare: totalFare,
+          escort_plan: escortPlan,
+          escort_fee: escortFee,
           status: 'requested',
           maps_link: mapsLink,
           pin_code: String(pin)
@@ -6712,7 +6765,7 @@
       state.activeBookingId = row.id;
       state.activeRider = rider;
       state.activeType = type;
-      state.activePrice = price;
+      state.activePrice = totalFare;
 
       // Save active booking to localStorage for instant reload/refresh persistence!
       try {
@@ -6720,7 +6773,9 @@
           bookingId: row.id,
           rider: rider,
           type: type,
-          price: price,
+          price: totalFare,
+          escortPlan: escortPlan,
+          escortFee: escortFee,
           pin: pin,
           pickup: state.pickup,
           drop: state.drop,
@@ -6877,6 +6932,32 @@
     if(pin){
       document.getElementById('track-pin-code').textContent = String(pin);
     }
+
+    // Escort Status Badge in Tracking
+    var escortBadge = document.getElementById('track-escort-status-badge');
+    if (escortBadge) {
+      var activePlan = state.selectedEscortPlan || 'none';
+      if (activePlan === 'plan1') {
+        escortBadge.style.display = 'flex';
+        var eIcon = document.getElementById('track-escort-icon');
+        var eTitle = document.getElementById('track-escort-title');
+        var eDesc = document.getElementById('track-escort-desc');
+        if (eIcon) eIcon.textContent = '🛡️';
+        if (eTitle) eTitle.textContent = 'AI Ride Observer Active (Plan 1)';
+        if (eDesc) eDesc.textContent = 'Continuous 50m corridor route deviation monitoring';
+      } else if (activePlan === 'plan2') {
+        escortBadge.style.display = 'flex';
+        var eIcon = document.getElementById('track-escort-icon');
+        var eTitle = document.getElementById('track-escort-title');
+        var eDesc = document.getElementById('track-escort-desc');
+        if (eIcon) eIcon.textContent = '🏍️';
+        if (eTitle) eTitle.textContent = 'Standby Rider Intercept Active (Plan 2)';
+        if (eDesc) eDesc.textContent = 'Autonomous guardian & standby intercept bike captain ready';
+      } else {
+        escortBadge.style.display = 'none';
+      }
+    }
+
     showScreen('screen-tracking');
     if (window.RydealotChat && state.activeBookingId) {
       window.RydealotChat.startChat(state.activeBookingId, 'customer', state.userName || 'Passenger', (rider && rider.name) || 'Driver');
@@ -7272,6 +7353,7 @@
       state.lng = saved.lng;
       state.destLat = saved.destLat;
       state.destLng = saved.destLng;
+      if (saved.escortPlan) state.selectedEscortPlan = saved.escortPlan;
 
       // Immediately display tracking screen with cached data so NO BLANK OR HOME FLASH
       goToTracking(rider, saved.type, saved.price, saved.pin);

@@ -462,6 +462,45 @@
       </div>
     </div>
     <div class="book-btn-wrap">
+      <!-- 🛡️ Night Safety Guardian Add-on Card -->
+      <div id="escort-addon-card" style="margin-bottom: 12px; background: linear-gradient(135deg, #0b132b, #1c2541); border: 1.5px solid #38bdf8; border-radius: 14px; padding: 12px; color: #fff; box-shadow: 0 4px 14px rgba(11,19,43,0.3); text-align: left;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:18px;">🛡️</span>
+            <div>
+              <div style="font-size:12.5px; font-weight:900; color:#f8fafc; letter-spacing:0.2px;">Night Safety Guardian</div>
+              <div style="font-size:10.5px; color:#94a3b8;">AI route observer &amp; standby intercept bike</div>
+            </div>
+          </div>
+          <a href="escort.html" target="_blank" style="font-size:10px; font-weight:800; color:#38bdf8; text-decoration:none; display:flex; align-items:center; gap:2px;">
+            Learn more &rarr;
+          </a>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px;">
+          <div class="escort-plan-pill active" id="escort-pill-none" onclick="selectEscortPlan('none')" style="border:1.5px solid #38bdf8; background:rgba(56,189,248,0.15); border-radius:10px; padding:7px 4px; text-align:center; cursor:pointer; transition:all 0.15s;">
+            <div style="font-size:15px; margin-bottom:2px;">⚪</div>
+            <div style="font-size:11px; font-weight:800; color:#fff;">Standard</div>
+            <div style="font-size:9.5px; color:#94a3b8;">No Escort</div>
+          </div>
+
+          <div class="escort-plan-pill" id="escort-pill-plan1" onclick="selectEscortPlan('plan1')" style="border:1.5px solid #334155; background:#0f172a; border-radius:10px; padding:7px 4px; text-align:center; cursor:pointer; transition:all 0.15s;">
+            <div style="font-size:15px; margin-bottom:2px;">🛡️</div>
+            <div style="font-size:11px; font-weight:800; color:#fff;">AI Observer</div>
+            <div style="font-size:9.5px; color:#38bdf8; font-weight:800;">+₹29</div>
+          </div>
+
+          <div class="escort-plan-pill" id="escort-pill-plan2" onclick="selectEscortPlan('plan2')" style="border:1.5px solid #334155; background:#0f172a; border-radius:10px; padding:7px 4px; text-align:center; cursor:pointer; transition:all 0.15s;">
+            <div style="font-size:15px; margin-bottom:2px;">🏍️</div>
+            <div style="font-size:11px; font-weight:800; color:#fff;">Standby Rider</div>
+            <div style="font-size:9.5px; color:#f59e0b; font-weight:800;">+₹49</div>
+          </div>
+        </div>
+
+        <div id="escort-plan-detail-text" style="font-size:10px; color:#cbd5e1; margin-top:8px; line-height:1.35; background:rgba(255,255,255,0.06); padding:6px 8px; border-radius:6px;">
+          Standard ride without escort observation.
+        </div>
+      </div>
       <button class="btn" id="book-btn">Book nearest bike &mdash; Rs 35</button>
     </div>
   </div>
@@ -486,6 +525,20 @@
       <!-- Start-Ride PIN Display -->
       <div style="font-size: 13px; font-weight: 700; color: var(--green); text-align: center; margin: 10px 16px; background: var(--bg); padding: 10px; border-radius: 12px; border: 1.5px solid var(--border);" id="pwa-pin-display-container">
         Share this Ride PIN with Driver: <span style="font-size: 18px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 2px; color: var(--accent); margin-left: 6px; font-weight: 800;" id="track-pin-code">----</span>
+      </div>
+
+      <!-- Night Escort In-Trip Protection Badge -->
+      <div id="track-escort-status-badge" style="display:none; margin: 10px 16px; background:#0B132B; border:1.5px solid #38BDF8; border-radius:12px; padding:10px 14px; color:#fff; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:20px;" id="track-escort-icon">🛡️</span>
+          <div>
+            <div style="font-size:12px; font-weight:900; color:#38BDF8;" id="track-escort-title">Night Safety Guardian Active</div>
+            <div style="font-size:10.5px; color:#94A3B8;" id="track-escort-desc">AI Route corridor observation enabled</div>
+          </div>
+        </div>
+        <a href="escort.html" target="_blank" style="background:#38BDF8; color:#0B132B; padding:5px 10px; border-radius:8px; font-size:10.5px; font-weight:800; text-decoration:none;">
+          Radar View
+        </a>
       </div>
       
       <div class="driver-card">
