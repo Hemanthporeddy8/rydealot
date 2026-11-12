@@ -6775,7 +6775,8 @@
           escort_fee: escortFee,
           status: 'requested',
           maps_link: mapsLink,
-          pin_code: String(pin)
+          pin_code: String(pin),
+          created_at: new Date().toISOString()
         }
       });
       var row = Array.isArray(rows) ? rows[0] : rows;
@@ -6801,7 +6802,8 @@
           lat: state.lat,
           lng: state.lng,
           destLat: state.destLat,
-          destLng: state.destLng
+          destLng: state.destLng,
+          createdAt: Date.now()
         }));
       } catch(e) { console.error('Could not save booking to cache:', e); }
 
@@ -7571,6 +7573,16 @@
       var saved = JSON.parse(raw);
       if (!saved || !saved.bookingId) return false;
 
+      // Immediate local check: if ride was still requested and createdAt is older than 120s, expire immediately!
+      if (saved.createdAt && (Date.now() - saved.createdAt > 120 * 1000) && (!state.lastKnownStatus || state.lastKnownStatus === 'requested')) {
+        localStorage.removeItem('rydealot_active_booking');
+        try {
+          sbFetch('bookings?id=eq.' + saved.bookingId, { method: 'PATCH', body: { status: 'expired' } });
+        } catch(e){}
+        showRideExpiredFallbackState();
+        return true;
+      }
+
       // Ensure rider object has all needed properties safely
       var rider = saved.rider || {};
       if (!rider.name) rider.name = 'Driver';
@@ -7629,8 +7641,9 @@
             return true;
           } else {
             if (b.status === 'requested') {
-              var ageSec = b.created_at ? ((Date.now() - new Date(b.created_at).getTime()) / 1000) : 0;
-              if (ageSec > 120) {
+              var t = b.created_at ? new Date(b.created_at).getTime() : (saved && saved.createdAt);
+              var ageSec = (!isNaN(t) && t > 0) ? ((Date.now() - t) / 1000) : 9999;
+              if (ageSec > 120 || isNaN(ageSec)) {
                 try {
                   await sbFetch('bookings?id=eq.' + b.id, {
                     method: 'PATCH',

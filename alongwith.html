@@ -1707,14 +1707,17 @@
     if (!b) return true;
     if (b.status === 'completed' || b.status === 'cancelled' || b.status === 'expired') return true;
     if (b.status === 'pending' || b.status === 'warehouse_open') {
-      if (b.created_at) {
-        var created = new Date(b.created_at);
-        if (!isNaN(created.getTime()) && (Date.now() - created.getTime()) > 24 * 3600000) {
-          try {
-            sbRequest('PATCH', 'cargo_bookings?id=eq.' + b.id, { status: 'expired' });
-          } catch(e){}
-          return true;
-        }
+      if (!b.created_at) {
+        // If pending with no created_at timestamp, fail safe to expired!
+        return true;
+      }
+      var created = new Date(b.created_at);
+      var timeMs = created.getTime();
+      if (isNaN(timeMs) || (Date.now() - timeMs) > 24 * 3600000) {
+        try {
+          sbRequest('PATCH', 'cargo_bookings?id=eq.' + b.id, { status: 'expired' });
+        } catch(e){}
+        return true;
       }
     }
     return false;

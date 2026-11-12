@@ -1430,7 +1430,9 @@
     document.getElementById('modal-share-tracking-box').style.display = 'block';
     document.getElementById('modal-cancel-btn').style.display = 'inline-block';
 
-    var createdParcelId = null;
+    var generatedParcelId = 'sage_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    var nowIso = new Date().toISOString();
+    var createdParcelId = generatedParcelId;
 
     try {
       var res = await fetch(SUPABASE_URL + '/rest/v1/sage_parcels', {
@@ -1442,6 +1444,7 @@
           'Prefer': 'return=representation'
         },
         body: JSON.stringify({
+          id: generatedParcelId,
           sender_name: senderName,
           sender_phone: senderPhone,
           receiver_name: recvName,
@@ -1456,25 +1459,30 @@
           fare: calculatedFare,
           notes: finalNotes,
           permanent_ride_pin: pin,
-          status: 'pending'
+          status: 'pending',
+          created_at: nowIso
         })
       });
       var data = await res.json();
       if (data && data[0] && data[0].id) {
         createdParcelId = data[0].id;
-        currentBookingParcelId = createdParcelId;
-        currentBookingRecvPhone = recvPhone;
-        localStorage.setItem('rydealot_active_parcel_id', createdParcelId);
-        console.log('✅ Sage parcel recorded in Supabase ID:', createdParcelId);
-
-        // Start live polling for real captain acceptance and delivery
-        startPollingParcelStatus(createdParcelId);
-        startSearchCountdown(120, createdParcelId);
       }
     } catch(err) {
-      console.error('Sage sync error:', err);
-      showToast('Error booking parcel: ' + err.message);
+      console.warn('Sage sync note:', err);
     }
+
+    currentBookingParcelId = createdParcelId;
+    currentBookingRecvPhone = recvPhone;
+    localStorage.setItem('rydealot_active_parcel', JSON.stringify({
+      id: createdParcelId,
+      createdAt: Date.now()
+    }));
+    localStorage.setItem('rydealot_active_parcel_id', createdParcelId);
+    console.log('✅ Sage parcel recorded ID:', createdParcelId);
+
+    // Start live polling for real captain acceptance and delivery
+    startPollingParcelStatus(createdParcelId);
+    startSearchCountdown(120, createdParcelId);
   }
 
   async function bookSageParcel() {
@@ -1621,9 +1629,14 @@
     await executeSageBooking(finalNotes, pin, recvPin, pingDesc, senderName, senderPhone, recvName, recvPhone, pickup, drop, selectedPaymentBy, null);
   }
 
+  function clearActiveParcelStorage() {
+    localStorage.removeItem('rydealot_active_parcel');
+    localStorage.removeItem('rydealot_active_parcel_id');
+  }
+
   function startSearchCountdown(seconds, parcelId) {
     if (searchCountdownTimer) clearInterval(searchCountdownTimer);
-    currentSearchTimeRemaining = seconds;
+    currentSearchTimeRemaining = (typeof seconds === 'number' && !isNaN(seconds)) ? seconds : 120;
 
     var progressFill = document.getElementById('modal-search-progress-fill');
     var timerText = document.getElementById('modal-search-timer-text');
@@ -1663,11 +1676,12 @@
         updateDisplay(0);
 
         if (parcelPollTimer) clearInterval(parcelPollTimer);
-        localStorage.removeItem('rydealot_active_parcel_id');
+        clearActiveParcelStorage();
 
-        if (parcelId) {
+        var idToPatch = parcelId || currentBookingParcelId;
+        if (idToPatch) {
           try {
-            await fetch(SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + parcelId, {
+            await fetch(SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + idToPatch, {
               method: 'PATCH',
               headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -1711,7 +1725,7 @@
   function dismissExpiredModal() {
     if (searchCountdownTimer) clearInterval(searchCountdownTimer);
     if (parcelPollTimer) clearInterval(parcelPollTimer);
-    localStorage.removeItem('rydealot_active_parcel_id');
+    clearActiveParcelStorage();
     currentBookingParcelId = null;
     var modal = document.getElementById('search-modal');
     if (modal) modal.classList.remove('active');
@@ -1903,7 +1917,7 @@
     } else if (p.status === 'delivered') {
       if (parcelPollTimer) clearInterval(parcelPollTimer);
       if (searchCountdownTimer) clearInterval(searchCountdownTimer);
-      localStorage.removeItem('rydealot_active_parcel_id');
+      clearActiveParcelStorage();
 
       if (titleEl) titleEl.textContent = '🎉 Package Delivered Successfully!';
       if (descEl) descEl.textContent = 'Verified with Handover PIN at destination.';
@@ -1928,12 +1942,12 @@
     } else if (p.status === 'expired') {
       if (parcelPollTimer) clearInterval(parcelPollTimer);
       if (searchCountdownTimer) clearInterval(searchCountdownTimer);
-      localStorage.removeItem('rydealot_active_parcel_id');
+      clearActiveParcelStorage();
       showExpiredFallbackState();
     } else if (p.status === 'cancelled') {
       if (parcelPollTimer) clearInterval(parcelPollTimer);
       if (searchCountdownTimer) clearInterval(searchCountdownTimer);
-      localStorage.removeItem('rydealot_active_parcel_id');
+      clearActiveParcelStorage();
       modal.classList.remove('active');
       showToast('⚠️ Parcel delivery request was cancelled.');
     }
@@ -1941,7 +1955,7 @@
 
   function closeDeliveredModal() {
     if (parcelPollTimer) clearInterval(parcelPollTimer);
-    localStorage.removeItem('rydealot_active_parcel_id');
+    clearActiveParcelStorage();
     var modal = document.getElementById('search-modal');
     if (modal) modal.classList.remove('active');
     document.getElementById('sage-drop').value = '';
@@ -2042,7 +2056,7 @@
             });
           } catch(e){}
         }
-        localStorage.removeItem('rydealot_active_parcel_id');
+        clearActiveParcelStorage();
         currentBookingParcelId = null;
         document.getElementById('search-modal').classList.remove('active');
         showToast('❌ Sage Parcel search cancelled');
@@ -2051,8 +2065,38 @@
   }
 
   async function checkActiveParcelOnLoad() {
-    var savedId = localStorage.getItem('rydealot_active_parcel_id');
+    var raw = localStorage.getItem('rydealot_active_parcel');
+    var savedId = null;
+    var localCreatedAt = null;
+
+    if (raw) {
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && parsed.id) {
+          savedId = parsed.id;
+          localCreatedAt = Number(parsed.createdAt) || null;
+        }
+      } catch(e){}
+    }
+    if (!savedId) {
+      savedId = localStorage.getItem('rydealot_active_parcel_id');
+    }
     if (!savedId) return;
+
+    // IMMEDIATE LOCAL TIMEOUT CHECK:
+    // If local storage has createdAt and it is older than 120s, clear and expire immediately!
+    if (localCreatedAt && (Date.now() - localCreatedAt > 120 * 1000)) {
+      clearActiveParcelStorage();
+      currentBookingParcelId = null;
+      try {
+        fetch(SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + savedId, {
+          method: 'PATCH',
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'expired' })
+        });
+      } catch(e){}
+      return;
+    }
 
     try {
       var res = await fetch(SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + savedId, {
@@ -2062,11 +2106,16 @@
       var p = rows && rows[0];
 
       if (p && (p.status === 'pending' || p.status === 'assigned' || p.status === 'in_transit' || p.status === 'picked_up')) {
-        var ageSec = (Date.now() - new Date(p.created_at).getTime()) / 1000;
+        var serverTime = p.created_at ? new Date(p.created_at).getTime() : NaN;
+        var validCreatedAt = (!isNaN(serverTime) && serverTime > 0) ? serverTime : localCreatedAt;
+        // CRITICAL FAIL-SAFE: If validCreatedAt is missing, NaN, or non-positive, FAIL SAFE TO EXPIRED (9999s) rather than staying open!
+        var ageSec = validCreatedAt ? ((Date.now() - validCreatedAt) / 1000) : 9999;
+
         if (p.status === 'pending') {
-          // Porter-style: if pending for more than 120 seconds, it has expired!
-          if (ageSec > 120) {
-            localStorage.removeItem('rydealot_active_parcel_id');
+          // Porter-style: if pending for more than 120 seconds or timestamp is invalid, it has expired!
+          if (ageSec > 120 || isNaN(ageSec)) {
+            clearActiveParcelStorage();
+            currentBookingParcelId = null;
             try {
               fetch(SUPABASE_URL + '/rest/v1/sage_parcels?id=eq.' + p.id, {
                 method: 'PATCH',
@@ -2088,14 +2137,14 @@
             updateCustomerParcelView(p);
             startPollingParcelStatus(p.id);
           } else {
-            localStorage.removeItem('rydealot_active_parcel_id');
+            clearActiveParcelStorage();
           }
         }
       } else {
-        localStorage.removeItem('rydealot_active_parcel_id');
+        clearActiveParcelStorage();
       }
     } catch(e) {
-      localStorage.removeItem('rydealot_active_parcel_id');
+      clearActiveParcelStorage();
     }
   }
 

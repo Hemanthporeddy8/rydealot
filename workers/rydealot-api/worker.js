@@ -459,6 +459,15 @@ async function handlePostgrest(request, path, url, method, env, corsHeaders) {
     const rows = Array.isArray(payload) ? payload : [payload];
     if (rows.length === 0) return jsonResponse([], 200, corsHeaders);
 
+    for (const row of rows) {
+      if (!row.id) {
+        row.id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('rec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9));
+      }
+      if (!row.created_at) {
+        row.created_at = new Date().toISOString();
+      }
+    }
+
     const first = rows[0];
     const columns = Object.keys(first).map(sanitizeIdentifier).filter(Boolean);
     const colSql = columns.map(c => `"${c}"`).join(', ');
