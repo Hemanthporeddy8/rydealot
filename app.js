@@ -6084,7 +6084,8 @@
   var PLATFORM_SERVICES = {
     rides: true,
     parcels: true,
-    trucks: true
+    trucks: true,
+    rentals: false
   };
 
   async function loadPlatformServicesConfig() {
@@ -6095,12 +6096,14 @@
         if (typeof parsed.rides === 'boolean') PLATFORM_SERVICES.rides = parsed.rides;
         if (typeof parsed.parcels === 'boolean') PLATFORM_SERVICES.parcels = parsed.parcels;
         if (typeof parsed.trucks === 'boolean') PLATFORM_SERVICES.trucks = parsed.trucks;
+        if (typeof parsed.rentals === 'boolean') PLATFORM_SERVICES.rentals = parsed.rentals;
       }
       var rows = await sbFetch('platform_services?id=eq.default');
       if (rows && rows.length > 0) {
         if (typeof rows[0].rides_enabled === 'boolean') PLATFORM_SERVICES.rides = rows[0].rides_enabled;
         if (typeof rows[0].parcels_enabled === 'boolean') PLATFORM_SERVICES.parcels = rows[0].parcels_enabled;
         if (typeof rows[0].trucks_enabled === 'boolean') PLATFORM_SERVICES.trucks = rows[0].trucks_enabled;
+        if (typeof rows[0].rentals_enabled === 'boolean') PLATFORM_SERVICES.rentals = rows[0].rentals_enabled;
         localStorage.setItem('rydealot_services_config', JSON.stringify(PLATFORM_SERVICES));
       }
     } catch(e) {}
@@ -6155,6 +6158,20 @@
       escortCard.style.display = isEscortEnabled ? 'block' : 'none';
     }
 
+    // Rentals feature gatekeeping
+    var isRentalsEnabled = (PLATFORM_SERVICES.rentals === true);
+    var rentalsCard = document.getElementById('home-rentals-card');
+    if (rentalsCard) {
+      rentalsCard.style.display = isRentalsEnabled ? 'flex' : 'none';
+    }
+    if (document.documentElement) {
+      if (isRentalsEnabled) {
+        document.documentElement.classList.add('rentals-enabled');
+      } else {
+        document.documentElement.classList.remove('rentals-enabled');
+      }
+    }
+
     if (!PLATFORM_SERVICES.rides) {
       if (document.documentElement) document.documentElement.classList.add('rides-disabled');
 
@@ -6185,8 +6202,10 @@
       }
 
       // Switcher bar when rides are paused:
-      // Sage (15 mins), Cargo (Along With), Driver, and Rides (Tapping opens friendly modal)
       if (switcherBar) {
+        var rentalsTabHtml = isRentalsEnabled 
+          ? '<a id="tab-link-rentals" href="rentals.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#059669; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;"><span>🏖️</span> <span>Rentals</span></a>' 
+          : '';
         switcherBar.innerHTML = 
           '<a id="tab-link-sage" href="sage.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#1E40AF; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">' +
             '<span>📦</span> <span>Sage</span>' +
@@ -6194,6 +6213,7 @@
           '<a id="tab-link-along" href="alongwith.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
             '<span>🚚</span> <span>Cargo</span>' +
           '</a>' +
+          rentalsTabHtml +
           '<a id="tab-link-driver" href="driver.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
             '<span>🛺</span> <span>Driver</span>' +
           '</a>' +
@@ -6233,8 +6253,11 @@
         headerRidesBtn.title = 'My Rides';
       }
 
-      // Restore original switcher: Rides first, Sage second, Driver third
+      // Restore original switcher
       if (switcherBar) {
+        var rentalsTabHtml = isRentalsEnabled 
+          ? '<a id="tab-link-rentals" href="rentals.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#059669; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;"><span>🏖️</span> <span>Rentals</span></a>' 
+          : '';
         switcherBar.innerHTML = 
           '<a id="tab-link-rides" href="index.html" style="flex:1; text-align:center; padding:7px 4px; background:#fff; color:#0F172A; font-weight:800; font-size:11.5px; border-radius:8px; text-decoration:none; box-shadow:0 1px 2px rgba(0,0,0,0.06); display:flex; align-items:center; justify-content:center; gap:4px;">' +
             '<span>🛵</span> <span>Rides</span>' +
@@ -6242,6 +6265,7 @@
           '<a id="tab-link-sage" href="sage.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
             '<span>📦</span> <span>Sage</span>' +
           '</a>' +
+          rentalsTabHtml +
           '<a id="tab-link-driver" href="driver.html" style="flex:1; text-align:center; padding:7px 4px; background:transparent; color:#64748B; font-weight:700; font-size:11.5px; border-radius:8px; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:4px;">' +
             '<span>🛺</span> <span>Driver</span>' +
           '</a>';

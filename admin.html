@@ -699,6 +699,20 @@
             <option value="false" selected>🔴 PAUSED</option>
           </select>
         </div>
+
+        <!-- 10. Scooty Rentals & Hands-Free Luggage -->
+        <div style="background:var(--card); border:1.5px solid var(--border); border-radius:12px; padding:14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:0.9rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:6px;">
+              <span>🛵 Scooty Rentals &amp; Luggage</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--mute); margin-top:2px;" id="svc-rentals-desc">Tourist bike rentals &amp; Hands-Free hotel bag drops</div>
+          </div>
+          <select id="svc-toggle-rentals" class="auth-input" style="width:auto; padding:6px 10px; font-size:0.8rem; font-weight:800;" onchange="updateServiceBadge()">
+            <option value="true">🟢 ACTIVE</option>
+            <option value="false" selected>🔴 PAUSED / HIDDEN</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -2542,7 +2556,8 @@
       escort: false,
       escort_plan1: false,
       escort_plan2: false,
-      amorelot: false
+      amorelot: false,
+      rentals: false
     };
 
     try {
@@ -2560,6 +2575,7 @@
         if (typeof p.escort_plan1 === 'boolean') def.escort_plan1 = p.escort_plan1;
         if (typeof p.escort_plan2 === 'boolean') def.escort_plan2 = p.escort_plan2;
         if (typeof p.amorelot === 'boolean') def.amorelot = p.amorelot;
+        if (typeof p.rentals === 'boolean') def.rentals = p.rentals;
       }
 
       try {
@@ -2580,6 +2596,7 @@
           if (typeof r.escort_plan1_enabled === 'boolean') def.escort_plan1 = r.escort_plan1_enabled;
           if (typeof r.escort_plan2_enabled === 'boolean') def.escort_plan2 = r.escort_plan2_enabled;
           if (typeof r.amorelot_enabled === 'boolean') def.amorelot = r.amorelot_enabled;
+          if (typeof r.rentals_enabled === 'boolean') def.rentals = r.rentals_enabled;
           localStorage.setItem('rydealot_services_config', JSON.stringify(def));
         }
       } catch(e){}
@@ -2602,6 +2619,9 @@
         if (document.getElementById('svc-toggle-amorelot')) {
           document.getElementById('svc-toggle-amorelot').value = def.amorelot ? 'true' : 'false';
         }
+        if (document.getElementById('svc-toggle-rentals')) {
+          document.getElementById('svc-toggle-rentals').value = def.rentals ? 'true' : 'false';
+        }
         updateServiceBadge();
       }
 
@@ -2620,6 +2640,7 @@
     var escortP1Val = document.getElementById('svc-toggle-escort-plan1') ? document.getElementById('svc-toggle-escort-plan1').value === 'true' : false;
     var escortP2Val = document.getElementById('svc-toggle-escort-plan2') ? document.getElementById('svc-toggle-escort-plan2').value === 'true' : false;
     var amorelotVal = document.getElementById('svc-toggle-amorelot') ? document.getElementById('svc-toggle-amorelot').value === 'true' : false;
+    var rentalsVal = document.getElementById('svc-toggle-rentals') ? document.getElementById('svc-toggle-rentals').value === 'true' : false;
 
     var cfg = {
       bike: bikeVal,
@@ -2632,7 +2653,8 @@
       escort: escortP1Val || escortP2Val,
       escort_plan1: escortP1Val,
       escort_plan2: escortP2Val,
-      amorelot: amorelotVal
+      amorelot: amorelotVal,
+      rentals: rentalsVal
     };
 
     localStorage.setItem('rydealot_services_config', JSON.stringify(cfg));
@@ -2653,6 +2675,7 @@
           escort_plan1_enabled: cfg.escort_plan1,
           escort_plan2_enabled: cfg.escort_plan2,
           amorelot_enabled: cfg.amorelot,
+          rentals_enabled: cfg.rentals,
           updated_at: new Date().toISOString()
         }
       });
@@ -2673,7 +2696,8 @@
             escort_enabled: cfg.escort,
             escort_plan1_enabled: cfg.escort_plan1,
             escort_plan2_enabled: cfg.escort_plan2,
-            amorelot_enabled: cfg.amorelot
+            amorelot_enabled: cfg.amorelot,
+            rentals_enabled: cfg.rentals
           }
         });
         toast('✅ Granular switches initialized in cloud!');

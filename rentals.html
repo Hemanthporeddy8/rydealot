@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#065f46">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Rydealot Rentals • Scooty Pre-Booking &amp; Hands-Free Luggage</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<!-- Instant Offline Guard -->
+<script>
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    document.documentElement.classList.add('app-is-offline');
+  }
+</script>
+<style>
+  html.app-is-offline body > *:not(#rydealot-offline-overlay) {
+    display: none !important;
+  }
+</style>
+<script src="offline-detector.js"></script>
+
+<style>
+  :root {
+    --bg: #F0FDF4;
+    --card: #FFFFFF;
+    --ink: #0F172A;
+    --ink-soft: #475569;
+    --ink-mute: #94A3B8;
+    --emerald-deep: #064E3B;
+    --emerald: #059669;
+    --emerald-light: #D1FAE5;
+    --emerald-border: #A7F3D0;
+    --amber: #D97706;
+    --amber-light: #FEF3C7;
+    --radius: 18px;
+    --shadow: 0 4px 20px -2px rgba(6, 78, 59, 0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0f172a;
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 480px;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 0 40px rgba(0,0,0,0.3);
+  }
+
+  /* Header */
+  .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1.5px solid var(--emerald-border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: var(--emerald-deep);
+    font-weight: 800;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    background: var(--emerald-light);
+    border: 1px solid var(--emerald-border);
+    transition: all 0.15s ease;
+  }
+  .nav-back:hover { background: #bbf7d0; }
+  .brand-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand-pill img {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+  .brand-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--emerald-deep);
+    line-height: 1.1;
+  }
+  .brand-sub {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--emerald);
+    letter-spacing: 0.3px;
+  }
+
+  .btn-my-passes {
+    background: #fff;
+    border: 1.5px solid var(--emerald-border);
+    color: var(--emerald-deep);
+    border-radius: 10px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Content body */
+  .main-content {
+    flex: 1;
+    padding: 14px 16px 40px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Destination Switcher */
+  .dest-strip {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .dest-strip::-webkit-scrollbar { display: none; }
+  .dest-chip {
+    padding: 7px 14px;
+    border-radius: 99px;
+    background: #FFFFFF;
+    border: 1.5px solid #CBD5E1;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+  }
+  .dest-chip.active {
+    background: var(--emerald-deep);
+    color: #fff;
+    border-color: var(--emerald-deep);
+    box-shadow: 0 3px 10px rgba(6, 78, 59, 0.2);
+  }
+
+  /* Hub Card */
+  .hub-card {
+    background: #FFFFFF;
+    border: 1.5px solid var(--emerald-border);
+    border-radius: var(--radius);
+    padding: 14px;
+    box-shadow: var(--shadow);
+  }
+  .hub-badge {
+    font-size: 9px;
+    font-weight: 800;
+    background: var(--emerald-light);
+    color: var(--emerald-deep);
+    padding: 3px 8px;
+    border-radius: 99px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .hub-name {
+    font-family: 'Manrope', sans-serif;
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--ink);
+    margin-top: 6px;
+    line-height: 1.25;
+  }
+  .hub-meta {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* ═══ INTERACTIVE VISUAL PARKING LOT (SVG) ═══ */
+  .lot-box {
+    background: #0f172a;
+    border-radius: 20px;
+    padding: 14px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35);
+    color: #fff;
+    border: 1.5px solid #334155;
+  }
+  .lot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .lot-title {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .lot-status {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.15);
+    padding: 2px 8px;
+    border-radius: 99px;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+  }
+  .lot-svg-wrapper {
+    width: 100%;
+    background: #1e293b;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #334155;
+  }
+  .lot-hint {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-top: 8px;
+  }
+
+  /* Selected Vehicle Details Card */
+  .vehicle-sheet {
+    background: #FFFFFF;
+    border: 2px solid var(--emerald);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 6px 22px rgba(5, 150, 105, 0.12);
+  }
+  .v-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .v-name {
+    font-family: 'Manrope', sans-serif;
+    font-size: 17px;
+    font-weight: 900;
+    color: var(--ink);
+  }
+  .v-price {
+    text-align: right;
+  }
+  .v-price-amt {
+    font-family: 'Manrope', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--emerald-deep);
+  }
+  .v-price-per {
+    font-size: 10px;
+    color: var(--ink-mute);
+    font-weight: 600;
+  }
+
+  .inclusions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin: 12px 0;
+  }
+  .inc-item {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--emerald-deep);
+    background: var(--emerald-light);
+    padding: 6px 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Date Range Box */
+  .dates-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .date-field {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 8px 10px;
+  }
+  .date-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+  .date-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-top: 2px;
+    outline: none;
+  }
+
+  /* ═══ THE KILLER ADDON: HANDS-FREE SCOOTY LUGGAGE ═══ */
+  .luggage-addon-card {
+    background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+    border: 2px solid #F59E0B;
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.15);
+    position: relative;
+    overflow: hidden;
+  }
+  .luggage-ribbon {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: #D97706;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 99px;
+    letter-spacing: 0.5px;
+  }
+  .addon-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .addon-checkbox {
+    width: 22px;
+    height: 22px;
+    accent-color: #D97706;
+    margin-top: 2px;
+    cursor: pointer;
+  }
+  .addon-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 14.5px;
+    font-weight: 900;
+    color: #92400E;
+    line-height: 1.2;
+  }
+  .addon-sub {
+    font-size: 11px;
+    color: #B45309;
+    margin-top: 3px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .luggage-fields {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(217, 119, 6, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bag-counter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .counter-btn-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .count-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1.5px solid #F59E0B;
+    background: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    color: #92400E;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .count-display {
+    font-size: 14px;
+    font-weight: 900;
+    color: #92400E;
+    min-width: 20px;
+    text-align: center;
+  }
+  .hotel-input {
+    width: 100%;
+    background: #FFFFFF;
+    border: 1.5px solid #FCD34D;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 600;
+    outline: none;
+  }
+
+  /* Renter Identity Verification */
+  .kyc-box {
+    background: #fff;
+    border: 1.5px solid #E2E8F0;
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .kyc-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--ink);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Price Breakdown */
+  .fare-card {
+    background: #FFFFFF;
+    border: 1.5px solid var(--emerald-border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .fare-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .fare-row.total {
+    border-top: 1.5px solid #E2E8F0;
+    padding-top: 8px;
+    margin-top: 6px;
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--ink);
+  }
+  .fare-row.token {
+    font-size: 14px;
+    font-weight: 900;
+    color: var(--emerald-deep);
+  }
+
+  .btn-confirm-booking {
+    width: 100%;
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: #fff;
+    border: none;
+    border-radius: 16px;
+    padding: 15px;
+    font-family: 'Manrope', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(5, 150, 105, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.15s ease;
+  }
+  .btn-confirm-booking:active { transform: scale(0.98); }
+
+  /* Modal Backdrop & Pass */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .pass-card {
+    width: 100%;
+    max-width: 380px;
+    background: #FFFFFF;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+    animation: popUp 0.25s ease-out;
+  }
+  @keyframes popUp {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* Admin Inactive Notice */
+  #admin-inactive-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 24px;
+    min-height: 80vh;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- TOP NAVIGATION -->
+  <header class="top-nav">
+    <a href="index.html" class="nav-back">
+      <i class="ti ti-arrow-left"></i> <span>Rides</span>
+    </a>
+    <div class="brand-pill">
+      <img src="logo.png" alt="Rydealot">
+      <div>
+        <div class="brand-title">Rydealot Rentals</div>
+        <div class="brand-sub">🛵 SCOOTIES • 🧳 HANDS-FREE</div>
+      </div>
+    </div>
+    <button type="button" class="btn-my-passes" onclick="openMyPassesModal()">
+      <i class="ti ti-ticket"></i> <span>Passes</span>
+    </button>
+  </header>
+
+  <!-- ═══ ADMIN INACTIVE SCREEN (SHOWN WHEN RENTALS IS TOGGLED OFF IN ADMIN) ═══ -->
+  <div id="admin-inactive-screen">
+    <div style="font-size: 56px; margin-bottom: 12px;">🏖️</div>
+    <h2 style="font-family:'Manrope',sans-serif; font-size:20px; font-weight:900; color:#0F172A; margin-bottom:8px;">
+      Scooty Rentals Paused
+    </h2>
+    <p style="font-size:12.5px; color:#64748B; line-height:1.5; max-width:280px; margin-bottom:20px;">
+      Rydealot Scooty Rentals &amp; Hands-Free Luggage Hub is currently resting for the season or paused by admin.
+    </p>
+    <a href="index.html" style="background:#059669; color:#fff; text-decoration:none; font-weight:800; font-size:13px; padding:12px 24px; border-radius:12px; box-shadow:0 4px 12px rgba(5,150,105,0.25);">
+      ← Return to Main App
+    </a>
+    <div style="margin-top:24px; font-size:11px; color:#94a3b8;">
+      <a href="admin.html" style="color:#059669; font-weight:700; text-decoration:none;">Admin Control Center →</a>
+    </div>
+  </div>
+
+  <!-- ═══ ACTIVE RENTALS CONTENT ═══ -->
+  <main class="main-content" id="active-rentals-content">
+
+    <!-- Destination Switcher -->
+    <div class="dest-strip">
+      <button type="button" class="dest-chip active" onclick="switchDestination('gokarna', this)">
+        <span>🏖️</span> <span>Gokarna</span>
+      </button>
+      <button type="button" class="dest-chip" onclick="switchDestination('goa', this)">
+        <span>🌴</span> <span>Goa</span>
+      </button>
+      <button type="button" class="dest-chip" onclick="switchDestination('araku', this)">
+        <span>⛰️</span> <span>Araku Valley</span>
+      </button>
+      <button type="button" class="dest-chip" onclick="switchDestination('hampi', this)">
+        <span>🏛️</span> <span>Hampi</span>
+      </button>
+      <button type="button" class="dest-chip" onclick="switchDestination('pondicherry', this)">
+        <span>🌊</span> <span>Pondicherry</span>
+      </button>
+    </div>
+
+    <!-- Active Partner Hub Info -->
+    <div class="hub-card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <span class="hub-badge" id="hub-type-badge">🅿️ CENTRAL TERMINAL</span>
+        <span style="font-size:11px; font-weight:800; color:#059669; display:flex; align-items:center; gap:4px;">
+          <span style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block; animation:pulse 2s infinite;"></span>
+          <span id="hub-slots-count">4 Available Now</span>
+        </span>
+      </div>
+      <div class="hub-name" id="hub-title">Gokarna Central Bus Stand Hub • Counter #2</div>
+      <div class="hub-meta">
+        <span id="hub-address">📍 Opp. KSRTC Main Gate, Gokarna</span>
+        <span>•</span>
+        <span id="hub-hours">🕒 06:00 AM – 10:30 PM</span>
+        <span>•</span>
+        <span style="color:#D97706; font-weight:800;">⭐ 4.9 (420+ trips)</span>
+      </div>
+    </div>
+
+    <!-- ═══ SIGNATURE INTERACTIVE SVG PARKING LOT ═══ -->
+    <div class="lot-box">
+      <div class="lot-header">
+        <div class="lot-title">
+          <span>🅿️</span> <span id="svg-lot-header-title">Gokarna Rental Bays</span>
+        </div>
+        <span class="lot-status" id="svg-lot-status-pill">Tap Bay to Choose</span>
+      </div>
+
+      <div class="lot-svg-wrapper">
+        <svg id="rentals-lot-svg" viewBox="0 0 420 280" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="road-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#233248" stroke-width="0.5"/>
+            </pattern>
+            <!-- Vehicle glow filter -->
+            <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#10B981" flood-opacity="0.8"/>
+            </filter>
+            <filter id="glow-gold" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#F59E0B" flood-opacity="0.8"/>
+            </filter>
+          </defs>
+
+          <!-- Asphalt Background -->
+          <rect width="420" height="280" fill="url(#road-grid)"/>
+
+          <!-- Middle Drive Lane with Yellow Directional Markers -->
+          <line x1="10" y1="140" x2="410" y2="140" stroke="#f59e0b" stroke-width="2" stroke-dasharray="10 8" opacity="0.5"/>
+          <text x="210" y="144" fill="#f59e0b" font-size="9" font-weight="bold" text-anchor="middle" letter-spacing="2" opacity="0.6">DRIVE-THRU LANE ➔</text>
+
+          <!-- Top Row Parking Dividers -->
+          <line x1="10" y1="10" x2="10" y2="115" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+          <line x1="145" y1="10" x2="145" y2="115" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+          <line x1="280" y1="10" x2="280" y2="115" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+          <line x1="410" y1="10" x2="410" y2="115" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+
+          <!-- Bottom Row Parking Dividers -->
+          <line x1="10" y1="165" x2="10" y2="270" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+          <line x1="145" y1="165" x2="145" y2="270" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+          <line x1="280" y1="165" x2="280" y2="270" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+          <line x1="410" y1="165" x2="410" y2="270" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+
+          <!-- ═══ BAYS (CLICKABLE) ═══ -->
+          <!-- BAY 1: Activa 6G (Silver) -->
+          <g id="bay-btn-1" style="cursor:pointer;" onclick="selectVehicleBay(1)">
+            <rect id="bay-bg-1" x="15" y="15" width="125" height="95" rx="10" fill="#064E3B" stroke="#10B981" stroke-width="2.5" filter="url(#glow-green)"/>
+            <text x="25" y="32" fill="#34D399" font-size="10" font-weight="900">BAY #1 • 🟢 FREE</text>
+            <text x="77" y="62" font-size="28" text-anchor="middle">🛵</text>
+            <text x="77" y="82" fill="#F8FAFC" font-size="11" font-weight="800" text-anchor="middle">Activa 6G</text>
+            <text x="77" y="98" fill="#FDE047" font-size="10" font-weight="800" text-anchor="middle">₹500 / day</text>
+          </g>
+
+          <!-- BAY 2: Access 125 (Blue) -->
+          <g id="bay-btn-2" style="cursor:pointer;" onclick="selectVehicleBay(2)">
+            <rect id="bay-bg-2" x="150" y="15" width="125" height="95" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+            <text x="160" y="32" fill="#34D399" font-size="10" font-weight="900">BAY #2 • 🟢 FREE</text>
+            <text x="212" y="62" font-size="28" text-anchor="middle">🛵</text>
+            <text x="212" y="82" fill="#F8FAFC" font-size="11" font-weight="800" text-anchor="middle">Access 125</text>
+            <text x="212" y="98" fill="#FDE047" font-size="10" font-weight="800" text-anchor="middle">₹550 / day</text>
+          </g>
+
+          <!-- BAY 3: Hunter 350 (Motorcycle) -->
+          <g id="bay-btn-3" style="cursor:pointer;" onclick="selectVehicleBay(3)">
+            <rect id="bay-bg-3" x="285" y="15" width="120" height="95" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+            <text x="295" y="32" fill="#34D399" font-size="10" font-weight="900">BAY #3 • 🟢 FREE</text>
+            <text x="345" y="62" font-size="28" text-anchor="middle">🏍️</text>
+            <text x="345" y="82" fill="#F8FAFC" font-size="11" font-weight="800" text-anchor="middle">Hunter 350</text>
+            <text x="345" y="98" fill="#FDE047" font-size="10" font-weight="800" text-anchor="middle">₹1,050 / day</text>
+          </g>
+
+          <!-- BAY 4: TVS Jupiter 125 -->
+          <g id="bay-btn-4" style="cursor:pointer;" onclick="selectVehicleBay(4)">
+            <rect id="bay-bg-4" x="15" y="170" width="125" height="95" rx="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+            <text x="25" y="187" fill="#34D399" font-size="10" font-weight="900">BAY #4 • 🟢 FREE</text>
+            <text x="77" y="217" font-size="28" text-anchor="middle">🛵</text>
+            <text x="77" y="237" fill="#F8FAFC" font-size="11" font-weight="800" text-anchor="middle">Jupiter 125</text>
+            <text x="77" y="253" fill="#FDE047" font-size="10" font-weight="800" text-anchor="middle">₹480 / day</text>
+          </g>
+
+          <!-- BAY 5: Yamaha Aerox / Ntorq (Reserved) -->
+          <g id="bay-btn-5" style="cursor:pointer;" onclick="selectVehicleBay(5)">
+            <rect id="bay-bg-5" x="150" y="170" width="125" height="95" rx="10" fill="#2d1a10" stroke="#b45309" stroke-width="1.5"/>
+            <text x="160" y="187" fill="#FBBF24" font-size="10" font-weight="900">BAY #5 • 🟡 RESERVED</text>
+            <text x="212" y="217" font-size="28" text-anchor="middle">🛵</text>
+            <text x="212" y="237" fill="#CBD5E1" font-size="11" font-weight="800" text-anchor="middle">Ntorq 125</text>
+            <text x="212" y="253" fill="#94A3B8" font-size="10" font-weight="700" text-anchor="middle">Booked till 7 PM</text>
+          </g>
+
+          <!-- BAY 6: HANDS-FREE LUGGAGE DESK -->
+          <g id="bay-btn-6" style="cursor:pointer;" onclick="selectLuggageBay()">
+            <rect id="bay-bg-6" x="285" y="170" width="120" height="95" rx="10" fill="#3B2506" stroke="#F59E0B" stroke-width="1.5"/>
+            <text x="295" y="187" fill="#FCD34D" font-size="10" font-weight="900">BAY #6 • 🧳 DESK</text>
+            <text x="345" y="217" font-size="28" text-anchor="middle">📦</text>
+            <text x="345" y="237" fill="#FEF3C7" font-size="11" font-weight="900" text-anchor="middle">Bag Drop Hub</text>
+            <text x="345" y="253" fill="#FCD34D" font-size="10" font-weight="800" text-anchor="middle">₹149 / bag drop</text>
+          </g>
+        </svg>
+      </div>
+      <p class="lot-hint">Tap any vehicle bay to inspect specs or select Bay #6 for baggage only</p>
+    </div>
+
+    <!-- ═══ SELECTED SCOOTER CARD ═══ -->
+    <div class="vehicle-sheet" id="vehicle-details-card">
+      <div class="v-top">
+        <div>
+          <span style="font-size:10px; font-weight:800; background:#DCFCE7; color:#166534; padding:2px 8px; border-radius:99px;" id="selected-bay-badge">BAY #1 SELECTED</span>
+          <div class="v-name" id="selected-vehicle-name">Honda Activa 6G (BS6)</div>
+          <div style="font-size:11px; color:var(--ink-soft); font-weight:600; margin-top:2px;" id="selected-vehicle-specs">110cc • Automatic • 50 km/l • Keyed Disc</div>
+        </div>
+        <div class="v-price">
+          <div class="v-price-amt" id="selected-vehicle-rate">₹500</div>
+          <div class="v-price-per">per day (24 hrs)</div>
+        </div>
+      </div>
+
+      <!-- Inclusions -->
+      <div class="inclusions-grid">
+        <div class="inc-item"><span>🪖</span> <span>2 ISI Clean Helmets</span></div>
+        <div class="inc-item"><span>⛽</span> <span>1L Free Petrol</span></div>
+        <div class="inc-item"><span>🛣️</span> <span>Unlimited KMs</span></div>
+        <div class="inc-item"><span>🛠️</span> <span>24x7 Road Rescue</span></div>
+      </div>
+
+      <!-- Rental Duration Picker -->
+      <div class="dates-grid">
+        <div class="date-field">
+          <div class="date-label">Pickup Date &amp; Time</div>
+          <input type="datetime-local" id="rental-start-dt" class="date-input" onchange="calculateTotalPricing()">
+        </div>
+        <div class="date-field">
+          <div class="date-label">Drop-off Date &amp; Time</div>
+          <input type="datetime-local" id="rental-end-dt" class="date-input" onchange="calculateTotalPricing()">
+        </div>
+      </div>
+      <div style="font-size:11px; font-weight:700; color:var(--emerald-deep); margin-top:6px; text-align:right;" id="rental-duration-display">
+        ⏱️ Duration: 1 Day (24 hrs)
+      </div>
+    </div>
+
+    <!-- ═══ THE KILLER FEATURE: "HANDS-FREE SCOOTY" LUGGAGE DROP-OFF ═══ -->
+    <div class="luggage-addon-card">
+      <span class="luggage-ribbon">⭐ KILLER TOURIST FEATURE</span>
+      <label class="addon-header">
+        <input type="checkbox" id="chk-luggage-addon" class="addon-checkbox" checked onchange="toggleLuggageAddon()">
+        <div>
+          <div class="addon-title">🧳 Ride Hands-Free! (+₹149/bag)</div>
+          <div class="addon-sub">Deliver my heavy backpacks &amp; trolley bags straight to my resort or homestay!</div>
+        </div>
+      </label>
+
+      <!-- Luggage sub-fields -->
+      <div class="luggage-fields" id="luggage-fields-container">
+        <div style="font-size:11px; color:#78350F; background:rgba(245,158,11,0.12); padding:8px 10px; border-radius:10px; line-height:1.4;">
+          💡 <b>Smart Hack:</b> Buses arrive at 7 AM, but hotel check-in is at 1 PM. Hand your bags to our counter partner; ride your scooty freely to the beach. Your luggage will be at your hotel reception before 1 PM!
+        </div>
+
+        <div class="bag-counter-row">
+          <span style="font-size:12px; font-weight:800; color:#92400E;">Number of Bags:</span>
+          <div class="counter-btn-group">
+            <button type="button" class="count-btn" onclick="adjustBagCount(-1)">-</button>
+            <span class="count-display" id="bag-count-display">1</span>
+            <button type="button" class="count-btn" onclick="adjustBagCount(1)">+</button>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:11px; font-weight:800; color:#92400E; display:block; margin-bottom:4px;">
+            Destination Hotel / Resort / Homestay:
+          </label>
+          <input type="text" id="luggage-hotel-name" class="hotel-input" placeholder="e.g. Zostel Gokarna / Namaste Cafe Resort">
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ RENTER VERIFICATION (KYC) ═══ -->
+    <div class="kyc-box">
+      <div class="kyc-title">
+        <i class="ti ti-id" style="color:var(--emerald);"></i> <span>Renter Verification &amp; Contact</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="text" id="renter-name" placeholder="Full Name as on Driving License" class="hotel-input" style="border-color:#CBD5E1;">
+        <input type="tel" id="renter-phone" placeholder="WhatsApp Number for QR Pass &amp; Directions" class="hotel-input" style="border-color:#CBD5E1;">
+        <input type="text" id="renter-dl" placeholder="Driving License (DL) Number (Mandatory)" class="hotel-input" style="border-color:#CBD5E1; text-transform:uppercase;">
+      </div>
+    </div>
+
+    <!-- ═══ PRICE & TOKEN ADVANCE SUMMARY ═══ -->
+    <div class="fare-card">
+      <div class="fare-row">
+        <span id="fare-scooter-label">Scooty Rent (1 Day):</span>
+        <span id="fare-scooter-amt">₹500</span>
+      </div>
+      <div class="fare-row" id="fare-luggage-row">
+        <span id="fare-luggage-label">Hands-Free Luggage (1 Bag):</span>
+        <span id="fare-luggage-amt">₹149</span>
+      </div>
+      <div class="fare-row">
+        <span>Security Deposit (Refundable at Shop):</span>
+        <span style="color:#64748B;">₹1,000 (Aadhaar/Cash)</span>
+      </div>
+      <div class="fare-row total">
+        <span>Total Booking Value:</span>
+        <span id="fare-total-amt">₹649</span>
+      </div>
+      <div class="fare-row token" style="margin-top:6px;">
+        <span>Pay 20% Token Now Online:</span>
+        <span id="fare-token-amt">₹130</span>
+      </div>
+      <div style="font-size:10.5px; color:#64748B; margin-top:4px;">
+        Balance <b id="fare-counter-balance">₹519</b> is paid directly at the rental counter upon key handover.
+      </div>
+    </div>
+
+    <!-- ═══ CONFIRM BUTTON ═══ -->
+    <button type="button" class="btn-confirm-booking" onclick="executeRentalBooking()">
+      <span>🔒</span> <span>Lock Scooty • Pay 20% Token (<span id="btn-token-amt">₹130</span>)</span>
+    </button>
+    <div style="text-align:center; font-size:11px; color:#64748B; font-weight:600;">
+      Instant confirmation • Free cancellation up to 4 hours before pickup
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══ MODAL: DIGITAL BOOKING PASS (QR VOUCHER) ═══ -->
+<div class="modal-overlay" id="pass-modal-overlay">
+  <div class="pass-card">
+    <div style="background:var(--emerald-deep); color:#fff; padding:18px 20px; text-align:center; position:relative;">
+      <span style="font-size:32px;">🛵</span>
+      <h3 style="font-family:'Manrope',sans-serif; font-size:18px; font-weight:900; margin-top:4px;">Rental Voucher Confirmed</h3>
+      <div style="font-size:11px; font-family:'IBM Plex Mono',monospace; opacity:0.85; margin-top:2px;" id="pass-booking-id">REF: RYD-GOK-9421</div>
+    </div>
+
+    <div style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+      <!-- QR Code Placeholder -->
+      <div style="background:#f8fafc; border:2px dashed var(--emerald-border); border-radius:14px; padding:16px; text-align:center;">
+        <svg width="110" height="110" viewBox="0 0 100 100" style="margin:0 auto; display:block;">
+          <!-- SVG Mock QR Pattern -->
+          <rect width="100" height="100" fill="#fff"/>
+          <rect x="10" y="10" width="25" height="25" fill="#064E3B"/>
+          <rect x="15" y="15" width="15" height="15" fill="#fff"/>
+          <rect x="18" y="18" width="9" height="9" fill="#064E3B"/>
+          <rect x="65" y="10" width="25" height="25" fill="#064E3B"/>
+          <rect x="70" y="15" width="15" height="15" fill="#fff"/>
+          <rect x="73" y="18" width="9" height="9" fill="#064E3B"/>
+          <rect x="10" y="65" width="25" height="25" fill="#064E3B"/>
+          <rect x="15" y="70" width="15" height="15" fill="#fff"/>
+          <rect x="18" y="73" width="9" height="9" fill="#064E3B"/>
+          <!-- Random data blocks -->
+          <rect x="45" y="15" width="10" height="10" fill="#064E3B"/>
+          <rect x="40" y="35" width="20" height="10" fill="#064E3B"/>
+          <rect x="70" y="45" width="15" height="15" fill="#064E3B"/>
+          <rect x="45" y="70" width="15" height="10" fill="#064E3B"/>
+          <rect x="70" y="75" width="10" height="10" fill="#064E3B"/>
+        </svg>
+        <div style="font-size:11px; font-weight:800; color:var(--emerald-deep); margin-top:8px;">Show this QR at Counter #2</div>
+      </div>
+
+      <div style="font-size:12px; color:var(--ink); display:flex; flex-direction:column; gap:4px;">
+        <div><b>Vehicle:</b> <span id="pass-vname">Honda Activa 6G</span></div>
+        <div><b>Counter Location:</b> <span id="pass-loc">Opp. KSRTC Bus Stand Gate, Gokarna</span></div>
+        <div><b>Hands-Free Bag Drop:</b> <span id="pass-luggage-status">Active (1 Bag to Zostel Gokarna)</span></div>
+        <div><b>Token Paid:</b> <span id="pass-token-amt" style="color:#059669; font-weight:800;">₹130</span> (Balance ₹519 at counter)</div>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:4px;">
+        <a id="pass-maps-link" href="https://maps.google.com/?q=Gokarna+Bus+Stand" target="_blank" style="flex:1; background:#059669; color:#fff; text-decoration:none; font-weight:800; font-size:12px; padding:10px; border-radius:10px; text-align:center; display:flex; align-items:center; justify-content:center; gap:4px;">
+          <span>📍</span> <span>Maps Direction</span>
+        </a>
+        <a href="tel:+919876543210" style="flex:1; background:#F1F5F9; color:#0F172A; text-decoration:none; font-weight:800; font-size:12px; padding:10px; border-radius:10px; text-align:center; display:flex; align-items:center; justify-content:center; gap:4px;">
+          <span>📞</span> <span>Call Counter</span>
+        </a>
+      </div>
+
+      <button type="button" onclick="closePassModal()" style="width:100%; border:none; background:none; color:#64748B; font-weight:700; font-size:12px; cursor:pointer; padding:8px;">
+        Close Voucher
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: MY PREVIOUS PASSES ═══ -->
+<div class="modal-overlay" id="my-passes-overlay">
+  <div class="pass-card" style="max-height:85vh; display:flex; flex-direction:column;">
+    <div style="background:var(--emerald-deep); color:#fff; padding:14px 18px; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="font-family:'Manrope',sans-serif; font-size:16px; font-weight:900;">My Rental Passes</h3>
+      <button type="button" onclick="closeMyPassesModal()" style="background:none; border:none; color:#fff; font-size:18px; cursor:pointer;">✕</button>
+    </div>
+    <div id="passes-list-container" style="padding:16px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:10px;">
+      <p style="text-align:center; color:#94a3b8; font-size:12px; margin-top:20px;">No active passes found</p>
+    </div>
+  </div>
+</div>
+
+<!-- JAVASCRIPT LOGIC & ENGINE -->
+<script>
+  // 1. VEHICLE DATA PER DESTINATION
+  var FLEET_DATA = {
+    1: { id: 1, name: 'Honda Activa 6G', rate: 500, specs: '110cc • Automatic • 50 km/l • Disc', free: true },
+    2: { id: 2, name: 'Suzuki Access 125', rate: 550, specs: '125cc • Peppy Engine • Bluetooth Navigation', free: true },
+    3: { id: 3, name: 'Royal Enfield Hunter 350', rate: 1050, specs: '350cc • 5-Speed Manual • Retro Roadster', free: true },
+    4: { id: 4, name: 'TVS Jupiter 125', rate: 480, specs: '125cc • External Fuel Fill • Large Underseat Storage', free: true },
+    5: { id: 5, name: 'Yamaha Ntorq 125', rate: 600, specs: '125cc • Sporty Exhaust • Digital Speedo', free: false },
+    6: { id: 6, name: 'Hands-Free Luggage Transfer', rate: 149, specs: 'Direct bus stand to resort delivery', isDesk: true }
+  };
+
+  var CURRENT_DESTINATION = 'gokarna';
+  var SELECTED_BAY = 1;
+  var BAG_COUNT = 1;
+
+  // 2. CHECK ADMIN MASTER TOGGLE ON LOAD
+  function checkAdminMasterSwitch() {
+    var isEnabled = false;
+    try {
+      var raw = localStorage.getItem('rydealot_services_config');
+      if (raw) {
+        var cfg = JSON.parse(raw);
+        if (cfg.rentals === true) {
+          isEnabled = true;
+        }
+      }
+    } catch(e){}
+
+    // Check URL parameters for instant testing override (?demo=1 or ?city=gokarna)
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('demo') === '1' || urlParams.get('bypass') === '1') {
+      isEnabled = true;
+    }
+
+    var inactiveScreen = document.getElementById('admin-inactive-screen');
+    var activeContent = document.getElementById('active-rentals-content');
+
+    if (!isEnabled) {
+      if (inactiveScreen) inactiveScreen.style.display = 'flex';
+      if (activeContent) activeContent.style.display = 'none';
+    } else {
+      if (inactiveScreen) inactiveScreen.style.display = 'none';
+      if (activeContent) activeContent.style.display = 'flex';
+    }
+  }
+
+  // 3. INITIALIZE DEFAULT DATES (TODAY 7 AM to TOMORROW 7 PM = 36 Hours / 2 Days)
+  function initDefaultDates() {
+    var now = new Date();
+    var pickup = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 7, 0, 0);
+    if (now.getHours() >= 19) {
+      pickup.setDate(pickup.getDate() + 1);
+    }
+    var drop = new Date(pickup);
+    drop.setDate(drop.getDate() + 1);
+    drop.setHours(19, 0, 0);
+
+    var toIsoLocal = function(d) {
+      var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+      return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    };
+
+    var startEl = document.getElementById('rental-start-dt');
+    var endEl = document.getElementById('rental-end-dt');
+    if (startEl && !startEl.value) startEl.value = toIsoLocal(pickup);
+    if (endEl && !endEl.value) endEl.value = toIsoLocal(drop);
+  }
+
+  // 4. BAY SELECTION (SVG CLICK)
+  function selectVehicleBay(bayId) {
+    var vehicle = FLEET_DATA[bayId];
+    if (!vehicle || vehicle.free === false) {
+      if (vehicle && vehicle.free === false) {
+        alert('Bay #' + bayId + ' (' + vehicle.name + ') is currently reserved by another traveler. Please pick another available vehicle!');
+      }
+      return;
+    }
+
+    SELECTED_BAY = bayId;
+
+    // Highlight SVG Bay
+    for (var b = 1; b <= 6; b++) {
+      var rect = document.getElementById('bay-bg-' + b);
+      if (rect) {
+        if (b === bayId) {
+          rect.setAttribute('fill', '#064E3B');
+          rect.setAttribute('stroke', '#10B981');
+          rect.setAttribute('stroke-width', '2.5');
+          rect.setAttribute('filter', 'url(#glow-green)');
+        } else if (b === 5) {
+          rect.setAttribute('fill', '#2d1a10');
+          rect.setAttribute('stroke', '#b45309');
+          rect.setAttribute('stroke-width', '1.5');
+          rect.removeAttribute('filter');
+        } else if (b === 6) {
+          rect.setAttribute('fill', '#3B2506');
+          rect.setAttribute('stroke', '#F59E0B');
+          rect.setAttribute('stroke-width', '1.5');
+          rect.removeAttribute('filter');
+        } else {
+          rect.setAttribute('fill', '#1e293b');
+          rect.setAttribute('stroke', '#334155');
+          rect.setAttribute('stroke-width', '1.5');
+          rect.removeAttribute('filter');
+        }
+      }
+    }
+
+    // Update Details sheet
+    document.getElementById('selected-bay-badge').textContent = 'BAY #' + bayId + ' SELECTED';
+    document.getElementById('selected-vehicle-name').textContent = vehicle.name;
+    document.getElementById('selected-vehicle-specs').textContent = vehicle.specs;
+    document.getElementById('selected-vehicle-rate').textContent = '₹' + vehicle.rate;
+
+    calculateTotalPricing();
+  }
+
+  function selectLuggageBay() {
+    var chk = document.getElementById('chk-luggage-addon');
+    if (chk) {
+      chk.checked = true;
+      toggleLuggageAddon();
+    }
+    var card = document.querySelector('.luggage-addon-card');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.style.transform = 'scale(1.02)';
+      setTimeout(function(){ card.style.transform = 'scale(1)'; }, 300);
+    }
+  }
+
+  // 5. LUGGAGE ADDON TOGGLE & COUNTER
+  function toggleLuggageAddon() {
+    var chk = document.getElementById('chk-luggage-addon');
+    var fields = document.getElementById('luggage-fields-container');
+    var fareRow = document.getElementById('fare-luggage-row');
+    if (fields) fields.style.display = chk.checked ? 'flex' : 'none';
+    if (fareRow) fareRow.style.display = chk.checked ? 'flex' : 'none';
+    calculateTotalPricing();
+  }
+
+  function adjustBagCount(delta) {
+    BAG_COUNT = Math.max(1, Math.min(5, BAG_COUNT + delta));
+    document.getElementById('bag-count-display').textContent = BAG_COUNT;
+    calculateTotalPricing();
+  }
+
+  // 6. DYNAMIC PRICING CALCULATION
+  function calculateTotalPricing() {
+    var vehicle = FLEET_DATA[SELECTED_BAY] || FLEET_DATA[1];
+    var startInput = document.getElementById('rental-start-dt').value;
+    var endInput = document.getElementById('rental-end-dt').value;
+
+    var days = 1;
+    if (startInput && endInput) {
+      var s = new Date(startInput);
+      var e = new Date(endInput);
+      var diffMs = e - s;
+      if (diffMs > 0) {
+        var hours = diffMs / (1000 * 60 * 60);
+        days = Math.max(1, Math.ceil(hours / 24));
+        document.getElementById('rental-duration-display').textContent = 
+          '⏱️ Duration: ' + days + ' Day' + (days > 1 ? 's' : '') + ' (' + Math.round(hours) + ' hrs)';
+      }
+    }
+
+    var scooterTotal = vehicle.rate * days;
+    document.getElementById('fare-scooter-label').textContent = 'Scooty Rent (' + days + ' Day' + (days > 1 ? 's' : '') + '):';
+    document.getElementById('fare-scooter-amt').textContent = '₹' + scooterTotal;
+
+    var isLuggage = document.getElementById('chk-luggage-addon').checked;
+    var luggageTotal = isLuggage ? (149 * BAG_COUNT) : 0;
+    document.getElementById('fare-luggage-label').textContent = 'Hands-Free Luggage (' + BAG_COUNT + ' Bag' + (BAG_COUNT > 1 ? 's' : '') + '):';
+    document.getElementById('fare-luggage-amt').textContent = '₹' + luggageTotal;
+
+    var total = scooterTotal + luggageTotal;
+    var token = Math.round(total * 0.20);
+    var balance = total - token;
+
+    document.getElementById('fare-total-amt').textContent = '₹' + total;
+    document.getElementById('fare-token-amt').textContent = '₹' + token;
+    document.getElementById('fare-counter-balance').textContent = '₹' + balance;
+    document.getElementById('btn-token-amt').textContent = '₹' + token;
+  }
+
+  // 7. DESTINATION SWITCHER
+  function switchDestination(dest, btn) {
+    CURRENT_DESTINATION = dest;
+    document.querySelectorAll('.dest-chip').forEach(function(el){ el.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+
+    var hubTitles = {
+      gokarna: { title: 'Gokarna Central Bus Stand Hub • Counter #2', addr: '📍 Opp. KSRTC Main Gate, Gokarna', maps: 'Gokarna+Bus+Stand' },
+      goa: { title: 'Madgaon Junction Hub • Counter #4', addr: '📍 Madgaon Railway Station West Exit, Goa', maps: 'Madgaon+Railway+Station' },
+      araku: { title: 'Araku Valley Main Hub • Station Road', addr: '📍 Opp. Araku Railway Station, AP', maps: 'Araku+Valley' },
+      hampi: { title: 'Hospet Junction Hub • Counter #1', addr: '📍 Near Hospet Railway Station, Hampi', maps: 'Hampi+Bazaar' },
+      pondicherry: { title: 'White Town Heritage Hub', addr: '📍 Rue Dumas, White Town, Pondicherry', maps: 'White+Town+Pondicherry' }
+    };
+
+    var hub = hubTitles[dest] || hubTitles.gokarna;
+    document.getElementById('hub-title').textContent = hub.title;
+    document.getElementById('hub-address').textContent = hub.addr;
+    document.getElementById('svg-lot-header-title').textContent = (dest.toUpperCase()) + ' Rental Bays';
+    document.getElementById('pass-maps-link').href = 'https://maps.google.com/?q=' + hub.maps;
+  }
+
+  // 8. EXECUTE BOOKING (CONFIRM & GENERATE DIGITAL PASS)
+  function executeRentalBooking() {
+    var name = document.getElementById('renter-name').value.trim();
+    var phone = document.getElementById('renter-phone').value.trim();
+    var dl = document.getElementById('renter-dl').value.trim();
+
+    if (!name) {
+      alert('Please enter your full name as on your Driving License.');
+      document.getElementById('renter-name').focus();
+      return;
+    }
+    if (!phone || phone.length < 10) {
+      alert('Please enter a valid 10-digit WhatsApp number for your digital pass.');
+      document.getElementById('renter-phone').focus();
+      return;
+    }
+    if (!dl) {
+      alert('Valid Driving License (DL) number is mandatory for scooter rentals.');
+      document.getElementById('renter-dl').focus();
+      return;
+    }
+
+    var isLuggage = document.getElementById('chk-luggage-addon').checked;
+    var hotel = document.getElementById('luggage-hotel-name').value.trim();
+    if (isLuggage && !hotel) {
+      alert('Please enter the name of your destination hotel or homestay for hands-free luggage delivery.');
+      document.getElementById('luggage-hotel-name').focus();
+      return;
+    }
+
+    var vehicle = FLEET_DATA[SELECTED_BAY];
+    var randomId = 'RYD-' + CURRENT_DESTINATION.substring(0,3).toUpperCase() + '-' + Math.floor(1000 + Math.random() * 9000);
+    var tokenAmt = document.getElementById('fare-token-amt').textContent;
+    var balanceAmt = document.getElementById('fare-counter-balance').textContent;
+
+    // Populate Pass Modal
+    document.getElementById('pass-booking-id').textContent = 'REF: ' + randomId;
+    document.getElementById('pass-vname').textContent = vehicle.name + ' (Bay #' + SELECTED_BAY + ')';
+    document.getElementById('pass-loc').textContent = document.getElementById('hub-title').textContent;
+    document.getElementById('pass-token-amt').textContent = tokenAmt;
+    document.getElementById('pass-luggage-status').textContent = isLuggage 
+      ? ('Active (' + BAG_COUNT + ' Bag' + (BAG_COUNT > 1 ? 's' : '') + ' to ' + hotel + ')')
+      : 'Not Selected';
+
+    // Save to local storage passes
+    var passRecord = {
+      id: randomId,
+      name: name,
+      phone: phone,
+      vehicle: vehicle.name,
+      bay: SELECTED_BAY,
+      hub: document.getElementById('hub-title').textContent,
+      destination: CURRENT_DESTINATION,
+      luggage: isLuggage ? (BAG_COUNT + ' Bag(s) to ' + hotel) : 'None',
+      token: tokenAmt,
+      balance: balanceAmt,
+      date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    };
+
+    try {
+      var savedPasses = JSON.parse(localStorage.getItem('rydealot_rental_passes') || '[]');
+      savedPasses.unshift(passRecord);
+      localStorage.setItem('rydealot_rental_passes', JSON.stringify(savedPasses));
+    } catch(e){}
+
+    // Open Pass Modal
+    document.getElementById('pass-modal-overlay').style.display = 'flex';
+  }
+
+  function closePassModal() {
+    document.getElementById('pass-modal-overlay').style.display = 'none';
+  }
+
+  // 9. MY PASSES MODAL
+  function openMyPassesModal() {
+    var container = document.getElementById('passes-list-container');
+    container.innerHTML = '';
+    var list = [];
+    try {
+      list = JSON.parse(localStorage.getItem('rydealot_rental_passes') || '[]');
+    } catch(e){}
+
+    if (!list || list.length === 0) {
+      container.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:12px; margin-top:30px;">No rental passes booked yet.</p>';
+    } else {
+      list.forEach(function(p) {
+        var item = document.createElement('div');
+        item.style.cssText = 'background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:4px; font-size:12px;';
+        item.innerHTML = 
+          '<div style="display:flex; justify-content:space-between; font-weight:800; color:#064E3B;">' +
+            '<span>' + p.vehicle + '</span>' +
+            '<span style="font-family:monospace;">' + p.id + '</span>' +
+          '</div>' +
+          '<div style="font-size:11px; color:#64748b;">' + p.hub + ' • ' + p.date + '</div>' +
+          (p.luggage !== 'None' ? ('<div style="font-size:11px; color:#d97706; font-weight:700;">🧳 ' + p.luggage + '</div>') : '') +
+          '<div style="display:flex; justify-content:space-between; margin-top:4px; font-weight:700;">' +
+            '<span>Token: <b style="color:#059669;">' + p.token + '</b></span>' +
+            '<span style="color:#64748b;">Balance: ' + p.balance + '</span>' +
+          '</div>';
+        container.appendChild(item);
+      });
+    }
+    document.getElementById('my-passes-overlay').style.display = 'flex';
+  }
+
+  function closeMyPassesModal() {
+    document.getElementById('my-passes-overlay').style.display = 'none';
+  }
+
+  // ONLOAD INITIALIZATION
+  window.addEventListener('DOMContentLoaded', function() {
+    checkAdminMasterSwitch();
+    initDefaultDates();
+    calculateTotalPricing();
+  });
+</script>
+</body>
+</html>
