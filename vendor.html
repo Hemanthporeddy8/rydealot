@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Rydealot Vendor Hub • Partner Fleet Manager</title>
+<link rel="icon" href="logo.png" type="image/png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<!-- Instant Offline Guard -->
+<script>
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    document.documentElement.classList.add('app-is-offline');
+  }
+</script>
+<style>
+  html.app-is-offline body > *:not(#rydealot-offline-overlay) {
+    display: none !important;
+  }
+</style>
+<script src="offline-detector.js"></script>
+
+<style>
+  :root {
+    --bg: #090D16;
+    --card: #131B2E;
+    --card-border: #1E293B;
+    --text: #F8FAFC;
+    --text-mute: #94A3B8;
+    --text-faint: #64748B;
+    --emerald: #10B981;
+    --emerald-deep: #064E3B;
+    --emerald-light: rgba(16, 185, 129, 0.15);
+    --amber: #F59E0B;
+    --amber-light: rgba(245, 158, 11, 0.15);
+    --red: #EF4444;
+    --red-light: rgba(239, 68, 68, 0.15);
+    --blue: #3B82F6;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #020617;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 520px;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    border-left: 1px solid #1e293b;
+    border-right: 1px solid #1e293b;
+  }
+
+  /* Header */
+  .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1.5px solid var(--card-border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand-pill img {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+  .brand-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.1;
+  }
+  .brand-sub {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--emerald);
+    letter-spacing: 0.5px;
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #1e293b;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    padding: 6px 10px;
+    border-radius: 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  /* Main Body */
+  .main-body {
+    flex: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+  }
+
+  /* Shop Info Banner */
+  .shop-banner {
+    background: linear-gradient(135deg, #131B2E 0%, #1e293b 100%);
+    border: 1.5px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .shop-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 17px;
+    font-weight: 900;
+    color: #fff;
+  }
+  .shop-meta {
+    font-size: 11.5px;
+    color: var(--text-mute);
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* Metrics Grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .metric-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .metric-num {
+    font-family: 'Manrope', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    color: #fff;
+  }
+  .metric-label {
+    font-size: 9.5px;
+    color: var(--text-mute);
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  /* Section Title */
+  .sec-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    letter-spacing: -0.2px;
+  }
+
+  /* Bay Card */
+  .bay-card {
+    background: var(--card);
+    border: 1.5px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s ease;
+  }
+  .bay-card.state-free { border-color: rgba(16, 185, 129, 0.4); }
+  .bay-card.state-reserved { border-color: rgba(245, 158, 11, 0.6); background: rgba(245, 158, 11, 0.05); }
+  .bay-card.state-active { border-color: rgba(59, 130, 246, 0.6); background: rgba(59, 130, 246, 0.05); }
+  .bay-card.state-overdue { border-color: var(--red); background: rgba(239, 68, 68, 0.08); }
+
+  .bay-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .bay-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bay-badge {
+    font-size: 10px;
+    font-weight: 900;
+    padding: 3px 8px;
+    border-radius: 99px;
+    letter-spacing: 0.4px;
+  }
+  .badge-free { background: var(--emerald-light); color: var(--emerald); border: 1px solid rgba(16,185,129,0.3); }
+  .badge-reserved { background: var(--amber-light); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+  .badge-active { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+  .badge-overdue { background: var(--red-light); color: var(--red); border: 1px solid var(--red); animation: pulse 1.5s infinite; }
+
+  .vehicle-info {
+    font-size: 15px;
+    font-weight: 800;
+    color: #fff;
+    margin-top: 2px;
+  }
+  .vehicle-rate {
+    font-size: 12px;
+    color: var(--text-mute);
+    font-weight: 600;
+  }
+
+  /* Live Timer Box */
+  .timer-banner {
+    background: #020617;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11.5px;
+  }
+  .timer-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #38bdf8;
+  }
+  .timer-val.overdue {
+    color: #ef4444;
+  }
+
+  /* Action Buttons */
+  .bay-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .btn-act {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .btn-act:active { transform: scale(0.98); }
+  .btn-handover { background: var(--amber); color: #000; }
+  .btn-return { background: var(--emerald); color: #fff; }
+  .btn-rent-walkin { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+
+  /* Luggage Desk Queue */
+  .luggage-item {
+    background: #182033;
+    border: 1px solid #293855;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Counter Cash Accounting */
+  .cash-card {
+    background: linear-gradient(135deg, #064E3B 0%, #065F46 100%);
+    border: 1.5px solid var(--emerald);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Toast Notification */
+  #toast-notif {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #0f172a;
+    border: 1.5px solid var(--emerald);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 800;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    transition: transform 0.3s ease;
+    pointer-events: none;
+  }
+  #toast-notif.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- TOP NAVIGATION -->
+  <header class="top-nav">
+    <div class="brand-pill">
+      <img src="logo.png" alt="Rydealot">
+      <div>
+        <div class="brand-title">Rydealot Vendor Hub</div>
+        <div class="brand-sub">🏪 GOKARNA COUNTER #2</div>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <a href="rentals.html" class="nav-btn" title="View Customer App">
+        <span>🛵</span> <span>Customer View</span>
+      </a>
+      <a href="admin.html" class="nav-btn" title="Admin Control">
+        <span>⚙️</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN BODY -->
+  <main class="main-body">
+
+    <!-- SHOP BANNER -->
+    <div class="shop-banner">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div class="shop-title">Sri Mahabaleshwara Two-Wheelers</div>
+          <div class="shop-meta">
+            <span>📍 Opp. KSRTC Main Gate, Gokarna</span>
+            <span>•</span>
+            <span style="color:#F59E0B; font-weight:800;">⭐ 4.9 Verified Hub</span>
+          </div>
+        </div>
+        <span style="font-size:10px; font-weight:800; background:rgba(16,185,129,0.2); color:#34d399; padding:3px 8px; border-radius:99px; border:1px solid rgba(16,185,129,0.3);">
+          🟢 SHOP ONLINE
+        </span>
+      </div>
+      <div style="font-size:11px; color:#94a3b8; margin-top:8px; display:flex; justify-content:space-between;">
+        <span>Operator: <b>Ramesh Gowda</b></span>
+        <span id="live-hub-clock">🕒 Syncing clock...</span>
+      </div>
+    </div>
+
+    <!-- METRICS SUMMARY -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-num" style="color:#34d399;" id="stat-free-bays">4</div>
+        <div class="metric-label">🟢 Free Bays</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num" style="color:#fbbf24;" id="stat-reserved-bays">1</div>
+        <div class="metric-label">🟡 Reserved</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num" style="color:#60a5fa;" id="stat-active-bays">1</div>
+        <div class="metric-label">🔴 On Road</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-num" style="color:#f59e0b;" id="stat-luggage-count">2</div>
+        <div class="metric-label">🧳 Bags at Hub</div>
+      </div>
+    </div>
+
+    <!-- CASH REGISTER ACCOUNTING -->
+    <div class="cash-card">
+      <div>
+        <div style="font-size:11px; font-weight:700; color:#A7F3D0; text-transform:uppercase;">Today's Counter Cash to Collect</div>
+        <div style="font-family:'Manrope',sans-serif; font-size:22px; font-weight:900; color:#fff; margin-top:2px;" id="stat-cash-to-collect">₹2,850</div>
+        <div style="font-size:10px; color:#D1FAE5; margin-top:2px;">Cash / Direct UPI from tourists upon key handover</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:10px; font-weight:700; color:#A7F3D0;">Online Tokens</div>
+        <div style="font-family:'Manrope',sans-serif; font-size:17px; font-weight:900; color:#FDE047;" id="stat-online-tokens">₹710</div>
+        <div style="font-size:10px; color:#D1FAE5;">Paid to Rydealot</div>
+      </div>
+    </div>
+
+    <!-- LIVE BAY CONTROLLERS (BAYS 1 TO 6) -->
+    <div class="sec-title">
+      <span>🅿️ Live Fleet &amp; Bays Manager</span>
+      <span style="font-size:10.5px; font-weight:600; color:#94a3b8;">Syncs live with Customer App</span>
+    </div>
+
+    <div id="bays-container" style="display:flex; flex-direction:column; gap:12px;">
+      <!-- Populated dynamically via JS -->
+    </div>
+
+    <!-- ═══ LUGGAGE QUEUE: HANDS-FREE BAG DROP STATION ═══ -->
+    <div class="sec-title" style="margin-top:6px;">
+      <span>🧳 Hands-Free Baggage Queue (Sage Courier)</span>
+      <span style="font-size:10px; background:#D97706; color:#fff; padding:2px 8px; border-radius:99px; font-weight:800;">ACTIVE DESK</span>
+    </div>
+
+    <div id="luggage-queue-container" style="display:flex; flex-direction:column; gap:8px;">
+      <!-- Bag item 1 -->
+      <div class="luggage-item">
+        <div>
+          <div style="font-size:12.5px; font-weight:800; color:#fff;">Bag #GOK-9421 • 1 Trolley Bag</div>
+          <div style="font-size:11px; color:#FBBF24; font-weight:600; margin-top:2px;">Destination: 🏨 Zostel Gokarna (Rm 4)</div>
+          <div style="font-size:10px; color:#94A3B8;">Dropped at 07:15 AM • Guest: Hemanth P.</div>
+        </div>
+        <button type="button" class="btn-act" style="background:#1e3a8a; color:#93c5fd; padding:6px 10px; font-size:11px; flex:none;" onclick="dispatchBagToSage('GOK-9421')">
+          <span>🚚 Hand to Sage</span>
+        </button>
+      </div>
+
+      <!-- Bag item 2 -->
+      <div class="luggage-item">
+        <div>
+          <div style="font-size:12.5px; font-weight:800; color:#fff;">Bag #GOK-8812 • 2 Backpacks</div>
+          <div style="font-size:11px; color:#FBBF24; font-weight:600; margin-top:2px;">Destination: 🏨 Namaste Cafe Resort</div>
+          <div style="font-size:10px; color:#94A3B8;">Dropped at 08:30 AM • Guest: Ananya S.</div>
+        </div>
+        <button type="button" class="btn-act" style="background:#1e3a8a; color:#93c5fd; padding:6px 10px; font-size:11px; flex:none;" onclick="dispatchBagToSage('GOK-8812')">
+          <span>🚚 Hand to Sage</span>
+        </button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div id="toast-notif">✅ Action Successful</div>
+
+<!-- JAVASCRIPT LOGIC -->
+<script>
+  // 1. DEFAULT BAYS STATE
+  var DEFAULT_BAYS = [
+    {
+      id: 1,
+      name: 'Honda Activa 6G',
+      plate: 'KA-30-E-4819',
+      rate: 500,
+      state: 'free', // 'free', 'reserved', 'active', 'overdue'
+      renterName: '',
+      renterPhone: '',
+      balanceDue: 0,
+      tokenPaid: 0,
+      timerEnd: null,
+      luggage: 'None'
+    },
+    {
+      id: 2,
+      name: 'Suzuki Access 125',
+      plate: 'KA-30-F-1102',
+      rate: 550,
+      state: 'active',
+      renterName: 'Rahul M.',
+      renterPhone: '+91 98840 12890',
+      balanceDue: 440,
+      tokenPaid: 110,
+      timerEnd: Date.now() + (14 * 60 * 60 * 1000) + (22 * 60 * 1000), // 14h 22m remaining
+      luggage: 'None'
+    },
+    {
+      id: 3,
+      name: 'Royal Enfield Hunter 350',
+      plate: 'KA-30-M-0350',
+      rate: 1050,
+      state: 'reserved',
+      renterName: 'Vikas Sharma',
+      renterPhone: '+91 94401 55219',
+      balanceDue: 840,
+      tokenPaid: 210,
+      timerEnd: null,
+      luggage: '1 Bag to Kudle Beach Resort'
+    },
+    {
+      id: 4,
+      name: 'TVS Jupiter 125',
+      plate: 'KA-30-H-7741',
+      rate: 480,
+      state: 'free',
+      renterName: '',
+      renterPhone: '',
+      balanceDue: 0,
+      tokenPaid: 0,
+      timerEnd: null,
+      luggage: 'None'
+    },
+    {
+      id: 5,
+      name: 'Yamaha Ntorq 125',
+      plate: 'KA-30-J-9012',
+      rate: 600,
+      state: 'active',
+      renterName: 'Karthik Rao',
+      renterPhone: '+91 97011 44321',
+      balanceDue: 480,
+      tokenPaid: 120,
+      timerEnd: Date.now() + (3 * 60 * 60 * 1000) + (15 * 60 * 1000), // 3h 15m remaining
+      luggage: 'None'
+    },
+    {
+      id: 6,
+      name: 'Baggage Transfer Station',
+      plate: 'Counter #2 Storage',
+      rate: 149,
+      state: 'free',
+      renterName: '',
+      renterPhone: '',
+      balanceDue: 0,
+      tokenPaid: 0,
+      timerEnd: null,
+      isDesk: true
+    }
+  ];
+
+  var bays = [];
+
+  // 2. LOAD & PERSIST BAYS DATA
+  function loadBays() {
+    try {
+      var raw = localStorage.getItem('rydealot_vendor_bays');
+      if (raw) {
+        bays = JSON.parse(raw);
+      } else {
+        bays = DEFAULT_BAYS;
+        saveBays();
+      }
+    } catch(e) {
+      bays = DEFAULT_BAYS;
+    }
+    renderBays();
+    updateMetrics();
+  }
+
+  function saveBays() {
+    try {
+      localStorage.setItem('rydealot_vendor_bays', JSON.stringify(bays));
+    } catch(e){}
+  }
+
+  // 3. RENDER BAYS CARDS
+  function renderBays() {
+    var container = document.getElementById('bays-container');
+    container.innerHTML = '';
+
+    bays.forEach(function(b) {
+      if (b.isDesk) return; // Desk handled in dedicated luggage section
+
+      var card = document.createElement('div');
+      card.className = 'bay-card state-' + b.state;
+      card.id = 'bay-card-' + b.id;
+
+      var badgeClass = 'badge-' + b.state;
+      var badgeText = '🟢 FREE & AVAILABLE';
+      if (b.state === 'reserved') badgeText = '🟡 RESERVED • TOKEN PAID';
+      if (b.state === 'active') badgeText = '🔴 ON ROAD • ACTIVE TRIP';
+      if (b.state === 'overdue') badgeText = '⚠️ OVERDUE FOR RETURN';
+
+      var timerHtml = '';
+      if (b.state === 'active' || b.state === 'overdue') {
+        timerHtml = 
+          '<div class="timer-banner">' +
+            '<span>⏱️ Rental Duration Remaining:</span>' +
+            '<span class="timer-val ' + (b.state === 'overdue' ? 'overdue' : '') + '" id="timer-bay-' + b.id + '">Calculating...</span>' +
+          '</div>';
+      }
+
+      var customerDetails = '';
+      if (b.state === 'reserved' || b.state === 'active' || b.state === 'overdue') {
+        customerDetails = 
+          '<div style="font-size:11.5px; color:#cbd5e1; background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:8px; display:flex; flex-direction:column; gap:2px;">' +
+            '<div>👤 <b>Customer:</b> ' + b.renterName + ' (' + b.renterPhone + ')</div>' +
+            '<div>💰 <b>Counter Balance Due:</b> <span style="color:#FBBF24; font-weight:800;">₹' + b.balanceDue + '</span> (Token Paid: ₹' + b.tokenPaid + ')</div>' +
+            (b.luggage !== 'None' ? ('<div style="color:#F59E0B; font-weight:700;">🧳 ' + b.luggage + '</div>') : '') +
+          '</div>';
+      }
+
+      var actionButtons = '';
+      if (b.state === 'free') {
+        actionButtons = 
+          '<button type="button" class="btn-act btn-rent-walkin" onclick="quickWalkInRent(' + b.id + ')">' +
+            '<span>🔑 Offline Walk-in Rent</span>' +
+          '</button>';
+      } else if (b.state === 'reserved') {
+        actionButtons = 
+          '<button type="button" class="btn-act btn-handover" onclick="handoverKeys(' + b.id + ')">' +
+            '<span>🔑 Collect ₹' + b.balanceDue + ' &amp; Hand Over Keys</span>' +
+          '</button>';
+      } else if (b.state === 'active' || b.state === 'overdue') {
+        actionButtons = 
+          '<button type="button" class="btn-act btn-return" onclick="markReturned(' + b.id + ')">' +
+            '<span>✅ Inspect &amp; Mark Returned (Restock Free)</span>' +
+          '</button>';
+      }
+
+      card.innerHTML = 
+        '<div class="bay-top">' +
+          '<div class="bay-header">' +
+            '<span class="bay-badge ' + badgeClass + '">' + badgeText + '</span>' +
+            '<span style="font-size:11px; font-family:\'IBM Plex Mono\',monospace; color:#94A3B8;">BAY #' + b.id + '</span>' +
+          '</div>' +
+          '<div style="text-align:right;">' +
+            '<span style="font-size:13px; font-weight:800; color:#38bdf8;">₹' + b.rate + '</span>' +
+            '<span style="font-size:10px; color:#94a3b8;">/day</span>' +
+          '</div>' +
+        '</div>' +
+        '<div>' +
+          '<div class="vehicle-info">' + b.name + '</div>' +
+          '<div class="vehicle-rate">Plate: ' + b.plate + ' • 2 Helmets &amp; RC Included</div>' +
+        '</div>' +
+        timerHtml +
+        customerDetails +
+        '<div class="bay-actions">' + actionButtons + '</div>';
+
+      container.appendChild(card);
+    });
+  }
+
+  // 4. ACTION: HAND OVER KEYS (RESERVED -> ACTIVE TIMER STARTS)
+  function handoverKeys(bayId) {
+    var bay = bays.find(function(item){ return item.id === bayId; });
+    if (!bay) return;
+
+    var confirmHandover = confirm(
+      'Confirm key handover for ' + bay.name + ' (Bay #' + bayId + ')?\n\n' +
+      'Please collect balance: ₹' + bay.balanceDue + ' in cash/UPI and verify customer Driving License!'
+    );
+    if (!confirmHandover) return;
+
+    bay.state = 'active';
+    // Start 24 hours timer from now
+    bay.timerEnd = Date.now() + (24 * 60 * 60 * 1000);
+    saveBays();
+    renderBays();
+    updateMetrics();
+    showToast('🔑 Keys handed over to ' + bay.renterName + '! 24h timer active.');
+  }
+
+  // 5. ACTION: MARK RETURNED (ACTIVE -> FREE)
+  function markReturned(bayId) {
+    var bay = bays.find(function(item){ return item.id === bayId; });
+    if (!bay) return;
+
+    var confirmReturn = confirm(
+      'Confirm vehicle return for ' + bay.name + ' (Bay #' + bayId + ')?\n\n' +
+      '1. Check fuel level\n2. Inspect for scratches\n3. Collect 2 helmets\n4. Return security deposit/Aadhaar card'
+    );
+    if (!confirmReturn) return;
+
+    bay.state = 'free';
+    bay.renterName = '';
+    bay.renterPhone = '';
+    bay.balanceDue = 0;
+    bay.tokenPaid = 0;
+    bay.timerEnd = null;
+    bay.luggage = 'None';
+
+    saveBays();
+    renderBays();
+    updateMetrics();
+    showToast('✅ ' + bay.name + ' marked returned! Bay #' + bayId + ' is now FREE on customer app.');
+  }
+
+  // 6. ACTION: QUICK WALK-IN RENT
+  function quickWalkInRent(bayId) {
+    var bay = bays.find(function(item){ return item.id === bayId; });
+    if (!bay) return;
+
+    var name = prompt('Enter Walk-in Customer Name:', 'Walk-in Tourist');
+    if (!name) return;
+    var phone = prompt('Enter Customer Mobile Number:', '+91 ');
+    if (!phone) return;
+
+    bay.state = 'active';
+    bay.renterName = name;
+    bay.renterPhone = phone;
+    bay.balanceDue = 0;
+    bay.tokenPaid = bay.rate;
+    bay.timerEnd = Date.now() + (24 * 60 * 60 * 1000);
+    bay.luggage = 'None';
+
+    saveBays();
+    renderBays();
+    updateMetrics();
+    showToast('🔑 Walk-in rental started for ' + name + ' (Bay #' + bayId + ')');
+  }
+
+  // 7. DISPATCH LUGGAGE TO SAGE COURIER
+  function dispatchBagToSage(bagId) {
+    var confirmDispatch = confirm('Hand over Bag #' + bagId + ' to Rydealot Sage courier delivery partner?');
+    if (!confirmDispatch) return;
+
+    showToast('🚚 Bag #' + bagId + ' handed over to Sage Partner Suresh for Resort drop!');
+  }
+
+  // 8. LIVE COUNTDOWN TIMERS ENGINE (TICKS EVERY SECOND)
+  function startTimersEngine() {
+    setInterval(function() {
+      var now = Date.now();
+      bays.forEach(function(b) {
+        if (b.timerEnd && (b.state === 'active' || b.state === 'overdue')) {
+          var timerEl = document.getElementById('timer-bay-' + b.id);
+          var diffMs = b.timerEnd - now;
+
+          if (diffMs > 0) {
+            var hours = Math.floor(diffMs / (1000 * 60 * 60));
+            var mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            var secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+            var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+            if (timerEl) {
+              timerEl.textContent = pad(hours) + 'h ' + pad(mins) + 'm ' + pad(secs) + 's remaining';
+              timerEl.className = 'timer-val';
+            }
+          } else {
+            // Overdue
+            if (b.state !== 'overdue') {
+              b.state = 'overdue';
+              saveBays();
+              renderBays();
+              updateMetrics();
+            }
+            var overdueMs = Math.abs(diffMs);
+            var overdueMins = Math.floor(overdueMs / (1000 * 60));
+            if (timerEl) {
+              timerEl.textContent = '⚠️ OVERDUE by ' + overdueMins + ' mins (Add ₹50/hr fee)';
+              timerEl.className = 'timer-val overdue';
+            }
+          }
+        }
+      });
+    }, 1000);
+  }
+
+  // 9. METRICS UPDATE
+  function updateMetrics() {
+    var freeCount = bays.filter(function(b){ return b.state === 'free' && !b.isDesk; }).length;
+    var reservedCount = bays.filter(function(b){ return b.state === 'reserved'; }).length;
+    var activeCount = bays.filter(function(b){ return b.state === 'active' || b.state === 'overdue'; }).length;
+
+    var elFree = document.getElementById('stat-free-bays');
+    if (elFree) elFree.textContent = freeCount;
+    var elRes = document.getElementById('stat-reserved-bays');
+    if (elRes) elRes.textContent = reservedCount;
+    var elAct = document.getElementById('stat-active-bays');
+    if (elAct) elAct.textContent = activeCount;
+  }
+
+  // 10. CLOCK
+  function startClock() {
+    setInterval(function() {
+      var d = new Date();
+      var timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      var el = document.getElementById('live-hub-clock');
+      if (el) el.textContent = '🕒 ' + timeStr;
+    }, 1000);
+  }
+
+  // 11. TOAST
+  function showToast(msg) {
+    var t = document.getElementById('toast-notif');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 3000);
+  }
+
+  // INITIALIZATION
+  window.addEventListener('DOMContentLoaded', function() {
+    loadBays();
+    startTimersEngine();
+    startClock();
+  });
+</script>
+</body>
+</html>
