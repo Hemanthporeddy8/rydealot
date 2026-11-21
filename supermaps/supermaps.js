@@ -18,7 +18,7 @@ const CONFIG = {
 
 // --- PROGRAMMATIC AUTO-UPDATE & STALE CACHE EVAPORATOR ---
 // Ensures mobile phones & desktop browsers automatically discard old code with ZERO user friction.
-const SUPERMAPS_BUILD = 'v3.4.0';
+const SUPERMAPS_BUILD = 'v3.5.0';
 (function runAutoUpdater() {
   try {
     const cachedBuild = localStorage.getItem('supermaps_build_version');
@@ -47,6 +47,7 @@ let userMarker = null;
 let destMarker = null;
 let currentHeading = 0;
 let userLngLat = CONFIG.DEFAULT_LNG_LAT;
+let hasRealGpsLock = false;
 let isNavigating = false;
 let tapToSelectMode = false;
 let mainGpsWatchId = null;
@@ -282,7 +283,24 @@ function initMapEngine() {
       if (Array.isArray(parsed) && parsed.length === 2 && !isNaN(parsed[0]) && !isNaN(parsed[1])) {
         initialCenter = parsed;
         userLngLat = parsed;
+        const isDefault = (Math.abs(parsed[0] - CONFIG.DEFAULT_LNG_LAT[0]) < 0.005 && Math.abs(parsed[1] - CONFIG.DEFAULT_LNG_LAT[1]) < 0.005);
+        if (!isDefault) {
+          hasRealGpsLock = true;
+        }
       }
+    }
+  } catch (e) {}
+
+  // Deep Link Priority: If URL contains doorstep coordinates, open directly centered on destination!
+  try {
+    let rawHash = window.location.hash || '';
+    if (rawHash.startsWith('#')) rawHash = rawHash.substring(1);
+    let p = new URLSearchParams(rawHash);
+    if (!p.get('lat') || !p.get('lng')) p = new URLSearchParams(window.location.search);
+    const pLat = parseFloat(p.get('lat'));
+    const pLng = parseFloat(p.get('lng'));
+    if (!isNaN(pLat) && !isNaN(pLng) && pLat > 5 && pLat < 40 && pLng > 65 && pLng < 100) {
+      initialCenter = [pLng, pLat];
     }
   } catch (e) {}
 
@@ -371,10 +389,11 @@ function initMapEngine() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         userLngLat = [pos.coords.longitude, pos.coords.latitude];
+        hasRealGpsLock = true;
         try { localStorage.setItem('supermaps_last_location', JSON.stringify(userLngLat)); } catch(e){}
         const accuracyMeters = pos.coords.accuracy;
 
-        if (!userInteractedWithMap) {
+        if (!userInteractedWithMap && !activeDestination) {
           map.flyTo({ center: userLngLat, zoom: 15 });
         }
         createUserMarker(userLngLat);
@@ -383,6 +402,12 @@ function initMapEngine() {
 
         if (accuracyMeters < 60) {
           cacheSafetyBuffer5Km(userLngLat);
+        }
+
+        // If a destination was loaded (e.g. from a shared WhatsApp link) and we're not driving, recompute route using real GPS
+        if (activeDestination && !isNavigating) {
+          console.log('[Supermaps GPS] Location acquired, calculating path to destination:', activeDestination);
+          calculateActiveRoute(activeDestination.lng, activeDestination.lat, activeDestination.name, false, activeDestination);
         }
       },
       (err) => {
@@ -406,12 +431,13 @@ function initMapEngine() {
         if (accuracy < 60 || (!hasSatelliteLock && accuracy < 150)) {
           if (accuracy < 60) hasSatelliteLock = true;
           userLngLat = newCoords;
+          hasRealGpsLock = true;
           try { localStorage.setItem('supermaps_last_location', JSON.stringify(userLngLat)); } catch(e){}
           createUserMarker(userLngLat);
           drawAccuracyCircle(userLngLat, accuracy);
 
-          // Only auto-center camera on doorstep ONCE on initial lock if user hasn't panned/zoomed away
-          if (!isNavigating && !userInteractedWithMap && !hasDoorstepCentered) {
+          // Only auto-center camera on doorstep ONCE on initial lock if user hasn't panned/zoomed away and no destination is set
+          if (!isNavigating && !userInteractedWithMap && !hasDoorstepCentered && !activeDestination) {
             hasDoorstepCentered = true;
             map.flyTo({ center: userLngLat, zoom: 16 });
           }
@@ -3025,8 +3051,66 @@ function removeDoorstepPhoto() {
   if (previewWrap) previewWrap.style.display = 'none';
 }
 
-function openShareLocationModal() {
-  _shareSourceMode = 'gps';
+async function ensureGpsLock(timeoutMs = 3000) {
+  if (hasRealGpsLock) return true;
+  if (!('geolocation' in navigator)) return false;
+
+  return new Promise((resolve) => {
+    let resolved = false;
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(false);
+      }
+    }, timeoutMs);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          userLngLat = [pos.coords.longitude, pos.coords.latitude];
+          hasRealGpsLock = true;
+          try { localStorage.setItem('supermaps_last_location', JSON.stringify(userLngLat)); } catch(e){}
+          createUserMarker(userLngLat);
+          resolve(true);
+        }
+      },
+      (err) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          resolve(false);
+        }
+      },
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 }
+    );
+  });
+}
+
+function updateShareCoordsPreview() {
+  const el = document.getElementById('share-coords-preview');
+  if (!el) return;
+  const coords = getShareTargetCoords();
+  if (_shareSourceMode === 'gps') {
+    if (hasRealGpsLock) {
+      el.innerHTML = `<span style="color:#10b981; font-weight:700;">● GPS Locked:</span> ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+    } else {
+      el.innerHTML = `<span style="color:#f59e0b; font-weight:700;">⏳ Acquiring GPS...</span> (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`;
+    }
+  } else {
+    const pinName = activeDestination?.name ? `"${activeDestination.name}"` : 'Selected Pin';
+    el.innerHTML = `<span style="color:#06b6d4; font-weight:700;">📌 ${pinName}:</span> ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+  }
+}
+
+async function openShareLocationModal() {
+  // If user dropped a pin or selected a place, prioritize pin mode
+  if (activeDestination && activeDestination.lat && activeDestination.lng) {
+    _shareSourceMode = 'pin';
+  } else {
+    _shareSourceMode = 'gps';
+  }
   updateShareSourceUI();
 
   const nameInput = document.getElementById('share-input-name');
@@ -3039,6 +3123,14 @@ function openShareLocationModal() {
   }
 
   openModal('modal-share-location');
+  updateShareCoordsPreview();
+
+  // If GPS is not locked yet, immediately trigger background high-accuracy lock
+  if (!hasRealGpsLock && 'geolocation' in navigator) {
+    ensureGpsLock(4000).then(() => {
+      updateShareCoordsPreview();
+    });
+  }
 }
 
 function openShareForCurrentPlace() {
@@ -3052,11 +3144,13 @@ function openShareForCurrentPlace() {
   }
   closeBottomPanel();
   openModal('modal-share-location');
+  updateShareCoordsPreview();
 }
 
 function setShareSource(mode) {
   _shareSourceMode = mode;
   updateShareSourceUI();
+  updateShareCoordsPreview();
 }
 
 function updateShareSourceUI() {
@@ -3067,17 +3161,29 @@ function updateShareSourceUI() {
 }
 
 function getShareTargetCoords() {
-  if (_shareSourceMode === 'pin' && activeDestination) {
+  if (_shareSourceMode === 'pin' && activeDestination && activeDestination.lat && activeDestination.lng) {
     return { lat: activeDestination.lat, lng: activeDestination.lng };
+  }
+  // If GPS locked, use true GPS coordinates
+  if (hasRealGpsLock && userLngLat) {
+    return { lat: userLngLat[1], lng: userLngLat[0] };
+  }
+  // If user has an active pin/destination
+  if (activeDestination && activeDestination.lat && activeDestination.lng) {
+    return { lat: activeDestination.lat, lng: activeDestination.lng };
+  }
+  // If map viewport has moved away from default Hyderabad, use map center
+  if (map) {
+    const center = map.getCenter();
+    const isDefault = (Math.abs(center.lng - CONFIG.DEFAULT_LNG_LAT[0]) < 0.005 && Math.abs(center.lat - CONFIG.DEFAULT_LNG_LAT[1]) < 0.005);
+    if (!isDefault) {
+      return { lat: center.lat, lng: center.lng };
+    }
   }
   if (userLngLat) {
     return { lat: userLngLat[1], lng: userLngLat[0] };
   }
-  if (map) {
-    const center = map.getCenter();
-    return { lat: center.lat, lng: center.lng };
-  }
-  return { lat: 17.3850, lng: 78.4867 };
+  return { lat: CONFIG.DEFAULT_LNG_LAT[1], lng: CONFIG.DEFAULT_LNG_LAT[0] };
 }
 
 function buildFullShareLink() {
@@ -3106,6 +3212,11 @@ function buildFullShareLink() {
 }
 
 async function quickShareSystem() {
+  if (_shareSourceMode === 'gps' && !hasRealGpsLock) {
+    showSupermapsToast('Locking onto satellite GPS...', '🛰️', 'info');
+    await ensureGpsLock(2500);
+    updateShareCoordsPreview();
+  }
   const { url, name } = buildFullShareLink();
   if (navigator.share) {
     try {
@@ -3126,7 +3237,12 @@ async function quickShareSystem() {
   copyShareLink();
 }
 
-function shareOnWhatsApp() {
+async function shareOnWhatsApp() {
+  if (_shareSourceMode === 'gps' && !hasRealGpsLock) {
+    showSupermapsToast('Locking onto satellite GPS...', '🛰️', 'info');
+    await ensureGpsLock(2500);
+    updateShareCoordsPreview();
+  }
   const { url, name, clue, hasPhoto } = buildFullShareLink();
   let msg = `📍 *Rydealot Supermaps Location*\n`;
   msg += `🏠 *Destination:* ${name}\n`;
@@ -3138,22 +3254,12 @@ function shareOnWhatsApp() {
   window.open(waLink, '_blank');
 }
 
-function copyShareLink() {
-  const { url } = buildFullShareLink();
-  const btnText = document.getElementById('copy-btn-text');
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(() => {
-      if (btnText) {
-        btnText.innerText = '✓ Copied!';
-        setTimeout(() => { btnText.innerText = 'Copy Link'; }, 2500);
-      }
-    }).catch(() => fallbackCopy(url, btnText));
-  } else {
-    fallbackCopy(url, btnText);
+async function copyShareLink() {
+  if (_shareSourceMode === 'gps' && !hasRealGpsLock) {
+    showSupermapsToast('Locking onto satellite GPS...', '🛰️', 'info');
+    await ensureGpsLock(2500);
+    updateShareCoordsPreview();
   }
-}
-
-function copyShareLink() {
   const { url } = buildFullShareLink();
   const btnText = document.getElementById('copy-btn-text');
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -3186,6 +3292,107 @@ function fallbackCopy(text, btnText) {
   }
   document.body.removeChild(tempInput);
 }
+
+// Deep-Link & WhatsApp Launch Parameter Parser: Drops Pin & Computes Route
+function checkUrlLaunchParameters() {
+  try {
+    let rawHash = window.location.hash || '';
+    if (rawHash.startsWith('#')) rawHash = rawHash.substring(1);
+
+    // Support both hash fragments (#lat=...&lng=...) and query parameters (?lat=...&lng=...)
+    let params = new URLSearchParams(rawHash);
+    if (!params.get('lat') || !params.get('lng')) {
+      params = new URLSearchParams(window.location.search);
+    }
+
+    const latStr = params.get('lat');
+    const lngStr = params.get('lng');
+    if (!latStr || !lngStr) return;
+
+    const lat = parseFloat(latStr);
+    const lng = parseFloat(lngStr);
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    // Validate coordinates are within realistic India bounds
+    if (lat < 5 || lat > 40 || lng < 65 || lng > 100) {
+      console.warn('[Supermaps Launch] Coordinates out of bounds:', lat, lng);
+      return;
+    }
+
+    const name = params.get('name') || 'Shared Doorstep';
+    const clue = params.get('clue') || '';
+    const img = params.get('img') || '';
+    const autoNav = params.get('nav') === '1' || params.get('nav') === 'true';
+
+    console.log('[Supermaps Launch] Received shared destination:', { lat, lng, name, clue, hasImg: !!img });
+
+    const doorstepMeta = { name, clue, img };
+    activeDestination = {
+      lng,
+      lat,
+      name,
+      clue,
+      img
+    };
+
+    // Remove existing destination marker if any
+    if (destMarker) destMarker.remove();
+
+    // Create high-visibility destination pin
+    const el = document.createElement('div');
+    el.className = 'shared-dest-marker';
+    el.innerHTML = `
+      <div style="position:relative; width:34px; height:42px; display:flex; align-items:center; justify-content:center; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.6)); cursor:pointer;">
+        <svg width="34" height="42" viewBox="0 0 24 30" fill="none">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 18 12 18s12-9 12-18c0-6.63-5.37-12-12-12z" fill="#f59e0b"/>
+          <circle cx="12" cy="11" r="5" fill="#000"/>
+          <circle cx="12" cy="11" r="2.5" fill="#fff"/>
+        </svg>
+        ${img ? '<div style="position:absolute; top:-4px; right:-4px; background:#10b981; color:#fff; font-size:10px; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; border:2px solid #fff; box-shadow:0 2px 4px rgba(0,0,0,0.3);">📸</div>' : ''}
+      </div>
+    `;
+
+    destMarker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+      .setLngLat([lng, lat])
+      .addTo(map);
+
+    // Update directions UI
+    toggleDirectionsMode(true);
+    const toInput = document.getElementById('dir-to-input');
+    if (toInput) toInput.value = name;
+    const fromInput = document.getElementById('dir-from-input');
+    if (fromInput) fromInput.value = 'Your Location (GPS)';
+
+    // Show visual confirmation toast
+    showSupermapsToast(`📍 Navigating to ${name}`, '🚀', 'success');
+
+    // If doorstep photo or clue is present, render arrival card preview
+    if (img || clue) {
+      renderDoorstepCard(doorstepMeta);
+    }
+
+    // Camera handling: fit bounds if user position is available and distant; else fly to destination
+    if (map) {
+      if (userLngLat && (Math.abs(userLngLat[0] - lng) > 0.001 || Math.abs(userLngLat[1] - lat) > 0.001)) {
+        const bounds = new maplibregl.LngLatBounds();
+        bounds.extend(userLngLat);
+        bounds.extend([lng, lat]);
+        map.fitBounds(bounds, { padding: { top: 90, bottom: 120, left: 60, right: 60 }, maxZoom: 16 });
+      } else {
+        map.flyTo({ center: [lng, lat], zoom: 15 });
+      }
+    }
+
+    // Trigger path calculation from recipient's current location to shared destination
+    calculateActiveRoute(lng, lat, name, autoNav, doorstepMeta);
+
+  } catch (err) {
+    console.warn('[Supermaps Launch] Error parsing launch parameters:', err);
+  }
+}
+
+// React immediately if user clicks a new shared link in their browser while Supermaps is already open
+window.addEventListener('hashchange', checkUrlLaunchParameters);
 
 // Doorstep Arrival Card & Lightbox Display
 function renderDoorstepCard(meta) {
