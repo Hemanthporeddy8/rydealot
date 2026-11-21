@@ -113,6 +113,13 @@ export default {
         return await handleShortcuts(request, path, url, env, corsHeaders);
       }
 
+      // 11. RIDER ROUTE & DOORSTEP FEEDBACK (Stars + Comments to Admin)
+      // POST /api/v1/feedback
+      // GET  /api/v1/feedback
+      if (path === '/api/v1/feedback' || path === '/api/v1/admin/feedback') {
+        return await handleFeedback(request, env, corsHeaders);
+      }
+
       return jsonResponse({ error: 'Endpoint not found on Supermaps Server' }, 404, corsHeaders);
 
     } catch (err) {
@@ -1403,3 +1410,111 @@ function jsonResponse(data, status = 200, extraHeaders = {}) {
     }
   });
 }
+
+// =========================================================================
+// MODULE 11: RIDER ROUTE & DOORSTEP FEEDBACK (Stars + Comments to Admin)
+// =========================================================================
+const _feedbackMemoryCache = [];
+
+async function handleFeedback(request, env, headers) {
+  const method = request.method.toUpperCase();
+
+  if (method === 'POST') {
+    try {
+      const data = await request.json();
+      if (!data) return jsonResponse({ error: 'Missing body' }, 400, headers);
+
+      const entry = {
+        id: data.id || ('fb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
+        rating: data.rating || 5,
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        comment: (data.comment || '').substring(0, 500),
+        destinationName: (data.destinationName || 'Destination').substring(0, 100),
+        destinationCoords: data.destinationCoords || null,
+        userGpsCoords: data.userGpsCoords || null,
+        vehicleMode: data.vehicleMode || 'car',
+        doorstepVerified: !!data.doorstepVerified,
+        timestamp: data.timestamp || new Date().toISOString()
+      };
+
+      // 1. In-memory cache failover
+      _feedbackMemoryCache.unshift(entry);
+      if (_feedbackMemoryCache.length > 200) _feedbackMemoryCache.pop();
+
+      // 2. Persist to KV if available
+      if (env.SUPERMAPS_KV) {
+        try {
+          await env.SUPERMAPS_KV.put('smp_feedbacks', JSON.stringify(_feedbackMemoryCache.slice(0, 50)));
+        } catch(e) {}
+      }
+
+      // 3. Persist to D1 DB if available
+      if (env.DB) {
+        try {
+          await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS supermaps_feedbacks (
+              id TEXT PRIMARY KEY,
+              rating INTEGER,
+              tags TEXT,
+              comment TEXT,
+              destination_name TEXT,
+              destination_coords TEXT,
+              user_gps_coords TEXT,
+              vehicle_mode TEXT,
+              doorstep_verified INTEGER,
+              created_at TEXT
+            )
+          `).run();
+
+          await env.DB.prepare(`
+            INSERT INTO supermaps_feedbacks (id, rating, tags, comment, destination_name, destination_coords, user_gps_coords, vehicle_mode, doorstep_verified, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            entry.id,
+            entry.rating,
+            JSON.stringify(entry.tags),
+            entry.comment,
+            entry.destinationName,
+            JSON.stringify(entry.destinationCoords),
+            JSON.stringify(entry.userGpsCoords),
+            entry.vehicleMode,
+            entry.doorstepVerified ? 1 : 0,
+            entry.timestamp
+          ).run();
+        } catch(err) {
+          console.warn('D1 feedback write:', err);
+        }
+      }
+
+      return jsonResponse({ success: true, message: 'Feedback recorded by Supermaps Admin', id: entry.id }, 200, headers);
+    } catch(err) {
+      return jsonResponse({ error: 'Failed to record feedback', details: err.message }, 500, headers);
+    }
+  }
+
+  if (method === 'GET') {
+    // Admin query for recent feedbacks
+    if (env.DB) {
+      try {
+        const { results } = await env.DB.prepare(`
+          SELECT * FROM supermaps_feedbacks ORDER BY created_at DESC LIMIT 50
+        `).all();
+        if (results && results.length > 0) {
+          return jsonResponse(results, 200, headers);
+        }
+      } catch(e) {}
+    }
+
+    if (env.SUPERMAPS_KV) {
+      try {
+        const cached = await env.SUPERMAPS_KV.get('smp_feedbacks', { type: 'json' });
+        if (cached) return jsonResponse(cached, 200, headers);
+      } catch(e) {}
+    }
+
+    return jsonResponse(_feedbackMemoryCache, 200, headers);
+  }
+
+  return jsonResponse({ error: 'Method not allowed' }, 405, headers);
+}
+

@@ -349,6 +349,9 @@
         <div class="nav-action-text" id="nav-hud-action">Driving Route Active</div>
       </div>
       <div style="display:flex; gap:8px; align-items:center;">
+        <button type="button" class="btn-arrived-nav" onclick="triggerDestinationReached()" title="Mark as Arrived" style="background:linear-gradient(135deg, #10b981, #059669); color:#fff; border:none; border-radius:10px; padding:7px 12px; font-weight:800; font-size:0.78rem; cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 4px 12px rgba(16,185,129,0.35);">
+          <span>🏁 Arrived</span>
+        </button>
         <button type="button" class="btn-stop-nav" onclick="stopNavigation()">Stop</button>
       </div>
     </div>
@@ -774,6 +777,64 @@
     </div>
   </div>
 
+  <!-- Modal: Destination Reached & Route Feedback -->
+  <div class="modal-overlay" id="modal-destination-reached">
+    <div class="modal-container dest-reached-container">
+      <div class="dest-reached-header">
+        <div class="dest-reached-badge">🏁 DESTINATION ARRIVED</div>
+        <div class="dest-reached-title" id="dest-reached-name">You Have Arrived!</div>
+        <div class="dest-reached-clue" id="dest-reached-clue" style="display:none;"></div>
+      </div>
+
+      <!-- Doorstep Photo Verification Thumbnail (if attached) -->
+      <div class="dest-reached-photo-wrap" id="dest-reached-photo-wrap" style="display:none;">
+        <img id="dest-reached-photo" src="" alt="Doorstep" class="dest-reached-thumb" onclick="openDoorstepLightbox(this.src)">
+        <span class="dest-photo-badge">📸 Doorstep Reference</span>
+      </div>
+
+      <!-- 5-Star Interactive Rating -->
+      <div class="feedback-card-section">
+        <div class="feedback-label">Rate Route &amp; Doorstep Accuracy</div>
+        <div class="feedback-stars-row" id="feedback-stars-row">
+          <span class="feedback-star active" data-star="1" onclick="setFeedbackStars(1)">★</span>
+          <span class="feedback-star active" data-star="2" onclick="setFeedbackStars(2)">★</span>
+          <span class="feedback-star active" data-star="3" onclick="setFeedbackStars(3)">★</span>
+          <span class="feedback-star active" data-star="4" onclick="setFeedbackStars(4)">★</span>
+          <span class="feedback-star active" data-star="5" onclick="setFeedbackStars(5)">★</span>
+        </div>
+        <div class="feedback-rating-label" id="feedback-rating-label">⭐⭐⭐⭐⭐ Excellent &amp; Exact Doorstep!</div>
+      </div>
+
+      <!-- Quick Feedback Tags -->
+      <div class="feedback-card-section">
+        <span class="feedback-sublabel">Tap quick feedback (Optional):</span>
+        <div class="feedback-chips-grid">
+          <button type="button" class="feedback-chip" onclick="toggleFeedbackChip(this)">🎯 Exact Doorstep</button>
+          <button type="button" class="feedback-chip" onclick="toggleFeedbackChip(this)">⚡ Smooth &amp; Fast</button>
+          <button type="button" class="feedback-chip" onclick="toggleFeedbackChip(this)">🛵 Shortcut Helpful</button>
+          <button type="button" class="feedback-chip" onclick="toggleFeedbackChip(this)">🚧 Road Blocked</button>
+          <button type="button" class="feedback-chip" onclick="toggleFeedbackChip(this)">📍 Pin Needs Adjustment</button>
+        </div>
+      </div>
+
+      <!-- Comment Box to Admin -->
+      <div class="feedback-card-section">
+        <label class="feedback-sublabel" for="feedback-comment-input">Message to Supermaps Admin (Optional):</label>
+        <textarea id="feedback-comment-input" class="feedback-comment-textarea" placeholder="Tell us about the route, gate access, or landmark... (Goes directly to Admin)" rows="2" maxlength="400"></textarea>
+      </div>
+
+      <!-- Submit & Skip Actions -->
+      <div class="feedback-actions-row">
+        <button type="button" class="btn-submit-feedback" onclick="submitDestinationFeedback(event)">
+          <span>✓ Submit Feedback to Admin</span>
+        </button>
+        <button type="button" class="btn-skip-feedback" onclick="skipDestinationFeedback()">
+          <span>Done</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- In-App Floating Toast Notification -->
   <div class="supermaps-toast" id="supermaps-toast">
     <span class="toast-icon" id="toast-icon">⚡</span>
@@ -781,6 +842,6 @@
   </div>
 
   <!-- Master Engine Script -->
-  <script src="supermaps.js?v=4.6"></script>
+  <script src="supermaps.js?v=4.7"></script>
 </body>
 </html>

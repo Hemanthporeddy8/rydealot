@@ -374,7 +374,8 @@
       <button class="tab-btn" onclick="switchAdminTab('shortcuts')">⚡ Shortcuts &amp; Bounties</button>
       <button class="tab-btn" onclick="switchAdminTab('buildings')">🏢 Buildings GIS</button>
       <button class="tab-btn" onclick="switchAdminTab('trails')">🚗 5-Car Alerts</button>
-      <button class="tab-btn" onclick="switchAdminTab('shops')">⭐ Shops</button>
+      <button class="tab-btn" onclick="switchAdminTab('shops')">🏪 Shops</button>
+      <button class="tab-btn" onclick="switchAdminTab('feedback')">⭐ Rider Feedback</button>
     </div>
 
     <!-- TAB 1: ROADS GIS (ADD, CHANGE, DEMOLISH/BLOCK ROADS) -->
@@ -625,6 +626,20 @@
             <button class="btn-act" style="width:auto; padding:6px 12px; background:var(--gold); color:#000;" onclick="alert('Trial active.')">Active</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: RIDER ROUTE & DOORSTEP FEEDBACK (5-STAR RATINGS + COMMENTS) -->
+    <div class="tab-content" id="tab-feedback" style="display:none;">
+      <div class="info-box">
+        ⭐ <strong>Live Rider Reviews &amp; Doorstep Feedback:</strong> Reviews submitted by riders after reaching destinations across Supermaps.
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-size:0.78rem; font-weight:800; color:var(--gold);" id="admin-feedback-count">0 reviews</span>
+        <button onclick="loadAdminFeedback()" style="background:rgba(245,158,11,0.15); border:1px solid var(--gold); color:var(--gold); border-radius:6px; padding:4px 10px; font-size:0.75rem; cursor:pointer; font-weight:700;">🔄 Refresh</button>
+      </div>
+      <div id="admin-feedback-feed" style="display:flex; flex-direction:column; gap:10px; max-height:calc(100vh - 280px); overflow-y:auto; padding-right:4px;">
+        <!-- Injected dynamically -->
       </div>
     </div>
   </aside>
@@ -1449,6 +1464,79 @@
       if (tab === 'shops') {
         renderAdminShopsAndTransfers();
       }
+      if (tab === 'feedback') {
+        loadAdminFeedback();
+      }
+    }
+
+    async function loadAdminFeedback() {
+      const feed = document.getElementById('admin-feedback-feed');
+      const countEl = document.getElementById('admin-feedback-count');
+      if (!feed) return;
+
+      feed.innerHTML = '<div style="color:var(--muted); font-size:0.8rem; text-align:center; padding:20px 0;">Loading reviews...</div>';
+
+      let items = [];
+      // 1. Try local storage first
+      try {
+        const local = JSON.parse(localStorage.getItem('rydealot_supermaps_feedbacks') || '[]');
+        if (Array.isArray(local)) items = local;
+      } catch(e) {}
+
+      // 2. Fetch from backend worker if online
+      try {
+        if (D1_WORKER && navigator.onLine) {
+          const res = await fetch(`${D1_WORKER}/api/v1/feedback`);
+          if (res.ok) {
+            const remote = await res.json();
+            if (Array.isArray(remote) && remote.length > 0) {
+              const seen = new Set();
+              const merged = [];
+              [...remote, ...items].forEach(it => {
+                if (it && it.id && !seen.has(it.id)) {
+                  seen.add(it.id);
+                  merged.push(it);
+                }
+              });
+              items = merged;
+            }
+          }
+        }
+      } catch(e) {}
+
+      if (countEl) countEl.innerText = `${items.length} reviews`;
+
+      if (items.length === 0) {
+        feed.innerHTML = `
+          <div style="text-align:center; padding:30px 10px; color:var(--muted); font-size:0.82rem; line-height:1.5;">
+            No feedback submitted yet.<br>When riders reach their destination and rate their route on Supermaps, their 5-star reviews and comments will appear here in real-time.
+          </div>
+        `;
+        return;
+      }
+
+      feed.innerHTML = items.map(fb => {
+        const rating = parseInt(fb.rating || 5, 10);
+        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        const tags = Array.isArray(fb.tags) ? fb.tags.map(t => `<span style="background:rgba(245,158,11,0.12); color:#f59e0b; border:1px solid rgba(245,158,11,0.3); border-radius:6px; padding:2px 6px; font-size:0.68rem; font-weight:700;">${t}</span>`).join(' ') : '';
+        const timeStr = fb.timestamp ? new Date(fb.timestamp).toLocaleString() : 'Recently';
+        const coordsText = (fb.destinationCoords && fb.destinationCoords.length === 2) ? `[${fb.destinationCoords[1].toFixed(4)}, ${fb.destinationCoords[0].toFixed(4)}]` : '';
+
+        return `
+          <div style="background:#131722; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-weight:800; color:#fff; font-size:0.85rem;">${fb.destinationName || 'Destination'} ${coordsText}</span>
+              <span style="color:#f59e0b; font-size:0.95rem; letter-spacing:1px;">${stars}</span>
+            </div>
+            ${fb.comment ? `<div style="font-size:0.8rem; color:#e2e8f0; background:rgba(0,0,0,0.35); padding:8px 10px; border-radius:8px; line-height:1.4; border-left:3px solid var(--gold);">"${fb.comment}"</div>` : ''}
+            ${tags ? `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:2px;">${tags}</div>` : ''}
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--muted); margin-top:4px;">
+              <span>Mode: <strong style="color:#06b6d4;">${(fb.vehicleMode || 'car').toUpperCase()}</strong> ${fb.doorstepVerified ? '• 📸 Doorstep Photo' : ''}</span>
+              <span>${timeStr}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     // 5-Car Alerts Helpers

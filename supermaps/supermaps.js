@@ -18,7 +18,7 @@ const CONFIG = {
 
 // --- PROGRAMMATIC AUTO-UPDATE & STALE CACHE EVAPORATOR ---
 // Ensures mobile phones & desktop browsers automatically discard old code with ZERO user friction.
-const SUPERMAPS_BUILD = 'v3.5.0';
+const SUPERMAPS_BUILD = 'v3.6.0';
 (function runAutoUpdater() {
   try {
     const cachedBuild = localStorage.getItem('supermaps_build_version');
@@ -70,6 +70,9 @@ let _shareSourceMode = 'gps'; // 'gps' or 'pin'
 let isPowerSaverActive = localStorage.getItem('rydealot_power_saver') === 'true';
 let isDataSaverActive = localStorage.getItem('rydealot_data_saver') === 'true';
 let _hasShownArrivalDoorstep = false;
+let _hasArrivedDestination = false;
+let _selectedFeedbackRating = 5;
+let _currentDestinationFeedbackMeta = null;
 
 // ── THEME DEFINITIONS ──────────────────────────────────────────────────────────
 // Official Protomaps flavor palettes. Guaranteed 100% valid MapLibre layers with zero validation errors.
@@ -1420,6 +1423,8 @@ function startNavigation(destLng, destLat, destName, routeGeom) {
   isNavigating = true;
   _activeNavRoute = routeGeom;
   _hasShownArrivalDoorstep = false;
+  _hasArrivedDestination = false;
+  _currentDestinationFeedbackMeta = activeDestination ? { ...activeDestination } : { lng: destLng, lat: destLat, name: destName };
   requestScreenWakeLock();
 
   // Show HUD
@@ -1476,6 +1481,12 @@ function startNavigation(destLng, destLat, destName, routeGeom) {
           _hasShownArrivalDoorstep = true;
           renderDoorstepCard(activeDestination);
         }
+
+        // Auto-popup Destination Reached & Feedback Card when within 25 meters (0.025 km)
+        if (d <= 0.025 && !_hasArrivedDestination) {
+          _hasArrivedDestination = true;
+          triggerDestinationReached();
+        }
       },
       (err) => console.warn('Nav GPS watch error:', err),
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 6000 }
@@ -1509,8 +1520,7 @@ function toggleSimulation() {
       clearInterval(navSimInterval);
       navSimInterval = null;
       if (btn) btn.classList.remove('active');
-      showSupermapsToast('You have reached your destination!', '🏁', 'success');
-      stopNavigation();
+      triggerDestinationReached();
       return;
     }
 
@@ -1585,6 +1595,173 @@ function stopNavigation() {
 
   clearActiveRoute();
   map.easeTo({ pitch: 0, bearing: 0, zoom: 14, duration: 800 });
+}
+
+// =========================================================================
+// DESTINATION REACHED & 5-STAR ROUTE FEEDBACK ENGINE
+// =========================================================================
+function triggerDestinationReached() {
+  if (!_currentDestinationFeedbackMeta && activeDestination) {
+    _currentDestinationFeedbackMeta = { ...activeDestination };
+  }
+
+  // Release wake lock and stop tracking
+  isNavigating = false;
+  releaseScreenWakeLock();
+  if (navWatchId) {
+    navigator.geolocation.clearWatch(navWatchId);
+    navWatchId = null;
+  }
+  if (navSimInterval) {
+    clearInterval(navSimInterval);
+    navSimInterval = null;
+    const btn = document.getElementById('btn-sim-nav');
+    if (btn) btn.classList.remove('active');
+  }
+  _activeNavRoute = null;
+
+  // Hide nav HUD and guidance cards
+  const hud = document.getElementById('nav-hud');
+  if (hud) hud.style.display = 'none';
+  const flyCard = document.getElementById('nav-flyover-card');
+  if (flyCard) flyCard.style.display = 'none';
+  const scCard = document.getElementById('nav-shortcut-card');
+  if (scCard) scCard.style.display = 'none';
+
+  // Clear polyline routes from map
+  clearActiveRoute(false, true);
+
+  // Gentle haptic vibration on mobile devices
+  if (navigator.vibrate) {
+    try { navigator.vibrate([100, 50, 150]); } catch(e) {}
+  }
+
+  // Populate Destination Reached Card
+  const destName = _currentDestinationFeedbackMeta?.name || 'Your Destination';
+  const destClue = _currentDestinationFeedbackMeta?.clue || '';
+  const destPhoto = _currentDestinationFeedbackMeta?.img || '';
+
+  const nameEl = document.getElementById('dest-reached-name');
+  if (nameEl) nameEl.innerText = destName;
+
+  const clueEl = document.getElementById('dest-reached-clue');
+  if (clueEl) {
+    if (destClue) {
+      clueEl.innerText = `🔍 Clue: ${destClue}`;
+      clueEl.style.display = 'inline-block';
+    } else {
+      clueEl.style.display = 'none';
+    }
+  }
+
+  const photoEl = document.getElementById('dest-reached-photo');
+  const photoWrap = document.getElementById('dest-reached-photo-wrap');
+  if (photoEl && photoWrap) {
+    if (destPhoto) {
+      photoEl.src = destPhoto;
+      photoWrap.style.display = 'block';
+    } else {
+      photoWrap.style.display = 'none';
+    }
+  }
+
+  // Reset star rating to 5
+  setFeedbackStars(5);
+
+  // Reset chips
+  document.querySelectorAll('.feedback-chip').forEach(c => c.classList.remove('active'));
+
+  // Reset comment input
+  const commentInput = document.getElementById('feedback-comment-input');
+  if (commentInput) commentInput.value = '';
+
+  // Open modal
+  openModal('modal-destination-reached');
+}
+
+function setFeedbackStars(rating) {
+  _selectedFeedbackRating = rating;
+  const stars = document.querySelectorAll('.feedback-star');
+  const ratingLabel = document.getElementById('feedback-rating-label');
+
+  stars.forEach((star, idx) => {
+    if (idx < rating) {
+      star.style.color = '#f59e0b';
+      star.classList.add('active');
+    } else {
+      star.style.color = 'rgba(255, 255, 255, 0.2)';
+      star.classList.remove('active');
+    }
+  });
+
+  const labels = {
+    1: '⭐ Terrible / Inaccurate Route',
+    2: '⭐⭐ Below Average',
+    3: '⭐⭐⭐ Average Experience',
+    4: '⭐⭐⭐⭐ Good Route',
+    5: '⭐⭐⭐⭐⭐ Excellent & Exact Doorstep!'
+  };
+  if (ratingLabel) {
+    ratingLabel.innerText = labels[rating] || `${rating} Stars`;
+  }
+}
+
+function toggleFeedbackChip(chipEl) {
+  if (chipEl) chipEl.classList.toggle('active');
+}
+
+async function submitDestinationFeedback(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const comment = document.getElementById('feedback-comment-input')?.value?.trim() || '';
+  const selectedChips = Array.from(document.querySelectorAll('.feedback-chip.active')).map(c => c.innerText.trim());
+
+  const dest = _currentDestinationFeedbackMeta || activeDestination || {};
+  const feedbackData = {
+    id: 'fb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    timestamp: new Date().toISOString(),
+    rating: _selectedFeedbackRating,
+    tags: selectedChips,
+    comment: comment,
+    destinationName: dest.name || 'Shared Doorstep',
+    destinationCoords: (dest.lat && dest.lng) ? [dest.lng, dest.lat] : null,
+    userGpsCoords: userLngLat || null,
+    vehicleMode: activeVehicleMode || 'car',
+    doorstepVerified: !!dest.img
+  };
+
+  // 1. Immediately persist to localStorage for instant offline resilience & Supermaps Admin view
+  try {
+    const stored = JSON.parse(localStorage.getItem('rydealot_supermaps_feedbacks') || '[]');
+    stored.unshift(feedbackData);
+    localStorage.setItem('rydealot_supermaps_feedbacks', JSON.stringify(stored.slice(0, 100)));
+  } catch(e) {}
+
+  // 2. Transmit to Cloudflare Worker D1 backend in background
+  try {
+    fetch(`${CONFIG.D1_WORKER}/api/v1/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(feedbackData)
+    }).catch(err => console.warn('Feedback API sync error:', err));
+  } catch(e) {}
+
+  // 3. Close modal & show confirmation toast
+  closeModal('modal-destination-reached');
+  showSupermapsToast('⭐ Feedback received by Supermaps Admin! Thank you.', '🏁', 'success');
+
+  // Reset metadata and clear pin
+  _currentDestinationFeedbackMeta = null;
+  clearActiveRoute(true, true);
+  activeDestination = null;
+}
+
+function skipDestinationFeedback() {
+  closeModal('modal-destination-reached');
+  _currentDestinationFeedbackMeta = null;
+  clearActiveRoute(true, true);
+  activeDestination = null;
+  showSupermapsToast('Trip completed!', '✓', 'info');
 }
 
 // =========================================================================
