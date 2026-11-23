@@ -712,6 +712,8 @@ async function handleTrackingUpdate(request, env, corsHeaders) {
       status: 'available',
       lat: Number(body.lat || 0),
       lng: Number(body.lng || 0),
+      heading: Number(body.heading || 0),
+      speed: Number(body.speed || 0),
       updated_at: new Date().toISOString(),
       timestamp: Date.now()
     });

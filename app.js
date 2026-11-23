@@ -2507,6 +2507,22 @@
     state.lastReportedTime = 0;
     state.activeTripBreadcrumbs = [];
 
+    // Zero-Disk In-Memory GPS Broadcaster (Cloudflare Edge RAM + Firebase RTDB)
+    if (typeof window.DriverTracker !== 'undefined' && state.riderId) {
+      var driverProfile = {
+        name: localStorage.getItem('ridelot_rider_name') || 'Captain',
+        phone: localStorage.getItem('ridelot_rider_phone') || '',
+        vehicle_type: localStorage.getItem('ridelot_rider_vtype') || 'bike',
+        vehicle_label: localStorage.getItem('ridelot_rider_vlabel') || 'Bike Taxi',
+        plate: localStorage.getItem('ridelot_rider_plate') || ''
+      };
+      window.DriverTracker.onLocation(function(pos) {
+        state.lat = pos.lat;
+        state.lng = pos.lng;
+      });
+      window.DriverTracker.start(state.riderId, driverProfile);
+    }
+
     function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
       if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return 999999;
       var R = 6371000; // meters
@@ -2566,16 +2582,31 @@
         }
 
         // CASE 2: DRIVER AVAILABLE & IDLE (WAITING FOR BOOKINGS)
-        // Write to SQL database ONLY if driver actually moved a substantial distance (>500m)
-        // and at least 5 minutes elapsed since last report.
-        // NEVER write on timer if stationary (eliminates quota burn!).
-        if (dist >= 500 && (now - state.lastReportedTime > 300000)) {
+        // ZERO DISK WRITES: Broadcast to Cloudflare Edge RAM & Firebase RTDB!
+        // Never write to persistent disk (D1) during cruising.
+        if (dist >= 10 && (now - state.lastReportedTime > 2500)) {
           state.lastReportedLat = lat;
           state.lastReportedLng = lng;
           state.lastReportedTime = now;
-          try{
-            await sbFetch('riders?id=eq.' + state.riderId, { method:'PATCH', body:{ lat: lat, lng: lng, updated_at: new Date().toISOString() } });
-          } catch(err){ console.warn('Throttled driver location sync note:', err.message); }
+          fetch(CLOUDFLARE_D1_WORKER + '/api/track/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              riderId: state.riderId,
+              name: localStorage.getItem('ridelot_rider_name') || 'Captain',
+              phone: localStorage.getItem('ridelot_rider_phone') || '',
+              vehicle_type: localStorage.getItem('ridelot_rider_vtype') || 'bike',
+              vehicle_label: localStorage.getItem('ridelot_rider_vlabel') || 'Bike',
+              plate: localStorage.getItem('ridelot_rider_plate') || '',
+              status: 'available',
+              lat: lat,
+              lng: lng,
+              heading: heading,
+              speed: speed,
+              heartbeat: true
+            }),
+            keepalive: true
+          }).catch(function(){});
         }
       }, function(err){
         if (accuracy && (err.code === 2 || err.code === 3)) {
@@ -2599,6 +2630,9 @@
   }
 
   function stopSharingLocation(){
+    if (typeof window.DriverTracker !== 'undefined') {
+      window.DriverTracker.stop();
+    }
     if(state.watchId !== null){
       navigator.geolocation.clearWatch(state.watchId);
       state.watchId = null;
@@ -3429,11 +3463,17 @@
       if (action === 'accept') {
         patchBody.rider_id = state.riderId;
       }
-      if (action === 'complete' && state.activeTripBreadcrumbs && state.activeTripBreadcrumbs.length > 0) {
-        try {
-          var poly = encodePolyline(state.activeTripBreadcrumbs);
-          if (poly) patchBody.route_polyline = poly;
-        } catch(e){}
+      if (action === 'complete') {
+        var poly = null;
+        if (typeof window.DriverTracker !== 'undefined') {
+          poly = window.DriverTracker.getEncodedPolyline();
+        }
+        if (!poly && state.activeTripBreadcrumbs && state.activeTripBreadcrumbs.length > 0) {
+          try {
+            poly = encodePolyline(state.activeTripBreadcrumbs);
+          } catch(e){}
+        }
+        if (poly) patchBody.route_polyline = poly;
       }
 
       var patchRes;
@@ -3445,6 +3485,20 @@
           patchRes = await sbFetch(queryPath, { method:'PATCH', body: patchBody });
         } else {
           throw err;
+        }
+      }
+
+      // Notify DriverTracker of state transition (Edge RAM + WebSocket + Firebase RTDB)
+      if (typeof window.DriverTracker !== 'undefined') {
+        if (action === 'accept') {
+          window.DriverTracker.setActiveBooking(bookingId, 'accepted');
+        } else if (action === 'arrived') {
+          window.DriverTracker.setActiveBooking(bookingId, 'arrived');
+        } else if (action === 'start') {
+          window.DriverTracker.setActiveBooking(bookingId, 'in_progress');
+        } else if (action === 'complete' || action === 'decline') {
+          window.DriverTracker.clearActiveBooking();
+          window.DriverTracker.clearBreadcrumbs();
         }
       }
 
