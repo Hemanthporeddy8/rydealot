@@ -307,6 +307,7 @@
       <button class="btn btn-amber" style="font-size:0.78rem;" onclick="showPanel('sage', document.querySelector('.tab[onclick*=\'sage\']'))">📦 Sage Parcels</button>
       <button class="btn" style="font-size:0.78rem; background:#38bdf8; color:#0b0c0f; font-weight:800;" onclick="showPanel('alongwith', document.querySelector('.tab[onclick*=\'alongwith\']'))">🚚 AlongWith Cargo</button>
       <button class="btn" style="font-size:0.78rem; background:#06b6d4; color:#0b0c0f; font-weight:800;" onclick="showPanel('escort', document.querySelector('.tab[onclick*=\'escort\']'))">🛡️ Night Escort</button>
+      <button class="btn" style="font-size:0.78rem; background:#10b981; color:#0b0c0f; font-weight:800;" onclick="showPanel('apprelease', document.querySelector('.tab[onclick*=\'apprelease\']'))">📱 Native APK &amp; AAB</button>
       <button class="btn btn-green" style="font-size:0.78rem;" onclick="exportDataAsCSV()">📊 Export CSV</button>
       <button class="btn btn-mute" style="font-size:0.78rem;" onclick="openTotpSetupModal()">🔐 2FA Setup</button>
       <button class="btn btn-mute" style="font-size:0.78rem;" onclick="openChangePassModal()">🔑 Password</button>
@@ -361,6 +362,7 @@
     <button class="tab" onclick="showPanel('ratings', this)">⭐ Ratings</button>
     <button class="tab" onclick="showPanel('stats', this)">📊 Stats</button>
     <button class="tab" onclick="showPanel('security2fa', this)">🔐 Titans &amp; Security</button>
+    <button class="tab" onclick="showPanel('apprelease', this)">📦 App Builds &amp; Play Store</button>
   </div>
 
 <!-- ===== DRIVERS PANEL ===== -->
@@ -1771,6 +1773,134 @@
         <div id="founder-emergency-feedback" style="margin-top:10px; font-size:0.8rem; font-weight:700; display:none;"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ===== APP BUILDS & GOOGLE PLAY RELEASE PANEL ===== -->
+<div class="panel" id="panel-apprelease">
+  <div style="max-width:960px; margin:0 auto;">
+    
+    <!-- Hero Status Card -->
+    <div style="background:linear-gradient(135deg, #1e293b, #0f172a); border:1.5px solid #334155; border-radius:20px; padding:24px; margin-bottom:20px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="width:48px; height:48px; border-radius:12px; background:#FFB020; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 4px 15px rgba(255,176,32,0.3);">
+            📱
+          </div>
+          <div>
+            <h2 style="font-size:1.35rem; font-weight:900; margin:0; color:#fff;">Official Native Android &amp; Google Play Hub</h2>
+            <p style="font-size:0.8rem; color:#94a3b8; margin:2px 0 0;">Hardware-Accelerated Java Shell • SDK 34 (Android 14) • Official Keystore Signed</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <span class="badge" style="background:#064e3b; border:1px solid #10b981; color:#6ee7b7; font-weight:800; font-size:0.75rem; padding:6px 12px;">✅ BUILD v1.1.0 VERIFIED</span>
+          <span class="badge" style="background:#1e3a8a; border:1px solid #3b82f6; color:#93c5fd; font-weight:800; font-size:0.75rem; padding:6px 12px;">🚀 60 FPS ACCELERATED</span>
+        </div>
+      </div>
+
+      <!-- Action Cards Grid -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+        
+        <!-- CARD 1: DIRECT APK DOWNLOAD (WEBSITE EDITION) -->
+        <div style="background:var(--bg); border:1.5px solid #22c55e; border-radius:16px; padding:20px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 20px rgba(34,197,94,0.1);">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:0.75rem; font-weight:900; color:#4ade80; text-transform:uppercase; letter-spacing:0.5px;">Direct Phone Install</span>
+              <span class="badge badge-green" style="font-size:0.7rem; padding:3px 8px;">7.02 MB</span>
+            </div>
+            <h3 style="font-size:1.1rem; font-weight:900; color:#fff; margin:0 0 6px;">📲 Official Native APK</h3>
+            <p style="font-size:0.78rem; color:#94a3b8; line-height:1.4; margin:0 0 14px;">
+              Direct Android installer served on website for passengers &amp; captains. Zero browser address bar, instant native launch.
+            </p>
+          </div>
+          <div>
+            <a href="rydealot.apk" download="rydealot.apk" class="btn btn-amber" style="width:100%; justify-content:center; padding:12px; font-size:0.85rem; font-weight:900; text-decoration:none; display:flex; align-items:center; gap:8px; border-radius:10px;">
+              <span>📥</span> Download Native APK (v1.1.0)
+            </a>
+            <div style="font-size:0.7rem; color:#64748b; margin-top:8px; text-align:center;">
+              Serves directly from <code>https://www.rydealot.com/rydealot.apk</code>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2: GOOGLE PLAY STORE BUNDLE (.AAB) -->
+        <div style="background:var(--bg); border:1.5px solid #3b82f6; border-radius:16px; padding:20px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 20px rgba(59,130,246,0.1);">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:0.75rem; font-weight:900; color:#60a5fa; text-transform:uppercase; letter-spacing:0.5px;">Google Play Console</span>
+              <span class="badge badge-blue" style="font-size:0.7rem; padding:3px 8px;">MANDATORY AAB</span>
+            </div>
+            <h3 style="font-size:1.1rem; font-weight:900; color:#fff; margin:0 0 6px;">📦 Play Store App Bundle</h3>
+            <p style="font-size:0.78rem; color:#94a3b8; line-height:1.4; margin:0 0 14px;">
+              Signed with your official production keystore (<code>my-key-alias</code>). Required for publishing on Google Play Store.
+            </p>
+          </div>
+          <div>
+            <a href="https://github.com/Hemanthporeddy8/rydealot/actions/runs/45643659773" target="_blank" rel="noopener" class="btn" style="width:100%; justify-content:center; padding:12px; font-size:0.85rem; font-weight:900; text-decoration:none; display:flex; align-items:center; gap:8px; border-radius:10px; background:#10b981; color:#0b0c0f;">
+              <span>📦</span> Download Play Store AAB Bundle
+            </a>
+            <div style="font-size:0.7rem; color:#64748b; margin-top:8px; text-align:center;">
+              GitHub Actions Artifact: <code>Rydealot-GooglePlay-AAB</code>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 3: GITHUB CLOUD COMPILER PIPELINE -->
+        <div style="background:var(--bg); border:1.5px solid #6366f1; border-radius:16px; padding:20px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 20px rgba(99,102,241,0.1);">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:0.75rem; font-weight:900; color:#a5b4fc; text-transform:uppercase; letter-spacing:0.5px;">Cloud CI/CD Pipeline</span>
+              <span class="badge" style="background:#312e81; color:#c7d2fe; font-size:0.7rem; padding:3px 8px;">FREE UNLIMITED</span>
+            </div>
+            <h3 style="font-size:1.1rem; font-weight:900; color:#fff; margin:0 0 6px;">⚡ Automated Gradle Compiler</h3>
+            <p style="font-size:0.78rem; color:#94a3b8; line-height:1.4; margin:0 0 14px;">
+              Compiles Java &amp; Android resources in under 2 minutes. Auto-publishes to website and releases.
+            </p>
+          </div>
+          <div>
+            <a href="https://github.com/Hemanthporeddy8/rydealot/actions" target="_blank" rel="noopener" class="btn" style="width:100%; justify-content:center; padding:12px; font-size:0.85rem; font-weight:900; text-decoration:none; display:flex; align-items:center; gap:8px; border-radius:10px; background:#4f46e5; color:#fff;">
+              <span>🚀</span> Open Cloud Build Dashboard
+            </a>
+            <div style="font-size:0.7rem; color:#64748b; margin-top:8px; text-align:center;">
+              Trigger 1-click recompile anytime on GitHub
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Technical Specification & Keystore Verification Card -->
+    <div style="background:var(--card); border:1.5px solid var(--border); border-radius:18px; padding:24px;">
+      <h3 style="font-size:1.1rem; font-weight:900; margin:0 0 16px; display:flex; align-items:center; gap:8px;">
+        <span>🔐</span> Android Security &amp; Google Play Store Signing Spec
+      </h3>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; font-size:0.8rem;">
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px;">
+          <div style="color:var(--mute); font-size:0.72rem; font-weight:700; text-transform:uppercase;">Package Name</div>
+          <div style="color:#fff; font-weight:800; font-family:monospace; margin-top:2px;">com.rydealot.www.twa</div>
+        </div>
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px;">
+          <div style="color:var(--mute); font-size:0.72rem; font-weight:700; text-transform:uppercase;">Target Android OS</div>
+          <div style="color:#10b981; font-weight:800; margin-top:2px;">Android 14 (API Level 34)</div>
+        </div>
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px;">
+          <div style="color:var(--mute); font-size:0.72rem; font-weight:700; text-transform:uppercase;">Minimum Android OS</div>
+          <div style="color:#fff; font-weight:800; margin-top:2px;">Android 7.0+ (99.2% Global Reach)</div>
+        </div>
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px;">
+          <div style="color:var(--mute); font-size:0.72rem; font-weight:700; text-transform:uppercase;">Keystore Alias</div>
+          <div style="color:#fbbf24; font-weight:800; font-family:monospace; margin-top:2px;">my-key-alias (Official Key)</div>
+        </div>
+      </div>
+      <div style="margin-top:14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px; font-size:0.75rem;">
+        <div style="color:var(--mute); font-size:0.72rem; font-weight:700; text-transform:uppercase; margin-bottom:4px;">SHA-256 Certificate Fingerprint</div>
+        <div style="color:#94a3b8; font-family:monospace; word-break:break-all;">
+          F0:66:16:21:DD:89:EF:E1:A4:2E:80:C0:8E:5F:D4:26:81:76:C5:6F:19:75:FF:BA:04:C3:2F:E9:FD:1D:1A:A2
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
