@@ -1,0 +1,73 @@
+name: Build Native Android APK & Google Play AAB
+
+on:
+  workflow_dispatch: # Allows 1-click manual trigger from GitHub Actions dashboard
+  push:
+    branches:
+      - main
+    paths:
+      - 'android/**'
+      - '.github/workflows/build-apk.yml'
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Compile Android APK & AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: 🛠️ Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 📦 Generate Gradle Wrapper
+        run: |
+          cd android
+          gradle wrapper --gradle-version 8.4
+          chmod +x gradlew
+
+      - name: 🚀 Compile Release APK, Debug APK & Google Play AAB
+        run: |
+          cd android
+          ./gradlew assembleRelease assembleDebug bundleRelease --no-daemon
+
+      - name: 📤 Upload Release APK (Direct Install on Phone)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rydealot-Release-APK
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+      - name: 📤 Upload Debug APK (Developer Testing)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rydealot-Debug-APK
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: 📤 Upload Google Play Bundle (.aab for Play Store Upload)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rydealot-GooglePlay-AAB
+          path: android/app/build/outputs/bundle/release/*.aab
+          retention-days: 30
+
+      - name: 🏷️ Attach APK & AAB to GitHub Release (If Tagged)
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
