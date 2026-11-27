@@ -7947,42 +7947,16 @@
   });
 })();
 
-// ===================== RYDEALOT IN-APP CHAT (GOOGLE FIREBASE REALTIME DB) =====================
+// ===================== RYDEALOT IN-APP CHAT (CLOUDFLARE EDGE RAM + WEBSOCKET — ZERO FIREBASE) =====================
 var RydealotChat = (function() {
-  var firebaseConfig = {
-    apiKey: "AIzaSyAW1x9fA-rVe6mA6ONqEuomjU9n5cRk72s",
-    authDomain: "rydealot-cff06.firebaseapp.com",
-    databaseURL: "https://rydealot-cff06-default-rtdb.firebaseio.com",
-    projectId: "rydealot-cff06",
-    storageBucket: "rydealot-cff06.firebasestorage.app",
-    messagingSenderId: "637714918840",
-    appId: "1:637714918840:web:1a9d7a1c0258ccf4a8f34d"
-  };
-
-  var rtdb = null;
   var currentBookingId = null;
   var currentRole = null; // 'customer' or 'driver'
   var myName = '';
-  var activeListenerRef = null;
+  var wsClient = null;
+  var pollTimer = null;
+  var renderedMsgIds = {};
   var unreadCount = 0;
   var isModalOpen = false;
-
-  function initFirebase() {
-    if (typeof firebase === 'undefined') {
-      console.warn('Firebase SDK not loaded');
-      return false;
-    }
-    try {
-      if (!firebase.apps || !firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      rtdb = firebase.database();
-      return true;
-    } catch(e) {
-      console.error('Firebase init error:', e);
-      return false;
-    }
-  }
 
   // Pleasant Web Audio synthesizer notification chime (no external audio files needed)
   function playChatChime() {
@@ -8023,11 +7997,65 @@ var RydealotChat = (function() {
     }
   }
 
+  function handleIncomingMessage(msg, isHistory) {
+    if (!msg || !msg.text) return;
+    var msgId = msg.id || (msg.sender + '_' + msg.timestamp + '_' + msg.text);
+    if (renderedMsgIds[msgId]) return;
+    renderedMsgIds[msgId] = true;
+
+    renderBubble(msg);
+
+    if (!isHistory && msg.sender !== currentRole) {
+      playChatChime();
+      if (!isModalOpen) {
+        unreadCount++;
+        updateUnreadBadge();
+      }
+    }
+  }
+
+  function fetchChatMessagesHttp() {
+    if (!currentBookingId || typeof CLOUDFLARE_D1_WORKER === 'undefined') return;
+    fetch(CLOUDFLARE_D1_WORKER + '/api/chat/messages?bookingId=' + encodeURIComponent(currentBookingId))
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (data && Array.isArray(data.messages)) {
+          data.messages.forEach(function(m) { handleIncomingMessage(m, false); });
+        }
+      })
+      .catch(function(){});
+  }
+
+  function connectChatWebSocket() {
+    if (!currentBookingId || typeof CLOUDFLARE_D1_WORKER === 'undefined') return;
+    try {
+      var wsBase = CLOUDFLARE_D1_WORKER.replace(/^https:\/\//i, 'wss://').replace(/^http:\/\//i, 'ws://');
+      var wsUrl = wsBase + '/api/track/ws?bookingId=' + encodeURIComponent(currentBookingId);
+      wsClient = new WebSocket(wsUrl);
+
+      wsClient.onmessage = function(evt) {
+        try {
+          var payload = JSON.parse(evt.data);
+          if (payload.type === 'chat_history' && Array.isArray(payload.messages)) {
+            payload.messages.forEach(function(m) { handleIncomingMessage(m, true); });
+          } else if (payload.type === 'chat' && payload.data) {
+            handleIncomingMessage(payload.data, false);
+          }
+        } catch(e){}
+      };
+
+      wsClient.onclose = function() {
+        wsClient = null;
+      };
+    } catch(e) {
+      wsClient = null;
+    }
+  }
+
   function startChat(bookingId, role, senderName, partnerTitle) {
     if (!bookingId) return;
-    if (!initFirebase()) return;
 
-    if (currentBookingId === String(bookingId) && activeListenerRef) {
+    if (currentBookingId === String(bookingId) && (wsClient || pollTimer)) {
       return;
     }
 
@@ -8036,6 +8064,7 @@ var RydealotChat = (function() {
     currentBookingId = String(bookingId);
     currentRole = role; // 'customer' or 'driver'
     myName = senderName || (role === 'customer' ? 'Passenger' : 'Driver');
+    renderedMsgIds = {};
     unreadCount = 0;
     isModalOpen = false;
 
@@ -8048,26 +8077,18 @@ var RydealotChat = (function() {
 
     var streamEl = document.getElementById(role === 'customer' ? 'cust-chat-stream' : 'rd-chat-stream');
     if (streamEl) {
-      streamEl.innerHTML = '<div class="chat-empty-hint">Messages are delivered instantly. Say hi! 👋</div>';
+      streamEl.innerHTML = '<div class="chat-empty-hint">Messages are delivered instantly via Edge RAM. Say hi! 👋</div>';
     }
 
-    // Attach Firebase Realtime Listener
-    var chatPath = 'chats/' + currentBookingId + '/messages';
-    activeListenerRef = rtdb.ref(chatPath);
+    connectChatWebSocket();
+    fetchChatMessagesHttp();
 
-    activeListenerRef.on('child_added', function(snapshot) {
-      var msg = snapshot.val();
-      if (!msg) return;
-      renderBubble(msg);
-
-      if (msg.sender !== currentRole) {
-        playChatChime();
-        if (!isModalOpen) {
-          unreadCount++;
-          updateUnreadBadge();
-        }
+    // Backup poll runs ONLY when WebSocket is disconnected (zero D1 writes!)
+    pollTimer = setInterval(function() {
+      if (!wsClient || wsClient.readyState !== 1) {
+        fetchChatMessagesHttp();
       }
-    });
+    }, 4500);
   }
 
   function renderBubble(msg) {
@@ -8105,18 +8126,39 @@ var RydealotChat = (function() {
   function sendMessage(text) {
     if (!text || !text.trim()) return;
     text = text.trim();
-    if (!currentBookingId || !rtdb) return;
+    if (!currentBookingId) return;
 
     var msgObj = {
+      id: 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      bookingId: currentBookingId,
       sender: currentRole,
       senderName: myName,
       text: text,
-      timestamp: firebase.database.ServerValue.TIMESTAMP
+      timestamp: Date.now()
     };
 
-    rtdb.ref('chats/' + currentBookingId + '/messages').push(msgObj).catch(function(err) {
-      console.error('Firebase send chat error:', err);
-    });
+    // Instant optimistic local render
+    handleIncomingMessage(msgObj, false);
+
+    // Send via Cloudflare WebSocket if open, else HTTP POST to Edge RAM
+    var sentViaWs = false;
+    if (wsClient && wsClient.readyState === 1) {
+      try {
+        wsClient.send(JSON.stringify({ type: 'chat', data: msgObj }));
+        sentViaWs = true;
+      } catch(e) { sentViaWs = false; }
+    }
+
+    if (!sentViaWs && typeof CLOUDFLARE_D1_WORKER !== 'undefined') {
+      fetch(CLOUDFLARE_D1_WORKER + '/api/chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(msgObj),
+        keepalive: true
+      }).catch(function(err) {
+        console.error('Edge chat send error:', err);
+      });
+    }
   }
 
   function updateUnreadBadge() {
@@ -8151,11 +8193,16 @@ var RydealotChat = (function() {
   }
 
   function stopChat() {
-    if (activeListenerRef) {
-      try { activeListenerRef.off(); } catch(e) {}
-      activeListenerRef = null;
+    if (wsClient) {
+      try { wsClient.close(); } catch(e) {}
+      wsClient = null;
+    }
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
     }
     currentBookingId = null;
+    renderedMsgIds = {};
     unreadCount = 0;
     updateUnreadBadge();
     closeModal();

@@ -1,7 +1,6 @@
 // ============================================================================
-// RYDEALOT CAPTAIN ENGINE: ZERO-DISK IN-MEMORY LIVE GPS STREAMER (v1.0)
-// Uber-Style Ephemeral Telemetry Pipeline • Zero D1 Disk Database Writes
-// Multi-Stream Architecture: Cloudflare Edge RAM + WebSocket + Firebase RTDB
+// RYDEALOT CAPTAIN ENGINE: ZERO-DISK IN-MEMORY LIVE GPS STREAMER (v2.0)
+// 100% Cloudflare Edge RAM + WebSocket Pipeline • Zero Firebase • Zero D1 Writes
 // Ready for Standalone Captain App Extraction (Account 3 / Standalone Fleet)
 // ============================================================================
 
@@ -14,18 +13,7 @@
     edgeApiUrl: 'https://rydealot-api.rydealotoffical.workers.dev',
     edgeWsUrl: 'wss://rydealot-api.rydealotoffical.workers.dev',
 
-    // 2. Google Firebase Realtime Database (In-Memory Ephemeral Bus, Unlimited Free Writes)
-    firebaseConfig: {
-      apiKey: "AIzaSyAW1x9fA-rVe6mA6ONqEuomjU9n5cRk72s",
-      authDomain: "rydealot-cff06.firebaseapp.com",
-      databaseURL: "https://rydealot-cff06-default-rtdb.firebaseio.com",
-      projectId: "rydealot-cff06",
-      storageBucket: "rydealot-cff06.firebasestorage.app",
-      messagingSenderId: "637714918840",
-      appId: "1:637714918840:web:1a9d7a1c0258ccf4a8f34d"
-    },
-
-    // 3. Telemetry Dynamics & Battery Safeguards
+    // 2. Telemetry Dynamics & Battery Safeguards
     minDistanceMeters: 2.0,            // Filter out stationary GPS drift/jitter
     minMovingIntervalMs: 1200,         // High-rate streaming (1.2s) when cruising > 5 km/h
     idleStationaryIntervalMs: 25000,   // 25s keepalive ping when parked/waiting
@@ -52,10 +40,7 @@
     watchId: null,
     heartbeatTimer: null,
     wsClient: null,
-    rtdb: null,
-    rtdbDriverRef: null,
-    rtdbTrackingRef: null,
-    isBroadcasting: false,
+    unloadHookAttached: false,
     locationCallbacks: []
   };
 
@@ -64,17 +49,16 @@
   // Calculate distance in meters using the Haversine formula
   function haversineMeters(lat1, lon1, lat2, lon2) {
     if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return 999999;
-    var R = 6371000; // Earth radius in meters
+    var R = 6371000;
     var dLat = (lat2 - lat1) * Math.PI / 180;
     var dLon = (lon2 - lon1) * Math.PI / 180;
-    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon/2) * Math.sin(dLon/2);
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   // Calculate bearing (heading in degrees 0-360) between two points
-  // Essential for smooth map arrows when mobile device hardware compass is absent
   function calculateBearing(lat1, lon1, lat2, lon2) {
     var φ1 = lat1 * Math.PI / 180;
     var φ2 = lat2 * Math.PI / 180;
@@ -111,38 +95,36 @@
     return result;
   }
 
-  // ==================== 2. FIREBASE REALTIME DATABASE BUS ====================
-  function initFirebaseRTDB() {
-    if (state.rtdb) return state.rtdb;
-    if (typeof firebase === 'undefined') {
-      console.warn('[DriverTracker] Firebase SDK compat not loaded, skipping RTDB bus.');
-      return null;
-    }
-    try {
-      if (!firebase.apps || !firebase.apps.length) {
-        firebase.initializeApp(CONFIG.firebaseConfig);
-      }
-      state.rtdb = firebase.database();
-      return state.rtdb;
-    } catch(err) {
-      console.warn('[DriverTracker] Firebase RTDB init error:', err.message);
-      return null;
-    }
-  }
+  // ==================== 2. CLOUDFLARE EDGE PRESENCE BEACON ====================
+  // Replaces Firebase onDisconnect() using native browser sendBeacon -> Edge RAM
+  function setupEdgeUnloadBeacon() {
+    if (state.unloadHookAttached) return;
+    state.unloadHookAttached = true;
 
-  // Setup disconnect cleanup on Firebase (Zero-write presence removal on tab close/crash)
-  function setupFirebasePresence(riderId) {
-    var rtdb = initFirebaseRTDB();
-    if (!rtdb || !riderId) return;
-    try {
-      state.rtdbDriverRef = rtdb.ref('drivers/' + riderId);
-      // When connection is lost or tab killed, automatically mark offline in RAM
-      state.rtdbDriverRef.onDisconnect().update({
-        status: 'offline',
-        online: false,
-        lastSeen: firebase.database.ServerValue.TIMESTAMP
-      });
-    } catch(e){}
+    var sendOfflineBeacon = function() {
+      if (!state.isOnline || !state.riderId) return;
+      try {
+        var payload = JSON.stringify({
+          riderId: state.riderId,
+          status: 'offline',
+          offline: true
+        });
+        if (navigator.sendBeacon) {
+          var blob = new Blob([payload], { type: 'application/json' });
+          navigator.sendBeacon(CONFIG.edgeApiUrl + '/api/track/update', blob);
+        } else {
+          fetch(CONFIG.edgeApiUrl + '/api/track/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            keepalive: true
+          }).catch(function(){});
+        }
+      } catch(e){}
+    };
+
+    window.addEventListener('pagehide', sendOfflineBeacon);
+    window.addEventListener('beforeunload', sendOfflineBeacon);
   }
 
   // ==================== 3. CLOUDFLARE EDGE WEBSOCKET ENGINE ====================
@@ -161,7 +143,7 @@
       state.wsClient = new WebSocket(wsUrl);
 
       state.wsClient.onopen = function() {
-        console.log('[DriverTracker] Connected to Edge Tracking WebSocket for trip:', bookingId);
+        console.log('[DriverTracker] Connected to Cloudflare Edge WebSocket for trip:', bookingId);
       };
 
       state.wsClient.onerror = function() {
@@ -172,7 +154,7 @@
         state.wsClient = null;
       };
     } catch(err) {
-      // WebSocket blocked by client proxy or mobile firewall; HTTP keepalive POST takes over seamlessly
+      // HTTP keepalive POST takes over seamlessly
     }
   }
 
@@ -186,7 +168,7 @@
   }
 
   // ==================== 4. ZERO-DISK IN-MEMORY BROADCASTER ====================
-  // Broadcasts coordinates strictly in RAM. ZERO SQL/D1 disk writes!
+  // Broadcasts coordinates strictly in Cloudflare Edge RAM. ZERO SQL/D1 disk writes!
   async function broadcastLocation(posData) {
     if (!state.isOnline || !state.riderId) return;
 
@@ -226,21 +208,6 @@
           keepalive: true
         }).catch(function(){});
       }
-
-      // 3. Dual-broadcast to Firebase RTDB in-memory bus
-      var rtdb = initFirebaseRTDB();
-      if (rtdb) {
-        try {
-          rtdb.ref('active_tracking/' + bId).set({
-            riderId: state.riderId,
-            lat: tripPayload.lat,
-            lng: tripPayload.lng,
-            heading: tripPayload.heading,
-            speed: tripPayload.speed,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-          }).catch(function(){});
-        } catch(e){}
-      }
       return;
     }
 
@@ -262,34 +229,12 @@
       heartbeat: true
     };
 
-    // 1. Push to Cloudflare Edge RAM liveDrivers Map (Zero D1 writes!)
     fetch(CONFIG.edgeApiUrl + '/api/track/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(idlePayload),
       keepalive: true
     }).catch(function(){});
-
-    // 2. Push to Firebase RTDB drivers/ node (Zero D1 writes!)
-    var rtdbIdle = initFirebaseRTDB();
-    if (rtdbIdle && state.rtdbDriverRef) {
-      try {
-        state.rtdbDriverRef.set({
-          riderId: state.riderId,
-          name: state.profile.name,
-          vehicle_type: state.profile.vehicle_type,
-          vehicle_label: state.profile.vehicle_label,
-          plate: state.profile.plate,
-          status: 'available',
-          online: true,
-          lat: idlePayload.lat,
-          lng: idlePayload.lng,
-          heading: idlePayload.heading,
-          speed: idlePayload.speed,
-          lastSeen: firebase.database.ServerValue.TIMESTAMP
-        }).catch(function(){});
-      } catch(e){}
-    }
   }
 
   // ==================== 5. POSITION PIPELINE & MOVEMENT FILTER ====================
@@ -299,8 +244,8 @@
     var lat = coords.latitude;
     var lng = coords.longitude;
     var rawAccuracy = coords.accuracy || 10;
-    var rawSpeed = coords.speed; // m/s
-    var rawHeading = coords.heading; // degrees 0-360
+    var rawSpeed = coords.speed;
+    var rawHeading = coords.heading;
 
     // Filter out aberrant cell-tower jumps
     if (rawAccuracy > CONFIG.maxAccuracyMeters && state.currentPosition != null) {
@@ -334,7 +279,6 @@
       headingDeg = state.currentPosition.heading || 0;
     }
 
-    // Update in-memory telemetry
     state.currentPosition = {
       lat: lat,
       lng: lng,
@@ -349,10 +293,8 @@
       state.tripBreadcrumbs.push([Number(lat.toFixed(6)), Number(lng.toFixed(6)), now]);
     }
 
-    // Update UI HUD & Coordinates
     updateUI(state.currentPosition);
 
-    // Notify registered map or UI callbacks
     for (var i = 0; i < state.locationCallbacks.length; i++) {
       try { state.locationCallbacks[i](state.currentPosition); } catch(e){}
     }
@@ -371,7 +313,7 @@
   function onPositionError(err) {
     console.warn('[DriverTracker] Geolocation error:', err.message, 'code:', err.code);
     var displayEl = document.getElementById('rd-display-location');
-    if (err.code === 1) { // PERMISSION_DENIED
+    if (err.code === 1) {
       if (displayEl) displayEl.textContent = '❌ Location blocked. Allow site location permission.';
       updateTelemetryHud('blocked', 0, 0);
     } else {
@@ -411,7 +353,7 @@
         dot.style.boxShadow = '0 0 8px rgba(16,185,129,0.7)';
       }
       if (modeTag) {
-        modeTag.textContent = state.activeBooking ? '⚡ In-Trip Streaming (0 Writes)' : '⚡ Zero-Disk RAM Active';
+        modeTag.textContent = state.activeBooking ? '⚡ Cloudflare Trip Stream (0 Writes)' : '⚡ Zero-Disk Edge RAM Active';
         modeTag.style.color = '#059669';
       }
       if (speedEl) speedEl.textContent = (speedKmH || 0) + ' km/h';
@@ -439,16 +381,14 @@
 
   // ==================== 7. PUBLIC DRIVERTRACKER API ====================
   var DriverTracker = {
-    // Override configuration options or endpoints
     init: function(customConfig) {
       if (customConfig && typeof customConfig === 'object') {
         Object.assign(CONFIG, customConfig);
       }
-      initFirebaseRTDB();
+      setupEdgeUnloadBeacon();
       return this;
     },
 
-    // Start live tracking & in-memory broadcasting
     start: function(riderId, driverProfile) {
       if (!riderId) {
         console.error('[DriverTracker] Cannot start tracking without riderId');
@@ -461,9 +401,8 @@
         state.profile = Object.assign(state.profile, driverProfile);
       }
 
-      setupFirebasePresence(state.riderId);
+      setupEdgeUnloadBeacon();
 
-      // Start continuous high-precision GPS watcher
       if (navigator.geolocation) {
         if (state.watchId) navigator.geolocation.clearWatch(state.watchId);
         state.watchId = navigator.geolocation.watchPosition(
@@ -488,7 +427,6 @@
         }
       }, 10000);
 
-      // Immediate initial broadcast if position already cached
       if (state.currentPosition) {
         broadcastLocation(state.currentPosition);
       }
@@ -497,7 +435,6 @@
       return true;
     },
 
-    // Stop live tracking & cleanly remove from in-memory presence
     stop: function() {
       state.isOnline = false;
 
@@ -520,30 +457,17 @@
         }).catch(function(){});
       }
 
-      // Cleanly mark offline in Firebase RTDB (Zero D1 writes!)
-      if (state.rtdbDriverRef) {
-        try {
-          state.rtdbDriverRef.update({
-            status: 'offline',
-            online: false,
-            lastSeen: firebase.database.ServerValue.TIMESTAMP
-          }).catch(function(){});
-        } catch(e){}
-      }
-
       var displayEl = document.getElementById('rd-display-location');
       if (displayEl) displayEl.textContent = 'Not sharing';
 
       updateTelemetryHud('offline', 0, 0);
     },
 
-    // Switch between trip states: 'accepted', 'arrived', 'in_progress'
     setActiveBooking: function(bookingId, status) {
       if (!bookingId) return;
       state.activeBooking = { id: String(bookingId), status: status || 'accepted' };
 
       if (status === 'in_progress') {
-        // Reset in-memory breadcrumbs for this trip
         state.tripBreadcrumbs = [];
         if (state.currentPosition) {
           state.tripBreadcrumbs.push([
@@ -554,21 +478,17 @@
         }
       }
 
-      // Connect Edge WebSocket for instant trip streaming
       connectEdgeWebSocket(bookingId);
 
-      // Immediately broadcast active state to Edge and Firebase
       if (state.currentPosition) {
         broadcastLocation(state.currentPosition);
       }
     },
 
-    // Clear active trip on completion or cancellation
     clearActiveBooking: function() {
       if (state.activeBooking && state.activeBooking.id) {
         var bId = String(state.activeBooking.id);
 
-        // Notify Edge RAM that trip ended
         fetch(CONFIG.edgeApiUrl + '/api/track/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -576,55 +496,39 @@
           keepalive: true
         }).catch(function(){});
 
-        // Clean Firebase active_tracking node
-        var rtdb = initFirebaseRTDB();
-        if (rtdb) {
-          try {
-            rtdb.ref('active_tracking/' + bId).remove().catch(function(){});
-          } catch(e){}
-        }
-
         disconnectEdgeWebSocket();
       }
 
       state.activeBooking = null;
-      // Note: We retain tripBreadcrumbs until getEncodedPolyline() is consumed by the final completion PATCH
     },
 
-    // Return accumulated in-memory trip breadcrumbs
     getBreadcrumbs: function() {
       return state.tripBreadcrumbs.slice();
     },
 
-    // Return Google Encoded Polyline string for the single final trip completion write
     getEncodedPolyline: function() {
       if (!state.tripBreadcrumbs || !state.tripBreadcrumbs.length) return '';
       return encodePolyline(state.tripBreadcrumbs);
     },
 
-    // Clear breadcrumbs after completion write is finalized
     clearBreadcrumbs: function() {
       state.tripBreadcrumbs = [];
     },
 
-    // Get current captain location snapshot
     getCurrentPosition: function() {
       return state.currentPosition ? Object.assign({}, state.currentPosition) : null;
     },
 
-    // Check if captain is online and streaming
     isOnline: function() {
       return state.isOnline;
     },
 
-    // Register listener for position updates
     onLocation: function(callback) {
       if (typeof callback === 'function') {
         state.locationCallbacks.push(callback);
       }
     },
 
-    // Update vehicle profile details
     setProfile: function(profile) {
       if (profile && typeof profile === 'object') {
         state.profile = Object.assign(state.profile, profile);
@@ -632,7 +536,6 @@
     }
   };
 
-  // Expose to window
   window.DriverTracker = DriverTracker;
 
 })(typeof window !== 'undefined' ? window : this);

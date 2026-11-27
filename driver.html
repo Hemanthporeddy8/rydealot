@@ -34,8 +34,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/face_mesh.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <link rel="manifest" href="manifest.json">
 <link rel="shortcut icon" href="logo.png" type="image/png">
 <link rel="apple-touch-icon" href="logo.png">
@@ -622,7 +620,7 @@
 
 <!-- ===================== MODALS ===================== -->
 
-<!-- DRIVER IN-APP CHAT BOTTOM SHEET (FIREBASE RTDB) -->
+<!-- DRIVER IN-APP CHAT BOTTOM SHEET (CLOUDFLARE EDGE RAM + WEBSOCKET) -->
 <div id="driver-chat-modal" class="chat-sheet-overlay" style="display:none;">
   <div class="chat-sheet">
     <div class="chat-sheet-header">
@@ -996,10 +994,10 @@
 
 <div class="toast" id="rd-toast"></div>
 
-<script src="driver-tracker.js?v=1.0"></script>
+<script src="driver-tracker.js?v=2.0"></script>
 <script src="driver-compliance.js?v=3.4"></script>
 <script src="animations.js?v=3.4"></script>
-<script src="app.js?v=5.5"></script>
+<script src="app.js?v=5.6"></script>
 <script src="driver-kyc.js?v=6.0"></script>
 </body>
 </html>

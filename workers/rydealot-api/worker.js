@@ -73,6 +73,14 @@ export default {
         return handleAvailableDrivers(request, url, env, corsHeaders);
       }
 
+      // 4b. REALTIME IN-MEMORY TRIP CHAT (ZERO FIREBASE • ZERO DISK WRITES)
+      if (path === '/api/chat/send' && method === 'POST') {
+        return await handleChatSend(request, env, corsHeaders);
+      }
+      if (path === '/api/chat/messages' && method === 'GET') {
+        return handleChatMessages(request, url, env, corsHeaders);
+      }
+
       // 5. PLAN B: POSTGREST EMULATOR FOR CLOUDFLARE D1
       // /rest/v1/:table
       if (path.startsWith('/rest/v1/')) {
@@ -611,11 +619,48 @@ function jsonResponse(body, status = 200, corsHeaders = {}) {
 }
 
 // ============================================================================
-// MODULE 4: REALTIME IN-MEMORY GPS TRACKING GATEWAY (ZERO DISK WRITES)
+// MODULE 4: REALTIME IN-MEMORY GPS & CHAT GATEWAY (ZERO DISK WRITES)
 // ============================================================================
 const liveLocations = new Map(); // bookingId -> { bookingId, riderId, lat, lng, heading, speed, timestamp }
 const activeSockets = new Map(); // bookingId -> Set of WebSockets
 const liveDrivers = new Map();   // riderId -> { riderId, lat, lng, timestamp }
+const liveChats = new Map();     // bookingId -> Array<{ id, sender, senderName, text, timestamp }>
+
+function recordChatInMemory(bookingId, rawMsg) {
+  const key = String(bookingId);
+  const text = String(rawMsg.text || '').trim().slice(0, 1000);
+  if (!text) return null;
+
+  const entry = {
+    id: rawMsg.id ? String(rawMsg.id) : ('msg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
+    bookingId: key,
+    sender: rawMsg.sender === 'driver' ? 'driver' : 'customer',
+    senderName: String(rawMsg.senderName || (rawMsg.sender === 'driver' ? 'Driver' : 'Passenger')).slice(0, 80),
+    text,
+    timestamp: Number(rawMsg.timestamp) || Date.now()
+  };
+
+  if (!liveChats.has(key)) {
+    liveChats.set(key, []);
+  }
+  const list = liveChats.get(key);
+  if (!list.some(m => m.id === entry.id)) {
+    list.push(entry);
+    if (list.length > 100) list.shift();
+  }
+  return entry;
+}
+
+function broadcastToBookingSockets(bookingId, payloadObj, excludeSocket = null) {
+  const sockets = activeSockets.get(String(bookingId));
+  if (!sockets || sockets.size === 0) return;
+  const out = JSON.stringify(payloadObj);
+  for (const s of sockets) {
+    if (s !== excludeSocket) {
+      try { s.send(out); } catch(e) { sockets.delete(s); }
+    }
+  }
+}
 
 function handleTrackingWebSocket(request, url, env, corsHeaders) {
   const upgradeHeader = request.headers.get('Upgrade');
@@ -638,10 +683,14 @@ function handleTrackingWebSocket(request, url, env, corsHeaders) {
   }
   activeSockets.get(key).add(server);
 
-  // Send latest cached location immediately upon connection if present
+  // Send latest cached location & chat history immediately upon connection
   const latest = liveLocations.get(key);
   if (latest) {
     server.send(JSON.stringify({ type: 'location', data: latest }));
+  }
+  const chatHistory = liveChats.get(key);
+  if (chatHistory && chatHistory.length > 0) {
+    server.send(JSON.stringify({ type: 'chat_history', messages: chatHistory }));
   }
 
   server.addEventListener('message', event => {
@@ -658,16 +707,11 @@ function handleTrackingWebSocket(request, url, env, corsHeaders) {
           timestamp: Date.now()
         };
         liveLocations.set(key, payload);
-
-        // Broadcast to all listening clients on this booking
-        const sockets = activeSockets.get(key);
-        if (sockets) {
-          const out = JSON.stringify({ type: 'location', data: payload });
-          for (const s of sockets) {
-            if (s !== server) {
-              try { s.send(out); } catch(e) { sockets.delete(s); }
-            }
-          }
+        broadcastToBookingSockets(key, { type: 'location', data: payload }, server);
+      } else if (msg.type === 'chat' && msg.data) {
+        const chatEntry = recordChatInMemory(key, msg.data);
+        if (chatEntry) {
+          broadcastToBookingSockets(key, { type: 'chat', data: chatEntry }, null);
         }
       } else if (msg.type === 'ping') {
         server.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
@@ -729,6 +773,7 @@ async function handleTrackingUpdate(request, env, corsHeaders) {
   // If trip is ended/completed/cancelled, clear from memory and close sockets cleanly
   if (body.ended || body.status === 'completed' || body.status === 'cancelled') {
     liveLocations.delete(key);
+    liveChats.delete(key);
     const sockets = activeSockets.get(key);
     if (sockets) {
       const out = JSON.stringify({ type: 'ended', bookingId: key });
@@ -751,15 +796,7 @@ async function handleTrackingUpdate(request, env, corsHeaders) {
   };
 
   liveLocations.set(key, payload);
-
-  // Broadcast to WebSockets
-  const sockets = activeSockets.get(key);
-  if (sockets && sockets.size > 0) {
-    const out = JSON.stringify({ type: 'location', data: payload });
-    for (const ws of sockets) {
-      try { ws.send(out); } catch(e) { sockets.delete(ws); }
-    }
-  }
+  broadcastToBookingSockets(key, { type: 'location', data: payload }, null);
 
   return jsonResponse({ ok: true, timestamp: payload.timestamp }, 200, corsHeaders);
 }
@@ -809,4 +846,31 @@ function handleAvailableDrivers(request, url, env, corsHeaders) {
     count: activeDrivers.length,
     drivers: activeDrivers
   }, 200, corsHeaders);
+}
+
+async function handleChatSend(request, env, corsHeaders) {
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return jsonResponse({ error: 'Invalid JSON payload' }, 400, corsHeaders);
+  }
+  if (!body || !body.bookingId || !body.text) {
+    return jsonResponse({ error: 'bookingId and text are required' }, 400, corsHeaders);
+  }
+  const chatEntry = recordChatInMemory(body.bookingId, body);
+  if (!chatEntry) {
+    return jsonResponse({ error: 'Empty message' }, 400, corsHeaders);
+  }
+  broadcastToBookingSockets(body.bookingId, { type: 'chat', data: chatEntry }, null);
+  return jsonResponse({ ok: true, message: chatEntry }, 200, corsHeaders);
+}
+
+function handleChatMessages(request, url, env, corsHeaders) {
+  const bookingId = url.searchParams.get('bookingId');
+  if (!bookingId) {
+    return jsonResponse({ error: 'bookingId parameter required' }, 400, corsHeaders);
+  }
+  const messages = liveChats.get(String(bookingId)) || [];
+  return jsonResponse({ ok: true, messages }, 200, corsHeaders);
 }

@@ -137,7 +137,10 @@ export default {
   // Eliminates ALL D1 reads for normal map users. Zero reads on map load.
   // =========================================================================
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(bakeShopsToKV(env));
+    ctx.waitUntil(Promise.all([
+      bakeShopsToKV(env),
+      flushSupermapsBatchesToD1(env)
+    ]));
   }
 };
 
@@ -975,6 +978,74 @@ let inMemoryShortcuts = [
   }
 ];
 
+const _pendingShortcutCompletions = new Map(); // shortcutId -> increment count waiting in RAM
+const _pendingShortcutClosures = new Map();    // shortcutId -> closure report count waiting in RAM
+let _pendingShortcutEventsCount = 0;
+const SHORTCUT_BATCH_THRESHOLD = 20;
+
+function applyPendingShortcutDeltas(rows) {
+  return (rows || []).map(r => {
+    const addRides = _pendingShortcutCompletions.get(r.id) || 0;
+    const addClosures = _pendingShortcutClosures.get(r.id) || 0;
+    const ridesCount = Number(r.rides_completed_count || 0) + addRides;
+    const closedCount = Number(r.closed_reports_count || 0) + addClosures;
+    const needed = Number(r.rides_needed_for_payout || 10);
+    let payoutStatus = r.payout_status || 'pending_rides';
+    if (ridesCount >= needed && payoutStatus === 'pending_rides') payoutStatus = 'eligible';
+    const status = closedCount >= 3 ? 'temporarily_closed' : (r.status || 'active');
+    return {
+      ...r,
+      rides_completed_count: ridesCount,
+      closed_reports_count: closedCount,
+      payout_status: payoutStatus,
+      status
+    };
+  });
+}
+
+async function flushShortcutBatchesToD1(env) {
+  if (!env || !env.DB) return;
+  if (_pendingShortcutCompletions.size === 0 && _pendingShortcutClosures.size === 0) return;
+
+  const statements = [];
+  for (const [shortcutId, inc] of _pendingShortcutCompletions.entries()) {
+    if (inc <= 0) continue;
+    statements.push(
+      env.DB.prepare(`
+        UPDATE supermaps_community_shortcuts
+        SET rides_completed_count = rides_completed_count + ?,
+            payout_status = CASE WHEN (rides_completed_count + ?) >= rides_needed_for_payout AND payout_status = 'pending_rides' THEN 'eligible' ELSE payout_status END,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(inc, inc, shortcutId)
+    );
+  }
+  for (const [shortcutId, inc] of _pendingShortcutClosures.entries()) {
+    if (inc <= 0) continue;
+    statements.push(
+      env.DB.prepare(`
+        UPDATE supermaps_community_shortcuts
+        SET closed_reports_count = closed_reports_count + ?,
+            status = CASE WHEN (closed_reports_count + ?) >= 3 THEN 'temporarily_closed' ELSE status END,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(inc, inc, shortcutId)
+    );
+  }
+
+  _pendingShortcutCompletions.clear();
+  _pendingShortcutClosures.clear();
+  _pendingShortcutEventsCount = 0;
+
+  if (statements.length > 0) {
+    try {
+      await env.DB.batch(statements);
+    } catch (e) {
+      console.warn('[Shortcut Batch Flush Note]:', e.message);
+    }
+  }
+}
+
 async function handleShortcuts(request, path, url, env, headers) {
   const method = request.method;
 
@@ -992,10 +1063,10 @@ async function handleShortcuts(request, path, url, env, headers) {
         query += ' ORDER BY rides_completed_count DESC';
         const { results } = await env.DB.prepare(query).all();
         if (results && results.length > 0) {
-          const mapped = results.map(r => ({
+          const mapped = applyPendingShortcutDeltas(results.map(r => ({
             ...r,
             coordinates: typeof r.coordinates_json === 'string' ? JSON.parse(r.coordinates_json) : r.coordinates_json
-          }));
+          }))).filter(s => s.status === 'active');
           return jsonResponse(mapped, 200, headers);
         }
       } catch (e) {}
@@ -1072,12 +1143,10 @@ async function handleShortcuts(request, path, url, env, headers) {
   }
 
   // 3. COMPLETE RIDE THROUGH SHORTCUT (POST /api/v1/shortcuts/:id/complete-ride)
+  // ZERO immediate D1 writes: accumulated in Edge RAM and batch-flushed!
   if (method === 'POST' && path.includes('/complete-ride')) {
     const parts = path.split('/');
     const shortcutId = parts[parts.indexOf('complete-ride') - 1];
-    const body = await request.json().catch(() => ({}));
-    const riderId = body.rider_id || 'RIDER_' + Math.floor(Math.random() * 9000 + 1000);
-    const rideId = body.ride_id || 'RIDE_' + Date.now();
 
     let target = inMemoryShortcuts.find(s => s.id === shortcutId);
     let updatedCount = 1;
@@ -1092,25 +1161,21 @@ async function handleShortcuts(request, path, url, env, headers) {
       newPayoutStatus = target.payout_status;
     }
 
-    if (env && env.DB) {
-      try {
-        await env.DB.prepare(`
-          INSERT INTO supermaps_shortcut_rides (id, shortcut_id, rider_id, ride_id, completed_at)
-          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `).bind('ride_' + Date.now(), shortcutId, riderId, rideId).run();
+    _pendingShortcutCompletions.set(shortcutId, (_pendingShortcutCompletions.get(shortcutId) || 0) + 1);
+    _pendingShortcutEventsCount += 1;
 
-        await env.DB.prepare(`
-          UPDATE supermaps_community_shortcuts
-          SET rides_completed_count = rides_completed_count + 1,
-              payout_status = CASE WHEN (rides_completed_count + 1) >= rides_needed_for_payout AND payout_status = 'pending_rides' THEN 'eligible' ELSE payout_status END,
-              updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).bind(shortcutId).run();
-      } catch (e) {}
+    if (!target) {
+      updatedCount = _pendingShortcutCompletions.get(shortcutId);
+      if (updatedCount >= 10) newPayoutStatus = 'eligible';
+    }
+
+    if (_pendingShortcutEventsCount >= SHORTCUT_BATCH_THRESHOLD) {
+      await flushShortcutBatchesToD1(env);
     }
 
     return jsonResponse({
       status: 'success',
+      batched_in_ram: true,
       shortcut_id: shortcutId,
       rides_completed_count: updatedCount,
       payout_status: newPayoutStatus,
@@ -1119,6 +1184,7 @@ async function handleShortcuts(request, path, url, env, headers) {
   }
 
   // 4. REPORT SHORTCUT CLOSED / GATE LOCKED (POST /api/v1/shortcuts/:id/report-closed)
+  // ZERO immediate D1 writes: accumulated in RAM until 3-report consensus or batch flush!
   if (method === 'POST' && path.includes('/report-closed')) {
     const parts = path.split('/');
     const shortcutId = parts[parts.indexOf('report-closed') - 1];
@@ -1136,24 +1202,25 @@ async function handleShortcuts(request, path, url, env, headers) {
       newStatus = target.status;
     }
 
-    if (env && env.DB) {
-      try {
-        await env.DB.prepare(`
-          UPDATE supermaps_community_shortcuts
-          SET closed_reports_count = closed_reports_count + 1,
-              status = CASE WHEN (closed_reports_count + 1) >= 3 THEN 'temporarily_closed' ELSE status END,
-              updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).bind(shortcutId).run();
-      } catch (e) {}
+    const pendingClosed = (_pendingShortcutClosures.get(shortcutId) || 0) + 1;
+    _pendingShortcutClosures.set(shortcutId, pendingClosed);
+    _pendingShortcutEventsCount += 1;
+    if (!target) {
+      closedCount = pendingClosed;
+      if (closedCount >= 3) newStatus = 'temporarily_closed';
+    }
+
+    if (pendingClosed >= 3 || _pendingShortcutEventsCount >= SHORTCUT_BATCH_THRESHOLD) {
+      await flushShortcutBatchesToD1(env);
     }
 
     return jsonResponse({
       status: 'success',
+      batched_in_ram: true,
       shortcut_id: shortcutId,
       closed_reports_count: closedCount,
       active_status: newStatus,
-      message: newStatus === 'temporarily_closed' ? 'Shortcut temporarily deactivated after 3 closure reports.' : 'Closure report logged.'
+      message: newStatus === 'temporarily_closed' ? 'Shortcut temporarily deactivated after 3 closure reports.' : 'Closure report logged in RAM.'
     }, 200, headers);
   }
 
@@ -1163,10 +1230,10 @@ async function handleShortcuts(request, path, url, env, headers) {
       try {
         const { results } = await env.DB.prepare('SELECT * FROM supermaps_community_shortcuts ORDER BY created_at DESC').all();
         if (results && results.length > 0) {
-          const mapped = results.map(r => ({
+          const mapped = applyPendingShortcutDeltas(results.map(r => ({
             ...r,
             coordinates: typeof r.coordinates_json === 'string' ? JSON.parse(r.coordinates_json) : r.coordinates_json
-          }));
+          })));
           return jsonResponse(mapped, 200, headers);
         }
       } catch (e) {}
@@ -1412,9 +1479,63 @@ function jsonResponse(data, status = 200, extraHeaders = {}) {
 }
 
 // =========================================================================
-// MODULE 11: RIDER ROUTE & DOORSTEP FEEDBACK (Stars + Comments to Admin)
+// MODULE 11: RIDER ROUTE & DOORSTEP FEEDBACK (Batched Edge RAM -> D1)
 // =========================================================================
 const _feedbackMemoryCache = [];
+const _pendingFeedbackBatch = [];
+const FEEDBACK_BATCH_THRESHOLD = 10;
+
+async function flushFeedbackBatchToD1(env) {
+  if (!env || !env.DB || _pendingFeedbackBatch.length === 0) return;
+  const toFlush = _pendingFeedbackBatch.splice(0, _pendingFeedbackBatch.length);
+
+  const buildStmts = () => toFlush.map(entry =>
+    env.DB.prepare(`
+      INSERT OR IGNORE INTO supermaps_feedbacks (id, rating, tags, comment, destination_name, destination_coords, user_gps_coords, vehicle_mode, doorstep_verified, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      entry.id,
+      entry.rating,
+      JSON.stringify(entry.tags),
+      entry.comment,
+      entry.destinationName,
+      JSON.stringify(entry.destinationCoords),
+      JSON.stringify(entry.userGpsCoords),
+      entry.vehicleMode,
+      entry.doorstepVerified ? 1 : 0,
+      entry.timestamp
+    )
+  );
+
+  try {
+    await env.DB.batch(buildStmts());
+  } catch (err) {
+    // Only create table once on missing-table error, then retry batch once
+    if (String(err.message || '').toLowerCase().includes('no such table')) {
+      try {
+        await env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS supermaps_feedbacks (
+            id TEXT PRIMARY KEY, rating INTEGER, tags TEXT, comment TEXT,
+            destination_name TEXT, destination_coords TEXT, user_gps_coords TEXT,
+            vehicle_mode TEXT, doorstep_verified INTEGER, created_at TEXT
+          )
+        `).run();
+        await env.DB.batch(buildStmts());
+      } catch (retryErr) {
+        console.warn('D1 feedback batch retry note:', retryErr.message);
+      }
+    } else {
+      console.warn('D1 feedback batch note:', err.message);
+    }
+  }
+}
+
+async function flushSupermapsBatchesToD1(env) {
+  await Promise.all([
+    flushShortcutBatchesToD1(env),
+    flushFeedbackBatchToD1(env)
+  ]);
+}
 
 async function handleFeedback(request, env, headers) {
   const method = request.method.toUpperCase();
@@ -1437,84 +1558,49 @@ async function handleFeedback(request, env, headers) {
         timestamp: data.timestamp || new Date().toISOString()
       };
 
-      // 1. In-memory cache failover
+      // 1. Store immediately in Edge RAM (0 D1 writes, 0 KV writes!)
       _feedbackMemoryCache.unshift(entry);
       if (_feedbackMemoryCache.length > 200) _feedbackMemoryCache.pop();
 
-      // 2. Persist to KV if available
-      if (env.SUPERMAPS_KV) {
-        try {
-          await env.SUPERMAPS_KV.put('smp_feedbacks', JSON.stringify(_feedbackMemoryCache.slice(0, 50)));
-        } catch(e) {}
+      _pendingFeedbackBatch.push(entry);
+
+      // 2. Batch-flush to D1 only when buffer reaches threshold (or via 15-min cron)
+      if (_pendingFeedbackBatch.length >= FEEDBACK_BATCH_THRESHOLD) {
+        await flushFeedbackBatchToD1(env);
       }
 
-      // 3. Persist to D1 DB if available
-      if (env.DB) {
-        try {
-          await env.DB.prepare(`
-            CREATE TABLE IF NOT EXISTS supermaps_feedbacks (
-              id TEXT PRIMARY KEY,
-              rating INTEGER,
-              tags TEXT,
-              comment TEXT,
-              destination_name TEXT,
-              destination_coords TEXT,
-              user_gps_coords TEXT,
-              vehicle_mode TEXT,
-              doorstep_verified INTEGER,
-              created_at TEXT
-            )
-          `).run();
-
-          await env.DB.prepare(`
-            INSERT INTO supermaps_feedbacks (id, rating, tags, comment, destination_name, destination_coords, user_gps_coords, vehicle_mode, doorstep_verified, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).bind(
-            entry.id,
-            entry.rating,
-            JSON.stringify(entry.tags),
-            entry.comment,
-            entry.destinationName,
-            JSON.stringify(entry.destinationCoords),
-            JSON.stringify(entry.userGpsCoords),
-            entry.vehicleMode,
-            entry.doorstepVerified ? 1 : 0,
-            entry.timestamp
-          ).run();
-        } catch(err) {
-          console.warn('D1 feedback write:', err);
-        }
-      }
-
-      return jsonResponse({ success: true, message: 'Feedback recorded by Supermaps Admin', id: entry.id }, 200, headers);
+      return jsonResponse({ success: true, batched_in_ram: true, message: 'Feedback buffered in Edge RAM for Supermaps Admin', id: entry.id }, 200, headers);
     } catch(err) {
       return jsonResponse({ error: 'Failed to record feedback', details: err.message }, 500, headers);
     }
   }
 
   if (method === 'GET') {
-    // Admin query for recent feedbacks
+    let dbRows = [];
     if (env.DB) {
       try {
         const { results } = await env.DB.prepare(`
           SELECT * FROM supermaps_feedbacks ORDER BY created_at DESC LIMIT 50
         `).all();
-        if (results && results.length > 0) {
-          return jsonResponse(results, 200, headers);
-        }
+        if (Array.isArray(results)) dbRows = results;
       } catch(e) {}
     }
 
-    if (env.SUPERMAPS_KV) {
-      try {
-        const cached = await env.SUPERMAPS_KV.get('smp_feedbacks', { type: 'json' });
-        if (cached) return jsonResponse(cached, 200, headers);
-      } catch(e) {}
+    // Merge live RAM cache + D1 rows so Admin sees newest reviews immediately
+    const seen = new Set();
+    const merged = [];
+    for (const item of [..._feedbackMemoryCache, ...dbRows]) {
+      if (item && item.id && !seen.has(item.id)) {
+        seen.add(item.id);
+        merged.push(item);
+      }
+      if (merged.length >= 50) break;
     }
 
-    return jsonResponse(_feedbackMemoryCache, 200, headers);
+    return jsonResponse(merged, 200, headers);
   }
 
   return jsonResponse({ error: 'Method not allowed' }, 405, headers);
 }
+
 

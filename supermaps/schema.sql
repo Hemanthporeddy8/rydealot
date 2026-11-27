@@ -135,3 +135,16 @@ CREATE TABLE IF NOT EXISTS supermaps_shop_transfers (
 CREATE INDEX IF NOT EXISTS idx_shop_transfers_status 
 ON supermaps_shop_transfers(status);
 
+-- 7. RIDER ROUTE & DOORSTEP FEEDBACK (Batched from Edge RAM to D1)
+CREATE TABLE IF NOT EXISTS supermaps_feedbacks (
+    id TEXT PRIMARY KEY,
+    rating INTEGER,
+    tags TEXT,
+    comment TEXT,
+    destination_name TEXT,
+    destination_coords TEXT,
+    user_gps_coords TEXT,
+    vehicle_mode TEXT,
+    doorstep_verified INTEGER,
+    created_at TEXT
+);
