@@ -78,11 +78,11 @@ public class MainActivity extends AppCompatActivity {
         settings.setUseWideViewPort(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
 
         // Custom User-Agent tag so backend recognizes native app
         String defaultUa = settings.getUserAgentString();
-        settings.setUserAgentString(defaultUa + " RydealotNative/1.1 (Android; NativeShell)");
+        settings.setUserAgentString(defaultUa + " RydealotNative/1.2 (Android; NativeShell)");
 
         // Native Navigation Router
         webView.setWebViewClient(new WebViewClient() {
@@ -99,6 +99,12 @@ public class MainActivity extends AppCompatActivity {
 
             private boolean handleExternalUrls(String url) {
                 if (url == null) return false;
+
+                // Strictly block external APK downloads inside Play Store shell
+                String lower = url.toLowerCase(java.util.Locale.ROOT);
+                if (lower.contains(".apk")) {
+                    return true;
+                }
 
                 // Open external intents (WhatsApp, Phone Call, Maps, Mail) natively
                 if (url.startsWith("tel:") || url.startsWith("mailto:") || 
@@ -120,6 +126,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                // Defense-in-depth: strip any external APK download cards inside Play Store WebView
+                view.evaluateJavascript(
+                    "(function(){var els=document.querySelectorAll('#apk-download-card,.apk-download-container');for(var i=0;i<els.length;i++){els[i].remove();}})();",
+                    null
+                );
                 dismissSplashOverlay();
             }
 

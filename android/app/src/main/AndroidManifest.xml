@@ -23,7 +23,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Rydealot"
         android:hardwareAccelerated="true"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="false">
 
         <activity
             android:name=".MainActivity"
